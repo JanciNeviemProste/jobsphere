@@ -55,7 +55,12 @@ export default function ApplyPage() {
         const uploadFormData = new FormData()
         uploadFormData.append('file', formData.cvFile)
 
-        const uploadResponse = await fetch('/api/upload', {
+        // Try Vercel Blob first, fallback to local upload
+        const uploadEndpoint = process.env.NEXT_PUBLIC_USE_VERCEL_BLOB === 'true'
+          ? '/api/upload-blob'
+          : '/api/upload'
+
+        const uploadResponse = await fetch(uploadEndpoint, {
           method: 'POST',
           body: uploadFormData,
         })

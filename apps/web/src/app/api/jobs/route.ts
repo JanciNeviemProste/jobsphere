@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
+import { errorResponse, ValidationError } from '@/lib/errors'
 
 export async function GET(req: Request) {
+  const startTime = Date.now()
   try {
+    logger.apiRequest('GET', '/api/jobs')
+
     const { searchParams } = new URL(req.url)
     const search = searchParams.get('search')
     const workMode = searchParams.get('workMode')
@@ -37,18 +42,24 @@ export async function GET(req: Request) {
       take: 50,
     })
 
+    const duration = Date.now() - startTime
+    logger.info(`Fetched ${jobs.length} jobs`, { duration })
+
     return NextResponse.json(jobs)
   } catch (error) {
-    console.error('Error fetching jobs:', error)
+    logger.apiError('GET', '/api/jobs', error)
+    const errorData = errorResponse(error)
     return NextResponse.json(
-      { error: 'Failed to fetch jobs' },
-      { status: 500 }
+      { error: errorData.error },
+      { status: errorData.statusCode }
     )
   }
 }
 
 export async function POST(req: Request) {
   try {
+    logger.apiRequest('POST', '/api/jobs')
+
     const body = await req.json()
     const {
       title,
@@ -64,10 +75,12 @@ export async function POST(req: Request) {
 
     // Validation
     if (!title || !location || !description || !organizationId) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
+      throw new ValidationError('Missing required fields', {
+        title: !title ? 'Title is required' : '',
+        location: !location ? 'Location is required' : '',
+        description: !description ? 'Description is required' : '',
+        organizationId: !organizationId ? 'Organization ID is required' : '',
+      })
     }
 
     const job = await prisma.job.create({
@@ -85,12 +98,15 @@ export async function POST(req: Request) {
       },
     })
 
+    logger.info('Job created', { jobId: job.id, organizationId })
+
     return NextResponse.json(job, { status: 201 })
   } catch (error) {
-    console.error('Error creating job:', error)
+    logger.apiError('POST', '/api/jobs', error)
+    const errorData = errorResponse(error)
     return NextResponse.json(
-      { error: 'Failed to create job' },
-      { status: 500 }
+      errorData,
+      { status: errorData.statusCode }
     )
   }
 }
