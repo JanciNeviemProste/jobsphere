@@ -7,7 +7,10 @@
   "author": "JobSphere Team",
   "type": "module",
   "workspaces": [
-    "apps/web"
+    "apps/web",
+    "packages/db",
+    "packages/ui",
+    "packages/i18n"
   ],
   "scripts": {
     "dev": "turbo dev",
