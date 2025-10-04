@@ -80,7 +80,9 @@
       "terms": "Súhlasím s Podmienkami a Ochranou súkromia",
       "submit": "Vytvoriť účet",
       "hasAccount": "Už máte účet?",
-      "loginLink": "Prihlásiť sa"
+      "loginLink": "Prihlásiť sa",
+      "orContinueWith": "Alebo pokračovať s",
+      "google": "Google"
     }
   },
   "footer": {
