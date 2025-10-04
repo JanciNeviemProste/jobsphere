@@ -15,8 +15,9 @@ import {
   Clock
 } from 'lucide-react'
 
-export default function HomePage() {
+export default function HomePage({ params }: { params: { locale: string } }) {
   const t = useTranslations()
+  const locale = params.locale
 
   const features = [
     {
@@ -95,10 +96,10 @@ export default function HomePage() {
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="lg" asChild>
-                <Link href="/jobs">{t('hero.ctaPrimary')}</Link>
+                <Link href={`/${locale}/jobs`}>{t('hero.ctaPrimary')}</Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <Link href="/for-employers">{t('hero.ctaSecondary')}</Link>
+                <Link href={`/${locale}/employer`}>{t('hero.ctaSecondary')}</Link>
               </Button>
             </div>
           </div>
@@ -152,7 +153,7 @@ export default function HomePage() {
               </h2>
             </div>
             <Button variant="outline" asChild>
-              <Link href="/jobs">{t('jobs.viewAll')}</Link>
+              <Link href={`/${locale}/jobs`}>{t('jobs.viewAll')}</Link>
             </Button>
           </div>
 
@@ -187,7 +188,7 @@ export default function HomePage() {
                       {job.salary}
                     </div>
                     <Button className="w-full mt-4" variant="outline" asChild>
-                      <Link href={`/jobs/${job.id}`}>View Details</Link>
+                      <Link href={`/${locale}/jobs/${job.id}`}>View Details</Link>
                     </Button>
                   </div>
                 </CardContent>
@@ -209,10 +210,10 @@ export default function HomePage() {
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="lg" asChild>
-                <Link href="/signup">{t('nav.signup')}</Link>
+                <Link href={`/${locale}/signup`}>{t('nav.signup')}</Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <Link href="/pricing">{t('nav.pricing')}</Link>
+                <Link href={`/${locale}/pricing`}>{t('nav.pricing')}</Link>
               </Button>
             </div>
           </div>

@@ -98,8 +98,9 @@ const WORK_MODES = ['REMOTE', 'HYBRID', 'ONSITE']
 const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT']
 const SENIORITY_LEVELS = ['JUNIOR', 'MEDIOR', 'SENIOR', 'LEAD']
 
-export default function JobsPage() {
+export default function JobsPage({ params }: { params: { locale: string } }) {
   const t = useTranslations()
+  const locale = params.locale
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedWorkModes, setSelectedWorkModes] = useState<string[]>([])
   const [selectedJobTypes, setSelectedJobTypes] = useState<string[]>([])
@@ -287,7 +288,7 @@ export default function JobsPage() {
               <CardFooter className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">{job.postedAt}</span>
                 <Button asChild size="sm">
-                  <Link href={`/jobs/${job.id}`}>Zobraziť detail</Link>
+                  <Link href={`/${locale}/jobs/${job.id}`}>Zobraziť detail</Link>
                 </Button>
               </CardFooter>
             </Card>

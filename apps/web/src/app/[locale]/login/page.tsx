@@ -11,9 +11,10 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 
-export default function LoginPage() {
+export default function LoginPage({ params }: { params: { locale: string } }) {
   const t = useTranslations('auth.login')
   const router = useRouter()
+  const locale = params.locale
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
@@ -158,7 +159,7 @@ export default function LoginPage() {
         <CardFooter className="flex flex-wrap items-center justify-center gap-2">
           <div className="text-sm text-muted-foreground">
             {t('noAccount')}{' '}
-            <Link href="/signup" className="text-primary hover:underline">
+            <Link href={`/${locale}/signup`} className="text-primary hover:underline">
               {t('signupLink')}
             </Link>
           </div>

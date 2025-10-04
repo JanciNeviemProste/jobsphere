@@ -10,8 +10,9 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, Upload, User, Briefcase, MapPin, Mail, Phone } from 'lucide-react'
 
-export default function ProfilePage() {
+export default function ProfilePage({ params }: { params: { locale: string } }) {
   const t = useTranslations()
+  const locale = params.locale
   const [saving, setSaving] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,7 +28,7 @@ export default function ProfilePage() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Back Button */}
         <Button variant="ghost" asChild className="mb-6">
-          <Link href="/dashboard">
+          <Link href={`/${locale}/dashboard`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Späť na dashboard
           </Link>

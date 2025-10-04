@@ -76,8 +76,9 @@ const RECOMMENDED_JOBS = [
   },
 ]
 
-export default function DashboardPage() {
+export default function DashboardPage({ params }: { params: { locale: string } }) {
   const t = useTranslations()
+  const locale = params.locale
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -150,7 +151,7 @@ export default function DashboardPage() {
                     <CardDescription>Všetky vaše odoslané prihlášky</CardDescription>
                   </div>
                   <Button variant="outline" size="sm" asChild>
-                    <Link href="/jobs">Hľadať prácu</Link>
+                    <Link href={`/${locale}/jobs`}>Hľadať prácu</Link>
                   </Button>
                 </div>
               </CardHeader>
@@ -186,7 +187,7 @@ export default function DashboardPage() {
                       <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
                       <p className="text-muted-foreground mb-4">Zatiaľ nemáte žiadne prihlášky</p>
                       <Button asChild>
-                        <Link href="/jobs">Prehľadať ponuky</Link>
+                        <Link href={`/${locale}/jobs`}>Prehľadať ponuky</Link>
                       </Button>
                     </div>
                   )}
@@ -232,7 +233,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <Button className="w-full" variant="outline" asChild>
-                  <Link href="/dashboard/profile">Dokončiť profil</Link>
+                  <Link href={`/${locale}/dashboard/profile`}>Dokončiť profil</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -255,7 +256,7 @@ export default function DashboardPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">{job.location} • {job.salary} €</p>
                     <Button size="sm" variant="outline" className="w-full" asChild>
-                      <Link href={`/jobs/${job.id}`}>Zobraziť</Link>
+                      <Link href={`/${locale}/jobs/${job.id}`}>Zobraziť</Link>
                     </Button>
                   </div>
                 ))}

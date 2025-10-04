@@ -75,8 +75,9 @@ const MOCK_RECENT_APPLICANTS = [
   },
 ]
 
-export default function EmployerDashboardPage() {
+export default function EmployerDashboardPage({ params }: { params: { locale: string } }) {
   const t = useTranslations()
+  const locale = params.locale
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -123,7 +124,7 @@ export default function EmployerDashboardPage() {
             <p className="text-muted-foreground">Spravujte vaše pracovné ponuky a kandidátov</p>
           </div>
           <Button asChild>
-            <Link href="/employer/jobs/new">
+            <Link href={`/${locale}/employer/jobs/new`}>
               <Plus className="mr-2 h-4 w-4" />
               Nová pozícia
             </Link>
