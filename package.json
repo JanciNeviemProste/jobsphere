@@ -6,7 +6,6 @@
   "license": "MIT",
   "author": "JobSphere Team",
   "type": "module",
-  "packageManager": "pnpm@9.15.4",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
