@@ -150,7 +150,9 @@ export default async function EmployerSettingsPage({ params }: { params: { local
                     {subscription?.plan || 'Starter'} Plan
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {subscription ? `€${(subscription.amount / 100).toFixed(0)} / mesiac` : 'Free'}
+                    {subscription?.plan === 'PROFESSIONAL' && '€99 / mesiac'}
+                    {subscription?.plan === 'ENTERPRISE' && '€299 / mesiac'}
+                    {!subscription && 'Free'}
                   </p>
                 </div>
                 <Button variant="outline" size="sm" asChild>
