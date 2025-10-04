@@ -1,92 +1,136 @@
-'use client'
-
-import { useTranslations } from 'next-intl'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Briefcase, Users, Eye, CheckCircle, Clock, XCircle } from 'lucide-react'
 
-// Mock data - neskôr z databázy
-const MOCK_COMPANY = {
-  name: 'TechCorp SK',
-  logo: null,
+async function getEmployerData(userId: string) {
+  // Get user's organization
+  const orgMember = await prisma.orgMember.findFirst({
+    where: { userId },
+    include: {
+      organization: true,
+    },
+  })
+
+  if (!orgMember) {
+    return null
+  }
+
+  // Get jobs for this organization
+  const jobs = await prisma.job.findMany({
+    where: {
+      organizationId: orgMember.organizationId,
+    },
+    include: {
+      applications: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 10,
+  })
+
+  // Get recent applications
+  const recentApplications = await prisma.application.findMany({
+    where: {
+      job: {
+        organizationId: orgMember.organizationId,
+      },
+    },
+    include: {
+      job: {
+        select: {
+          title: true,
+        },
+      },
+      candidate: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 5,
+  })
+
+  return {
+    organization: orgMember.organization,
+    jobs,
+    recentApplications,
+  }
 }
 
-const MOCK_JOBS = [
-  {
-    id: '1',
-    title: 'Senior React Developer',
-    status: 'ACTIVE',
-    applicants: 23,
-    views: 456,
-    createdAt: '2024-09-15',
-  },
-  {
-    id: '2',
-    title: 'Backend Developer',
-    status: 'ACTIVE',
-    applicants: 15,
-    views: 234,
-    createdAt: '2024-09-20',
-  },
-  {
-    id: '3',
-    title: 'DevOps Engineer',
-    status: 'DRAFT',
-    applicants: 0,
-    views: 12,
-    createdAt: '2024-10-01',
-  },
-]
+export default async function EmployerDashboardPage({
+  params,
+}: {
+  params: { locale: string }
+}) {
+  const session = await auth()
 
-const MOCK_RECENT_APPLICANTS = [
-  {
-    id: '1',
-    name: 'Peter Kováč',
-    jobTitle: 'Senior React Developer',
-    status: 'NEW',
-    appliedAt: '2024-10-03',
-    match: 92,
-  },
-  {
-    id: '2',
-    name: 'Jana Horvátová',
-    jobTitle: 'Senior React Developer',
-    status: 'REVIEWING',
-    appliedAt: '2024-10-02',
-    match: 88,
-  },
-  {
-    id: '3',
-    name: 'Martin Szabó',
-    jobTitle: 'Backend Developer',
-    status: 'INTERVIEWED',
-    appliedAt: '2024-10-01',
-    match: 85,
-  },
-  {
-    id: '4',
-    name: 'Lucia Mináriková',
-    jobTitle: 'Backend Developer',
-    status: 'REJECTED',
-    appliedAt: '2024-09-30',
-    match: 65,
-  },
-]
+  if (!session?.user?.id) {
+    redirect(`/${params.locale}/login`)
+  }
 
-export default function EmployerDashboardPage({ params }: { params: { locale: string } }) {
-  const t = useTranslations()
-  const locale = params.locale
+  const data = await getEmployerData(session.user.id)
+
+  if (!data) {
+    // User is not an employer
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle>Prístup odmietnutý</CardTitle>
+            <CardDescription>
+              Nemáte prístup k employer dashboardu. Vytvorte si organizáciu alebo sa pripojiť k existujúcej.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="w-full">
+              <Link href={`/${params.locale}/dashboard`}>Späť na dashboard</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const { organization, jobs, recentApplications } = data
+
+  // Calculate stats
+  const stats = {
+    activeJobs: jobs.filter((j) => j.status === 'ACTIVE').length,
+    totalApplicants: jobs.reduce((sum, job) => sum + job.applications.length, 0),
+    newApplicants: recentApplications.filter((a) => a.status === 'PENDING').length,
+    totalJobs: jobs.length,
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ACTIVE':
-        return <Badge variant="default" className="gap-1 bg-green-600"><CheckCircle className="h-3 w-3" /> Aktívne</Badge>
+        return (
+          <Badge variant="default" className="gap-1 bg-green-600">
+            <CheckCircle className="h-3 w-3" /> Aktívne
+          </Badge>
+        )
       case 'DRAFT':
-        return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" /> Koncept</Badge>
+        return (
+          <Badge variant="secondary" className="gap-1">
+            <Clock className="h-3 w-3" /> Koncept
+          </Badge>
+        )
       case 'CLOSED':
-        return <Badge variant="outline" className="gap-1"><XCircle className="h-3 w-3" /> Uzavreté</Badge>
+        return (
+          <Badge variant="outline" className="gap-1">
+            <XCircle className="h-3 w-3" /> Uzavreté
+          </Badge>
+        )
       default:
         return <Badge>{status}</Badge>
     }
@@ -94,24 +138,19 @@ export default function EmployerDashboardPage({ params }: { params: { locale: st
 
   const getApplicantStatusBadge = (status: string) => {
     switch (status) {
-      case 'NEW':
+      case 'PENDING':
         return <Badge variant="default">Nový</Badge>
       case 'REVIEWING':
         return <Badge variant="secondary">Preveruje sa</Badge>
       case 'INTERVIEWED':
         return <Badge className="bg-blue-600">Interview</Badge>
+      case 'ACCEPTED':
+        return <Badge className="bg-green-600">Prijatý</Badge>
       case 'REJECTED':
         return <Badge variant="destructive">Zamietnutý</Badge>
       default:
         return <Badge>{status}</Badge>
     }
-  }
-
-  const stats = {
-    activeJobs: MOCK_JOBS.filter(j => j.status === 'ACTIVE').length,
-    totalApplicants: MOCK_JOBS.reduce((sum, job) => sum + job.applicants, 0),
-    newApplicants: MOCK_RECENT_APPLICANTS.filter(a => a.status === 'NEW').length,
-    totalViews: MOCK_JOBS.reduce((sum, job) => sum + job.views, 0),
   }
 
   return (
@@ -120,11 +159,11 @@ export default function EmployerDashboardPage({ params }: { params: { locale: st
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">{MOCK_COMPANY.name} - ATS Dashboard</h1>
+            <h1 className="text-3xl font-bold mb-2">{organization.name} - ATS Dashboard</h1>
             <p className="text-muted-foreground">Spravujte vaše pracovné ponuky a kandidátov</p>
           </div>
           <Button asChild>
-            <Link href={`/${locale}/employer/jobs/new`}>
+            <Link href={`/${params.locale}/employer/jobs/new`}>
               <Plus className="mr-2 h-4 w-4" />
               Nová pozícia
             </Link>
@@ -153,8 +192,8 @@ export default function EmployerDashboardPage({ params }: { params: { locale: st
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Celkovo zobrazení</CardDescription>
-              <CardTitle className="text-3xl text-muted-foreground">{stats.totalViews}</CardTitle>
+              <CardDescription>Celkovo pozícií</CardDescription>
+              <CardTitle className="text-3xl text-muted-foreground">{stats.totalJobs}</CardTitle>
             </CardHeader>
           </Card>
         </div>
@@ -170,14 +209,11 @@ export default function EmployerDashboardPage({ params }: { params: { locale: st
                     <CardTitle>Pracovné pozície</CardTitle>
                     <CardDescription>Vaše zverejnené ponuky práce</CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href="/employer/jobs">Zobraziť všetky</Link>
-                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {MOCK_JOBS.map((job) => (
+                  {jobs.map((job) => (
                     <div
                       key={job.id}
                       className="flex items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -190,32 +226,25 @@ export default function EmployerDashboardPage({ params }: { params: { locale: st
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Users className="h-4 w-4" />
-                            {job.applicants} prihlášok
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Eye className="h-4 w-4" />
-                            {job.views} zobrazení
+                            {job.applications.length} prihlášok
                           </span>
                           <span>Vytvorené {new Date(job.createdAt).toLocaleDateString('sk-SK')}</span>
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/employer/jobs/${job.id}`}>Upraviť</Link>
-                        </Button>
                         <Button variant="outline" size="sm" asChild>
-                          <Link href={`/employer/jobs/${job.id}/applicants`}>Prihlášky</Link>
+                          <Link href={`/${params.locale}/jobs/${job.id}`}>Zobraziť</Link>
                         </Button>
                       </div>
                     </div>
                   ))}
 
-                  {MOCK_JOBS.length === 0 && (
+                  {jobs.length === 0 && (
                     <div className="text-center py-8">
                       <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
                       <p className="text-muted-foreground mb-4">Zatiaľ nemáte žiadne pracovné ponuky</p>
                       <Button asChild>
-                        <Link href="/employer/jobs/new">
+                        <Link href={`/${params.locale}/employer/jobs/new`}>
                           <Plus className="mr-2 h-4 w-4" />
                           Vytvoriť prvú pozíciu
                         </Link>
@@ -235,34 +264,39 @@ export default function EmployerDashboardPage({ params }: { params: { locale: st
                     <CardDescription>Posledné prihlásení kandidáti</CardDescription>
                   </div>
                   <Button variant="outline" size="sm" asChild>
-                    <Link href="/employer/applicants">Zobraziť všetky</Link>
+                    <Link href={`/${params.locale}/employer/applicants`}>Zobraziť všetky</Link>
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {MOCK_RECENT_APPLICANTS.map((applicant) => (
+                  {recentApplications.map((application) => (
                     <div
-                      key={applicant.id}
+                      key={application.id}
                       className="flex items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold">{applicant.name}</h4>
-                          {getApplicantStatusBadge(applicant.status)}
+                          <h4 className="font-semibold">{application.candidate.name || application.candidate.email}</h4>
+                          {getApplicantStatusBadge(application.status)}
                         </div>
-                        <p className="text-sm text-muted-foreground mb-1">{applicant.jobTitle}</p>
+                        <p className="text-sm text-muted-foreground mb-1">{application.job.title}</p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>Prihlásený {new Date(applicant.appliedAt).toLocaleDateString('sk-SK')}</span>
-                          <span>•</span>
-                          <span className="text-primary font-medium">{applicant.match}% AI match</span>
+                          <span>Prihlásený {new Date(application.createdAt).toLocaleDateString('sk-SK')}</span>
                         </div>
                       </div>
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/employer/applicants/${applicant.id}`}>Detail</Link>
+                        <Link href={`/${params.locale}/employer/applicants/${application.id}`}>Detail</Link>
                       </Button>
                     </div>
                   ))}
+
+                  {recentApplications.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Users className="mx-auto h-12 w-12 mb-3" />
+                      <p>Zatiaľ žiadne prihlášky</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -277,19 +311,19 @@ export default function EmployerDashboardPage({ params }: { params: { locale: st
               </CardHeader>
               <CardContent className="space-y-2">
                 <Button className="w-full justify-start" variant="outline" asChild>
-                  <Link href="/employer/jobs/new">
+                  <Link href={`/${params.locale}/employer/jobs/new`}>
                     <Plus className="mr-2 h-4 w-4" />
                     Vytvoriť novú pozíciu
                   </Link>
                 </Button>
                 <Button className="w-full justify-start" variant="outline" asChild>
-                  <Link href="/employer/applicants">
+                  <Link href={`/${params.locale}/employer/applicants`}>
                     <Users className="mr-2 h-4 w-4" />
                     Zobraziť všetkých kandidátov
                   </Link>
                 </Button>
                 <Button className="w-full justify-start" variant="outline" asChild>
-                  <Link href="/employer/settings">
+                  <Link href={`/${params.locale}/employer/settings`}>
                     <Briefcase className="mr-2 h-4 w-4" />
                     Nastavenia spoločnosti
                   </Link>

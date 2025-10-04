@@ -1,8 +1,7 @@
-'use client'
-
-import { useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,24 +9,57 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, Building2, Mail, Phone, MapPin, Globe } from 'lucide-react'
 
-export default function EmployerSettingsPage({ params }: { params: { locale: string } }) {
-  const t = useTranslations()
-  const locale = params.locale
-  const [saving, setSaving] = useState(false)
+async function getOrganizationData(userId: string) {
+  // Get user's organization
+  const orgMember = await prisma.orgMember.findFirst({
+    where: { userId },
+    include: {
+      organization: true,
+    },
+  })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSaving(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setSaving(false)
+  if (!orgMember) {
+    return null
   }
+
+  // Get subscription info if exists
+  const subscription = await prisma.subscription.findFirst({
+    where: {
+      organizationId: orgMember.organizationId,
+      status: 'ACTIVE',
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  })
+
+  return {
+    organization: orgMember.organization,
+    subscription,
+  }
+}
+
+export default async function EmployerSettingsPage({ params }: { params: { locale: string } }) {
+  const session = await auth()
+
+  if (!session?.user?.id) {
+    redirect(`/${params.locale}/login`)
+  }
+
+  const data = await getOrganizationData(session.user.id)
+
+  if (!data) {
+    redirect(`/${params.locale}/employer`)
+  }
+
+  const { organization, subscription } = data
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Back Button */}
         <Button variant="ghost" asChild className="mb-6">
-          <Link href={`/${locale}/employer`}>
+          <Link href={`/${params.locale}/employer`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Späť na dashboard
           </Link>
@@ -49,17 +81,17 @@ export default function EmployerSettingsPage({ params }: { params: { locale: str
               <CardDescription>Základné údaje o vašej organizácii</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="companyName">Názov spoločnosti *</Label>
-                  <Input id="companyName" defaultValue="TechCorp SK" required />
+                  <Input id="companyName" defaultValue={organization.name} required />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email">Kontaktný email *</Label>
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <Input id="email" type="email" defaultValue="contact@techcorp.sk" required />
+                    <Input id="email" type="email" defaultValue={organization.email || ''} required />
                   </div>
                 </div>
 
@@ -67,7 +99,7 @@ export default function EmployerSettingsPage({ params }: { params: { locale: str
                   <Label htmlFor="phone">Telefón</Label>
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-muted-foreground" />
-                    <Input id="phone" type="tel" defaultValue="+421 900 123 456" />
+                    <Input id="phone" type="tel" defaultValue={organization.phone || ''} />
                   </div>
                 </div>
 
@@ -75,7 +107,7 @@ export default function EmployerSettingsPage({ params }: { params: { locale: str
                   <Label htmlFor="location">Adresa</Label>
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <Input id="location" defaultValue="Bratislava, Slovakia" />
+                    <Input id="location" defaultValue={organization.location || ''} />
                   </div>
                 </div>
 
@@ -83,7 +115,7 @@ export default function EmployerSettingsPage({ params }: { params: { locale: str
                   <Label htmlFor="website">Webstránka</Label>
                   <div className="flex items-center gap-2">
                     <Globe className="h-4 w-4 text-muted-foreground" />
-                    <Input id="website" type="url" defaultValue="https://techcorp.sk" />
+                    <Input id="website" type="url" defaultValue={organization.website || ''} />
                   </div>
                 </div>
 
@@ -94,12 +126,12 @@ export default function EmployerSettingsPage({ params }: { params: { locale: str
                     rows={4}
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     placeholder="Krátky popis vašej spoločnosti..."
-                    defaultValue="Moderná IT spoločnosť zameraná na vývoj inovatívnych riešení."
+                    defaultValue={organization.description || ''}
                   />
                 </div>
 
-                <Button type="submit" disabled={saving}>
-                  {saving ? 'Ukladá sa...' : 'Uložiť zmeny'}
+                <Button type="submit">
+                  Uložiť zmeny
                 </Button>
               </form>
             </CardContent>
@@ -114,10 +146,16 @@ export default function EmployerSettingsPage({ params }: { params: { locale: str
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div>
-                  <p className="font-semibold">Professional Plan</p>
-                  <p className="text-sm text-muted-foreground">€99 / mesiac</p>
+                  <p className="font-semibold">
+                    {subscription?.plan || 'Starter'} Plan
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {subscription ? `€${(subscription.amount / 100).toFixed(0)} / mesiac` : 'Free'}
+                  </p>
                 </div>
-                <Button variant="outline" size="sm">Zmeniť plán</Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/${params.locale}/pricing`}>Zmeniť plán</Link>
+                </Button>
               </div>
 
               <Separator />
