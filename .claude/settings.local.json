@@ -12,7 +12,10 @@
       "Bash(git commit:*)",
       "Bash(git rm:*)",
       "Bash(chmod:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(openssl rand:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []
