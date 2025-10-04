@@ -19,7 +19,10 @@
       "Bash(npm run build:*)",
       "Bash(npm install)",
       "Bash(git log:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(pnpm prisma generate:*)",
+      "Bash(yarn prisma:*)",
+      "WebFetch(domain:www.jobsphere.eu)"
     ],
     "deny": [],
     "ask": []
