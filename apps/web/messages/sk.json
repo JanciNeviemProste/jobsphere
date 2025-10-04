@@ -56,6 +56,33 @@
     "partTime": "Čiastočný úväzok",
     "contract": "Kontrakt"
   },
+  "auth": {
+    "login": {
+      "title": "Vitajte späť",
+      "subtitle": "Prihláste sa do svojho účtu",
+      "email": "Email",
+      "password": "Heslo",
+      "rememberMe": "Zapamätať si ma",
+      "forgotPassword": "Zabudli ste heslo?",
+      "submit": "Prihlásiť sa",
+      "noAccount": "Nemáte účet?",
+      "signupLink": "Registrovať sa",
+      "orContinueWith": "Alebo pokračovať s",
+      "google": "Google"
+    },
+    "signup": {
+      "title": "Vytvorte si účet",
+      "subtitle": "Začnite s JobSphere ešte dnes",
+      "name": "Celé meno",
+      "email": "Email",
+      "password": "Heslo",
+      "confirmPassword": "Potvrdiť heslo",
+      "terms": "Súhlasím s Podmienkami a Ochranou súkromia",
+      "submit": "Vytvoriť účet",
+      "hasAccount": "Už máte účet?",
+      "loginLink": "Prihlásiť sa"
+    }
+  },
   "footer": {
     "tagline": "AI-powered nábor pre moderný svet",
     "forCandidates": "Pre kandidátov",

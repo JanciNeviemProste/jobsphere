@@ -56,6 +56,33 @@
     "partTime": "Part-time",
     "contract": "Contract"
   },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to your account to continue",
+      "email": "Email",
+      "password": "Password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign in",
+      "noAccount": "Don't have an account?",
+      "signupLink": "Sign up",
+      "orContinueWith": "Or continue with",
+      "google": "Google"
+    },
+    "signup": {
+      "title": "Create an account",
+      "subtitle": "Get started with JobSphere today",
+      "name": "Full name",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm password",
+      "terms": "I agree to the Terms and Privacy Policy",
+      "submit": "Create account",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Sign in"
+    }
+  },
   "footer": {
     "tagline": "AI-powered recruitment for the modern world",
     "forCandidates": "For Candidates",
