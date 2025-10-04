@@ -1,47 +1,46 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm build",
-  "devCommand": "pnpm dev",
-  "installCommand": "pnpm install",
-  "framework": null,
+  "buildCommand": "pnpm --filter @jobsphere/web build",
+  "installCommand": "pnpm install --filter @jobsphere/web --prod=false",
+  "framework": "nextjs",
   "outputDirectory": "apps/web/.next",
-  "builds": [
-    {
-      "src": "apps/web/package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "apps/web/$1"
-    }
-  ],
   "env": {
-    "DATABASE_URL": "@database-url",
-    "REDIS_URL": "@redis-url",
-    "ANTHROPIC_API_KEY": "@anthropic-api-key",
     "NEXT_PUBLIC_APP_URL": "@next-public-app-url",
+    "NEXT_PUBLIC_API_URL": "@next-public-api-url",
     "NEXTAUTH_SECRET": "@nextauth-secret",
     "NEXTAUTH_URL": "@nextauth-url",
-    "STRIPE_SECRET_KEY": "@stripe-secret-key",
-    "STRIPE_WEBHOOK_SECRET": "@stripe-webhook-secret",
-    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY": "@next-public-stripe-publishable-key",
-    "RESEND_API_KEY": "@resend-api-key",
-    "S3_BUCKET": "@s3-bucket",
-    "S3_REGION": "@s3-region",
-    "S3_ACCESS_KEY": "@s3-access-key",
-    "S3_SECRET_KEY": "@s3-secret-key"
+    "DATABASE_URL": "@database-url",
+    "REDIS_URL": "@redis-url",
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY": "@next-public-stripe-publishable-key"
   },
   "regions": ["fra1"],
-  "functions": {
-    "apps/web/app/**/*": {
-      "memory": 1024,
-      "maxDuration": 30
-    },
-    "apps/api/**/*": {
-      "memory": 512,
-      "maxDuration": 60
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
     }
-  }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://your-railway-api.railway.app/api/:path*"
+    }
+  ]
 }
