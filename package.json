@@ -6,6 +6,9 @@
   "license": "MIT",
   "author": "JobSphere Team",
   "type": "module",
+  "workspaces": [
+    "apps/web"
+  ],
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
