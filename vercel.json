@@ -1,18 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm --filter @jobsphere/web build",
-  "installCommand": "pnpm install --filter @jobsphere/web --prod=false",
+  "buildCommand": "cd ../.. && pnpm turbo run build --filter=@jobsphere/web",
+  "installCommand": "pnpm install",
   "framework": "nextjs",
-  "outputDirectory": "apps/web/.next",
-  "env": {
-    "NEXT_PUBLIC_APP_URL": "@next-public-app-url",
-    "NEXT_PUBLIC_API_URL": "@next-public-api-url",
-    "NEXTAUTH_SECRET": "@nextauth-secret",
-    "NEXTAUTH_URL": "@nextauth-url",
-    "DATABASE_URL": "@database-url",
-    "REDIS_URL": "@redis-url",
-    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY": "@next-public-stripe-publishable-key"
-  },
+  "outputDirectory": ".next",
   "regions": ["fra1"],
   "headers": [
     {

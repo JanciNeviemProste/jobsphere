@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3000",
-    "build": "next build",
+    "build": "node scripts/verify-env.js && next build",
+    "build:skip-verify": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify:env": "node scripts/verify-env.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
