@@ -72,6 +72,27 @@ export default async function middleware(request: NextRequest) {
     }
   }
 
+  // Protected routes that require authentication
+  const protectedRoutes = ['/dashboard', '/employer', '/profile']
+
+  // Check if the current path (after locale) is protected
+  const isProtectedRoute = protectedRoutes.some(route => {
+    // Extract path after locale
+    const pathWithoutLocale = pathname.replace(/^\/(en|de|cs|sk|pl)/, '')
+    return pathWithoutLocale.startsWith(route)
+  })
+
+  if (isProtectedRoute) {
+    // In production, you would check for a valid session/token here
+    // For now, we'll allow access (auth will be handled by NextAuth)
+    // Example with NextAuth:
+    // const token = await getToken({ req: request })
+    // if (!token) {
+    //   const locale = pathname.split('/')[1]
+    //   return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
+    // }
+  }
+
   // Apply internationalization middleware
   const response = intlMiddleware(request)
 

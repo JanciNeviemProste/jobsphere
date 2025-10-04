@@ -100,6 +100,7 @@ export default function JobDetailPage() {
   const router = useRouter()
   const t = useTranslations()
   const jobId = params.id as string
+  const locale = params.locale as string
 
   const job = MOCK_JOB_DATA[jobId]
 
@@ -239,12 +240,14 @@ export default function JobDetailPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Button className="w-full" size="lg">
-                    <Send className="mr-2 h-4 w-4" />
-                    Odoslať prihlášku
+                  <Button className="w-full" size="lg" asChild>
+                    <Link href={`/${locale}/jobs/${jobId}/apply`}>
+                      <Send className="mr-2 h-4 w-4" />
+                      Odoslať prihlášku
+                    </Link>
                   </Button>
                   <p className="text-xs text-muted-foreground text-center">
-                    Musíte byť prihlásený, aby ste sa mohli uchádzať o túto pozíciu
+                    Budete presmerovaný na prihlasovací formulár
                   </p>
                 </CardContent>
               </Card>
