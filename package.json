@@ -8,9 +8,7 @@
   "type": "module",
   "workspaces": [
     "apps/web",
-    "packages/db",
-    "packages/ui",
-    "packages/i18n"
+    "packages/db"
   ],
   "scripts": {
     "dev": "turbo dev",
