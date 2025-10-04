@@ -1,0 +1,47 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm build",
+  "devCommand": "pnpm dev",
+  "installCommand": "pnpm install",
+  "framework": null,
+  "outputDirectory": "apps/web/.next",
+  "builds": [
+    {
+      "src": "apps/web/package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "apps/web/$1"
+    }
+  ],
+  "env": {
+    "DATABASE_URL": "@database-url",
+    "REDIS_URL": "@redis-url",
+    "ANTHROPIC_API_KEY": "@anthropic-api-key",
+    "NEXT_PUBLIC_APP_URL": "@next-public-app-url",
+    "NEXTAUTH_SECRET": "@nextauth-secret",
+    "NEXTAUTH_URL": "@nextauth-url",
+    "STRIPE_SECRET_KEY": "@stripe-secret-key",
+    "STRIPE_WEBHOOK_SECRET": "@stripe-webhook-secret",
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY": "@next-public-stripe-publishable-key",
+    "RESEND_API_KEY": "@resend-api-key",
+    "S3_BUCKET": "@s3-bucket",
+    "S3_REGION": "@s3-region",
+    "S3_ACCESS_KEY": "@s3-access-key",
+    "S3_SECRET_KEY": "@s3-secret-key"
+  },
+  "regions": ["fra1"],
+  "functions": {
+    "apps/web/app/**/*": {
+      "memory": 1024,
+      "maxDuration": 30
+    },
+    "apps/api/**/*": {
+      "memory": 512,
+      "maxDuration": 60
+    }
+  }
+}

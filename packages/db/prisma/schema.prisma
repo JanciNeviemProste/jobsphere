@@ -1,0 +1,1221 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions", "fullTextSearch", "views"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [uuidOssp(map: "uuid-ossp"), pgvector(map: "vector"), pg_trgm, btree_gin]
+}
+
+// ============ CORE MODELS ============
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logo        String?
+  website     String?
+  description String?
+  industry    String?
+  size        String?
+  founded     Int?
+
+  // Slovak regions for Sub-HR
+  regions     String[] @default([])
+
+  // Settings
+  settings    Json     @default("{}")
+  features    Json     @default("{}")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  users           UserOrgRole[]
+  jobs            Job[]
+  candidates      Candidate[]
+  applications    Application[]
+  emailAccounts   EmailAccount[]
+  emailSequences  EmailSequence[]
+  assessments     Assessment[]
+  customer        OrgCustomer?
+  subscriptions   Subscription[]
+  entitlements    Entitlement[]
+  usageEvents     UsageEvent[]
+  matchScores     MatchScore[]
+  auditLogs       AuditLog[]
+
+  @@index([slug])
+  @@index([deletedAt])
+}
+
+model User {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  emailVerified    DateTime?
+  password         String
+  name             String?
+  avatar           String?
+  phone            String?
+  locale           String   @default("en")
+  timezone         String   @default("UTC")
+
+  // Auth
+  totpSecret       String?
+  totpEnabled      Boolean  @default(false)
+  lastLoginAt      DateTime?
+  lastLoginIp      String?
+  failedAttempts   Int      @default(0)
+  lockedUntil      DateTime?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
+
+  // Relations
+  organizations    UserOrgRole[]
+  createdJobs      Job[]
+  assignedApps     Application[]
+  sessions         Session[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+
+  @@index([email])
+  @@index([deletedAt])
+}
+
+model UserOrgRole {
+  userId    String
+  orgId     String
+  role      String // ORG_ADMIN, RECRUITER, HIRING_MANAGER, AGENCY
+
+  // Permissions
+  permissions Json @default("[]")
+
+  // Agency specific - assigned jobs/candidates
+  assignedJobs      String[] @default([])
+  assignedCandidates String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  user      User         @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [orgId], references: [id])
+
+  @@id([userId, orgId])
+  @@index([orgId, role])
+  @@index([deletedAt])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ============ JOB MODELS ============
+
+model Job {
+  id             String   @id @default(cuid())
+  orgId          String
+  title          String
+  description    String
+  requirements   String?
+  responsibilities String?
+  benefits       String?
+
+  // Location - Slovak cities
+  city           String?
+  region         String?  // BA, ZA, KE
+  remote         Boolean  @default(false)
+  hybrid         Boolean  @default(false)
+
+  // Details
+  employmentType String   // FULL_TIME, PART_TIME, CONTRACT, etc.
+  seniority      String?  // ENTRY, MID, SENIOR, LEAD, etc.
+  salaryMin      Int?
+  salaryMax      Int?
+  salaryCurrency String   @default("EUR")
+  salaryPeriod   String   @default("YEAR")
+
+  // Multi-language
+  locale         String   @default("en")
+  translations   Json     @default("{}")
+
+  status         String   @default("DRAFT") // DRAFT, PUBLISHED, PAUSED, CLOSED
+  publishedAt    DateTime?
+  closedAt       DateTime?
+
+  // Pipeline stages
+  pipeline       Json     @default("[]")
+
+  // SEO
+  slug           String?
+  metaTitle      String?
+  metaDescription String?
+
+  createdBy      String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  // Relations
+  organization   Organization  @relation(fields: [orgId], references: [id])
+  creator        User          @relation(fields: [createdBy], references: [id])
+  applications   Application[]
+  matchScores    MatchScore[]
+  invites        AssessmentInvite[]
+
+  @@unique([orgId, slug])
+  @@index([orgId, status])
+  @@index([locale])
+  @@index([deletedAt])
+}
+
+// ============ CANDIDATE MODELS ============
+
+model Candidate {
+  id        String   @id @default(cuid())
+  orgId     String
+
+  // Source
+  source    String?  // MANUAL, IMPORT, API, WEBSITE
+  sourceId  String?
+
+  // Duplicate detection
+  duplicateOf String?
+  mergedInto  String?
+
+  // Tags for categorization
+  tags      String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  organization  Organization       @relation(fields: [orgId], references: [id])
+  contacts      CandidateContact[]
+  documents     CandidateDocument[]
+  resumes       Resume[]
+  applications  Application[]
+  matchScores   MatchScore[]
+  invites       AssessmentInvite[]
+  attempts      Attempt[]
+  sequenceRuns  EmailSequenceRun[]
+
+  @@index([orgId])
+  @@index([duplicateOf])
+  @@index([deletedAt])
+}
+
+model CandidateContact {
+  id             String   @id @default(cuid())
+  candidateId    String
+
+  // Contact info
+  fullName       String?
+  email          String?
+  phone          String?
+  linkedIn       String?
+  github         String?
+  portfolio      String?
+
+  // Location
+  location       String?
+  city           String?
+  country        String?
+  timezone       String?
+
+  // Preferences
+  primaryLocale  String?
+  availableFrom  DateTime?
+  salaryExpectation Int?
+
+  isPrimary      Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  candidate      Candidate @relation(fields: [candidateId], references: [id])
+
+  @@index([candidateId])
+  @@index([email])
+}
+
+model CandidateDocument {
+  id          String   @id @default(cuid())
+  candidateId String
+
+  type        String   // CV, COVER_LETTER, CERTIFICATE, PORTFOLIO, OTHER
+  filename    String
+  uri         String
+  mime        String
+  size        Int
+  hash        String?
+
+  // Parsing
+  parsedAt    DateTime?
+  parsedText  String?
+  parseError  String?
+
+  // Virus scan
+  scannedAt   DateTime?
+  scanResult  String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  candidate   Candidate @relation(fields: [candidateId], references: [id])
+  resumes     Resume[]
+
+  @@index([candidateId, type])
+  @@index([hash])
+  @@index([deletedAt])
+}
+
+model Resume {
+  id               String   @id @default(cuid())
+  candidateId      String
+  sourceDocumentId String?
+
+  // Extracted data
+  language         String?
+  summary          String?
+  yearsOfExperience Float?
+
+  // Structured data
+  personalInfo     Json?
+  experiences      Json     @default("[]")
+  education        Json     @default("[]")
+  skills           String[] @default([])
+  languages        Json     @default("[]")
+  certifications   Json     @default("[]")
+  projects         Json     @default("[]")
+
+  // Privacy
+  anonymized       Boolean  @default(false)
+  anonymizedData   Json?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
+
+  // Relations
+  candidate        Candidate          @relation(fields: [candidateId], references: [id])
+  sourceDocument   CandidateDocument? @relation(fields: [sourceDocumentId], references: [id])
+  sections         ResumeSection[]
+  matchScores      MatchScore[]
+
+  @@index([candidateId])
+  @@index([language])
+  @@index([deletedAt])
+}
+
+model ResumeSection {
+  id              String                 @id @default(cuid())
+  resumeId        String
+
+  kind            String // EXPERIENCE, EDUCATION, SKILL, PROJECT, etc.
+  title           String?
+  organization    String?
+  location        String?
+  startDate       DateTime?
+  endDate         DateTime?
+  current         Boolean @default(false)
+
+  text            String?
+  bullets         String[] @default([])
+  json            Json?
+
+  // Embeddings for semantic search
+  embeddingVector Unsupported("vector")?
+  embeddingModel  String?
+
+  order           Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  resume          Resume   @relation(fields: [resumeId], references: [id])
+
+  @@index([resumeId, kind])
+}
+
+// ============ APPLICATION MODELS ============
+
+model Application {
+  id            String   @id @default(cuid())
+  candidateId   String
+  jobId         String
+  orgId         String
+
+  // Stage tracking
+  stage         String   @default("NEW") // NEW, SCREENING, PHONE, etc.
+  stageHistory  Json     @default("[]")
+
+  // Scoring and assignment
+  score         Float?
+  scoreDetails  Json?
+  assignedTo    String?
+
+  // Metadata
+  tags          String[] @default([])
+  source        String?  // WEBSITE, REFERRAL, LINKEDIN, etc.
+  referredBy    String?
+  coverLetter   String?
+
+  // Communication tracking
+  lastContactAt DateTime?
+  lastContactType String?
+  notes         Json     @default("[]")
+
+  // Flags
+  isStarred     Boolean  @default(false)
+  isPriority    Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  // Relations
+  candidate     Candidate    @relation(fields: [candidateId], references: [id])
+  job           Job          @relation(fields: [jobId], references: [id])
+  organization  Organization @relation(fields: [orgId], references: [id])
+  assignee      User?        @relation(fields: [assignedTo], references: [id])
+  activities    ApplicationActivity[]
+
+  @@unique([candidateId, jobId])
+  @@index([jobId, stage])
+  @@index([orgId, createdAt])
+  @@index([assignedTo])
+  @@index([deletedAt])
+}
+
+model ApplicationActivity {
+  id            String      @id @default(cuid())
+  applicationId String
+
+  type          String      // STAGE_CHANGE, NOTE_ADDED, EMAIL_SENT, etc.
+  description   String
+  metadata      Json?
+  performedBy   String?
+
+  createdAt     DateTime    @default(now())
+
+  application   Application @relation(fields: [applicationId], references: [id])
+
+  @@index([applicationId, createdAt])
+}
+
+model MatchScore {
+  id          String   @id @default(cuid())
+  orgId       String
+  jobId       String
+  candidateId String
+  resumeId    String?
+
+  // Scoring
+  score0to100 Int      // 0-100 calibrated score
+  bm25Score   Float?   // Text matching score
+  vectorScore Float?   // Embedding similarity score
+  llmScore    Float?   // LLM reasoning score
+
+  // Evidence
+  evidence    Json     // Matched skills, experience, etc.
+  explanation String[] // Bullet points explaining match
+
+  version     String   // Algorithm version for tracking
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [orgId], references: [id])
+  job         Job          @relation(fields: [jobId], references: [id])
+  candidate   Candidate    @relation(fields: [candidateId], references: [id])
+  resume      Resume?      @relation(fields: [resumeId], references: [id])
+
+  @@unique([jobId, candidateId])
+  @@index([orgId])
+  @@index([score0to100])
+}
+
+// ============ EMAIL MODELS ============
+
+model EmailAccount {
+  id         String   @id @default(cuid())
+  orgId      String
+
+  provider   String   // GRAPH, GMAIL, IMAP, SMTP
+  email      String
+  name       String?
+
+  // OAuth
+  oauthJson  Json?
+
+  // IMAP/SMTP
+  imapHost   String?
+  imapPort   Int?
+  imapUser   String?
+  imapPass   String?
+  smtpHost   String?
+  smtpPort   Int?
+  smtpUser   String?
+  smtpPass   String?
+
+  // Settings
+  signature  String?
+  autoReply  Boolean  @default(false)
+  autoReplyMessage String?
+
+  // Sync status
+  lastSyncAt DateTime?
+  syncError  String?
+
+  isDefault  Boolean  @default(false)
+  isActive   Boolean  @default(true)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  // Relations
+  organization Organization @relation(fields: [orgId], references: [id])
+  threads     EmailThread[]
+
+  @@unique([orgId, email])
+  @@index([orgId, isDefault])
+  @@index([deletedAt])
+}
+
+model EmailThread {
+  id           String   @id @default(cuid())
+  orgId        String
+  accountId    String
+
+  subject      String?
+  participants String[] @default([])
+
+  // Entity linking
+  entityType   String?  // APPLICATION, CANDIDATE, JOB
+  entityId     String?
+
+  // Threading
+  messageIds   String[] @default([])
+
+  lastMessageAt DateTime?
+  messageCount Int      @default(0)
+  unreadCount  Int      @default(0)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  organization Organization   @relation(fields: [orgId], references: [id])
+  account      EmailAccount   @relation(fields: [accountId], references: [id])
+  messages     EmailMessage[]
+
+  @@index([orgId, entityType, entityId])
+  @@index([accountId, lastMessageAt])
+}
+
+model EmailMessage {
+  id           String   @id @default(cuid())
+  threadId     String
+
+  // Headers
+  fromEmail    String
+  fromName     String?
+  toEmails     String[]
+  ccEmails     String[] @default([])
+  bccEmails    String[] @default([])
+  replyTo      String?
+
+  subject      String?
+  bodyHtml     String?
+  bodyText     String?
+
+  // Attachments
+  attachments  Json     @default("[]")
+
+  // Tracking
+  sentAt       DateTime?
+  receivedAt   DateTime?
+  openedAt     DateTime?
+  clickedAt    DateTime?
+
+  // Provider IDs
+  providerId   String?
+  messageId    String?
+  inReplyTo    String?
+  references   String[] @default([])
+
+  direction    String   // INBOUND, OUTBOUND
+  status       String   @default("PENDING") // PENDING, SENT, DELIVERED, BOUNCED, FAILED
+
+  createdAt    DateTime @default(now())
+
+  // Relations
+  thread       EmailThread    @relation(fields: [threadId], references: [id])
+  events       EmailEvent[]
+
+  @@index([threadId, sentAt])
+  @@index([messageId])
+  @@index([providerId])
+}
+
+model EmailEvent {
+  id        String   @id @default(cuid())
+  messageId String
+
+  kind      String   // SENT, DELIVERED, OPENED, CLICKED, BOUNCED, COMPLAINED, UNSUBSCRIBED
+  timestamp DateTime
+  payload   Json?
+
+  createdAt DateTime @default(now())
+
+  message   EmailMessage @relation(fields: [messageId], references: [id])
+
+  @@index([messageId, kind])
+  @@index([timestamp])
+}
+
+model EmailSequence {
+  id          String   @id @default(cuid())
+  orgId       String
+
+  name        String
+  description String?
+
+  // Settings
+  settings    Json     @default("{}") // quiet hours, daily limits, etc.
+
+  active      Boolean  @default(false)
+  createdBy   String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  organization Organization      @relation(fields: [orgId], references: [id])
+  steps        EmailStep[]
+  runs         EmailSequenceRun[]
+
+  @@index([orgId, active])
+  @@index([deletedAt])
+}
+
+model EmailStep {
+  id          String   @id @default(cuid())
+  sequenceId  String
+
+  name        String
+  dayOffset   Int      // Days from sequence start
+  hourOffset  Int      @default(0) // Hours from day start
+
+  subject     String
+  bodyTemplate String  // With merge tags
+
+  // Conditions
+  conditions  Json?    // Skip if stage changed, etc.
+
+  // A/B testing
+  abGroup     String?
+  abPercent   Int?
+
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  sequence    EmailSequence        @relation(fields: [sequenceId], references: [id])
+  events      EmailSequenceEvent[]
+
+  @@index([sequenceId, order])
+}
+
+model EmailSequenceRun {
+  id          String   @id @default(cuid())
+  sequenceId  String
+  candidateId String
+
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  status      String   @default("ACTIVE") // ACTIVE, PAUSED, COMPLETED, STOPPED
+
+  currentStep Int      @default(0)
+  metadata    Json?
+
+  // Relations
+  sequence    EmailSequence        @relation(fields: [sequenceId], references: [id])
+  candidate   Candidate            @relation(fields: [candidateId], references: [id])
+  events      EmailSequenceEvent[]
+
+  @@unique([sequenceId, candidateId])
+  @@index([status, startedAt])
+}
+
+model EmailSequenceEvent {
+  id       String   @id @default(cuid())
+  runId    String
+  stepId   String
+
+  kind     String   // SCHEDULED, SENT, OPENED, CLICKED, REPLIED, SKIPPED
+  at       DateTime @default(now())
+  metadata Json?
+
+  run      EmailSequenceRun @relation(fields: [runId], references: [id])
+  step     EmailStep        @relation(fields: [stepId], references: [id])
+
+  @@index([runId, at])
+  @@index([stepId, kind])
+}
+
+model EmailSuppressionList {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  reason    String   // BOUNCED, COMPLAINED, UNSUBSCRIBED, MANUAL
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([reason])
+}
+
+// ============ ASSESSMENT MODELS ============
+
+model Assessment {
+  id          String   @id @default(cuid())
+  orgId       String
+
+  name        String
+  description String?
+  instructions String?
+
+  locale      String   @default("en")
+  durationMin Int?     // Time limit in minutes
+  passingScore Float?
+
+  // Settings
+  settings    Json     @default("{}") // randomize, show results, etc.
+
+  isPublished Boolean  @default(false)
+  createdBy   String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  organization Organization         @relation(fields: [orgId], references: [id])
+  sections     AssessmentSection[]
+  invites      AssessmentInvite[]
+
+  @@index([orgId, isPublished])
+  @@index([deletedAt])
+}
+
+model AssessmentSection {
+  id          String   @id @default(cuid())
+  assessmentId String
+
+  title       String
+  description String?
+  order       Int      @default(0)
+
+  // Relations
+  assessment  Assessment @relation(fields: [assessmentId], references: [id])
+  questions   Question[]
+
+  @@index([assessmentId, order])
+}
+
+model Question {
+  id         String   @id @default(cuid())
+  sectionId  String
+
+  type       String   // MCQ, MULTI, SHORT, LONG, CODE, FILE
+  text       String
+  hint       String?
+
+  // For MCQ/MULTI
+  choices    String[] @default([])
+  correctIndexes Int[] @default([])
+
+  // For CODE
+  language   String?  // Programming language
+  starterCode String?
+  testCases  Json?
+
+  // Scoring
+  points     Int      @default(1)
+  skillTag   String?
+  rubric     Json?    // For AI grading
+
+  order      Int      @default(0)
+  isRequired Boolean  @default(true)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  section    AssessmentSection @relation(fields: [sectionId], references: [id])
+  answers    Answer[]
+
+  @@index([sectionId, order])
+}
+
+model AssessmentInvite {
+  id           String   @id @default(cuid())
+  assessmentId String
+  candidateId  String
+  jobId        String?
+
+  token        String   @unique
+
+  expiresAt    DateTime?
+  remindedAt   DateTime?
+
+  status       String   @default("PENDING") // PENDING, SENT, STARTED, COMPLETED, EXPIRED
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  assessment   Assessment @relation(fields: [assessmentId], references: [id])
+  candidate    Candidate  @relation(fields: [candidateId], references: [id])
+  job          Job?       @relation(fields: [jobId], references: [id])
+  attempt      Attempt?
+
+  @@unique([assessmentId, candidateId])
+  @@index([token])
+  @@index([status])
+}
+
+model Attempt {
+  id          String   @id @default(cuid())
+  inviteId    String   @unique
+
+  startedAt   DateTime @default(now())
+  submittedAt DateTime?
+  timeSpentMin Int?
+
+  // Scoring
+  totalScore  Float?
+  percentage  Float?
+  status      String   @default("IN_PROGRESS") // IN_PROGRESS, SUBMITTED, GRADED
+
+  // Results
+  detail      Json?    // Section scores, skill breakdown
+  feedback    String?
+  certificateUrl String?
+
+  // Relations
+  invite      AssessmentInvite @relation(fields: [inviteId], references: [id])
+  candidate   Candidate        @relation(fields: [candidateId], references: [id])
+  candidateId String
+  answers     Answer[]
+
+  @@index([candidateId])
+  @@index([status])
+}
+
+model Answer {
+  id         String   @id @default(cuid())
+  attemptId  String
+  questionId String
+
+  // Response based on question type
+  response   Json
+
+  // File uploads
+  fileUrls   String[] @default([])
+
+  // Scoring
+  autoScore  Float?   // Automated scoring
+  aiScore    Float?   // AI scoring
+  aiRationale String? // AI explanation
+  manualScore Float?  // Manual override
+  finalScore Float?   // Final computed score
+
+  timeSpentSec Int?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  attempt    Attempt  @relation(fields: [attemptId], references: [id])
+  question   Question @relation(fields: [questionId], references: [id])
+
+  @@unique([attemptId, questionId])
+  @@index([questionId])
+}
+
+// ============ BILLING MODELS ============
+
+model Product {
+  id          String   @id @default(cuid())
+
+  name        String
+  description String?
+
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  prices      Price[]
+  plans       Plan[]
+  subscriptions Subscription[]
+}
+
+model Price {
+  id             String   @id @default(cuid())
+  productId      String
+
+  currency       String   // EUR, USD, GBP, PLN, CZK
+  amount         Int      // In cents
+  interval       String   // MONTH, YEAR
+  intervalCount  Int      @default(1)
+
+  providerPriceId String  @unique // Stripe price ID
+
+  isActive       Boolean  @default(true)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  product        Product  @relation(fields: [productId], references: [id])
+
+  @@index([productId, currency])
+}
+
+model Plan {
+  id         String   @id @default(cuid())
+  productId  String
+
+  key        String   @unique // starter, pro, enterprise
+  name       String
+  description String?
+
+  order      Int      @default(0)
+  isPublic   Boolean  @default(true)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  product    Product       @relation(fields: [productId], references: [id])
+  features   PlanFeature[]
+
+  @@index([key])
+}
+
+model PlanFeature {
+  id         String   @id @default(cuid())
+  planId     String
+
+  featureKey String   // job_slots, seats, email_sends_per_month
+  limitInt   Int?     // null = unlimited
+  limitBool  Boolean  @default(true)
+
+  description String?
+
+  // Relations
+  plan       Plan     @relation(fields: [planId], references: [id])
+
+  @@unique([planId, featureKey])
+  @@index([featureKey])
+}
+
+model OrgCustomer {
+  id               String   @id @default(cuid())
+  orgId            String   @unique
+
+  providerCustomerId String @unique // Stripe customer ID
+
+  // Billing info
+  email            String?
+  name             String?
+  vatId            String?
+
+  // Address
+  address          Json?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  organization     Organization @relation(fields: [orgId], references: [id])
+
+  @@index([providerCustomerId])
+}
+
+model Subscription {
+  id                String   @id @default(cuid())
+  orgId             String
+  productId         String
+
+  providerSubId     String   @unique // Stripe subscription ID
+
+  status            String   // trialing, active, past_due, canceled, unpaid
+
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+
+  cancelAt          DateTime?
+  canceledAt        DateTime?
+  endedAt           DateTime?
+
+  trialStart        DateTime?
+  trialEnd          DateTime?
+
+  metadata          Json?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  organization      Organization        @relation(fields: [orgId], references: [id])
+  product           Product             @relation(fields: [productId], references: [id])
+  items             SubscriptionItem[]
+  invoices          Invoice[]
+
+  @@index([orgId, status])
+  @@index([providerSubId])
+}
+
+model SubscriptionItem {
+  id             String   @id @default(cuid())
+  subscriptionId String
+
+  featureKey     String
+  quantity       Int      @default(1)
+
+  providerItemId String?  // Stripe subscription item ID
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@unique([subscriptionId, featureKey])
+}
+
+model Invoice {
+  id               String   @id @default(cuid())
+  orgId            String
+  subscriptionId   String?
+
+  providerInvoiceId String  @unique // Stripe invoice ID
+
+  amount           Int      // In cents
+  currency         String
+
+  status           String   // draft, open, paid, void, uncollectible
+
+  pdfUrl           String?
+  hostedUrl        String?
+
+  dueDate          DateTime?
+  paidAt           DateTime?
+
+  metadata         Json?
+
+  createdAt        DateTime @default(now())
+
+  // Relations
+  organization     Organization  @relation(fields: [orgId], references: [id])
+  subscription     Subscription? @relation(fields: [subscriptionId], references: [id])
+  payments         Payment[]
+
+  @@index([orgId, status])
+  @@index([providerInvoiceId])
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  invoiceId       String
+
+  providerPaymentId String @unique // Stripe payment intent ID
+
+  amount          Int
+  currency        String
+
+  status          String   // succeeded, processing, failed
+
+  method          String?  // card, bank_transfer, etc.
+
+  metadata        Json?
+
+  createdAt       DateTime @default(now())
+
+  // Relations
+  invoice         Invoice  @relation(fields: [invoiceId], references: [id])
+
+  @@index([status])
+  @@index([providerPaymentId])
+}
+
+model ProviderEvent {
+  id        String   @id @default(cuid())
+
+  provider  String   // stripe, paddle, etc.
+  kind      String   // Event type
+  payload   Json     // Full webhook payload
+
+  processed Boolean  @default(false)
+  error     String?
+
+  createdAt DateTime @default(now())
+
+  @@index([provider, kind])
+  @@index([processed])
+}
+
+model Entitlement {
+  id         String   @id @default(cuid())
+  orgId      String
+
+  featureKey String   // job_slots, seats, email_sends_per_month
+  limitInt   Int?     // null = unlimited
+  usedInt    Int      @default(0)
+  remainingInt Int?
+
+  resetAt    DateTime? // For monthly quotas
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  // Relations
+  organization Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, featureKey])
+  @@index([featureKey])
+  @@index([deletedAt])
+}
+
+model UsageEvent {
+  id         String   @id @default(cuid())
+  orgId      String
+
+  featureKey String
+  delta      Int      // Positive or negative
+
+  entityType String?  // JOB, EMAIL, ASSESSMENT, etc.
+  entityId   String?
+
+  metadata   Json?
+
+  createdAt  DateTime @default(now())
+
+  // Relations
+  organization Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, featureKey])
+  @@index([createdAt])
+}
+
+// ============ SYSTEM MODELS ============
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+
+  type      String   // APPLICATION_RECEIVED, INTERVIEW_SCHEDULED, etc.
+  title     String
+  body      String
+
+  data      Json?
+
+  readAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, readAt])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  orgId      String?
+
+  action     String   // CREATE, UPDATE, DELETE, VIEW, EXPORT
+  entityType String?  // JOB, CANDIDATE, APPLICATION, etc.
+  entityId   String?
+
+  oldValues  Json?
+  newValues  Json?
+
+  ipAddress  String?
+  userAgent  String?
+
+  createdAt  DateTime @default(now())
+
+  // Relations
+  user       User?         @relation(fields: [userId], references: [id])
+  organization Organization? @relation(fields: [orgId], references: [id])
+
+  @@index([userId])
+  @@index([orgId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique
+
+  name        String
+  description String?
+
+  enabled     Boolean  @default(false)
+
+  // Targeting
+  rolloutPercent Int   @default(0)
+  orgIds      String[] @default([])
+  userIds     String[] @default([])
+
+  metadata    Json?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
+  @@index([enabled])
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+}

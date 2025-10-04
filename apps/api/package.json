@@ -1,0 +1,52 @@
+{
+  "name": "@jobsphere/api",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "nodemon",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^9.2.0",
+    "@fastify/cors": "^8.5.0",
+    "@fastify/helmet": "^11.1.1",
+    "@fastify/jwt": "^7.2.4",
+    "@fastify/multipart": "^8.1.0",
+    "@fastify/rate-limit": "^9.1.0",
+    "@fastify/session": "^10.7.0",
+    "@fastify/swagger": "^8.13.0",
+    "@fastify/swagger-ui": "^2.0.0",
+    "@jobsphere/ai": "workspace:*",
+    "@jobsphere/db": "workspace:*",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
+    "@trpc/server": "^10.45.0",
+    "bcryptjs": "^2.4.3",
+    "bullmq": "^5.1.0",
+    "fastify": "^4.25.0",
+    "fastify-plugin": "^4.5.1",
+    "googleapis": "^129.0.0",
+    "ioredis": "^5.3.2",
+    "nodemailer": "^6.9.8",
+    "speakeasy": "^2.0.0",
+    "stripe": "^14.10.0",
+    "superjson": "^2.2.1",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.11.0",
+    "@types/nodemailer": "^6.4.14",
+    "@types/speakeasy": "^2.0.10",
+    "nodemon": "^3.0.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.0"
+  },
+  "nodemonConfig": {
+    "watch": ["src"],
+    "ext": "ts,js",
+    "ignore": ["src/**/*.spec.ts"],
+    "exec": "ts-node ./src/index.ts"
+  }
+}
