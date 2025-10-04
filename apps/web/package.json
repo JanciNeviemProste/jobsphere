@@ -4,12 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3000",
-    "build": "node scripts/verify-env.js && next build",
-    "build:skip-verify": "next build",
+    "build": "prisma generate && node scripts/verify-env.js && next build",
+    "build:skip-verify": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "verify:env": "node scripts/verify-env.js"
+    "verify:env": "node scripts/verify-env.js",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -70,6 +74,7 @@
     "postcss": "^8.4.33",
     "prettier": "^3.1.1",
     "prettier-plugin-tailwindcss": "^0.5.10",
+    "prisma": "^5.22.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.3.3"
   }
