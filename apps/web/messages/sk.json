@@ -3,5 +3,77 @@
     "siteName": "JobSphere",
     "description": "AI-powered HR ATS a Job Board platforma",
     "keywords": "práca, zamestnanie, nábor, ATS, job board"
+  },
+  "nav": {
+    "home": "Domov",
+    "jobs": "Ponuky",
+    "forEmployers": "Pre zamestnávateľov",
+    "pricing": "Cenník",
+    "login": "Prihlásiť sa",
+    "signup": "Registrovať sa"
+  },
+  "hero": {
+    "title": "Nájdite svoju vysnívanú prácu s AI",
+    "subtitle": "Spojte sa s top zamestnávateľmi v Európe. Naša AI platforma vás spáruje s perfektnými príležitosťami.",
+    "ctaPrimary": "Prehľadať ponuky",
+    "ctaSecondary": "Pre zamestnávateľov"
+  },
+  "features": {
+    "title": "Prečo JobSphere",
+    "subtitle": "Najmodernejšia náborová platforma v Európe",
+    "aiMatching": {
+      "title": "AI Párovanie",
+      "description": "Naše inteligentné algoritmy nájdu perfektný match medzi kandidátmi a prácou"
+    },
+    "multiLingual": {
+      "title": "Viacjazyčná podpora",
+      "description": "Dostupné v angličtine, nemčine, češtine, slovenčine a poľštine"
+    },
+    "smartCV": {
+      "title": "Inteligentný CV Builder",
+      "description": "Vytvorte profesionálne CV s AI asistenciou v minútach"
+    },
+    "assessments": {
+      "title": "Testovanie zručností",
+      "description": "Validujte kandidátov s prispôsobiteľnými technickými a soft skills testami"
+    },
+    "emailAutomation": {
+      "title": "Email Automatizácia",
+      "description": "Zjednodušte komunikáciu s automatizovanými email sekvenciami"
+    },
+    "analytics": {
+      "title": "Pokročilé Analytiky",
+      "description": "Rozhodujte sa na základe dát s komplexnými náborovými štatistikami"
+    }
+  },
+  "jobs": {
+    "title": "Najnovšie pracovné ponuky",
+    "viewAll": "Zobraziť všetky ponuky",
+    "remote": "Na diaľku",
+    "hybrid": "Hybrid",
+    "onsite": "V kancelárii",
+    "fullTime": "Plný úväzok",
+    "partTime": "Čiastočný úväzok",
+    "contract": "Kontrakt"
+  },
+  "footer": {
+    "tagline": "AI-powered nábor pre moderný svet",
+    "forCandidates": "Pre kandidátov",
+    "browseJobs": "Prehľadať ponuky",
+    "createCV": "Vytvoriť CV",
+    "careerAdvice": "Kariérne rady",
+    "forEmployers": "Pre zamestnávateľov",
+    "postJob": "Pridať ponuku",
+    "pricing": "Cenník",
+    "atsFeatures": "ATS Funkcie",
+    "company": "Spoločnosť",
+    "about": "O nás",
+    "contact": "Kontakt",
+    "blog": "Blog",
+    "legal": "Právne",
+    "privacy": "Ochrana súkromia",
+    "terms": "Podmienky používania",
+    "gdpr": "GDPR Compliance",
+    "allRightsReserved": "Všetky práva vyhradené."
   }
 }

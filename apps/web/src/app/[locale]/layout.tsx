@@ -5,6 +5,8 @@ import { getMessages, getTranslations } from 'next-intl/server'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { TRPCProvider } from '@/lib/trpc/provider'
+import { Header } from '@/components/layout/header'
+import { Footer } from '@/components/layout/footer'
 import { locales } from '@/config/i18n'
 import '@/styles/globals.css'
 
@@ -96,7 +98,11 @@ export default async function LocaleLayout({
         >
           <NextIntlClientProvider messages={messages}>
             <TRPCProvider>
-              {children}
+              <div className="relative flex min-h-screen flex-col">
+                <Header />
+                <main className="flex-1">{children}</main>
+                <Footer />
+              </div>
               <Toaster />
             </TRPCProvider>
           </NextIntlClientProvider>

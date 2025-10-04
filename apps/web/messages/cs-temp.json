@@ -5,18 +5,18 @@
     "keywords": "jobs, hiring, recruitment, ATS, job board"
   },
   "nav": {
-    "home": "Home",
-    "jobs": "Jobs",
-    "forEmployers": "For Employers",
-    "pricing": "Pricing",
-    "login": "Log in",
-    "signup": "Sign up"
+    "home": "Domů",
+    "jobs": "Práce",
+    "forEmployers": "Pro zaměstnavatele",
+    "pricing": "Ceník",
+    "login": "Přihlásit se",
+    "signup": "Registrovat se"
   },
   "hero": {
     "title": "Find Your Dream Job with AI",
     "subtitle": "Connect with top employers across Europe. Our AI-powered platform matches you with the perfect opportunities.",
     "ctaPrimary": "Browse Jobs",
-    "ctaSecondary": "For Employers"
+    "ctaSecondary": "Pro zaměstnavatele"
   },
   "features": {
     "title": "Why Choose JobSphere",
@@ -62,9 +62,9 @@
     "browseJobs": "Browse Jobs",
     "createCV": "Create CV",
     "careerAdvice": "Career Advice",
-    "forEmployers": "For Employers",
+    "forEmployers": "Pro zaměstnavatele",
     "postJob": "Post a Job",
-    "pricing": "Pricing",
+    "pricing": "Ceník",
     "atsFeatures": "ATS Features",
     "company": "Company",
     "about": "About Us",
