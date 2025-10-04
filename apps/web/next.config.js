@@ -64,7 +64,6 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
-    optimizeCss: true,
   },
 
   webpack: (config) => {
