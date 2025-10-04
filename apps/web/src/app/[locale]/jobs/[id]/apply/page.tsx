@@ -47,16 +47,58 @@ export default function ApplyPage() {
     e.preventDefault()
     setSubmitting(true)
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    try {
+      let cvUrl = null
 
-    setSubmitting(false)
-    setSubmitted(true)
+      // Upload CV file if provided
+      if (formData.cvFile) {
+        const uploadFormData = new FormData()
+        uploadFormData.append('file', formData.cvFile)
 
-    // Redirect after 3 seconds
-    setTimeout(() => {
-      router.push(`/${locale}/dashboard`)
-    }, 3000)
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: uploadFormData,
+        })
+
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload CV')
+        }
+
+        const uploadData = await uploadResponse.json()
+        cvUrl = uploadData.url
+      }
+
+      const response = await fetch('/api/applications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jobId,
+          coverLetter: formData.coverLetter,
+          cvUrl,
+          expectedSalary: null,
+          availableFrom: null,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to submit application')
+      }
+
+      setSubmitting(false)
+      setSubmitted(true)
+
+      // Redirect after 3 seconds
+      setTimeout(() => {
+        router.push(`/${locale}/dashboard`)
+      }, 3000)
+    } catch (error) {
+      console.error('Error submitting application:', error)
+      alert('Nepodarilo sa odoslať prihlášku. Skúste to prosím znova.')
+      setSubmitting(false)
+    }
   }
 
   if (submitted) {

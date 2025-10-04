@@ -31,11 +31,40 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
     e.preventDefault()
     setSaving(true)
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    try {
+      // TODO: Get organizationId from session when multi-tenant is implemented
+      const organizationId = 'temp-org-id' // Placeholder
 
-    setSaving(false)
-    router.push(`/${locale}/employer`)
+      const response = await fetch('/api/jobs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          location: formData.location,
+          minSalary: formData.minSalary,
+          maxSalary: formData.maxSalary,
+          workMode: formData.workMode,
+          type: formData.jobType,
+          seniority: formData.seniority,
+          description: formData.description,
+          organizationId,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to create job')
+      }
+
+      setSaving(false)
+      router.push(`/${locale}/employer`)
+    } catch (error) {
+      console.error('Error creating job:', error)
+      alert('Nepodarilo sa vytvoriť pozíciu. Skúste to prosím znova.')
+      setSaving(false)
+    }
   }
 
   return (
