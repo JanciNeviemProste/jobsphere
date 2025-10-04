@@ -1,9 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd ../.. && pnpm turbo run build --filter=@jobsphere/web",
-  "installCommand": "corepack enable pnpm && pnpm install --no-frozen-lockfile",
   "framework": "nextjs",
-  "outputDirectory": ".next",
   "regions": ["fra1"],
   "headers": [
     {
