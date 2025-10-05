@@ -100,7 +100,8 @@ export async function GET(request: NextRequest) {
       dsarRequests: dsarRequests,
       auditLogs: auditLogs.map((log) => ({
         action: log.action,
-        resource: log.resource,
+        entityType: log.entityType,
+        entityId: log.entityId,
         timestamp: log.createdAt,
       })),
     }
