@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     // Get customer
     const customer = await prisma.orgCustomer.findUnique({
-      where: { organizationId: orgMember.organizationId },
+      where: { orgId: orgMember.organizationId },
     })
 
     if (!customer?.stripeCustomerId) {
