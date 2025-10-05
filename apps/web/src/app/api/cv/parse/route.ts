@@ -55,24 +55,24 @@ export async function POST(request: NextRequest) {
       locale: candidate.locale,
     })
 
-    // 5. Create Resume record - store parsed data as JSON
-    // Sections will be created separately if needed
+    // 5. Create Resume record with basic info from parsed CV
     const resume = await prisma.resume.create({
       data: {
         candidateId: candidate.id,
         language: candidate.locale,
-        rawText,
-        parsedData: extractedCV as any, // Store full JSON for later processing
+        title: extractedCV.personal?.fullName || 'Resume',
+        summary: extractedCV.summary || null,
       },
     })
 
-    // 6. Generate embeddings for sections (async - don't wait)
-    // TODO: Implement background job to generate embeddings
+    // TODO: Create ResumeSection records from extractedCV
+    // TODO: Generate embeddings for sections
 
     return NextResponse.json({
-      cvId: resume.id,
+      resumeId: resume.id,
       candidateId: candidate.id,
       success: true,
+      parsed: extractedCV, // Return parsed data to client
     })
 
   } catch (error) {
