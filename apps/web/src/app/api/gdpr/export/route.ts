@@ -45,11 +45,6 @@ export async function GET(request: NextRequest) {
             sections: true,
           },
         },
-        applications: {
-          include: {
-            job: true,
-          },
-        },
         documents: true,
       },
     })
@@ -99,13 +94,6 @@ export async function GET(request: NextRequest) {
             id: candidate.id,
             locale: candidate.locale,
             resumes: candidate.resumes,
-            applications: candidate.applications.map((app) => ({
-              id: app.id,
-              jobId: app.jobId,
-              jobTitle: app.job.title,
-              status: app.status,
-              appliedAt: app.createdAt,
-            })),
             documents: candidate.documents,
           }
         : null,
