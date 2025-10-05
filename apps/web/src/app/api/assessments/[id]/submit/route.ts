@@ -65,7 +65,7 @@ export async function POST(
         answers: {
           create: answers.map((ans: any) => ({
             questionId: ans.questionId,
-            answer: ans.answer,
+            response: ans.response || ans.answer, // Support both field names
           })),
         },
       },
