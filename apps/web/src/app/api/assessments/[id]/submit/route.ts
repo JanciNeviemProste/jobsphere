@@ -54,12 +54,14 @@ export async function POST(
       },
     })
 
+    if (!invite) {
+      return NextResponse.json({ error: 'Assessment invite not found' }, { status: 404 })
+    }
+
     // Create attempt
     const attempt = await prisma.attempt.create({
       data: {
-        assessmentId: params.id,
-        candidateId: candidate.id,
-        inviteId: invite?.id,
+        inviteId: invite.id,
         startedAt: new Date(),
         submittedAt: new Date(),
         answers: {
