@@ -26,10 +26,10 @@ export async function GET(request: NextRequest) {
     }
 
     const sequences = await prisma.emailSequence.findMany({
-      where: { organizationId: orgMember.organizationId },
+      where: { orgId: orgMember.organizationId },
       include: {
         steps: {
-          orderBy: { orderIndex: 'asc' },
+          orderBy: { order: 'asc' },
         },
       },
     })
@@ -60,27 +60,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No organization' }, { status: 400 })
     }
 
-    const { name, description, steps, isActive } = await request.json()
+    const { name, description, steps, active } = await request.json()
 
     const sequence = await prisma.emailSequence.create({
       data: {
         name,
         description,
-        organizationId: orgMember.organizationId,
-        isActive: isActive || false,
+        orgId: orgMember.organizationId,
+        createdBy: session.user.id,
+        active: active || false,
         steps: {
-          create: steps.map((step: any) => ({
-            orderIndex: step.orderIndex,
+          create: steps.map((step: any, index: number) => ({
+            order: step.order ?? index,
+            dayOffset: step.dayOffset || 0,
             subject: step.subject,
-            bodyText: step.bodyText,
-            bodyHtml: step.bodyHtml,
-            delayMinutes: step.delayMinutes,
+            bodyTemplate: step.bodyTemplate || step.body || '',
           })),
         },
       },
       include: {
         steps: {
-          orderBy: { orderIndex: 'asc' },
+          orderBy: { order: 'asc' },
         },
       },
     })
