@@ -1,167 +1,28 @@
 {
-  "metadata": {
-    "siteName": "JobSphere",
-    "description": "AI-powered HR ATS and Job Board Platform",
-    "keywords": "jobs, hiring, recruitment, ATS, HR, AI"
-  },
   "nav": {
+    "home": "Home",
     "jobs": "Jobs",
-    "candidates": "Candidates",
-    "applications": "Applications",
-    "assessments": "Assessments",
-    "emails": "Emails",
-    "billing": "Billing",
-    "settings": "Settings"
+    "for-employers": "For Employers",
+    "pricing": "Pricing",
+    "login": "Login",
+    "signup": "Sign Up",
+    "dashboard": "Dashboard",
+    "logout": "Logout"
   },
-  "auth": {
-    "signIn": "Sign In",
-    "signUp": "Sign Up",
-    "signOut": "Sign Out",
-    "email": "Email",
-    "password": "Password",
-    "forgotPassword": "Forgot password?",
-    "rememberMe": "Remember me",
-    "2fa": "Two-factor authentication"
+  "hero": {
+    "title": "Find Your Dream Job with AI",
+    "subtitle": "JobSphere connects talented professionals with the best companies using advanced AI technology",
+    "ctaPrimary": "Browse Jobs",
+    "ctaSecondary": "Post a Job"
   },
-  "job": {
-    "title": "Job Title",
-    "description": "Description",
-    "requirements": "Requirements",
-    "benefits": "Benefits",
-    "location": "Location",
-    "remote": "Remote",
-    "hybrid": "Hybrid",
-    "salary": "Salary",
-    "employmentType": "Employment Type",
-    "seniority": "Seniority Level",
-    "applyNow": "Apply Now",
-    "saveJob": "Save Job",
-    "shareJob": "Share Job"
-  },
-  "application": {
-    "stage": {
-      "new": "New",
-      "screening": "Screening",
-      "phone": "Phone Interview",
-      "technical": "Technical Interview",
-      "onsite": "Onsite Interview",
-      "offer": "Offer",
-      "hired": "Hired",
-      "rejected": "Rejected",
-      "withdrawn": "Withdrawn"
-    },
-    "actions": {
-      "moveStage": "Move to Stage",
-      "sendEmail": "Send Email",
-      "scheduleInterview": "Schedule Interview",
-      "addNote": "Add Note",
-      "assignTo": "Assign to",
-      "reject": "Reject",
-      "makeOffer": "Make Offer"
-    }
-  },
-  "candidate": {
-    "name": "Name",
-    "email": "Email",
-    "phone": "Phone",
-    "location": "Location",
-    "resume": "Resume",
-    "coverLetter": "Cover Letter",
-    "linkedIn": "LinkedIn",
-    "github": "GitHub",
-    "portfolio": "Portfolio",
-    "yearsOfExperience": "Years of Experience",
-    "skills": "Skills",
-    "languages": "Languages"
-  },
-  "email": {
-    "connect": "Connect Email",
-    "compose": "Compose",
-    "inbox": "Inbox",
-    "sent": "Sent",
-    "drafts": "Drafts",
-    "templates": "Templates",
-    "sequences": "Sequences",
-    "subject": "Subject",
-    "to": "To",
-    "cc": "CC",
-    "bcc": "BCC",
-    "send": "Send",
-    "schedule": "Schedule",
-    "attachments": "Attachments"
-  },
-  "assessment": {
-    "create": "Create Assessment",
-    "invite": "Send Invite",
-    "results": "View Results",
-    "duration": "Duration",
-    "questions": "Questions",
-    "passingScore": "Passing Score",
-    "attempts": "Attempts",
-    "score": "Score",
-    "startTest": "Start Test",
-    "submitTest": "Submit Test",
-    "timeRemaining": "Time Remaining"
-  },
-  "billing": {
-    "currentPlan": "Current Plan",
-    "upgrade": "Upgrade",
-    "downgrade": "Downgrade",
-    "subscribe": "Subscribe",
-    "cancel": "Cancel Subscription",
-    "invoices": "Invoices",
-    "paymentMethod": "Payment Method",
-    "usage": "Usage",
-    "plan": {
-      "starter": "Starter",
-      "pro": "Pro",
-      "enterprise": "Enterprise"
-    },
-    "features": {
-      "jobSlots": "Job Slots",
-      "seats": "Team Seats",
-      "emailsPerMonth": "Emails/Month",
-      "assessmentsPerMonth": "Assessments/Month",
-      "sso": "Single Sign-On"
-    }
+  "features": {
+    "title": "Why Choose JobSphere?",
+    "subtitle": "Everything you need for efficient recruitment in one place"
   },
   "common": {
     "save": "Save",
     "cancel": "Cancel",
-    "delete": "Delete",
-    "edit": "Edit",
-    "create": "Create",
     "search": "Search",
-    "filter": "Filter",
-    "export": "Export",
-    "import": "Import",
-    "loading": "Loading...",
-    "noResults": "No results found",
-    "error": "An error occurred",
-    "success": "Success",
-    "confirm": "Confirm",
-    "actions": "Actions",
-    "status": "Status",
-    "date": "Date",
-    "time": "Time",
-    "all": "All"
-  },
-  "match": {
-    "percent": "Match %",
-    "explain": "Explain Match",
-    "skills": "Matched Skills",
-    "experience": "Experience Match",
-    "education": "Education Match",
-    "location": "Location Match",
-    "requirements": "Requirements Match"
-  },
-  "cta": {
-    "createCv": "Create CV",
-    "uploadCv": "Upload CV",
-    "editCv": "Edit CV",
-    "exportCv": "Export CV",
-    "findJobs": "Find Jobs",
-    "postJob": "Post a Job",
-    "viewApplications": "View Applications"
+    "loading": "Loading..."
   }
 }
