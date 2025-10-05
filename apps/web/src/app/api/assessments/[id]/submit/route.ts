@@ -26,7 +26,11 @@ export async function POST(
     // Get assessment
     const assessment = await prisma.assessment.findUnique({
       where: { id: params.id },
-      include: { questions: true },
+      include: {
+        sections: {
+          include: { questions: true }
+        }
+      },
     })
 
     if (!assessment) {
