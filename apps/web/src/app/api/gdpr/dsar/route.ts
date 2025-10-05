@@ -18,11 +18,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { requestType, description } = await request.json()
+    const { type } = await request.json()
 
-    const validTypes = ['ACCESS', 'DELETION', 'RECTIFICATION', 'PORTABILITY']
+    const validTypes = ['EXPORT', 'DELETE']
 
-    if (!validTypes.includes(requestType)) {
+    if (!validTypes.includes(type)) {
       return NextResponse.json(
         { error: 'Invalid request type' },
         { status: 400 }
@@ -33,8 +33,7 @@ export async function POST(request: NextRequest) {
     const dsarRequest = await prisma.dSARRequest.create({
       data: {
         userId: session.user.id,
-        requestType,
-        description: description || '',
+        type,
         status: 'PENDING',
       },
     })
