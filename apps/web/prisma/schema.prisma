@@ -1,13 +1,16 @@
-// Simplified Prisma Schema for JobSphere
-// This schema is compatible with the API routes we've created
+// JobSphere - Complete Prisma Schema
+// AI-Powered ATS with Multi-tenant, i18n, Email, Assessments, Billing
+// Version: 2.0
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
 }
 
 // ============================================================================
@@ -30,6 +33,7 @@ model User {
   sessions      Session[]
   orgMembers    OrgMember[]
   applications  Application[]
+  candidate     Candidate?
 
   @@index([email])
 }
@@ -131,6 +135,7 @@ model Job {
 
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   applications Application[]
+  matchScores  MatchScore[]
 
   @@index([organizationId])
   @@index([status])
@@ -219,5 +224,652 @@ model Invoice {
   createdAt      DateTime @default(now())
 
   @@index([organizationId])
+  @@index([status])
+}
+
+// ============================================================================
+// CANDIDATE & CV MODELS
+// ============================================================================
+
+model Candidate {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  locale    String   @default("sk") // Preferovaný jazyk
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resumes   Resume[]
+  documents CandidateDocument[]
+
+  @@index([userId])
+}
+
+model CandidateDocument {
+  id          String   @id @default(cuid())
+  candidateId String
+  type        String   // CV, COVER_LETTER, CERTIFICATE, OTHER
+  fileName    String
+  fileUrl     String
+  mimeType    String
+  fileSize    Int
+  hash        String?  // SHA256 pre dedup
+  createdAt   DateTime @default(now())
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@index([hash])
+}
+
+model Resume {
+  id              String   @id @default(cuid())
+  candidateId     String
+  sourceDocumentId String?
+  language        String   @default("sk")
+  title           String?
+  summary         String?  @db.Text
+  anonymized      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  candidate Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  sections  ResumeSection[]
+  matches   MatchScore[]
+
+  @@index([candidateId])
+}
+
+model ResumeSection {
+  id              String  @id @default(cuid())
+  resumeId        String
+  kind            String  // PERSONAL, EXPERIENCE, EDUCATION, SKILLS, LANGUAGES, CERTIFICATIONS, PROJECTS
+  order           Int     @default(0)
+  title           String?
+  organization    String?
+  location        String?
+  startDate       DateTime?
+  endDate         DateTime?
+  current         Boolean  @default(false)
+  description     String?  @db.Text
+  skills          String[] // Array of skill tags
+  embeddingVector Unsupported("vector(768)")?
+
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@index([resumeId])
+  @@index([kind])
+}
+
+// ============================================================================
+// AI MATCHING MODELS
+// ============================================================================
+
+model MatchScore {
+  id          String   @id @default(cuid())
+  jobId       String
+  candidateId String
+  resumeId    String?
+  score0to100 Int      // 0-100 calibrated score
+  bm25Score   Float?
+  vectorScore Float?
+  llmScore    Float?
+  evidence    Json     // Structured evidence for explainability
+  version     String   @default("v1") // Algorithm version
+  createdAt   DateTime @default(now())
+
+  job    Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  resume Resume? @relation(fields: [resumeId], references: [id], onDelete: SetNull)
+
+  @@unique([jobId, candidateId])
+  @@index([jobId])
+  @@index([candidateId])
+  @@index([score0to100])
+}
+
+// ============================================================================
+// EMAIL SYSTEM MODELS
+// ============================================================================
+
+model EmailAccount {
+  id           String   @id @default(cuid())
+  orgId        String
+  provider     String   // MICROSOFT, GMAIL, IMAP
+  email        String
+  displayName  String?
+  oauthTokens  Json?    // Encrypted OAuth tokens
+  imapHost     String?
+  imapPort     Int?
+  smtpHost     String?
+  smtpPort     Int?
+  username     String?
+  password     String?  // Encrypted
+  signature    String?  @db.Text
+  active       Boolean  @default(true)
+  lastSyncAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  threads  EmailThread[]
+  messages EmailMessage[]
+
+  @@unique([orgId, email])
+  @@index([orgId])
+}
+
+model EmailThread {
+  id            String   @id @default(cuid())
+  accountId     String
+  subject       String?
+  participants  String[] // Email addresses
+  entityType    String?  // APPLICATION, CANDIDATE, JOB
+  entityId      String?
+  labels        String[]
+  lastMessageAt DateTime?
+  createdAt     DateTime @default(now())
+
+  account  EmailAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  messages EmailMessage[]
+
+  @@index([accountId])
+  @@index([entityType, entityId])
+}
+
+model EmailMessage {
+  id            String    @id @default(cuid())
+  threadId      String
+  accountId     String
+  messageId     String?   // Provider message ID
+  fromEmail     String
+  fromName      String?
+  toEmails      String[]
+  ccEmails      String[]
+  bccEmails     String[]
+  replyTo       String?
+  subject       String?
+  bodyHtml      String?   @db.Text
+  bodyText      String?   @db.Text
+  attachments   Json?     // Array of attachment metadata
+  inReplyTo     String?
+  references    String[]
+  direction     String    // INBOUND, OUTBOUND
+  status        String    @default("SENT") // DRAFT, SENDING, SENT, FAILED, BOUNCED
+  sentAt        DateTime?
+  receivedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  thread  EmailThread  @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  account EmailAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  events  EmailEvent[]
+
+  @@index([threadId])
+  @@index([accountId])
+  @@index([messageId])
+}
+
+model EmailEvent {
+  id        String   @id @default(cuid())
+  messageId String
+  kind      String   // OPENED, CLICKED, BOUNCED, COMPLAINED, UNSUBSCRIBED
+  metadata  Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  message EmailMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([kind])
+}
+
+// ============================================================================
+// EMAIL SEQUENCES (AUTOMATION)
+// ============================================================================
+
+model EmailSequence {
+  id          String   @id @default(cuid())
+  orgId       String
+  name        String
+  description String?  @db.Text
+  active      Boolean  @default(false)
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  steps EmailStep[]
+  runs  EmailSequenceRun[]
+
+  @@index([orgId])
+  @@index([active])
+}
+
+model EmailStep {
+  id           String  @id @default(cuid())
+  sequenceId   String
+  order        Int
+  dayOffset    Int     // Days after sequence start
+  subject      String
+  bodyTemplate String  @db.Text
+  conditions   Json?   // JSON rules for conditional sending
+  abVariant    String? // A, B, C for A/B testing
+
+  sequence EmailSequence      @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  events   EmailSequenceEvent[]
+
+  @@index([sequenceId])
+}
+
+model EmailSequenceRun {
+  id          String   @id @default(cuid())
+  sequenceId  String
+  candidateId String
+  jobId       String?
+  status      String   @default("ACTIVE") // ACTIVE, PAUSED, COMPLETED, STOPPED
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+
+  sequence EmailSequence       @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  events   EmailSequenceEvent[]
+
+  @@index([sequenceId])
+  @@index([candidateId])
+  @@index([status])
+}
+
+model EmailSequenceEvent {
+  id        String   @id @default(cuid())
+  runId     String
+  stepId    String
+  kind      String   // SCHEDULED, SENT, SKIPPED, FAILED
+  messageId String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  run  EmailSequenceRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  step EmailStep        @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([stepId])
+}
+
+model EmailSuppressionList {
+  id        String   @id @default(cuid())
+  orgId     String
+  email     String
+  reason    String   // BOUNCED, COMPLAINED, UNSUBSCRIBED, MANUAL
+  source    String?  // Which sequence/campaign caused it
+  createdAt DateTime @default(now())
+
+  @@unique([orgId, email])
+  @@index([orgId])
+  @@index([email])
+}
+// ============================================================================
+// ASSESSMENT MODELS (Testy a hodnotenia)
+// ============================================================================
+
+model Assessment {
+  id          String   @id @default(cuid())
+  orgId       String
+  name        String
+  description String?  @db.Text
+  locale      String   @default("sk")
+  durationMin Int?     // Time limit in minutes
+  passingScore Float?   // Minimum score to pass (0-100)
+  randomize   Boolean  @default(false)
+  settings    Json?    // Additional settings
+  active      Boolean  @default(true)
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sections AssessmentSection[]
+  invites  AssessmentInvite[]
+
+  @@index([orgId])
+  @@index([active])
+}
+
+model AssessmentSection {
+  id           String @id @default(cuid())
+  assessmentId String
+  title        String
+  description  String? @db.Text
+  order        Int     @default(0)
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  questions  Question[]
+
+  @@index([assessmentId])
+}
+
+model Question {
+  id             String   @id @default(cuid())
+  sectionId      String
+  type           String   // MCQ, MULTI_SELECT, SHORT_TEXT, LONG_TEXT, CODE
+  text           String   @db.Text
+  choices        String[] // For MCQ/MULTI
+  correctIndexes Int[]    // For auto-grading
+  code           String?  @db.Text // Starter code for CODE type
+  language       String?  // Programming language
+  skillTag       String?
+  points         Int      @default(1)
+  rubric         Json?    // Grading rubric for AI
+  order          Int      @default(0)
+
+  section AssessmentSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@index([sectionId])
+}
+
+model AssessmentInvite {
+  id           String    @id @default(cuid())
+  assessmentId String
+  candidateId  String
+  jobId        String?
+  token        String    @unique
+  email        String
+  expiresAt    DateTime?
+  status       String    @default("PENDING") // PENDING, STARTED, COMPLETED, EXPIRED
+  sentAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  attempt    Attempt?
+
+  @@index([assessmentId])
+  @@index([candidateId])
+  @@index([token])
+}
+
+model Attempt {
+  id         String    @id @default(cuid())
+  inviteId   String    @unique
+  startedAt  DateTime?
+  submittedAt DateTime?
+  timeSpent  Int?      // Seconds
+  totalScore Float?    // 0-100
+  passed     Boolean?
+  detail     Json?     // Detailed results
+
+  invite  AssessmentInvite @relation(fields: [inviteId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@index([inviteId])
+}
+
+model Answer {
+  id         String  @id @default(cuid())
+  attemptId  String
+  questionId String
+  response   Json    // Text, array of indexes, code, etc.
+  autoScore  Float?  // Auto-graded score
+  aiScore    Float?  // AI-graded score
+  finalScore Float?  // Final score used
+  feedback   String? @db.Text
+
+  attempt  Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId])
+  @@index([questionId])
+}
+
+// ============================================================================
+// BILLING & SUBSCRIPTION MODELS (Stripe)
+// ============================================================================
+
+model Product {
+  id          String   @id @default(cuid())
+  stripeId    String?  @unique
+  name        String
+  description String?  @db.Text
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  prices Price[]
+  plans  Plan[]
+}
+
+model Price {
+  id            String   @id @default(cuid())
+  productId     String
+  stripeId      String   @unique
+  currency      String   @default("EUR")
+  interval      String   // MONTH, YEAR
+  intervalCount Int      @default(1)
+  amount        Int      // In cents
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([stripeId])
+}
+
+model Plan {
+  id          String   @id @default(cuid())
+  productId   String
+  key         String   @unique // starter, professional, enterprise
+  name        String
+  description String?  @db.Text
+  popular     Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  product  Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  features PlanFeature[]
+
+  @@index([productId])
+  @@index([key])
+}
+
+model PlanFeature {
+  id          String  @id @default(cuid())
+  planId      String
+  featureKey  String  // job_slots, seats, assessments_per_month, email_sends_per_month
+  name        String
+  limitInt    Int?    // null = unlimited
+  limitBool   Boolean @default(true)
+  description String? @db.Text
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, featureKey])
+  @@index([planId])
+}
+
+model OrgCustomer {
+  id                 String   @id @default(cuid())
+  orgId              String   @unique
+  stripeCustomerId   String   @unique
+  stripePaymentMethod String?
+  vatId              String?
+  taxExempt          Boolean  @default(false)
+  address            Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  subscriptions StripeSubscription[]
+
+  @@index([orgId])
+  @@index([stripeCustomerId])
+}
+
+model StripeSubscription {
+  id                 String    @id @default(cuid())
+  customerId         String
+  stripeSubId        String    @unique
+  productId          String
+  planKey            String
+  status             String    // ACTIVE, CANCELED, PAST_DUE, UNPAID
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean   @default(false)
+  canceledAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  customer OrgCustomer           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items    SubscriptionItem[]
+  invoices StripeInvoice[]
+
+  @@index([customerId])
+  @@index([stripeSubId])
+  @@index([status])
+}
+
+model SubscriptionItem {
+  id             String @id @default(cuid())
+  subscriptionId String
+  stripePriceId  String
+  quantity       Int    @default(1)
+
+  subscription StripeSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+}
+
+model StripeInvoice {
+  id             String    @id @default(cuid())
+  subscriptionId String?
+  stripeInvoiceId String   @unique
+  amount         Int      // In cents
+  currency       String   @default("EUR")
+  status         String   // DRAFT, OPEN, PAID, VOID, UNCOLLECTIBLE
+  pdfUrl         String?
+  hostedUrl      String?
+  dueDate        DateTime?
+  paidAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  subscription StripeSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  payments     Payment[]
+
+  @@index([subscriptionId])
+  @@index([stripeInvoiceId])
+  @@index([status])
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  invoiceId       String
+  stripePaymentId String   @unique
+  amount          Int
+  currency        String   @default("EUR")
+  status          String   // SUCCEEDED, FAILED, PENDING
+  failureMessage  String?
+  createdAt       DateTime @default(now())
+
+  invoice StripeInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@index([stripePaymentId])
+}
+
+// Entitlements - aktuálne oprávnenia organizácie
+model Entitlement {
+  id          String   @id @default(cuid())
+  orgId       String
+  featureKey  String
+  limitInt    Int?     // null = unlimited
+  remainingInt Int?
+  resetAt     DateTime? // Kedy sa resetuje (mesačné kvóty)
+  updatedAt   DateTime @default(now())
+
+  @@unique([orgId, featureKey])
+  @@index([orgId])
+}
+
+// Usage tracking
+model UsageEvent {
+  id         String   @id @default(cuid())
+  orgId      String
+  featureKey String
+  delta      Int      // +1 pre increment, -1 pre decrement
+  entityType String?  // JOB, EMAIL, ASSESSMENT
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([orgId, featureKey])
+  @@index([createdAt])
+}
+
+// Stripe webhooks log
+model StripeWebhookEvent {
+  id        String   @id @default(cuid())
+  eventId   String   @unique
+  eventType String
+  payload   Json
+  processed Boolean  @default(false)
+  error     String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+  @@index([processed])
+}
+
+// ============================================================================
+// GDPR & AUDIT MODELS
+// ============================================================================
+
+model ConsentRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  purpose   String   // MARKETING, ANALYTICS, COOKIES
+  granted   Boolean
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([purpose])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  orgId      String?
+  userId     String?
+  action     String   // CREATED, UPDATED, DELETED, ACCESSED
+  entityType String
+  entityId   String
+  changes    Json?    // Before/after values
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([orgId])
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model DataRetentionPolicy {
+  id            String   @id @default(cuid())
+  orgId         String
+  entityType    String   // APPLICATION, CANDIDATE, EMAIL
+  retentionDays Int      @default(365)
+  autoDelete    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([orgId, entityType])
+  @@index([orgId])
+}
+
+model DSARRequest {
+  id          String    @id @default(cuid())
+  userId      String
+  type        String    // EXPORT, DELETE
+  status      String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  exportUrl   String?   // Pre EXPORT type
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
   @@index([status])
 }

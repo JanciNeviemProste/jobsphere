@@ -22,7 +22,9 @@
       "Bash(git reset:*)",
       "Bash(pnpm prisma generate:*)",
       "Bash(yarn prisma:*)",
-      "WebFetch(domain:www.jobsphere.eu)"
+      "WebFetch(domain:www.jobsphere.eu)",
+      "WebFetch(domain:jobsphere-khaki.vercel.app)",
+      "Bash(git rev-parse:*)"
     ],
     "deny": [],
     "ask": []
