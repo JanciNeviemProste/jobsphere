@@ -44,27 +44,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { consentType, granted, version } = await request.json()
+    const { purpose, granted } = await request.json()
 
-    if (!consentType || typeof granted !== 'boolean') {
+    if (!purpose || typeof granted !== 'boolean') {
       return NextResponse.json(
         { error: 'Invalid consent data' },
         { status: 400 }
       )
     }
 
-    // Valid consent types
-    const validTypes = [
-      'TERMS_OF_SERVICE',
-      'PRIVACY_POLICY',
-      'MARKETING_EMAILS',
-      'DATA_PROCESSING',
+    // Valid consent purposes
+    const validPurposes = [
+      'MARKETING',
+      'ANALYTICS',
       'COOKIES',
     ]
 
-    if (!validTypes.includes(consentType)) {
+    if (!validPurposes.includes(purpose)) {
       return NextResponse.json(
-        { error: 'Invalid consent type' },
+        { error: 'Invalid consent purpose' },
         { status: 400 }
       )
     }
@@ -73,9 +71,8 @@ export async function POST(request: NextRequest) {
     const consent = await prisma.consentRecord.create({
       data: {
         userId: session.user.id,
-        consentType,
+        purpose,
         granted,
-        version: version || '1.0',
         ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
         userAgent: request.headers.get('user-agent') || 'unknown',
       },
