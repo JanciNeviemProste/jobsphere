@@ -5,8 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '../../auth/[...nextauth]/route'
+import { auth } from '@/lib/auth'
 
 // PDF text extraction
 async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
@@ -24,7 +23,7 @@ async function extractTextFromDOCX(buffer: ArrayBuffer): Promise<string> {
 export async function POST(request: NextRequest) {
   try {
     // 1. Authenticate
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

@@ -1,32 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir)",
-      "Bash(npm init:*)",
-      "Bash(tree:*)",
-      "Bash(git init:*)",
-      "Bash(git remote add:*)",
-      "Bash(git add:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: JobSphere - AI-Powered ATS Platform\n\nImplemented features:\n- tRPC API layer with 5 routers (jobs, candidates, applications, assessments, billing)\n- 7 BullMQ workers for background processing\n- Database layer with 170+ Prisma models\n- AI integration with Claude for CV parsing and matching\n- Unit tests for database and AI layers\n- Complete testing infrastructure with Vitest\n- Comprehensive documentation\n\nTech stack:\n- Next.js 14 + tRPC + Prisma\n- PostgreSQL with pgvector + Redis\n- BullMQ for job queues\n- Anthropic Claude for AI\n- Multi-tenant architecture with RLS\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git push:*)",
-      "Bash(git commit:*)",
-      "Bash(git rm:*)",
-      "Bash(chmod:*)",
-      "Bash(rm:*)",
-      "Bash(openssl rand:*)",
-      "Bash(dir:*)",
-      "Bash(findstr:*)",
-      "Bash(npm run build:*)",
-      "Bash(npm install)",
-      "Bash(git log:*)",
-      "Bash(git reset:*)",
-      "Bash(pnpm prisma generate:*)",
-      "Bash(yarn prisma:*)",
-      "WebFetch(domain:www.jobsphere.eu)",
-      "WebFetch(domain:jobsphere-khaki.vercel.app)",
-      "Bash(git rev-parse:*)"
-    ],
-    "deny": [],
-    "ask": []
+      "Bash(cat:*)",
+      "Bash(find:*)"
+    ]
   }
 }

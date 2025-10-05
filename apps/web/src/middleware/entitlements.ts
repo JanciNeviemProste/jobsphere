@@ -4,8 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '../app/api/auth/[...nextauth]/route'
+import { auth } from '@/lib/auth'
 import { prisma } from '../lib/db'
 import { hasFeature, canCreateJob, canAddCandidate, Feature } from '../lib/entitlements'
 
@@ -17,7 +16,7 @@ export async function requireFeatureMiddleware(
   feature: Feature
 ): Promise<{ allowed: boolean; error?: string; organizationId?: string }> {
   // Get session
-  const session = await getServerSession(authOptions)
+  const session = await auth()
 
   if (!session?.user?.id) {
     return { allowed: false, error: 'Unauthorized' }
@@ -52,7 +51,7 @@ export async function requireFeatureMiddleware(
 export async function canCreateJobMiddleware(
   request: NextRequest
 ): Promise<{ allowed: boolean; error?: string }> {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
 
   if (!session?.user?.id) {
     return { allowed: false, error: 'Unauthorized' }
@@ -84,7 +83,7 @@ export async function canCreateJobMiddleware(
 export async function canAddCandidateMiddleware(
   request: NextRequest
 ): Promise<{ allowed: boolean; error?: string }> {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
 
   if (!session?.user?.id) {
     return { allowed: false, error: 'Unauthorized' }
