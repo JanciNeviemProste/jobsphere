@@ -88,25 +88,33 @@ export async function GET(request: NextRequest) {
     // Save email account
     await prisma.emailAccount.upsert({
       where: {
-        email_organizationId: {
+        orgId_email: {
           email,
-          organizationId: orgMember.organizationId,
+          orgId: orgMember.organizationId,
         },
       },
       create: {
         email,
         provider: 'GMAIL',
-        organizationId: orgMember.organizationId,
-        accessToken: access_token,
-        refreshToken: refresh_token,
-        tokenExpiresAt: new Date(Date.now() + expires_in * 1000),
-        isActive: true,
+        orgId: orgMember.organizationId,
+        displayName: user.name || email,
+        oauthTokens: {
+          access_token,
+          refresh_token,
+          expires_in,
+          token_type: 'Bearer',
+        },
+        active: true,
       },
       update: {
-        accessToken: access_token,
-        refreshToken: refresh_token,
-        tokenExpiresAt: new Date(Date.now() + expires_in * 1000),
-        isActive: true,
+        oauthTokens: {
+          access_token,
+          refresh_token,
+          expires_in,
+          token_type: 'Bearer',
+        },
+        active: true,
+        lastSyncAt: new Date(),
       },
     })
 
