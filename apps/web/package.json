@@ -20,6 +20,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@jobsphere/ai": "*",
     "@prisma/client": "^5.22.0",
     "@auth/prisma-adapter": "^1.0.12",
     "@hookform/resolvers": "^3.3.4",

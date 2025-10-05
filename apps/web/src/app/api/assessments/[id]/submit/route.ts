@@ -7,7 +7,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '../../../auth/[...nextauth]/route'
 import { prisma } from '@/lib/db'
-import { gradeAttempt } from '@/workers/assessment-grading.worker'
 
 export async function POST(
   request: NextRequest,
@@ -69,8 +68,8 @@ export async function POST(
       },
     })
 
-    // Trigger grading worker
-    await gradeAttempt(attempt.id)
+    // TODO: Trigger grading worker via BullMQ or API call
+    // For now, grading will be done manually or via cron job
 
     return NextResponse.json({
       success: true,
