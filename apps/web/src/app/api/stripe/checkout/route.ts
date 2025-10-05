@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     // Get or create Stripe customer
     let customer = await prisma.orgCustomer.findUnique({
-      where: { organizationId: orgMember.organizationId },
+      where: { orgId: orgMember.organizationId },
     })
 
     let stripeCustomerId: string
@@ -58,9 +58,9 @@ export async function POST(request: NextRequest) {
 
       // Save to DB
       await prisma.orgCustomer.upsert({
-        where: { organizationId: orgMember.organizationId },
+        where: { orgId: orgMember.organizationId },
         create: {
-          organizationId: orgMember.organizationId,
+          orgId: orgMember.organizationId,
           stripeCustomerId,
         },
         update: {
