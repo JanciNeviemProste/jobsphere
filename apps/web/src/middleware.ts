@@ -96,12 +96,37 @@ export default async function middleware(request: NextRequest) {
   // Apply internationalization middleware
   const response = intlMiddleware(request)
 
-  // Add security headers
+  // Add comprehensive security headers
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('X-XSS-Protection', '1; mode=block')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+
+  // Strict Transport Security (HSTS)
+  if (process.env.NODE_ENV === 'production') {
+    response.headers.set(
+      'Strict-Transport-Security',
+      'max-age=31536000; includeSubDomains; preload'
+    )
+  }
+
+  // Content Security Policy
+  const csp = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://accounts.google.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' data: https: blob:",
+    "connect-src 'self' https://api.anthropic.com https://api.stripe.com https://api.openai.com https://api.voyageai.com https://graph.microsoft.com https://login.microsoftonline.com",
+    "frame-src 'self' https://js.stripe.com https://accounts.google.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "upgrade-insecure-requests",
+  ].join('; ')
+
+  response.headers.set('Content-Security-Policy', csp)
 
   // Set CSRF token cookie for GET requests
   if (request.method === 'GET') {

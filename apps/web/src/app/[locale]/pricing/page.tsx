@@ -1,15 +1,58 @@
 'use client'
 
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Check } from 'lucide-react'
+import { Check, Loader2 } from 'lucide-react'
 
 export default function PricingPage({ params }: { params: { locale: string } }) {
   const t = useTranslations()
   const locale = params.locale
+  const router = useRouter()
+  const [loading, setLoading] = useState<string | null>(null)
+
+  async function handleSubscribe(planId: 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE') {
+    if (planId === 'STARTER') {
+      router.push(`/${locale}/signup`)
+      return
+    }
+
+    if (planId === 'ENTERPRISE') {
+      window.location.href = 'mailto:sales@jobsphere.eu'
+      return
+    }
+
+    try {
+      setLoading(planId)
+
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: planId }),
+      })
+
+      if (response.ok) {
+        const { url } = await response.json()
+        window.location.href = url
+      } else {
+        const error = await response.json()
+        if (response.status === 401) {
+          router.push(`/${locale}/signup?plan=${planId}`)
+        } else {
+          alert(error.error || 'Failed to start checkout')
+        }
+      }
+    } catch (error) {
+      console.error('Checkout error:', error)
+      alert('Failed to start checkout')
+    } finally {
+      setLoading(null)
+    }
+  }
 
   const plans = [
     {
@@ -115,9 +158,17 @@ export default function PricingPage({ params }: { params: { locale: string } }) 
                 <Button
                   className="w-full"
                   variant={plan.popular ? 'default' : 'outline'}
-                  asChild
+                  onClick={() => handleSubscribe(plan.name.toUpperCase() as 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE')}
+                  disabled={loading === plan.name.toUpperCase()}
                 >
-                  <Link href={`/${locale}/signup`}>{plan.cta}</Link>
+                  {loading === plan.name.toUpperCase() ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Loading...
+                    </>
+                  ) : (
+                    plan.cta
+                  )}
                 </Button>
               </CardContent>
             </Card>

@@ -1,15 +1,16 @@
-# JobSphere - AI-Powered ATS Platform
+# JobSphere - Enterprise AI-Powered ATS
 
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748)](https://www.prisma.io/)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Claude AI](https://img.shields.io/badge/Claude-Opus%204-orange)](https://www.anthropic.com/)
+[![License](https://img.shields.io/badge/license-Proprietary-red)](LICENSE)
 
 **Live Demo:** [https://jobsphere-khaki.vercel.app](https://jobsphere-khaki.vercel.app)
 
 ## 🚀 Overview
 
-JobSphere is a modern, AI-powered Applicant Tracking System (ATS) built with Next.js 14, designed to streamline the hiring process for both employers and candidates. The platform features a multilingual interface, secure authentication, real-time application tracking, and intelligent candidate matching.
+JobSphere is an enterprise-grade Applicant Tracking System powered by Anthropic's Claude AI, built with Next.js 14. Complete with AI CV parsing, hybrid matching algorithms, email automation, skills assessments, Stripe billing, and full GDPR compliance.
 
 ---
 

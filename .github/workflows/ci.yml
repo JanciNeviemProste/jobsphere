@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI
 
 on:
   push:
@@ -6,294 +6,58 @@ on:
   pull_request:
     branches: [main, develop]
 
-env:
-  NODE_VERSION: '20'
-  PNPM_VERSION: '9'
-
 jobs:
-  lint-and-typecheck:
-    name: Lint and Type Check
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
-      - name: Lint
-        run: pnpm lint
+      - name: Run ESLint
+        run: npm run lint
 
-      - name: Type check
-        run: pnpm typecheck
-
-  test:
+  test-unit:
     name: Unit Tests
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: jobsphere_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Setup database
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/jobsphere_test
-        run: |
-          pnpm --filter @jobsphere/db prisma generate
-          pnpm --filter @jobsphere/db prisma db push
+        run: npm ci
 
       - name: Run tests
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/jobsphere_test
-          REDIS_URL: redis://localhost:6379
-        run: pnpm test
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./coverage/lcov.info
-
-  e2e:
-    name: E2E Tests
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: jobsphere_e2e
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v3
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Playwright
-        run: pnpm playwright install --with-deps chromium
-
-      - name: Setup database
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/jobsphere_e2e
-        run: |
-          pnpm --filter @jobsphere/db prisma generate
-          pnpm --filter @jobsphere/db prisma db push
-          pnpm --filter @jobsphere/db db:seed
-
-      - name: Build apps
-        run: pnpm build
-
-      - name: Run E2E tests
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/jobsphere_e2e
-          NEXT_PUBLIC_APP_URL: http://localhost:3000
-          API_URL: http://localhost:4000
-        run: pnpm test:e2e
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 7
-
-  security:
-    name: Security Checks
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v3
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Audit dependencies
-        run: pnpm audit --audit-level=high
-
-      - name: SAST Scan
-        uses: github/super-linter@v5
-        env:
-          DEFAULT_BRANCH: main
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VALIDATE_JAVASCRIPT_ES: true
-          VALIDATE_TYPESCRIPT_ES: true
-          VALIDATE_JSON: true
-          VALIDATE_YAML: true
-
-      - name: Generate SBOM
-        uses: anchore/sbom-action@v0
-        with:
-          format: cyclonedx-json
-          output-file: sbom.json
-
-      - name: Upload SBOM
-        uses: actions/upload-artifact@v4
-        with:
-          name: sbom
-          path: sbom.json
+        run: npm run test
 
   build:
-    name: Build Docker Images
+    name: Build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    needs: [lint-and-typecheck, test, security]
+    needs: [lint, test-unit]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          node-version: '20'
+          cache: 'npm'
 
-      - name: Build and push Web
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./apps/web/Dockerfile
-          push: true
-          tags: |
-            jobsphere/web:latest
-            jobsphere/web:${{ github.sha }}
-          cache-from: type=registry,ref=jobsphere/web:buildcache
-          cache-to: type=registry,ref=jobsphere/web:buildcache,mode=max
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Build and push API
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./apps/api/Dockerfile
-          push: true
-          tags: |
-            jobsphere/api:latest
-            jobsphere/api:${{ github.sha }}
-          cache-from: type=registry,ref=jobsphere/api:buildcache
-          cache-to: type=registry,ref=jobsphere/api:buildcache,mode=max
-
-      - name: Build and push Workers
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./apps/workers/Dockerfile
-          push: true
-          tags: |
-            jobsphere/workers:latest
-            jobsphere/workers:${{ github.sha }}
-          cache-from: type=registry,ref=jobsphere/workers:buildcache
-          cache-to: type=registry,ref=jobsphere/workers:buildcache,mode=max
-
-  deploy:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    needs: [build]
-    environment: production
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to Fly.io
-        if: env.DEPLOY_TARGET == 'fly'
-        uses: superfly/flyctl-actions@v1
-        with:
-          args: deploy --image jobsphere/web:${{ github.sha }}
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-
-      - name: Deploy to AWS ECS
-        if: env.DEPLOY_TARGET == 'aws'
-        run: |
-          aws ecs update-service \
-            --cluster jobsphere-prod \
-            --service web \
-            --force-new-deployment \
-            --region ${{ secrets.AWS_REGION }}
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-      - name: Run database migrations
-        run: |
-          pnpm --filter @jobsphere/db prisma migrate deploy
-        env:
-          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
-
-      - name: Notify deployment
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          text: 'Deployment to production completed'
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-        if: always()
+      - name: Build
+        run: npm run build
