@@ -55,59 +55,14 @@ export async function POST(request: NextRequest) {
       locale: candidate.locale,
     })
 
-    // 5. Create Resume record
+    // 5. Create Resume record - store parsed data as JSON
+    // Sections will be created separately if needed
     const resume = await prisma.resume.create({
       data: {
         candidateId: candidate.id,
         language: candidate.locale,
         rawText,
-        parsedData: extractedCV as any, // Store full JSON
-        sections: {
-          create: [
-            // Personal section
-            {
-              type: 'PERSONAL',
-              title: 'Personal Information',
-              content: JSON.stringify(extractedCV.personal),
-              orderIndex: 0,
-            },
-            // Summary
-            ...(extractedCV.summary
-              ? [
-                  {
-                    type: 'SUMMARY' as const,
-                    title: 'Summary',
-                    content: extractedCV.summary,
-                    orderIndex: 1,
-                  },
-                ]
-              : []),
-            // Experience sections
-            ...extractedCV.experiences.map((exp, idx) => ({
-              type: 'EXPERIENCE' as const,
-              title: exp.title,
-              content: JSON.stringify(exp),
-              orderIndex: 2 + idx,
-            })),
-            // Education sections
-            ...extractedCV.education.map((edu, idx) => ({
-              type: 'EDUCATION' as const,
-              title: edu.degree,
-              content: JSON.stringify(edu),
-              orderIndex: 2 + extractedCV.experiences.length + idx,
-            })),
-            // Skills
-            {
-              type: 'SKILLS' as const,
-              title: 'Skills',
-              content: JSON.stringify(extractedCV.skills),
-              orderIndex:
-                2 +
-                extractedCV.experiences.length +
-                extractedCV.education.length,
-            },
-          ],
-        },
+        parsedData: extractedCV as any, // Store full JSON for later processing
       },
     })
 
