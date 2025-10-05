@@ -36,7 +36,7 @@ export class VoyageEmbeddings implements EmbeddingProvider {
       throw new Error(`Voyage API error: ${response.statusText}`)
     }
 
-    const data = await response.json()
+    const data = (await response.json()) as { data: Array<{ embedding: number[] }> }
     return data.data[0].embedding
   }
 
@@ -64,8 +64,8 @@ export class VoyageEmbeddings implements EmbeddingProvider {
         throw new Error(`Voyage API error: ${response.statusText}`)
       }
 
-      const data = await response.json()
-      results.push(...data.data.map((d: any) => d.embedding))
+      const data = (await response.json()) as { data: Array<{ embedding: number[] }> }
+      results.push(...data.data.map((d) => d.embedding))
     }
 
     return results
@@ -102,7 +102,7 @@ export class OpenAIEmbeddings implements EmbeddingProvider {
       throw new Error(`OpenAI API error: ${response.statusText}`)
     }
 
-    const data = await response.json()
+    const data = (await response.json()) as { data: Array<{ embedding: number[] }> }
     return data.data[0].embedding
   }
 
@@ -123,8 +123,8 @@ export class OpenAIEmbeddings implements EmbeddingProvider {
       throw new Error(`OpenAI API error: ${response.statusText}`)
     }
 
-    const data = await response.json()
-    return data.data.map((d: any) => d.embedding)
+    const data = (await response.json()) as { data: Array<{ embedding: number[] }> }
+    return data.data.map((d) => d.embedding)
   }
 }
 
@@ -159,7 +159,7 @@ export class CohereEmbeddings implements EmbeddingProvider {
       throw new Error(`Cohere API error: ${response.statusText}`)
     }
 
-    const data = await response.json()
+    const data = (await response.json()) as { embeddings: number[][] }
     return data.embeddings[0]
   }
 
@@ -181,7 +181,7 @@ export class CohereEmbeddings implements EmbeddingProvider {
       throw new Error(`Cohere API error: ${response.statusText}`)
     }
 
-    const data = await response.json()
+    const data = (await response.json()) as { embeddings: number[][] }
     return data.embeddings
   }
 }
