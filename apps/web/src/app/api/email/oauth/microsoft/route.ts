@@ -100,25 +100,32 @@ export async function POST(request: NextRequest) {
     // Create or update email account
     const emailAccount = await prisma.emailAccount.upsert({
       where: {
-        email_organizationId: {
+        orgId_email: {
           email,
-          organizationId: orgMember.organizationId,
+          orgId: orgMember.organizationId,
         },
       },
       create: {
         email,
         provider: 'MICROSOFT',
-        organizationId: orgMember.organizationId,
-        accessToken,
-        refreshToken,
-        tokenExpiresAt: new Date(Date.now() + 3600 * 1000), // 1 hour
-        isActive: true,
+        orgId: orgMember.organizationId,
+        oauthTokens: {
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          expires_in: 3600,
+          token_type: 'Bearer',
+        },
+        active: true,
       },
       update: {
-        accessToken,
-        refreshToken,
-        tokenExpiresAt: new Date(Date.now() + 3600 * 1000),
-        isActive: true,
+        oauthTokens: {
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          expires_in: 3600,
+          token_type: 'Bearer',
+        },
+        active: true,
+        lastSyncAt: new Date(),
       },
     })
 
