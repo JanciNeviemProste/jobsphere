@@ -87,7 +87,6 @@ export async function GET(request: NextRequest) {
         organizationId: om.organizationId,
         organizationName: om.organization.name,
         role: om.role,
-        joinedAt: om.createdAt,
       })),
       candidate: candidate
         ? {
