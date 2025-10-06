@@ -43,7 +43,7 @@ export type AuditResource =
 
 export interface AuditLogEntry {
   userId?: string
-  organizationId?: string
+  orgId?: string
   action: AuditAction
   resource: AuditResource
   resourceId?: string
@@ -60,10 +60,10 @@ export async function createAuditLog(entry: AuditLogEntry): Promise<void> {
     await prisma.auditLog.create({
       data: {
         userId: entry.userId,
-        orgId: entry.organizationId,
+        orgId: entry.orgId,
         action: entry.action,
         entityType: entry.resource,
-        ...(entry.resourceId && { entityId: entry.resourceId }),
+        entityId: entry.resourceId || 'SYSTEM',
         changes: entry.metadata || {},
         ipAddress: entry.ipAddress,
         userAgent: entry.userAgent,
@@ -112,7 +112,7 @@ export async function logUserLogin(
  */
 export async function logDataAccess(
   userId: string,
-  organizationId: string,
+  orgId: string,
   resourceType: AuditResource,
   resourceId: string,
   request: Request
@@ -121,7 +121,7 @@ export async function logDataAccess(
 
   await createAuditLog({
     userId,
-    organizationId,
+    orgId,
     action: 'CANDIDATE_VIEWED',
     resource: resourceType,
     resourceId,
@@ -135,7 +135,7 @@ export async function logDataAccess(
  */
 export async function logDataExport(
   userId: string,
-  organizationId: string | undefined,
+  orgId: string | undefined,
   exportType: string,
   request: Request
 ): Promise<void> {
@@ -143,9 +143,10 @@ export async function logDataExport(
 
   await createAuditLog({
     userId,
-    organizationId,
+    orgId,
     action: 'DATA_EXPORTED',
     resource: 'CANDIDATE',
+    resourceId: userId,
     metadata: { exportType },
     ipAddress,
     userAgent,
@@ -181,7 +182,7 @@ export async function logSensitiveAction(
  */
 export async function queryAuditLogs(filters: {
   userId?: string
-  organizationId?: string
+  orgId?: string
   action?: AuditAction
   resource?: AuditResource
   startDate?: Date
@@ -191,9 +192,9 @@ export async function queryAuditLogs(filters: {
   const where: any = {}
 
   if (filters.userId) where.userId = filters.userId
-  if (filters.organizationId) where.organizationId = filters.organizationId
+  if (filters.orgId) where.orgId = filters.orgId
   if (filters.action) where.action = filters.action
-  if (filters.resource) where.resource = filters.resource
+  if (filters.resource) where.entityType = filters.resource
 
   if (filters.startDate || filters.endDate) {
     where.createdAt = {}

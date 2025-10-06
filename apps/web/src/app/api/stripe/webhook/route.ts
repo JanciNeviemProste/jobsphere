@@ -258,9 +258,11 @@ async function updateEntitlements(
       orgId: organizationId,
       featureKey: 'MAX_JOBS',
       limitInt: planLimits.maxJobs === -1 ? null : planLimits.maxJobs,
+      remainingInt: planLimits.maxJobs === -1 ? null : planLimits.maxJobs,
     },
     update: {
       limitInt: planLimits.maxJobs === -1 ? null : planLimits.maxJobs,
+      remainingInt: planLimits.maxJobs === -1 ? null : planLimits.maxJobs,
     },
   })
 
@@ -275,9 +277,11 @@ async function updateEntitlements(
       orgId: organizationId,
       featureKey: 'MAX_CANDIDATES',
       limitInt: planLimits.maxCandidates === -1 ? null : planLimits.maxCandidates,
+      remainingInt: planLimits.maxCandidates === -1 ? null : planLimits.maxCandidates,
     },
     update: {
       limitInt: planLimits.maxCandidates === -1 ? null : planLimits.maxCandidates,
+      remainingInt: planLimits.maxCandidates === -1 ? null : planLimits.maxCandidates,
     },
   })
 

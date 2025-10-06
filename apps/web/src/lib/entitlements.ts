@@ -19,74 +19,75 @@ export type Feature =
  * Check if organization has access to a feature
  */
 export async function hasFeature(
-  organizationId: string,
+  orgId: string,
   feature: Feature
 ): Promise<boolean> {
   const entitlement = await prisma.entitlement.findUnique({
     where: {
-      organizationId_feature: {
-        organizationId,
-        feature,
+      orgId_featureKey: {
+        orgId,
+        featureKey: feature,
       },
     },
   })
 
-  return entitlement?.enabled ?? false
+  // For boolean features, limitInt > 0 means enabled
+  return (entitlement?.limitInt ?? 0) > 0
 }
 
 /**
  * Get feature limit for organization
  */
 export async function getFeatureLimit(
-  organizationId: string,
+  orgId: string,
   feature: Feature
-): Promise<number> {
+): Promise<number | null> {
   const entitlement = await prisma.entitlement.findUnique({
     where: {
-      organizationId_feature: {
-        organizationId,
-        feature,
+      orgId_featureKey: {
+        orgId,
+        featureKey: feature,
       },
     },
   })
 
-  return entitlement?.limit ?? 0
+  return entitlement?.limitInt ?? 0
 }
 
 /**
  * Check if organization can create more items
  */
-export async function canCreateJob(organizationId: string): Promise<boolean> {
-  const limit = await getFeatureLimit(organizationId, 'MAX_JOBS')
+export async function canCreateJob(orgId: string): Promise<boolean> {
+  const limit = await getFeatureLimit(orgId, 'MAX_JOBS')
 
-  if (limit === -1) return true // unlimited
+  if (limit === null) return true // unlimited
 
   const currentCount = await prisma.job.count({
-    where: { organizationId, status: 'PUBLISHED' },
+    where: { organizationId: orgId, status: 'PUBLISHED' },
   })
 
   return currentCount < limit
 }
 
-export async function canAddCandidate(organizationId: string): Promise<boolean> {
-  const limit = await getFeatureLimit(organizationId, 'MAX_CANDIDATES')
+export async function canAddCandidate(orgId: string): Promise<boolean> {
+  const limit = await getFeatureLimit(orgId, 'MAX_CANDIDATES')
 
-  if (limit === -1) return true
+  if (limit === null) return true
 
   const currentCount = await prisma.application.count({
-    where: { job: { organizationId } },
+    where: { job: { organizationId: orgId } },
   })
 
   return currentCount < limit
 }
 
-export async function canAddTeamMember(organizationId: string): Promise<boolean> {
-  const limit = await getFeatureLimit(organizationId, 'MAX_TEAM_MEMBERS')
+export async function canAddTeamMember(orgId: string): Promise<boolean> {
+  const limit = await getFeatureLimit(orgId, 'MAX_TEAM_MEMBERS')
 
-  if (limit === -1) return true
+  if (limit === null) return true
 
   const currentCount = await prisma.orgMember.count({
-    where: { organizationId },
+    where: { organizationId: orgId },
   })
 
   return currentCount < limit
@@ -96,37 +97,43 @@ export async function canAddTeamMember(organizationId: string): Promise<boolean>
  * Get current plan for organization
  */
 export async function getCurrentPlan(
-  organizationId: string
+  orgId: string
 ): Promise<'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE' | null> {
-  const subscription = await prisma.stripeSubscription.findFirst({
-    where: {
-      organizationId,
-      status: 'active',
+  const customer = await prisma.orgCustomer.findUnique({
+    where: { orgId },
+    include: {
+      subscriptions: {
+        where: { status: 'ACTIVE' },
+        orderBy: { currentPeriodEnd: 'desc' },
+        take: 1,
+      },
     },
-    orderBy: { currentPeriodEnd: 'desc' },
   })
 
-  return subscription?.plan ?? 'STARTER'
+  const planKey = customer?.subscriptions[0]?.planKey
+  return (planKey as 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE') ?? 'STARTER'
 }
 
 /**
  * Get all entitlements for organization
  */
-export async function getEntitlements(organizationId: string) {
+export async function getEntitlements(orgId: string) {
   const entitlements = await prisma.entitlement.findMany({
-    where: { organizationId },
+    where: { orgId },
   })
 
-  const plan = await getCurrentPlan(organizationId)
+  const plan = await getCurrentPlan(orgId)
 
   return {
     plan,
     features: entitlements.reduce(
       (acc, e) => {
-        acc[e.feature] = {
-          enabled: e.enabled,
-          limit: e.limit,
-          used: e.used || 0,
+        acc[e.featureKey] = {
+          enabled: (e.limitInt ?? 0) > 0,
+          limit: e.limitInt,
+          used: e.limitInt !== null && e.remainingInt !== null
+            ? e.limitInt - e.remainingInt
+            : 0,
         }
         return acc
       },
@@ -138,8 +145,8 @@ export async function getEntitlements(organizationId: string) {
 /**
  * Middleware helper - throws if feature not enabled
  */
-export async function requireFeature(organizationId: string, feature: Feature) {
-  const enabled = await hasFeature(organizationId, feature)
+export async function requireFeature(orgId: string, feature: Feature) {
+  const enabled = await hasFeature(orgId, feature)
 
   if (!enabled) {
     throw new Error(`Feature ${feature} not available on your plan. Please upgrade.`)
@@ -149,17 +156,17 @@ export async function requireFeature(organizationId: string, feature: Feature) {
 /**
  * Increment usage for a feature
  */
-export async function incrementUsage(organizationId: string, feature: Feature) {
+export async function incrementUsage(orgId: string, feature: Feature) {
   await prisma.entitlement.update({
     where: {
-      organizationId_feature: {
-        organizationId,
-        feature,
+      orgId_featureKey: {
+        orgId,
+        featureKey: feature,
       },
     },
     data: {
-      used: {
-        increment: 1,
+      remainingInt: {
+        decrement: 1,
       },
     },
   })
