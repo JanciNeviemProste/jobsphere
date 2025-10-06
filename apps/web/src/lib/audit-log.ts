@@ -63,7 +63,7 @@ export async function createAuditLog(entry: AuditLogEntry): Promise<void> {
         orgId: entry.organizationId,
         action: entry.action,
         entityType: entry.resource,
-        entityId: entry.resourceId,
+        ...(entry.resourceId && { entityId: entry.resourceId }),
         changes: entry.metadata || {},
         ipAddress: entry.ipAddress,
         userAgent: entry.userAgent,
