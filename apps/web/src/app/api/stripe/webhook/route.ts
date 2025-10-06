@@ -249,86 +249,86 @@ async function updateEntitlements(
   // Upsert entitlements
   await prisma.entitlement.upsert({
     where: {
-      organizationId_feature: {
-        organizationId,
-        feature: 'MAX_JOBS',
+      orgId_featureKey: {
+        orgId: organizationId,
+        featureKey: 'MAX_JOBS',
       },
     },
     create: {
-      organizationId,
-      feature: 'MAX_JOBS',
-      limit: planLimits.maxJobs,
+      orgId: organizationId,
+      featureKey: 'MAX_JOBS',
+      limitInt: planLimits.maxJobs === -1 ? null : planLimits.maxJobs,
     },
     update: {
-      limit: planLimits.maxJobs,
+      limitInt: planLimits.maxJobs === -1 ? null : planLimits.maxJobs,
     },
   })
 
   await prisma.entitlement.upsert({
     where: {
-      organizationId_feature: {
-        organizationId,
-        feature: 'MAX_CANDIDATES',
+      orgId_featureKey: {
+        orgId: organizationId,
+        featureKey: 'MAX_CANDIDATES',
       },
     },
     create: {
-      organizationId,
-      feature: 'MAX_CANDIDATES',
-      limit: planLimits.maxCandidates,
+      orgId: organizationId,
+      featureKey: 'MAX_CANDIDATES',
+      limitInt: planLimits.maxCandidates === -1 ? null : planLimits.maxCandidates,
     },
     update: {
-      limit: planLimits.maxCandidates,
+      limitInt: planLimits.maxCandidates === -1 ? null : planLimits.maxCandidates,
     },
   })
 
   await prisma.entitlement.upsert({
     where: {
-      organizationId_feature: {
-        organizationId,
-        feature: 'EMAIL_SEQUENCES',
+      orgId_featureKey: {
+        orgId: organizationId,
+        featureKey: 'EMAIL_SEQUENCES',
       },
     },
     create: {
-      organizationId,
-      feature: 'EMAIL_SEQUENCES',
-      enabled: planLimits.emailSequences,
+      orgId: organizationId,
+      featureKey: 'EMAIL_SEQUENCES',
+      limitInt: planLimits.emailSequences ? 1 : 0,
     },
     update: {
-      enabled: planLimits.emailSequences,
+      limitInt: planLimits.emailSequences ? 1 : 0,
     },
   })
 
   await prisma.entitlement.upsert({
     where: {
-      organizationId_feature: {
-        organizationId,
-        feature: 'ASSESSMENTS',
+      orgId_featureKey: {
+        orgId: organizationId,
+        featureKey: 'ASSESSMENTS',
       },
     },
     create: {
-      organizationId,
-      feature: 'ASSESSMENTS',
-      enabled: planLimits.assessments,
+      orgId: organizationId,
+      featureKey: 'ASSESSMENTS',
+      limitInt: planLimits.assessments ? 1 : 0,
     },
     update: {
-      enabled: planLimits.assessments,
+      limitInt: planLimits.assessments ? 1 : 0,
     },
   })
 
   await prisma.entitlement.upsert({
     where: {
-      organizationId_feature: {
-        organizationId,
-        feature: 'AI_MATCHING',
+      orgId_featureKey: {
+        orgId: organizationId,
+        featureKey: 'AI_MATCHING',
       },
     },
     create: {
-      organizationId,
-      feature: 'AI_MATCHING',
-      enabled: planLimits.aiMatching,
+      orgId: organizationId,
+      featureKey: 'AI_MATCHING',
+      limitInt: planLimits.aiMatching ? 1 : 0,
     },
     update: {
-      enabled: planLimits.aiMatching,
+      limitInt: planLimits.aiMatching ? 1 : 0,
     },
   })
 }
