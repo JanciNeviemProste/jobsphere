@@ -132,22 +132,21 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   // Upsert subscription
   await prisma.stripeSubscription.upsert({
     where: {
-      organizationId_stripeSubscriptionId: {
-        organizationId: customer.organizationId,
-        stripeSubscriptionId: subscription.id,
-      },
+      stripeSubId: subscription.id,
     },
     create: {
-      organizationId: customer.organizationId,
-      stripeSubscriptionId: subscription.id,
-      plan,
+      customerId: customer.id,
+      stripeSubId: subscription.id,
+      productId: priceId,
+      planKey: plan,
       status: subscription.status,
       currentPeriodStart: new Date(subscription.current_period_start * 1000),
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
     },
     update: {
-      plan,
+      planKey: plan,
+      productId: priceId,
       status: subscription.status,
       currentPeriodStart: new Date(subscription.current_period_start * 1000),
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
@@ -156,9 +155,9 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   })
 
   // Update entitlements based on plan
-  await updateEntitlements(customer.organizationId, plan)
+  await updateEntitlements(customer.orgId, plan)
 
-  console.log(`[Stripe] Subscription ${subscription.status} for org ${customer.organizationId}`)
+  console.log(`[Stripe] Subscription ${subscription.status} for org ${customer.orgId}`)
 }
 
 /**
@@ -176,8 +175,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   // Update subscription status
   await prisma.stripeSubscription.updateMany({
     where: {
-      organizationId: customer.organizationId,
-      stripeSubscriptionId: subscription.id,
+      stripeSubId: subscription.id,
     },
     data: {
       status: 'canceled',
@@ -186,9 +184,9 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   })
 
   // Revert to free plan entitlements
-  await updateEntitlements(customer.organizationId, 'STARTER')
+  await updateEntitlements(customer.orgId, 'STARTER')
 
-  console.log(`[Stripe] Subscription canceled for org ${customer.organizationId}`)
+  console.log(`[Stripe] Subscription canceled for org ${customer.orgId}`)
 }
 
 /**
