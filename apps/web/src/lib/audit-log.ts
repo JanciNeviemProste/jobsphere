@@ -60,11 +60,11 @@ export async function createAuditLog(entry: AuditLogEntry): Promise<void> {
     await prisma.auditLog.create({
       data: {
         userId: entry.userId,
-        organizationId: entry.organizationId,
+        orgId: entry.organizationId,
         action: entry.action,
-        resource: entry.resource,
-        resourceId: entry.resourceId,
-        metadata: entry.metadata || {},
+        entityType: entry.resource,
+        entityId: entry.resourceId,
+        changes: entry.metadata || {},
         ipAddress: entry.ipAddress,
         userAgent: entry.userAgent,
       },
