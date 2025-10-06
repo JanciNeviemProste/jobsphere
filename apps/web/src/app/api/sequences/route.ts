@@ -3,7 +3,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { createSequenceSchema } from '@/schemas'
+import { validateRequest } from '@/lib/validation'
+import { requireAuth } from '@/lib/api-helpers'
+import { handleApiError } from '@/lib/errors'
 import { prisma } from '@/lib/db'
 
 /**
@@ -12,21 +15,10 @@ import { prisma } from '@/lib/db'
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const orgMember = await prisma.orgMember.findFirst({
-      where: { userId: session.user.id },
-    })
-
-    if (!orgMember) {
-      return NextResponse.json({ error: 'No organization' }, { status: 400 })
-    }
+    const { orgId } = await requireAuth(request)
 
     const sequences = await prisma.emailSequence.findMany({
-      where: { orgId: orgMember.organizationId },
+      where: { orgId },
       include: {
         steps: {
           orderBy: { order: 'asc' },
@@ -36,8 +28,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ sequences })
   } catch (error) {
-    console.error('Sequences GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch sequences' }, { status: 500 })
+    return handleApiError(error)
   }
 }
 
@@ -47,34 +38,28 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // Validate input FIRST
+    const data = await validateRequest(request, createSequenceSchema)
 
-    const orgMember = await prisma.orgMember.findFirst({
-      where: { userId: session.user.id },
-    })
+    // Then authenticate
+    const { userId, orgId } = await requireAuth(request)
 
-    if (!orgMember) {
-      return NextResponse.json({ error: 'No organization' }, { status: 400 })
-    }
-
-    const { name, description, steps, active } = await request.json()
-
+    // Business logic
     const sequence = await prisma.emailSequence.create({
       data: {
-        name,
-        description,
-        orgId: orgMember.organizationId,
-        createdBy: session.user.id,
-        active: active || false,
+        name: data.name,
+        description: data.description,
+        orgId,
+        createdBy: userId,
+        active: data.active,
         steps: {
-          create: steps.map((step: any, index: number) => ({
+          create: data.steps.map((step, index) => ({
             order: step.order ?? index,
-            dayOffset: step.dayOffset || 0,
+            dayOffset: step.dayOffset,
             subject: step.subject,
-            bodyTemplate: step.bodyTemplate || step.body || '',
+            bodyTemplate: step.bodyTemplate,
+            conditions: step.conditions,
+            abVariant: step.abVariant,
           })),
         },
       },
@@ -85,9 +70,8 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({ sequence })
+    return NextResponse.json({ sequence }, { status: 201 })
   } catch (error) {
-    console.error('Sequence POST error:', error)
-    return NextResponse.json({ error: 'Failed to create sequence' }, { status: 500 })
+    return handleApiError(error)
   }
 }

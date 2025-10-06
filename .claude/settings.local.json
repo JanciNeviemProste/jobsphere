@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(cat:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(yarn install:*)",
+      "Bash(yarn add:*)",
+      "Bash(fsutil:*)",
+      "Bash(yarn cache:*)"
     ]
   }
 }

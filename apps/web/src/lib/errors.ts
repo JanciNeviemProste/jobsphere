@@ -1,84 +1,65 @@
-/**
- * Custom error classes for better error handling
- */
+import { NextResponse } from 'next/server'
+import { z } from 'zod'
+import { UnauthorizedError, ForbiddenError, NotFoundError } from './api-helpers'
+import { ValidationError } from './validation'
 
-export class AppError extends Error {
-  constructor(
-    message: string,
-    public statusCode: number = 500,
-    public code?: string
-  ) {
-    super(message)
-    this.name = 'AppError'
+export function handleApiError(error: unknown): NextResponse {
+  console.error('API Error:', error)
+
+  if (error instanceof UnauthorizedError) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 401 }
+    )
   }
-}
 
-export class ValidationError extends AppError {
-  constructor(message: string, public fields?: Record<string, string>) {
-    super(message, 400, 'VALIDATION_ERROR')
-    this.name = 'ValidationError'
+  if (error instanceof ForbiddenError) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 403 }
+    )
   }
-}
 
-export class AuthenticationError extends AppError {
-  constructor(message: string = 'Authentication required') {
-    super(message, 401, 'AUTHENTICATION_ERROR')
-    this.name = 'AuthenticationError'
+  if (error instanceof NotFoundError) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 404 }
+    )
   }
-}
 
-export class AuthorizationError extends AppError {
-  constructor(message: string = 'Permission denied') {
-    super(message, 403, 'AUTHORIZATION_ERROR')
-    this.name = 'AuthorizationError'
+  if (error instanceof ValidationError) {
+    return NextResponse.json(
+      {
+        error: 'Validation failed',
+        issues: error.issues.map(issue => ({
+          path: issue.path.join('.'),
+          message: issue.message
+        }))
+      },
+      { status: 400 }
+    )
   }
-}
 
-export class NotFoundError extends AppError {
-  constructor(resource: string = 'Resource') {
-    super(`${resource} not found`, 404, 'NOT_FOUND')
-    this.name = 'NotFoundError'
+  if (error instanceof z.ZodError) {
+    return NextResponse.json(
+      { error: 'Validation failed', issues: error.issues },
+      { status: 400 }
+    )
   }
-}
 
-export class ConflictError extends AppError {
-  constructor(message: string) {
-    super(message, 409, 'CONFLICT')
-    this.name = 'ConflictError'
-  }
-}
-
-export class RateLimitError extends AppError {
-  constructor(message: string = 'Too many requests') {
-    super(message, 429, 'RATE_LIMIT_EXCEEDED')
-    this.name = 'RateLimitError'
-  }
-}
-
-/**
- * Error response helper
- */
-export function errorResponse(error: Error | unknown) {
-  if (error instanceof AppError) {
-    return {
-      error: error.message,
-      code: error.code,
-      statusCode: error.statusCode,
-      ...(error instanceof ValidationError && error.fields
-        ? { fields: error.fields }
-        : {}),
+  if (error instanceof Error && error.message) {
+    // Check for known Prisma errors
+    if (error.message.includes('Unique constraint')) {
+      return NextResponse.json(
+        { error: 'Resource already exists' },
+        { status: 409 }
+      )
     }
   }
 
-  // Unknown errors - hide details in production
-  const isDevelopment = process.env.NODE_ENV === 'development'
-  return {
-    error: isDevelopment
-      ? error instanceof Error
-        ? error.message
-        : String(error)
-      : 'An unexpected error occurred',
-    code: 'INTERNAL_ERROR',
-    statusCode: 500,
-  }
+  // Generic error - don't leak details
+  return NextResponse.json(
+    { error: 'Internal server error' },
+    { status: 500 }
+  )
 }
