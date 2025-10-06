@@ -83,9 +83,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   // Create or update customer
   await prisma.orgCustomer.upsert({
-    where: { organizationId },
+    where: { orgId: organizationId },
     create: {
-      organizationId,
+      orgId: organizationId,
       stripeCustomerId: session.customer as string,
     },
     update: {
