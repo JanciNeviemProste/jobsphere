@@ -7,12 +7,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
 import { requireAuth } from '@/lib/auth'
 import { withRateLimit } from '@/lib/rate-limit'
-import pdfParse from 'pdf-parse'
+import * as pdfParse from 'pdf-parse'
 import mammoth from 'mammoth'
 
 // PDF text extraction
 async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
   try {
+    // @ts-ignore - pdf-parse has complex module exports
     const data = await pdfParse(Buffer.from(buffer))
     return data.text
   } catch (error) {

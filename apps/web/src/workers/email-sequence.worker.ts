@@ -33,23 +33,22 @@ async function processEmailStep(job: Job<EmailSequenceJobData>) {
       throw new Error(`Enrollment ${enrollmentId} not found`)
     }
 
-    // Get candidate user details
+    // Get candidate contact details
     const candidate = await prisma.candidate.findUnique({
       where: { id: enrollment.candidateId },
-      select: {
-        id: true,
-        userId: true,
+      include: {
+        contacts: {
+          where: { isPrimary: true },
+          take: 1
+        }
       },
     })
 
-    if (!candidate) {
-      throw new Error(`Candidate not found`)
+    if (!candidate || !candidate.contacts || candidate.contacts.length === 0) {
+      throw new Error(`Candidate or primary contact not found`)
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: candidate.userId },
-      select: { email: true, name: true },
-    })
+    const contact = candidate.contacts[0]
 
     if (enrollment.status !== 'ACTIVE') {
       logger.warn('Enrollment not active, skipping', { enrollmentId, status: enrollment.status })
@@ -67,12 +66,12 @@ async function processEmailStep(job: Job<EmailSequenceJobData>) {
 
     // 3. Get organization details for email
     const organization = await prisma.organization.findUnique({
-      where: { id: enrollment.sequence.organizationId },
+      where: { id: enrollment.sequence.orgId },
       select: { name: true, logo: true },
     })
 
     // 4. Replace template variables
-    const candidateName = user?.name || 'there'
+    const candidateName = contact.fullName || 'there'
     const companyName = organization?.name || 'JobSphere'
 
     let subject = step.subject
@@ -86,7 +85,7 @@ async function processEmailStep(job: Job<EmailSequenceJobData>) {
     bodyHtml = bodyHtml.replace(/{{companyName}}/g, companyName)
 
     // 5. Send email
-    const recipientEmail = user?.email
+    const recipientEmail = contact.email
 
     if (!recipientEmail) {
       throw new Error('No recipient email found')

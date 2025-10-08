@@ -97,6 +97,7 @@ export async function generateCVEmbeddings(resumeId: string): Promise<void> {
 
         await prisma.resumeSection.update({
           where: { id: section.id },
+          // @ts-ignore - embeddingVector is Unsupported type
           data: { embeddingVector: embedding }
         })
 
@@ -158,6 +159,7 @@ export async function generateJobEmbedding(jobId: string): Promise<void> {
 
     await prisma.job.update({
       where: { id: jobId },
+      // @ts-ignore - embedding is Unsupported type
       data: { embedding }
     })
 

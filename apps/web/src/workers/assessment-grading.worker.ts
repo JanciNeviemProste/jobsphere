@@ -90,7 +90,7 @@ async function processAssessmentGrading(job: Job<AssessmentJobData>) {
         invite: {
           include: {
             assessment: {
-              select: { id: true, title: true, organizationId: true },
+              select: { id: true, name: true, orgId: true },
             },
           },
         },
@@ -101,7 +101,10 @@ async function processAssessmentGrading(job: Job<AssessmentJobData>) {
         },
         candidate: {
           include: {
-            user: { select: { email: true, name: true } },
+            contacts: {
+              where: { isPrimary: true },
+              take: 1
+            }
           },
         },
       },
@@ -143,21 +146,22 @@ async function processAssessmentGrading(job: Job<AssessmentJobData>) {
 
       switch (question.type) {
         case 'MULTIPLE_CHOICE':
-          // Simple comparison
-          if (answerValue === question.correctAnswer) {
+          // Simple comparison - check if answer matches correct choice
+          const correctChoice = question.choices[question.correctIndexes[0]]
+          if (answerValue === correctChoice) {
             earnedPoints = questionPoints
             feedback = 'Correct answer'
           } else {
-            feedback = `Incorrect. Correct answer: ${question.correctAnswer}`
+            feedback = `Incorrect. Correct answer: ${correctChoice}`
           }
           break
 
         case 'CODING':
           // Grade with Claude AI
           const gradingResult = await gradeCodeWithClaude(
-            question.prompt || '',
+            question.text || '',
             answerValue,
-            question.testCases || []
+            (question.testCases as any[]) || []
           )
 
           earnedPoints = gradingResult.score * questionPoints
@@ -178,7 +182,7 @@ async function processAssessmentGrading(job: Job<AssessmentJobData>) {
 
       gradingDetails.push({
         questionId: question.id,
-        questionTitle: question.title,
+        questionTitle: question.text,
         earnedPoints,
         maxPoints: questionPoints,
         feedback,
@@ -217,15 +221,16 @@ async function processAssessmentGrading(job: Job<AssessmentJobData>) {
     })
 
     // 5. Send notification email to candidate
-    if (attempt.candidate?.user?.email) {
+    const candidateEmail = attempt.candidate?.contacts?.[0]?.email
+    if (candidateEmail) {
       const { sendEmail } = await import('@/lib/email')
 
-      const candidateName = attempt.candidate.user.name || 'there'
-      const assessmentTitle = attempt.invite.assessment.title
+      const candidateName = attempt.candidate.contacts?.[0]?.fullName || 'there'
+      const assessmentTitle = attempt.invite.assessment.name
       const passed = percentage >= 70 // 70% passing threshold
 
       await sendEmail({
-        to: attempt.candidate.user.email,
+        to: candidateEmail,
         subject: `Assessment Results - ${assessmentTitle}`,
         html: `
           <h2>Assessment Completed</h2>
@@ -250,7 +255,7 @@ async function processAssessmentGrading(job: Job<AssessmentJobData>) {
         `,
       })
 
-      logger.info('Assessment results email sent', { attemptId, email: attempt.candidate.user.email })
+      logger.info('Assessment results email sent', { attemptId, email: candidateEmail })
     }
 
     return { success: true, totalScore, maxScore, percentage }
