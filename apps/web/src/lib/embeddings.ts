@@ -7,9 +7,16 @@ import OpenAI from 'openai'
 import { prisma } from '@/lib/db'
 import { logger } from '@/lib/logger'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+let openai: OpenAI | null = null
+
+function getOpenAI(): OpenAI {
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
+  }
+  return openai
+}
 
 const EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small'
 const EMBEDDING_DIMENSIONS = parseInt(process.env.OPENAI_EMBEDDING_DIMENSIONS || '1536')
@@ -26,7 +33,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     // Truncate text to fit within token limits (~8000 tokens)
     const truncatedText = text.slice(0, 32000)
 
-    const response = await openai.embeddings.create({
+    const response = await getOpenAI().embeddings.create({
       model: EMBEDDING_MODEL,
       input: truncatedText,
       dimensions: EMBEDDING_DIMENSIONS,
@@ -56,7 +63,7 @@ export async function generateEmbeddingsBatch(texts: string[]): Promise<number[]
       const batch = texts.slice(i, i + MAX_BATCH_SIZE)
       const truncatedBatch = batch.map(t => t.slice(0, 32000))
 
-      const response = await openai.embeddings.create({
+      const response = await getOpenAI().embeddings.create({
         model: EMBEDDING_MODEL,
         input: truncatedBatch,
         dimensions: EMBEDDING_DIMENSIONS,

@@ -5,10 +5,17 @@
 
 import { Redis } from '@upstash/redis'
 
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL!,
-  token: process.env.KV_REST_API_TOKEN!,
-})
+let redis: Redis | null = null
+
+function getRedis(): Redis {
+  if (!redis) {
+    redis = new Redis({
+      url: process.env.KV_REST_API_URL!,
+      token: process.env.KV_REST_API_TOKEN!,
+    })
+  }
+  return redis
+}
 
 export interface RateLimitConfig {
   /**
@@ -53,7 +60,7 @@ export async function rateLimit(
 
   try {
     // Use Redis pipeline for atomic operations
-    const pipeline = redis.pipeline()
+    const pipeline = getRedis().pipeline()
 
     // Remove old entries outside window
     pipeline.zremrangebyscore(key, 0, windowStart)
