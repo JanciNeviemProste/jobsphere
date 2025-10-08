@@ -9,21 +9,21 @@ import { Plus, Briefcase, Users, Eye, CheckCircle, Clock, XCircle } from 'lucide
 
 async function getEmployerData(userId: string) {
   // Get user's organization
-  const orgMember = await prisma.orgMember.findFirst({
+  const userOrgRole = await prisma.userOrgRole.findFirst({
     where: { userId },
     include: {
       organization: true,
     },
   })
 
-  if (!orgMember) {
+  if (!userOrgRole) {
     return null
   }
 
   // Get jobs for this organization
   const jobs = await prisma.job.findMany({
     where: {
-      organizationId: orgMember.organizationId,
+      orgId: userOrgRole.orgId,
     },
     include: {
       applications: true,
@@ -38,7 +38,7 @@ async function getEmployerData(userId: string) {
   const recentApplications = await prisma.application.findMany({
     where: {
       job: {
-        organizationId: orgMember.organizationId,
+        orgId: userOrgRole.orgId,
       },
     },
     include: {
@@ -48,9 +48,11 @@ async function getEmployerData(userId: string) {
         },
       },
       candidate: {
-        select: {
-          name: true,
-          email: true,
+        include: {
+          contacts: {
+            where: { isPrimary: true },
+            take: 1,
+          },
         },
       },
     },
@@ -61,7 +63,7 @@ async function getEmployerData(userId: string) {
   })
 
   return {
-    organization: orgMember.organization,
+    organization: userOrgRole.organization,
     jobs,
     recentApplications,
   }
@@ -110,7 +112,7 @@ export default async function EmployerDashboardPage({
   const stats = {
     activeJobs: jobs.filter((j: JobWithApplications) => j.status === 'ACTIVE').length,
     totalApplicants: jobs.reduce((sum: number, job: JobWithApplications) => sum + job.applications.length, 0),
-    newApplicants: recentApplications.filter((a: ApplicationWithRelations) => a.status === 'PENDING').length,
+    newApplicants: recentApplications.filter((a: ApplicationWithRelations) => a.stage === 'NEW').length,
     totalJobs: jobs.length,
   }
 
@@ -139,20 +141,20 @@ export default async function EmployerDashboardPage({
     }
   }
 
-  const getApplicantStatusBadge = (status: string) => {
-    switch (status) {
-      case 'PENDING':
+  const getApplicantStatusBadge = (stage: string) => {
+    switch (stage) {
+      case 'NEW':
         return <Badge variant="default">Nový</Badge>
-      case 'REVIEWING':
+      case 'SCREENING':
         return <Badge variant="secondary">Preveruje sa</Badge>
-      case 'INTERVIEWED':
+      case 'PHONE':
         return <Badge className="bg-blue-600">Interview</Badge>
-      case 'ACCEPTED':
+      case 'OFFER':
         return <Badge className="bg-green-600">Prijatý</Badge>
       case 'REJECTED':
         return <Badge variant="destructive">Zamietnutý</Badge>
       default:
-        return <Badge>{status}</Badge>
+        return <Badge>{stage}</Badge>
     }
   }
 
@@ -280,8 +282,8 @@ export default async function EmployerDashboardPage({
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold">{application.candidate.name || application.candidate.email}</h4>
-                          {getApplicantStatusBadge(application.status)}
+                          <h4 className="font-semibold">{application.candidate.contacts[0]?.fullName || application.candidate.contacts[0]?.email}</h4>
+                          {getApplicantStatusBadge(application.stage)}
                         </div>
                         <p className="text-sm text-muted-foreground mb-1">{application.job.title}</p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">

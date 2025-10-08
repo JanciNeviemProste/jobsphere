@@ -35,16 +35,16 @@ export const GET = withRateLimit(
 
       const jobs = await prisma.job.findMany({
         where: {
-          status: 'ACTIVE',
+          status: 'PUBLISHED',
           ...(params.search && {
             OR: [
               { title: { contains: params.search, mode: 'insensitive' } },
-              { location: { contains: params.search, mode: 'insensitive' } },
+              { description: { contains: params.search, mode: 'insensitive' } },
               { organization: { name: { contains: params.search, mode: 'insensitive' } } },
             ],
           }),
-          ...(params.workMode && { workMode: params.workMode }),
-          ...(params.jobType && { type: params.jobType }),
+          ...(params.workMode && { remote: params.workMode === 'REMOTE' }),
+          ...(params.jobType && { employmentType: params.jobType }),
           ...(params.seniority && { seniority: params.seniority }),
         },
         include: {

@@ -8,12 +8,13 @@ async function main() {
 
   // Clear existing data
   console.log('🗑️  Clearing existing data...')
-  await prisma.applicationEvent.deleteMany()
+  await prisma.applicationActivity.deleteMany()
   await prisma.application.deleteMany()
   await prisma.job.deleteMany()
-  await prisma.orgMember.deleteMany()
+  await prisma.candidateContact.deleteMany()
+  await prisma.candidate.deleteMany()
+  await prisma.userOrgRole.deleteMany()
   await prisma.organization.deleteMany()
-  await prisma.account.deleteMany()
   await prisma.session.deleteMany()
   await prisma.user.deleteMany()
 
@@ -29,33 +30,33 @@ async function main() {
   const techCorp = await prisma.organization.create({
     data: {
       name: 'TechCorp SK',
+      slug: 'techcorp-sk',
       description: 'Moderná IT spoločnosť zameraná na vývoj inovatívnych riešení.',
-      email: 'contact@techcorp.sk',
-      phone: '+421 900 123 456',
       website: 'https://techcorp.sk',
-      location: 'Bratislava, Slovakia',
+      industry: 'Technology',
+      size: '50-200',
     },
   })
 
   const startupHub = await prisma.organization.create({
     data: {
       name: 'StartupHub',
+      slug: 'startuphub',
       description: 'Kreatívny startup building next-gen SaaS products.',
-      email: 'jobs@startuphub.io',
-      phone: '+421 900 234 567',
       website: 'https://startuphub.io',
-      location: 'Košice, Slovakia',
+      industry: 'SaaS',
+      size: '10-50',
     },
   })
 
   const dataSolutions = await prisma.organization.create({
     data: {
       name: 'DataSolutions',
+      slug: 'datasolutions',
       description: 'Enterprise data analytics and AI consulting.',
-      email: 'hr@datasolutions.eu',
-      phone: '+421 900 345 678',
       website: 'https://datasolutions.eu',
-      location: 'Žilina, Slovakia',
+      industry: 'Data & Analytics',
+      size: '200-500',
     },
   })
 
@@ -131,27 +132,27 @@ async function main() {
 
   console.log('👔 Creating org memberships...')
 
-  await prisma.orgMember.create({
+  await prisma.userOrgRole.create({
     data: {
       userId: employer1.id,
-      organizationId: techCorp.id,
-      role: 'ADMIN',
+      orgId: techCorp.id,
+      role: 'ORG_ADMIN',
     },
   })
 
-  await prisma.orgMember.create({
+  await prisma.userOrgRole.create({
     data: {
       userId: employer2.id,
-      organizationId: startupHub.id,
-      role: 'ADMIN',
+      orgId: startupHub.id,
+      role: 'ORG_ADMIN',
     },
   })
 
-  await prisma.orgMember.create({
+  await prisma.userOrgRole.create({
     data: {
       userId: employer3.id,
-      organizationId: dataSolutions.id,
-      role: 'ADMIN',
+      orgId: dataSolutions.id,
+      role: 'ORG_ADMIN',
     },
   })
 
@@ -167,7 +168,8 @@ async function main() {
     // TechCorp jobs
     prisma.job.create({
       data: {
-        organizationId: techCorp.id,
+        orgId: techCorp.id,
+        createdBy: employer1.id,
         title: 'Senior React Developer',
         description: `## O pozícii
 
@@ -186,19 +188,21 @@ Hľadáme skúseného React developera na rozšírenie nášho tímu.
 - Flexibilná pracovná doba
 - Home office možnosť
 - Benefity (MultiSport, stravné lístky)`,
-        location: 'Bratislava, Slovakia',
+        city: 'Bratislava',
+        region: 'BA',
+        hybrid: true,
+        employmentType: 'FULL_TIME',
         salaryMin: 3000,
         salaryMax: 5000,
-        workMode: 'HYBRID',
-        type: 'FULL_TIME',
         seniority: 'SENIOR',
-        status: 'ACTIVE',
+        status: 'PUBLISHED',
       },
     }),
 
     prisma.job.create({
       data: {
-        organizationId: techCorp.id,
+        orgId: techCorp.id,
+        createdBy: employer1.id,
         title: 'Backend Developer (Node.js)',
         description: `## O pozícii
 
@@ -216,20 +220,23 @@ Backend developer pozícia pre prácu na enterprise projektoch.
 - Competitive salary
 - Vzdelávanie a certifikácie
 - Moderné technológie`,
-        location: 'Bratislava, Slovakia',
+        city: 'Bratislava',
+        region: 'BA',
+        remote: false,
+        hybrid: false,
+        employmentType: 'FULL_TIME',
         salaryMin: 2500,
         salaryMax: 4000,
-        workMode: 'ONSITE',
-        type: 'FULL_TIME',
-        seniority: 'MEDIOR',
-        status: 'ACTIVE',
+        seniority: 'MID',
+        status: 'PUBLISHED',
       },
     }),
 
     // StartupHub jobs
     prisma.job.create({
       data: {
-        organizationId: startupHub.id,
+        orgId: startupHub.id,
+        createdBy: employer2.id,
         title: 'Full Stack Developer',
         description: `## O pozícii
 
@@ -248,19 +255,21 @@ Join our startup and build amazing SaaS products!
 - Remote work
 - Flat hierarchy
 - Impact on product`,
-        location: 'Košice, Slovakia',
+        city: 'Košice',
+        region: 'KE',
+        remote: true,
+        employmentType: 'FULL_TIME',
         salaryMin: 2000,
         salaryMax: 3500,
-        workMode: 'REMOTE',
-        type: 'FULL_TIME',
-        seniority: 'MEDIOR',
-        status: 'ACTIVE',
+        seniority: 'MID',
+        status: 'PUBLISHED',
       },
     }),
 
     prisma.job.create({
       data: {
-        organizationId: startupHub.id,
+        orgId: startupHub.id,
+        createdBy: employer2.id,
         title: 'Junior Frontend Developer',
         description: `## O pozícii
 
@@ -278,20 +287,22 @@ Perfect for fresh graduates! Learn from experienced team.
 - Mentorship program
 - Career growth
 - Modern tech stack`,
-        location: 'Košice, Slovakia',
+        city: 'Košice',
+        region: 'KE',
+        hybrid: true,
+        employmentType: 'FULL_TIME',
         salaryMin: 1200,
         salaryMax: 1800,
-        workMode: 'HYBRID',
-        type: 'FULL_TIME',
-        seniority: 'JUNIOR',
-        status: 'ACTIVE',
+        seniority: 'ENTRY',
+        status: 'PUBLISHED',
       },
     }),
 
     // DataSolutions jobs
     prisma.job.create({
       data: {
-        organizationId: dataSolutions.id,
+        orgId: dataSolutions.id,
+        createdBy: employer3.id,
         title: 'Data Engineer',
         description: `## O pozícii
 
@@ -309,19 +320,21 @@ Build data pipelines for enterprise clients.
 - Work with big data
 - International projects
 - Competitive salary`,
-        location: 'Žilina, Slovakia',
+        city: 'Žilina',
+        region: 'ZA',
+        hybrid: true,
+        employmentType: 'FULL_TIME',
         salaryMin: 2800,
         salaryMax: 4500,
-        workMode: 'HYBRID',
-        type: 'FULL_TIME',
         seniority: 'SENIOR',
-        status: 'ACTIVE',
+        status: 'PUBLISHED',
       },
     }),
 
     prisma.job.create({
       data: {
-        organizationId: dataSolutions.id,
+        orgId: dataSolutions.id,
+        createdBy: employer3.id,
         title: 'DevOps Engineer',
         description: `## O pozícii
 
@@ -339,18 +352,72 @@ DevOps engineer for cloud infrastructure.
 - Cloud certifications
 - Latest tools
 - Challenging projects`,
-        location: 'Žilina, Slovakia',
+        city: 'Žilina',
+        region: 'ZA',
+        remote: true,
+        employmentType: 'FULL_TIME',
         salaryMin: 3200,
         salaryMax: 5200,
-        workMode: 'REMOTE',
-        type: 'FULL_TIME',
         seniority: 'LEAD',
-        status: 'ACTIVE',
+        status: 'PUBLISHED',
       },
     }),
   ])
 
   console.log(`✅ Created ${jobs.length} jobs`)
+
+  // ============================================================================
+  // CANDIDATES
+  // ============================================================================
+
+  console.log('👤 Creating candidates...')
+
+  const candidate1Data = await prisma.candidate.create({
+    data: {
+      orgId: techCorp.id,
+      source: 'WEBSITE',
+      contacts: {
+        create: {
+          fullName: 'Ján Novák',
+          email: 'jan.novak@example.com',
+          phone: '+421 900 444 444',
+          isPrimary: true,
+        },
+      },
+    },
+  })
+
+  const candidate2Data = await prisma.candidate.create({
+    data: {
+      orgId: startupHub.id,
+      source: 'WEBSITE',
+      contacts: {
+        create: {
+          fullName: 'Mária Kováčová',
+          email: 'maria.kovacova@example.com',
+          phone: '+421 900 555 555',
+          isPrimary: true,
+        },
+      },
+    },
+  })
+
+  const candidate3Data = await prisma.candidate.create({
+    data: {
+      orgId: dataSolutions.id,
+      source: 'WEBSITE',
+      contacts: {
+        create: {
+          fullName: 'Peter Szabó',
+          email: 'peter.szabo@example.com',
+          phone: '+421 900 666 666',
+          isPrimary: true,
+        },
+      },
+    },
+  })
+
+  console.log(`✅ Created ${3} candidates with contacts`)
 
   // ============================================================================
   // APPLICATIONS
@@ -361,7 +428,8 @@ DevOps engineer for cloud infrastructure.
   const app1 = await prisma.application.create({
     data: {
       jobId: jobs[0].id, // Senior React Developer
-      candidateId: candidate1.id,
+      candidateId: candidate1Data.id,
+      orgId: techCorp.id,
       coverLetter: `Dobrý deň,
 
 Som nadšený, že môžem požiadať o pozíciu Senior React Developer vo vašej spoločnosti. S viac ako 5 rokmi skúseností v React vývoji a s hlbokými znalosťami TypeScript, Next.js a moderných frontend technológií si myslím, že som ideálny kandidát pre túto rolu.
@@ -372,24 +440,20 @@ Teším sa na možnosť prispieť k vašim projektom a priniesť moje skúsenost
 
 S pozdravom,
 Ján Novák`,
-      cvUrl: null,
-      expectedSalary: 4200,
-      status: 'REVIEWING',
+      stage: 'SCREENING',
     },
   })
 
-  await prisma.applicationEvent.createMany({
+  await prisma.applicationActivity.createMany({
     data: [
       {
         applicationId: app1.id,
-        type: 'APPLIED',
-        title: 'Application Submitted',
-        description: 'Your application has been successfully submitted',
+        type: 'STAGE_CHANGE',
+        description: 'Application submitted - moving to SCREENING stage',
       },
       {
         applicationId: app1.id,
-        type: 'STATUS_CHANGED',
-        title: 'Application Under Review',
+        type: 'NOTE_ADDED',
         description: 'HR team is reviewing your application',
       },
     ],
@@ -398,7 +462,8 @@ Ján Novák`,
   const app2 = await prisma.application.create({
     data: {
       jobId: jobs[2].id, // Full Stack Developer
-      candidateId: candidate2.id,
+      candidateId: candidate2Data.id,
+      orgId: startupHub.id,
       coverLetter: `Hello,
 
 I am very excited about the Full Stack Developer position at StartupHub. I have 3 years of experience building modern web applications with React and Node.js.
@@ -409,31 +474,26 @@ Looking forward to discussing how I can contribute to your team!
 
 Best regards,
 Mária Kováčová`,
-      cvUrl: null,
-      expectedSalary: 2800,
-      status: 'INTERVIEWED',
+      stage: 'PHONE',
     },
   })
 
-  await prisma.applicationEvent.createMany({
+  await prisma.applicationActivity.createMany({
     data: [
       {
         applicationId: app2.id,
-        type: 'APPLIED',
-        title: 'Application Submitted',
-        description: 'Your application has been successfully submitted',
+        type: 'STAGE_CHANGE',
+        description: 'Application submitted - moving to NEW stage',
       },
       {
         applicationId: app2.id,
-        type: 'STATUS_CHANGED',
-        title: 'Application Under Review',
-        description: 'Application status changed to REVIEWING',
+        type: 'STAGE_CHANGE',
+        description: 'Application moved to SCREENING stage',
       },
       {
         applicationId: app2.id,
-        type: 'STATUS_CHANGED',
-        title: 'Interview Scheduled',
-        description: 'Application status changed to INTERVIEWED',
+        type: 'STAGE_CHANGE',
+        description: 'Phone interview scheduled - moved to PHONE stage',
       },
     ],
   })
@@ -441,7 +501,8 @@ Mária Kováčová`,
   const app3 = await prisma.application.create({
     data: {
       jobId: jobs[4].id, // Data Engineer
-      candidateId: candidate3.id,
+      candidateId: candidate3Data.id,
+      orgId: dataSolutions.id,
       coverLetter: `Dear Hiring Manager,
 
 I am writing to apply for the Data Engineer position. With 4 years of experience in building data pipelines and working with Apache Spark and Airflow, I believe I would be a great fit for your team.
@@ -452,18 +513,15 @@ I am passionate about working with big data and would love to contribute to your
 
 Sincerely,
 Peter Szabó`,
-      cvUrl: null,
-      expectedSalary: 3500,
-      status: 'PENDING',
+      stage: 'NEW',
     },
   })
 
-  await prisma.applicationEvent.create({
+  await prisma.applicationActivity.create({
     data: {
       applicationId: app3.id,
-      type: 'APPLIED',
-      title: 'Application Submitted',
-      description: 'Your application has been successfully submitted',
+      type: 'STAGE_CHANGE',
+      description: 'Application submitted - in NEW stage',
     },
   })
 
@@ -476,21 +534,22 @@ Peter Szabó`,
   console.log('\n📊 Seed Summary:')
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
   console.log(`✅ ${3} Organizations`)
-  console.log(`✅ ${6} Users (3 employers + 3 candidates)`)
-  console.log(`✅ ${3} Org Memberships`)
+  console.log(`✅ ${3} Employer Users`)
+  console.log(`✅ ${3} User-Org Roles`)
+  console.log(`✅ ${3} Candidates (with contacts)`)
   console.log(`✅ ${jobs.length} Jobs`)
   console.log(`✅ ${3} Applications`)
-  console.log(`✅ ${6} Application Events`)
+  console.log(`✅ ${6} Application Activities`)
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
   console.log('\n🔐 Demo Credentials (password: demo123):')
   console.log('\nEmployers:')
   console.log('  • admin@techcorp.sk (TechCorp SK)')
   console.log('  • recruiter@startuphub.io (StartupHub)')
   console.log('  • hr@datasolutions.eu (DataSolutions)')
-  console.log('\nCandidates:')
-  console.log('  • jan.novak@example.com')
-  console.log('  • maria.kovacova@example.com')
-  console.log('  • peter.szabo@example.com')
+  console.log('\nCandidates (stored as Candidate records):')
+  console.log('  • Ján Novák (jan.novak@example.com)')
+  console.log('  • Mária Kováčová (maria.kovacova@example.com)')
+  console.log('  • Peter Szabó (peter.szabo@example.com)')
   console.log('\n✨ Seed completed successfully!')
 }
 

@@ -31,13 +31,11 @@ export async function GET(
           },
         },
         candidate: {
-          select: {
-            name: true,
-            email: true,
-            phone: true,
+          include: {
+            contacts: true,
           },
         },
-        events: {
+        activities: {
           orderBy: {
             createdAt: 'asc',
           },
@@ -54,10 +52,10 @@ export async function GET(
 
     // Check authorization - only candidate or employer can view
     const isCandidate = application.candidateId === session.user.id
-    const isEmployer = await prisma.orgMember.findFirst({
+    const isEmployer = await prisma.userOrgRole.findFirst({
       where: {
         userId: session.user.id,
-        organizationId: application.job.organizationId,
+        orgId: application.job.orgId,
       },
     })
 
@@ -92,7 +90,7 @@ export async function PATCH(
     }
 
     const body = await req.json()
-    const { status, notes } = body
+    const { stage, notes } = body
 
     const application = await prisma.application.findUnique({
       where: { id: params.id },
@@ -107,10 +105,10 @@ export async function PATCH(
     }
 
     // Only employer can update status
-    const isEmployer = await prisma.orgMember.findFirst({
+    const isEmployer = await prisma.userOrgRole.findFirst({
       where: {
         userId: session.user.id,
-        organizationId: application.job.organizationId,
+        orgId: application.job.orgId,
       },
     })
 
@@ -125,26 +123,25 @@ export async function PATCH(
     const updatedApplication = await prisma.application.update({
       where: { id: params.id },
       data: {
-        ...(status && { status }),
+        ...(stage && { stage }),
         ...(notes && { notes }),
       },
     })
 
-    // Create event for status change
-    if (status && status !== application.status) {
-      const eventTitles: Record<string, string> = {
-        REVIEWING: 'Application Under Review',
-        INTERVIEWED: 'Interview Scheduled',
-        ACCEPTED: 'Application Accepted',
-        REJECTED: 'Application Rejected',
+    // Create activity for stage change
+    if (stage && stage !== application.stage) {
+      const stageDescriptions: Record<string, string> = {
+        REVIEWING: 'Application is now under review',
+        INTERVIEWED: 'Interview has been scheduled',
+        ACCEPTED: 'Application has been accepted',
+        REJECTED: 'Application has been rejected',
       }
 
-      await prisma.applicationEvent.create({
+      await prisma.applicationActivity.create({
         data: {
           applicationId: application.id,
           type: 'STATUS_CHANGED',
-          title: eventTitles[status] || 'Status Updated',
-          description: `Application status changed to ${status}`,
+          description: stageDescriptions[stage] || `Application stage changed to ${stage}`,
         },
       })
     }
@@ -191,7 +188,7 @@ export async function DELETE(
       )
     }
 
-    // Delete application (cascade will delete events)
+    // Delete application (cascade will delete activities)
     await prisma.application.delete({
       where: { id: params.id },
     })

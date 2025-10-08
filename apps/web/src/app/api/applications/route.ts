@@ -13,13 +13,13 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url)
-    const status = searchParams.get('status')
+    const stage = searchParams.get('stage')
     const jobId = searchParams.get('jobId')
 
     const applications = await prisma.application.findMany({
       where: {
         candidateId: session.user.id,
-        ...(status && { status: status as any }),
+        ...(stage && { stage: stage as any }),
         ...(jobId && { jobId }),
       },
       include: {
@@ -63,7 +63,6 @@ export async function POST(req: Request) {
     const {
       jobId,
       coverLetter,
-      cvUrl,
       expectedSalary,
       availableFrom,
     } = body
@@ -73,6 +72,19 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
+      )
+    }
+
+    // Get job to fetch orgId
+    const job = await prisma.job.findUnique({
+      where: { id: jobId },
+      select: { orgId: true },
+    })
+
+    if (!job) {
+      return NextResponse.json(
+        { error: 'Job not found' },
+        { status: 404 }
       )
     }
 
@@ -96,11 +108,10 @@ export async function POST(req: Request) {
       data: {
         jobId,
         candidateId: session.user.id,
+        orgId: job.orgId,
         coverLetter,
-        cvUrl: cvUrl || null,
-        expectedSalary: expectedSalary ? parseInt(expectedSalary) : null,
-        availableFrom: availableFrom ? new Date(availableFrom) : null,
-        status: 'PENDING',
+        // TODO: expectedSalary and availableFrom not in current schema
+        stage: 'NEW',
       },
       include: {
         job: {
@@ -111,12 +122,11 @@ export async function POST(req: Request) {
       },
     })
 
-    // Create application event
-    await prisma.applicationEvent.create({
+    // Create application activity
+    await prisma.applicationActivity.create({
       data: {
         applicationId: application.id,
         type: 'APPLIED',
-        title: 'Application Submitted',
         description: 'Your application has been successfully submitted',
       },
     })
@@ -139,9 +149,9 @@ export async function POST(req: Request) {
       }
 
       // Email to employer (get org admin email)
-      const orgAdmin = await prisma.orgMember.findFirst({
+      const orgAdmin = await prisma.userOrgRole.findFirst({
         where: {
-          organizationId: application.job.organizationId,
+          orgId: application.job.orgId,
           role: 'ADMIN',
         },
         include: {

@@ -76,11 +76,11 @@ export async function GET(request: NextRequest) {
     const email = user.email
 
     // Find organization
-    const orgMember = await prisma.orgMember.findFirst({
+    const userOrgRole = await prisma.userOrgRole.findFirst({
       where: { userId },
     })
 
-    if (!orgMember) {
+    if (!userOrgRole) {
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?error=no_org`
       )
@@ -100,20 +100,20 @@ export async function GET(request: NextRequest) {
       where: {
         orgId_email: {
           email,
-          orgId: orgMember.organizationId,
+          orgId: userOrgRole.orgId,
         },
       },
       create: {
         email,
         provider: 'GMAIL',
-        orgId: orgMember.organizationId,
-        displayName: user.name || email,
-        oauthTokens: encryptedTokens,
-        active: true,
+        orgId: userOrgRole.orgId,
+        name: user.name || email,
+        oauthJson: encryptedTokens,
+        isActive: true,
       },
       update: {
-        oauthTokens: encryptedTokens,
-        active: true,
+        oauthJson: encryptedTokens,
+        isActive: true,
         lastSyncAt: new Date(),
       },
     })

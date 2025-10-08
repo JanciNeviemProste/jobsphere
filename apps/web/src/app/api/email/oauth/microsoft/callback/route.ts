@@ -80,11 +80,11 @@ export async function GET(request: NextRequest) {
     const email = user.mail || user.userPrincipalName
 
     // Find user's organization
-    const orgMember = await prisma.orgMember.findFirst({
+    const userOrgRole = await prisma.userOrgRole.findFirst({
       where: { userId },
     })
 
-    if (!orgMember) {
+    if (!userOrgRole) {
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?error=no_org`
       )
@@ -95,30 +95,30 @@ export async function GET(request: NextRequest) {
       where: {
         orgId_email: {
           email,
-          orgId: orgMember.organizationId,
+          orgId: userOrgRole.orgId,
         },
       },
       create: {
         email,
         provider: 'MICROSOFT',
-        orgId: orgMember.organizationId,
-        displayName: user.displayName || email,
-        oauthTokens: {
+        orgId: userOrgRole.orgId,
+        name: user.displayName || email,
+        oauthJson: {
           access_token,
           refresh_token,
           expires_in,
           token_type: 'Bearer',
         },
-        active: true,
+        isActive: true,
       },
       update: {
-        oauthTokens: {
+        oauthJson: {
           access_token,
           refresh_token,
           expires_in,
           token_type: 'Bearer',
         },
-        active: true,
+        isActive: true,
         lastSyncAt: new Date(),
       },
     })

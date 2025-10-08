@@ -18,7 +18,15 @@
       "Bash(yarn vitest run:*)",
       "Bash(npx playwright install:*)",
       "Bash(yarn:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Complete production-ready implementation with workers, embeddings, and polish\n\n## Core Features Implemented\n\n### Background Workers (BullMQ + Redis)\n- Email sequence worker for drip campaigns\n- Assessment auto-grading worker with Claude AI\n- Embedding generation worker for semantic search\n- Master worker orchestration with graceful shutdown\n\n### AI/ML Integration\n- OpenAI embeddings (text-embedding-3-small, 1536 dimensions)\n- Semantic candidate search with pgvector\n- Job-candidate matching scores\n- CV section embeddings for search\n\n### PDF/DOCX Parsing\n- Extracted text from PDF (pdf-parse)\n- Extracted text from DOCX (mammoth)\n- Resume section creation with embeddings\n- Automatic locale detection\n\n### UI/UX Polish\n- 8 skeleton loading components (JobCard, Table, Profile, etc.)\n- Error boundary with Sentry integration\n- Toast notification hook (Sonner wrapper)\n- Loading overlay components\n- Form field error components\n\n### Security & Infrastructure\n- Sentry error tracking (client, server, edge)\n- GDPR data export & deletion\n- Security headers & CSP\n- Audit logging improvements\n- Encryption utilities with rotation\n\n### Testing\n- 241/241 unit tests passing\n- E2E test framework (Playwright)\n- Coverage reports configured\n- Test factories updated\n\n### Documentation\n- Security implementation guide\n- E2E testing README\n- Refactoring completion docs\n- Contributing guidelines\n\n### CI/CD\n- Complete GitHub Actions pipeline\n- E2E tests in CI\n- Security scanning (Trivy)\n- Deployment to Vercel with Sentry releases\n\n## Technical Details\n\n- **Prisma Schema**: Added Job.embedding vector field, EmailThread/Invoice relations\n- **Environment**: Added OpenAI, Redis, BullMQ, Sentry configuration\n- **Dependencies**: bullmq, ioredis, openai, pdf-parse, mammoth, @sentry/nextjs\n- **Worker Scripts**: `yarn workers` and `yarn workers:dev`\n\n## Breaking Changes\n\nNone - All changes are additive\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npx:*)",
+      "Bash(dir:*)"
     ]
   }
 }

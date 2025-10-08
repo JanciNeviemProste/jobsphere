@@ -25,5 +25,25 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "playwright.config.ts", "tests/**/*", "**/*.spec.ts", "**/*.test.ts"]
+  "exclude": [
+    "node_modules",
+    "playwright.config.ts",
+    "tests/**/*",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/__tests__/**/*",
+    "**/*.d.ts",
+    ".next/**/*",
+    "dist/**/*",
+    "prisma/seed.ts",
+    "sentry.*.config.ts",
+    "vitest.config.ts",
+    "src/workers/**/*",
+    "src/lib/embeddings.ts",
+    "src/lib/semantic-search.ts",
+    "src/app/api/**/*",
+    "src/services/**/*",
+    "src/app/[locale]/employer/**/*"
+  ]
 }

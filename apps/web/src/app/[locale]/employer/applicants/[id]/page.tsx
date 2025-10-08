@@ -10,11 +10,11 @@ import { ArrowLeft, Mail, Phone, Download, MapPin, Euro, Clock, Building2 } from
 
 async function getApplicationDetail(applicationId: string, userId: string) {
   // Get user's organization
-  const orgMember = await prisma.orgMember.findFirst({
+  const userOrgRole = await prisma.userOrgRole.findFirst({
     where: { userId },
   })
 
-  if (!orgMember) {
+  if (!userOrgRole) {
     return null
   }
 
@@ -23,7 +23,7 @@ async function getApplicationDetail(applicationId: string, userId: string) {
     where: {
       id: applicationId,
       job: {
-        organizationId: orgMember.organizationId,
+        orgId: userOrgRole.orgId,
       },
     },
     include: {
@@ -32,8 +32,15 @@ async function getApplicationDetail(applicationId: string, userId: string) {
           organization: true,
         },
       },
-      candidate: true,
-      events: {
+      candidate: {
+        include: {
+          contacts: {
+            where: { isPrimary: true },
+            take: 1,
+          },
+        },
+      },
+      activities: {
         orderBy: {
           createdAt: 'asc',
         },
@@ -63,14 +70,18 @@ export default async function EmployerApplicationDetailPage({
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'PENDING':
-        return <Badge variant="secondary">Čaká sa</Badge>
-      case 'REVIEWING':
-        return <Badge>Preveruje sa</Badge>
-      case 'INTERVIEWED':
-        return <Badge className="bg-blue-600">Interview</Badge>
-      case 'ACCEPTED':
-        return <Badge className="bg-green-600">Prijaté</Badge>
+      case 'NEW':
+        return <Badge variant="secondary">Nová prihláška</Badge>
+      case 'SCREENING':
+        return <Badge>Screening</Badge>
+      case 'PHONE':
+        return <Badge className="bg-blue-600">Telefonický interview</Badge>
+      case 'ONSITE':
+        return <Badge className="bg-purple-600">Osobný interview</Badge>
+      case 'OFFER':
+        return <Badge className="bg-green-600">Ponuka</Badge>
+      case 'HIRED':
+        return <Badge className="bg-green-700">Prijaté</Badge>
       case 'REJECTED':
         return <Badge variant="destructive">Zamietnuté</Badge>
       default:
@@ -102,14 +113,14 @@ export default async function EmployerApplicationDetailPage({
                       {application.job.organization.name}
                     </CardDescription>
                   </div>
-                  {getStatusBadge(application.status)}
+                  {getStatusBadge(application.stage)}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="flex items-center gap-2 text-sm">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{application.job.location}</span>
+                    <span>{application.job.city}{application.job.region && `, ${application.job.region}`}</span>
                   </div>
                   {application.job.salaryMin && application.job.salaryMax && (
                     <div className="flex items-center gap-2 text-sm">
@@ -121,11 +132,13 @@ export default async function EmployerApplicationDetailPage({
                   )}
                   <div className="flex items-center gap-2 text-sm">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span>{application.job.workMode}</span>
+                    <span>
+                      {application.job.remote ? 'Remote' : application.job.hybrid ? 'Hybrid' : 'On-site'}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>{application.job.type}</span>
+                    <span>{application.job.employmentType}</span>
                   </div>
                 </div>
                 <Separator />
@@ -153,19 +166,17 @@ export default async function EmployerApplicationDetailPage({
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {application.events.map((event: { id: string; type: string; title: string; description: string | null; createdAt: Date }, index: number) => (
+                  {application.activities.map((event: { id: string; type: string; description: string; createdAt: Date }, index: number) => (
                     <div key={event.id} className="flex gap-4">
                       <div className="flex flex-col items-center">
                         <div className="h-3 w-3 rounded-full bg-primary" />
-                        {index !== application.events.length - 1 && (
+                        {index !== application.activities.length - 1 && (
                           <div className="w-px flex-1 bg-border mt-2" />
                         )}
                       </div>
                       <div className="flex-1 pb-4">
-                        <p className="font-medium">{event.title}</p>
-                        {event.description && (
-                          <p className="text-sm text-muted-foreground">{event.description}</p>
-                        )}
+                        <p className="font-medium">{event.type}</p>
+                        <p className="text-sm text-muted-foreground">{event.description}</p>
                         <p className="text-xs text-muted-foreground mt-1">
                           {new Date(event.createdAt).toLocaleDateString('sk-SK')}
                         </p>
@@ -187,26 +198,28 @@ export default async function EmployerApplicationDetailPage({
               <CardContent className="space-y-4">
                 <div>
                   <p className="font-semibold text-lg">
-                    {application.candidate.name || 'Bez mena'}
+                    {application.candidate.contacts?.[0]?.fullName || 'Bez mena'}
                   </p>
                   <div className="mt-3 space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <a
-                        href={`mailto:${application.candidate.email}`}
-                        className="text-primary hover:underline"
-                      >
-                        {application.candidate.email}
-                      </a>
-                    </div>
-                    {application.candidate.phone && (
+                    {application.candidate.contacts?.[0]?.email && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <a
+                          href={`mailto:${application.candidate.contacts[0].email}`}
+                          className="text-primary hover:underline"
+                        >
+                          {application.candidate.contacts[0].email}
+                        </a>
+                      </div>
+                    )}
+                    {application.candidate.contacts?.[0]?.phone && (
                       <div className="flex items-center gap-2 text-sm">
                         <Phone className="h-4 w-4 text-muted-foreground" />
                         <a
-                          href={`tel:${application.candidate.phone}`}
+                          href={`tel:${application.candidate.contacts[0].phone}`}
                           className="hover:underline"
                         >
-                          {application.candidate.phone}
+                          {application.candidate.contacts[0].phone}
                         </a>
                       </div>
                     )}
@@ -215,22 +228,7 @@ export default async function EmployerApplicationDetailPage({
               </CardContent>
             </Card>
 
-            {/* CV Download */}
-            {application.cvUrl && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Priložené dokumenty</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Button variant="outline" className="w-full justify-start" asChild>
-                    <a href={application.cvUrl} target="_blank" rel="noopener noreferrer">
-                      <Download className="mr-2 h-4 w-4" />
-                      Stiahnuť CV
-                    </a>
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+            {/* CV Download - TODO: Implement document retrieval from CandidateDocument model */}
 
             {/* Actions */}
             <Card>
@@ -238,17 +236,17 @@ export default async function EmployerApplicationDetailPage({
                 <CardTitle>Akcie</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {application.status === 'PENDING' && (
+                {application.stage === 'NEW' && (
                   <Button className="w-full" variant="default">
-                    Pozrieť sa na Interview
+                    Začať screening
                   </Button>
                 )}
-                {application.status === 'REVIEWING' && (
+                {application.stage === 'SCREENING' && (
                   <Button className="w-full" variant="default">
                     Naplánovať Interview
                   </Button>
                 )}
-                {application.status === 'INTERVIEWED' && (
+                {application.stage === 'PHONE' && (
                   <>
                     <Button className="w-full bg-green-600 hover:bg-green-700">
                       Prijať kandidáta
@@ -268,17 +266,7 @@ export default async function EmployerApplicationDetailPage({
               </CardContent>
             </Card>
 
-            {/* Notes */}
-            {application.notes && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Poznámky</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{application.notes}</p>
-                </CardContent>
-              </Card>
-            )}
+            {/* Notes - TODO: Display notes from Json array */}
           </div>
         </div>
       </div>

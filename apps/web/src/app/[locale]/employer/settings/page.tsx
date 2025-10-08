@@ -7,26 +7,26 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, Building2, Mail, Phone, MapPin, Globe } from 'lucide-react'
+import { ArrowLeft, Building2, Globe } from 'lucide-react'
 
 async function getOrganizationData(userId: string) {
   // Get user's organization
-  const orgMember = await prisma.orgMember.findFirst({
+  const userOrgRole = await prisma.userOrgRole.findFirst({
     where: { userId },
     include: {
       organization: true,
     },
   })
 
-  if (!orgMember) {
+  if (!userOrgRole) {
     return null
   }
 
   // Get subscription info if exists
   const subscription = await prisma.subscription.findFirst({
     where: {
-      organizationId: orgMember.organizationId,
-      status: 'ACTIVE',
+      orgId: userOrgRole.orgId,
+      status: 'active',
     },
     orderBy: {
       createdAt: 'desc',
@@ -34,7 +34,7 @@ async function getOrganizationData(userId: string) {
   })
 
   return {
-    organization: orgMember.organization,
+    organization: userOrgRole.organization,
     subscription,
   }
 }
@@ -88,30 +88,6 @@ export default async function EmployerSettingsPage({ params }: { params: { local
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Kontaktný email *</Label>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <Input id="email" type="email" defaultValue={organization.email || ''} required />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Telefón</Label>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <Input id="phone" type="tel" defaultValue={organization.phone || ''} />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="location">Adresa</Label>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <Input id="location" defaultValue={organization.location || ''} />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="website">Webstránka</Label>
                   <div className="flex items-center gap-2">
                     <Globe className="h-4 w-4 text-muted-foreground" />
@@ -147,12 +123,10 @@ export default async function EmployerSettingsPage({ params }: { params: { local
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div>
                   <p className="font-semibold">
-                    {subscription?.plan || 'Starter'} Plan
+                    {subscription ? 'Premium' : 'Starter'} Plan
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {subscription?.plan === 'PROFESSIONAL' && '€99 / mesiac'}
-                    {subscription?.plan === 'ENTERPRISE' && '€299 / mesiac'}
-                    {!subscription && 'Free'}
+                    {subscription ? 'Active subscription' : 'Free'}
                   </p>
                 </div>
                 <Button variant="outline" size="sm" asChild>

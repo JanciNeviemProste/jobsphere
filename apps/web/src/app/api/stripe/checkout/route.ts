@@ -26,31 +26,31 @@ export async function POST(request: NextRequest) {
     }
 
     // Get organization
-    const orgMember = await prisma.orgMember.findFirst({
+    const userOrgRole = await prisma.userOrgRole.findFirst({
       where: { userId: session.user.id },
       include: { organization: true },
     })
 
-    if (!orgMember) {
+    if (!userOrgRole) {
       return NextResponse.json({ error: 'No organization' }, { status: 400 })
     }
 
     // Get or create Stripe customer
     let customer = await prisma.orgCustomer.findUnique({
-      where: { orgId: orgMember.organizationId },
+      where: { orgId: userOrgRole.orgId },
     })
 
     let stripeCustomerId: string
 
-    if (customer?.stripeCustomerId) {
-      stripeCustomerId = customer.stripeCustomerId
+    if (customer?.providerCustomerId) {
+      stripeCustomerId = customer.providerCustomerId
     } else {
       // Create Stripe customer
       const stripeCustomer = await stripe.customers.create({
         email: session.user.email!,
         metadata: {
-          organizationId: orgMember.organizationId,
-          organizationName: orgMember.organization.name,
+          organizationId: userOrgRole.orgId,
+          organizationName: userOrgRole.organization.name,
         },
       })
 
@@ -58,13 +58,13 @@ export async function POST(request: NextRequest) {
 
       // Save to DB
       await prisma.orgCustomer.upsert({
-        where: { orgId: orgMember.organizationId },
+        where: { orgId: userOrgRole.orgId },
         create: {
-          orgId: orgMember.organizationId,
-          stripeCustomerId,
+          orgId: userOrgRole.orgId,
+          providerCustomerId: stripeCustomerId,
         },
         update: {
-          stripeCustomerId,
+          providerCustomerId: stripeCustomerId,
         },
       })
     }
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?canceled=true`,
       metadata: {
-        organizationId: orgMember.organizationId,
+        organizationId: userOrgRole.orgId,
         plan,
       },
     })
