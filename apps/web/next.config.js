@@ -79,8 +79,23 @@ const nextConfig = {
     },
   },
 
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.resolve.alias.canvas = false
+
+    // Fix for pdf-parse and pdfjs-dist in Next.js
+    if (isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'pdfjs-dist': false,
+      }
+    }
+
+    // Exclude pdf-parse from client bundle
+    config.externals = config.externals || []
+    if (isServer) {
+      config.externals.push('pdf-parse', 'canvas')
+    }
+
     return config
   },
 }
