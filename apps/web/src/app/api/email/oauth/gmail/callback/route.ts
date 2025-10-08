@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { encrypt } from '@/lib/encryption'
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v2/userinfo'
@@ -85,6 +86,15 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Encrypt OAuth tokens before storing
+    const encryptedTokens = encrypt(JSON.stringify({
+      access_token,
+      refresh_token,
+      expires_in,
+      token_type: 'Bearer',
+      expiry_date: Date.now() + (expires_in * 1000),
+    }))
+
     // Save email account
     await prisma.emailAccount.upsert({
       where: {
@@ -98,21 +108,11 @@ export async function GET(request: NextRequest) {
         provider: 'GMAIL',
         orgId: orgMember.organizationId,
         displayName: user.name || email,
-        oauthTokens: {
-          access_token,
-          refresh_token,
-          expires_in,
-          token_type: 'Bearer',
-        },
+        oauthTokens: encryptedTokens,
         active: true,
       },
       update: {
-        oauthTokens: {
-          access_token,
-          refresh_token,
-          expires_in,
-          token_type: 'Bearer',
-        },
+        oauthTokens: encryptedTokens,
         active: true,
         lastSyncAt: new Date(),
       },

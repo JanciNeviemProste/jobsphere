@@ -78,12 +78,12 @@ export async function GET(request: NextRequest) {
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
-      accounts: user.accounts.map((acc) => ({
+      accounts: user.accounts.map((acc: typeof user.accounts[number]) => ({
         provider: acc.provider,
         providerAccountId: acc.providerAccountId,
         type: acc.type,
       })),
-      organizations: user.orgMembers.map((om) => ({
+      organizations: user.orgMembers.map((om: typeof user.orgMembers[number]) => ({
         organizationId: om.organizationId,
         organizationName: om.organization.name,
         role: om.role,

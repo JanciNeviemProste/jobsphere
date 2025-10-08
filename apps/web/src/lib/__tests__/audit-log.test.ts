@@ -1,9 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { prisma } from '@/lib/db'
 import { createAuditLog, queryAuditLogs, getRequestMetadata, logUserLogin, logDataAccess, logDataExport } from '../audit-log'
 import { createMockAuditLog } from '../../../tests/helpers/factories'
+import { prisma } from '@/lib/db'
 
-vi.mock('@/lib/db')
+// Mock prisma
+vi.mock('@/lib/db', () => ({
+  prisma: {
+    auditLog: {
+      create: vi.fn(),
+      findMany: vi.fn(),
+    },
+  },
+}))
 
 describe('AuditLog', () => {
   beforeEach(() => {
@@ -12,7 +20,7 @@ describe('AuditLog', () => {
 
   describe('createAuditLog', () => {
     it('should create audit log with all fields', async () => {
-      vi.mocked(prisma.auditLog.create).mockResolvedValue(createMockAuditLog())
+      vi.mocked(prisma.auditLog.create).mockResolvedValue(createMockAuditLog() as any)
 
       await createAuditLog({
         userId: 'user-123',
@@ -40,7 +48,7 @@ describe('AuditLog', () => {
     })
 
     it('should use default entityId when resourceId is missing', async () => {
-      vi.mocked(prisma.auditLog.create).mockResolvedValue(createMockAuditLog())
+      vi.mocked(prisma.auditLog.create).mockResolvedValue(createMockAuditLog() as any)
 
       await createAuditLog({
         action: 'USER_LOGIN',
@@ -55,7 +63,7 @@ describe('AuditLog', () => {
     })
 
     it('should not throw on database error', async () => {
-      vi.mocked(prisma.auditLog.create).mockRejectedValue(new Error('DB error'))
+      vi.mocked(prisma.auditLog.create).mockRejectedValue(new Error('DB error') as any)
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
       await expect(createAuditLog({
@@ -70,7 +78,7 @@ describe('AuditLog', () => {
 
   describe('queryAuditLogs', () => {
     it('should build correct where clause', async () => {
-      vi.mocked(prisma.auditLog.findMany).mockResolvedValue([])
+      vi.mocked(prisma.auditLog.findMany).mockResolvedValue([] as any)
 
       await queryAuditLogs({
         userId: 'user-123',
@@ -99,7 +107,7 @@ describe('AuditLog', () => {
     })
 
     it('should use default limit of 100', async () => {
-      vi.mocked(prisma.auditLog.findMany).mockResolvedValue([])
+      vi.mocked(prisma.auditLog.findMany).mockResolvedValue([] as any)
 
       await queryAuditLogs({})
 
@@ -111,7 +119,7 @@ describe('AuditLog', () => {
     })
 
     it('should handle partial filters', async () => {
-      vi.mocked(prisma.auditLog.findMany).mockResolvedValue([])
+      vi.mocked(prisma.auditLog.findMany).mockResolvedValue([] as any)
 
       await queryAuditLogs({
         userId: 'user-123',
@@ -162,7 +170,7 @@ describe('AuditLog', () => {
 
   describe('logUserLogin', () => {
     it('should log user login with request metadata', async () => {
-      vi.mocked(prisma.auditLog.create).mockResolvedValue(createMockAuditLog())
+      vi.mocked(prisma.auditLog.create).mockResolvedValue(createMockAuditLog() as any)
 
       const request = new Request('http://localhost', {
         headers: {
@@ -188,7 +196,7 @@ describe('AuditLog', () => {
 
   describe('logDataAccess', () => {
     it('should log data access with all parameters', async () => {
-      vi.mocked(prisma.auditLog.create).mockResolvedValue(createMockAuditLog())
+      vi.mocked(prisma.auditLog.create).mockResolvedValue(createMockAuditLog() as any)
 
       const request = new Request('http://localhost')
 
@@ -208,7 +216,7 @@ describe('AuditLog', () => {
 
   describe('logDataExport', () => {
     it('should log data export with metadata', async () => {
-      vi.mocked(prisma.auditLog.create).mockResolvedValue(createMockAuditLog())
+      vi.mocked(prisma.auditLog.create).mockResolvedValue(createMockAuditLog() as any)
 
       const request = new Request('http://localhost')
 
@@ -227,7 +235,7 @@ describe('AuditLog', () => {
     })
 
     it('should handle undefined orgId', async () => {
-      vi.mocked(prisma.auditLog.create).mockResolvedValue(createMockAuditLog())
+      vi.mocked(prisma.auditLog.create).mockResolvedValue(createMockAuditLog() as any)
 
       const request = new Request('http://localhost')
 

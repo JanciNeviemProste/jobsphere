@@ -178,3 +178,132 @@ export function getClientIp(request: Request): string {
   // Last resort
   return 'unknown'
 }
+
+/**
+ * Rate limit presets
+ */
+export const RateLimitPresets = {
+  auth: { limit: 5, window: 60 }, // 5 requests per minute
+  api: { limit: 100, window: 60 }, // 100 requests per minute
+  public: { limit: 200, window: 60 }, // 200 requests per minute
+  strict: { limit: 10, window: 900 }, // 10 requests per 15 minutes
+  upload: { limit: 10, window: 300 }, // 10 uploads per 5 minutes
+} as const
+
+type RateLimitPreset = keyof typeof RateLimitPresets
+
+/**
+ * Higher-order function to wrap API routes with rate limiting
+ */
+export function withRateLimit<T extends Request = Request>(
+  handler: (request: T, context?: { params?: Record<string, string> }) => Promise<Response>,
+  options: {
+    preset?: RateLimitPreset
+    limit?: number
+    window?: number
+    byUser?: boolean
+    strict?: boolean
+  } = {}
+) {
+  return async function rateLimitedHandler(
+    request: T,
+    context?: { params?: Record<string, string> }
+  ): Promise<Response> {
+    try {
+      // Get rate limit configuration
+      const config = options.preset
+        ? RateLimitPresets[options.preset]
+        : { limit: options.limit || 100, window: options.window || 60 }
+
+      // Determine identifier
+      let identifier: string
+      if (options.byUser) {
+        // Extract user ID from auth session if available
+        const authHeader = request.headers.get('authorization')
+        if (authHeader?.startsWith('Bearer ')) {
+          identifier = authHeader.substring(7)
+        } else {
+          identifier = getClientIp(request)
+        }
+      } else {
+        identifier = getClientIp(request)
+      }
+
+      // Apply rate limit
+      const result = options.strict
+        ? await strictRateLimit(identifier, config.limit, config.window)
+        : await rateLimit({
+            identifier,
+            limit: config.limit,
+            window: config.window,
+            prefix: options.byUser ? 'ratelimit:user' : 'ratelimit:ip',
+          })
+
+      // Add rate limit headers to response
+      const response = await handler(request, context)
+
+      return new Response(response.body, {
+        ...response,
+        headers: {
+          ...response.headers,
+          'X-RateLimit-Limit': String(result.limit),
+          'X-RateLimit-Remaining': String(result.remaining),
+          'X-RateLimit-Reset': String(result.reset),
+        },
+      })
+    } catch (error) {
+      // If handler throws, check if it's rate limit exceeded
+      if (!error) {
+        return new Response('Too Many Requests', {
+          status: 429,
+          headers: {
+            'Retry-After': String(options.window || 60),
+          },
+        })
+      }
+      throw error
+    }
+  }
+}
+
+/**
+ * Rate limit middleware for Next.js API routes
+ */
+export async function rateLimitMiddleware(
+  request: Request,
+  options: {
+    preset?: RateLimitPreset
+    limit?: number
+    window?: number
+    byUser?: boolean
+  } = {}
+): Promise<RateLimitResult | Response> {
+  const config = options.preset
+    ? RateLimitPresets[options.preset]
+    : { limit: options.limit || 100, window: options.window || 60 }
+
+  const identifier = options.byUser
+    ? request.headers.get('x-user-id') || getClientIp(request)
+    : getClientIp(request)
+
+  const result = await rateLimit({
+    identifier,
+    limit: config.limit,
+    window: config.window,
+    prefix: options.byUser ? 'ratelimit:user' : 'ratelimit:ip',
+  })
+
+  if (!result.success) {
+    return new Response('Too Many Requests', {
+      status: 429,
+      headers: {
+        'X-RateLimit-Limit': String(result.limit),
+        'X-RateLimit-Remaining': String(result.remaining),
+        'X-RateLimit-Reset': String(result.reset),
+        'Retry-After': String(config.window),
+      },
+    })
+  }
+
+  return result
+}

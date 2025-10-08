@@ -153,7 +153,7 @@ export default async function EmployerApplicationDetailPage({
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {application.events.map((event, index) => (
+                  {application.events.map((event: { id: string; type: string; title: string; description: string | null; createdAt: Date }, index: number) => (
                     <div key={event.id} className="flex gap-4">
                       <div className="flex flex-col items-center">
                         <div className="h-3 w-3 rounded-full bg-primary" />

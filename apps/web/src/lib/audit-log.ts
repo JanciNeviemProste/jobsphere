@@ -4,6 +4,7 @@
  */
 
 import { prisma } from './db'
+import { Prisma } from '@prisma/client'
 
 export type AuditAction =
   | 'USER_LOGIN'
@@ -19,7 +20,10 @@ export type AuditAction =
   | 'CANDIDATE_VIEWED'
   | 'CANDIDATE_EXPORTED'
   | 'APPLICATION_CREATED'
+  | 'APPLICATION_UPDATED'
+  | 'APPLICATION_DELETED'
   | 'APPLICATION_STATUS_CHANGED'
+  | 'APPLICATION_BULK_UPDATE'
   | 'ASSESSMENT_CREATED'
   | 'ASSESSMENT_SUBMITTED'
   | 'EMAIL_SENT'
@@ -29,6 +33,11 @@ export type AuditAction =
   | 'CONSENT_GRANTED'
   | 'CONSENT_REVOKED'
   | 'DSAR_REQUESTED'
+  // Generic actions for services
+  | 'CREATE'
+  | 'UPDATE'
+  | 'DELETE'
+  | 'BULK_UPDATE'
 
 export type AuditResource =
   | 'USER'
@@ -47,7 +56,7 @@ export interface AuditLogEntry {
   action: AuditAction
   resource: AuditResource
   resourceId?: string
-  metadata?: Record<string, any>
+  metadata?: Prisma.InputJsonValue
   ipAddress?: string
   userAgent?: string
 }
@@ -162,7 +171,7 @@ export async function logSensitiveAction(
   resource: AuditResource,
   resourceId: string,
   request: Request,
-  metadata?: Record<string, any>
+  metadata?: Prisma.InputJsonValue
 ): Promise<void> {
   const { ipAddress, userAgent } = getRequestMetadata(request)
 
@@ -189,7 +198,7 @@ export async function queryAuditLogs(filters: {
   endDate?: Date
   limit?: number
 }) {
-  const where: any = {}
+  const where: Prisma.AuditLogWhereInput = {}
 
   if (filters.userId) where.userId = filters.userId
   if (filters.orgId) where.orgId = filters.orgId

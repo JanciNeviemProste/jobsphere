@@ -19,21 +19,34 @@ export function Header() {
   ]
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header
+      className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      role="banner"
+      aria-label="Site header"
+    >
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href={`/${locale}`} className="flex items-center space-x-2">
+          <Link
+            href={`/${locale}`}
+            className="flex items-center space-x-2"
+            aria-label="JobSphere home"
+          >
             <span className="text-2xl font-bold">
               Job<span className="text-primary">Sphere</span>
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6">
+          <nav
+            className="hidden md:flex items-center gap-6"
+            role="navigation"
+            aria-label="Main navigation"
+          >
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+                aria-current={pathname === item.href ? 'page' : undefined}
               >
                 {item.label}
               </Link>
@@ -41,13 +54,13 @@ export function Header() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4" role="navigation" aria-label="User actions">
           <LanguageSwitcher />
           <Button variant="ghost" size="sm" asChild>
-            <Link href={`/${locale}/login`}>{t('nav.login')}</Link>
+            <Link href={`/${locale}/login`} aria-label="Log in to your account">{t('nav.login')}</Link>
           </Button>
           <Button size="sm" asChild>
-            <Link href={`/${locale}/signup`}>{t('nav.signup')}</Link>
+            <Link href={`/${locale}/signup`} aria-label="Create a new account">{t('nav.signup')}</Link>
           </Button>
         </div>
       </div>

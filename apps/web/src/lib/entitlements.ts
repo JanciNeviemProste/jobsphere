@@ -51,7 +51,11 @@ export async function getFeatureLimit(
     },
   })
 
-  return entitlement?.limitInt ?? 0
+  // If no entitlement found, return 0
+  if (!entitlement) return 0
+
+  // Preserve null for unlimited limits
+  return entitlement.limitInt
 }
 
 /**
@@ -167,6 +171,71 @@ export async function incrementUsage(orgId: string, feature: Feature) {
     data: {
       remainingInt: {
         decrement: 1,
+      },
+    },
+  })
+}
+
+/**
+ * Check if organization has entitlement capacity for a feature
+ * Returns true if organization can use/create more of the feature
+ */
+export async function checkEntitlement(
+  orgId: string,
+  feature: Feature
+): Promise<boolean> {
+  const entitlement = await prisma.entitlement.findUnique({
+    where: {
+      orgId_featureKey: {
+        orgId,
+        featureKey: feature,
+      },
+    },
+  })
+
+  // If no entitlement exists, default to starter plan limits
+  if (!entitlement) {
+    return true // Or false depending on your default policy
+  }
+
+  // Check if there's remaining capacity
+  const remaining = entitlement.remainingInt ?? 0
+  const limit = entitlement.limitInt ?? 0
+
+  // If limit is 0, it might mean unlimited (depending on your logic)
+  // Or it might mean no access
+  if (limit === 0) {
+    return false
+  }
+
+  return remaining > 0
+}
+
+/**
+ * Consume entitlement capacity (decrement remaining count)
+ * @param orgId Organization ID
+ * @param feature Feature to consume
+ * @param amount Amount to consume (default: 1)
+ * @param tx Optional Prisma transaction client
+ */
+export async function consumeEntitlement(
+  orgId: string,
+  feature: Feature,
+  amount: number = 1,
+  tx?: typeof prisma
+): Promise<void> {
+  const client = tx ?? prisma
+
+  await client.entitlement.update({
+    where: {
+      orgId_featureKey: {
+        orgId,
+        featureKey: feature,
+      },
+    },
+    data: {
+      remainingInt: {
+        decrement: amount,
       },
     },
   })

@@ -103,11 +103,14 @@ export default async function EmployerDashboardPage({
 
   const { organization, jobs, recentApplications } = data
 
+  type JobWithApplications = typeof jobs extends (infer T)[] ? T : never
+  type ApplicationWithRelations = typeof recentApplications extends (infer T)[] ? T : never
+
   // Calculate stats
   const stats = {
-    activeJobs: jobs.filter((j) => j.status === 'ACTIVE').length,
-    totalApplicants: jobs.reduce((sum, job) => sum + job.applications.length, 0),
-    newApplicants: recentApplications.filter((a) => a.status === 'PENDING').length,
+    activeJobs: jobs.filter((j: JobWithApplications) => j.status === 'ACTIVE').length,
+    totalApplicants: jobs.reduce((sum: number, job: JobWithApplications) => sum + job.applications.length, 0),
+    newApplicants: recentApplications.filter((a: ApplicationWithRelations) => a.status === 'PENDING').length,
     totalJobs: jobs.length,
   }
 
@@ -213,7 +216,7 @@ export default async function EmployerDashboardPage({
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {jobs.map((job) => (
+                  {jobs.map((job: JobWithApplications) => (
                     <div
                       key={job.id}
                       className="flex items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -270,7 +273,7 @@ export default async function EmployerDashboardPage({
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {recentApplications.map((application) => (
+                  {recentApplications.map((application: ApplicationWithRelations) => (
                     <div
                       key={application.id}
                       className="flex items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"

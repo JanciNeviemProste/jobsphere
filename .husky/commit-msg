@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Commit message format validation
+# Allowed formats:
+# - feat: add new feature
+# - fix: bug fix
+# - docs: documentation changes
+# - chore: maintenance tasks
+# - refactor: code refactoring
+# - test: adding tests
+# - style: code style changes
+
+commit_msg=$(cat "$1")
+
+if ! echo "$commit_msg" | grep -qE "^(feat|fix|docs|chore|refactor|test|style|perf|ci|build|revert)(\(.+\))?: .{1,}$"; then
+  echo "❌ Invalid commit message format"
+  echo ""
+  echo "Commit message must follow conventional commits format:"
+  echo "  <type>(<scope>): <description>"
+  echo ""
+  echo "Examples:"
+  echo "  feat: add user authentication"
+  echo "  fix(api): resolve rate limiting issue"
+  echo "  docs: update README with deployment steps"
+  echo ""
+  echo "Allowed types: feat, fix, docs, chore, refactor, test, style, perf, ci, build, revert"
+  exit 1
+fi

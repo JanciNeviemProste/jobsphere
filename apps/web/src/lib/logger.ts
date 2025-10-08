@@ -46,8 +46,21 @@ class Logger {
 
     // In production, send to external logging service
     if (!this.isDevelopment && process.env.SENTRY_DSN) {
-      // TODO: Send to Sentry
-      // Sentry.captureException(error, { extra: context })
+      try {
+        // Dynamically import Sentry to avoid bundling in dev
+        import('@sentry/nextjs').then(({ captureException, setContext }) => {
+          if (context) {
+            setContext('custom', context)
+          }
+          if (error instanceof Error) {
+            captureException(error, { extra: { message, ...context } })
+          } else {
+            captureException(new Error(message), { extra: { error: String(error), ...context } })
+          }
+        })
+      } catch (sentryError) {
+        console.error('Failed to send error to Sentry:', sentryError)
+      }
     }
   }
 

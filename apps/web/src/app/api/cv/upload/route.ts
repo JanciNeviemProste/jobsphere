@@ -5,79 +5,100 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
+import { withRateLimit } from '@/lib/rate-limit'
+import pdfParse from 'pdf-parse'
+import mammoth from 'mammoth'
 
 // PDF text extraction
 async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
-  // TODO: Integrate pdf-parse library
-  // For now, return placeholder
-  return '[PDF text extraction - integrate pdf-parse library]'
+  try {
+    const data = await pdfParse(Buffer.from(buffer))
+    return data.text
+  } catch (error) {
+    console.error('PDF parsing error:', error)
+    throw new Error('Failed to extract text from PDF. File may be corrupted or password-protected.')
+  }
 }
 
 // DOCX text extraction
 async function extractTextFromDOCX(buffer: ArrayBuffer): Promise<string> {
-  // TODO: Integrate mammoth library
-  return '[DOCX text extraction - integrate mammoth library]'
-}
-
-export async function POST(request: NextRequest) {
   try {
-    // 1. Authenticate
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const result = await mammoth.extractRawText({ buffer: Buffer.from(buffer) })
+
+    if (result.messages && result.messages.length > 0) {
+      console.warn('DOCX parsing warnings:', result.messages)
     }
 
-    // 2. Get file from form data
-    const formData = await request.formData()
-    const file = formData.get('file') as File
-
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 })
-    }
-
-    // 3. Validate file
-    const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
-    if (!validTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: 'File too large' }, { status: 400 })
-    }
-
-    // 4. Upload to Vercel Blob
-    const blob = await put(`cvs/${session.user.id}/${file.name}`, file, {
-      access: 'public',
-      addRandomSuffix: true,
-    })
-
-    // 5. Extract text based on file type
-    const arrayBuffer = await file.arrayBuffer()
-    let rawText: string
-
-    if (file.type === 'application/pdf') {
-      rawText = await extractTextFromPDF(arrayBuffer)
-    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      rawText = await extractTextFromDOCX(arrayBuffer)
-    } else {
-      // Plain text
-      const decoder = new TextDecoder()
-      rawText = decoder.decode(arrayBuffer)
-    }
-
-    return NextResponse.json({
-      blobUrl: blob.url,
-      rawText,
-      filename: file.name,
-      size: file.size,
-    })
-
+    return result.value
   } catch (error) {
-    console.error('CV upload error:', error)
-    return NextResponse.json(
-      { error: 'Failed to upload CV' },
-      { status: 500 }
-    )
+    console.error('DOCX parsing error:', error)
+    throw new Error('Failed to extract text from DOCX. File may be corrupted.')
   }
 }
+
+export const POST = withRateLimit(
+  async (request: NextRequest) => {
+    try {
+      // 1. Authenticate
+      const session = await requireAuth()
+
+      if (!session.user?.id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
+      // 2. Get file from form data
+      const formData = await request.formData()
+      const file = formData.get('file') as File
+
+      if (!file) {
+        return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+      }
+
+      // 3. Validate file
+      const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
+      if (!validTypes.includes(file.type)) {
+        return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        return NextResponse.json({ error: 'File too large' }, { status: 400 })
+      }
+
+      // 4. Upload to Vercel Blob
+      const blob = await put(`cvs/${session.user.id}/${file.name}`, file, {
+        access: 'public',
+        addRandomSuffix: true,
+      })
+
+      // 5. Extract text based on file type
+      const arrayBuffer = await file.arrayBuffer()
+      let rawText: string
+
+      if (file.type === 'application/pdf') {
+        rawText = await extractTextFromPDF(arrayBuffer)
+      } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        rawText = await extractTextFromDOCX(arrayBuffer)
+      } else {
+        // Plain text
+        const decoder = new TextDecoder()
+        rawText = decoder.decode(arrayBuffer)
+      }
+
+      return NextResponse.json({
+        blobUrl: blob.url,
+        rawText,
+        filename: file.name,
+        size: file.size,
+      })
+
+    } catch (error) {
+      console.error('CV upload error:', error)
+      return NextResponse.json(
+        { error: 'Failed to upload CV' },
+        { status: 500 }
+      )
+    }
+  },
+  { preset: 'upload', byUser: true } // 10 uploads per 5 minutes
+)

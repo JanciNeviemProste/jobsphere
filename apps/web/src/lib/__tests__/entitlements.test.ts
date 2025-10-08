@@ -1,9 +1,27 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { prisma } from '@/lib/db'
 import { hasFeature, canCreateJob, getFeatureLimit, canAddCandidate, canAddTeamMember, getCurrentPlan } from '../entitlements'
 import { createMockEntitlement, createMockOrgCustomer } from '../../../tests/helpers/factories'
+import { prisma } from '@/lib/db'
 
-vi.mock('@/lib/db')
+vi.mock('@/lib/db', () => ({
+  prisma: {
+    entitlement: {
+      findUnique: vi.fn(),
+    },
+    job: {
+      count: vi.fn(),
+    },
+    application: {
+      count: vi.fn(),
+    },
+    orgMember: {
+      count: vi.fn(),
+    },
+    orgCustomer: {
+      findUnique: vi.fn(),
+    },
+  },
+}))
 
 describe('Entitlements', () => {
   beforeEach(() => {
@@ -17,7 +35,7 @@ describe('Entitlements', () => {
         limitInt: 1
       })
 
-      vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(mockEntitlement)
+      vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(mockEntitlement as any)
 
       const result = await hasFeature('org-123', 'AI_MATCHING')
 
@@ -34,7 +52,7 @@ describe('Entitlements', () => {
 
     it('should return false when limitInt is 0', async () => {
       const mockEntitlement = createMockEntitlement({ limitInt: 0 })
-      vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(mockEntitlement)
+      vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(mockEntitlement as any)
 
       const result = await hasFeature('org-123', 'AI_MATCHING')
 
@@ -53,9 +71,9 @@ describe('Entitlements', () => {
   describe('canCreateJob', () => {
     it('should return true when under limit', async () => {
       vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(
-        createMockEntitlement({ featureKey: 'MAX_JOBS', limitInt: 5 })
+        createMockEntitlement({ featureKey: 'MAX_JOBS', limitInt: 5 }) as any
       )
-      vi.mocked(prisma.job.count).mockResolvedValue(3)
+      vi.mocked(prisma.job.count).mockResolvedValue(3 as any)
 
       const result = await canCreateJob('org-123')
 
@@ -67,9 +85,9 @@ describe('Entitlements', () => {
 
     it('should return false when at limit', async () => {
       vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(
-        createMockEntitlement({ featureKey: 'MAX_JOBS', limitInt: 5 })
+        createMockEntitlement({ featureKey: 'MAX_JOBS', limitInt: 5 }) as any
       )
-      vi.mocked(prisma.job.count).mockResolvedValue(5)
+      vi.mocked(prisma.job.count).mockResolvedValue(5 as any)
 
       const result = await canCreateJob('org-123')
 
@@ -78,7 +96,7 @@ describe('Entitlements', () => {
 
     it('should return true for unlimited (null)', async () => {
       vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(
-        createMockEntitlement({ featureKey: 'MAX_JOBS', limitInt: null })
+        createMockEntitlement({ featureKey: 'MAX_JOBS', limitInt: null }) as any
       )
 
       const result = await canCreateJob('org-123')
@@ -91,7 +109,7 @@ describe('Entitlements', () => {
   describe('getFeatureLimit', () => {
     it('should return limitInt when entitlement exists', async () => {
       vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(
-        createMockEntitlement({ limitInt: 10 })
+        createMockEntitlement({ limitInt: 10 }) as any
       )
 
       const result = await getFeatureLimit('org-123', 'MAX_JOBS')
@@ -109,7 +127,7 @@ describe('Entitlements', () => {
 
     it('should return null for unlimited', async () => {
       vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(
-        createMockEntitlement({ limitInt: null })
+        createMockEntitlement({ limitInt: null }) as any
       )
 
       const result = await getFeatureLimit('org-123', 'MAX_JOBS')
@@ -121,9 +139,9 @@ describe('Entitlements', () => {
   describe('canAddCandidate', () => {
     it('should return true when under limit', async () => {
       vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(
-        createMockEntitlement({ featureKey: 'MAX_CANDIDATES', limitInt: 100 })
+        createMockEntitlement({ featureKey: 'MAX_CANDIDATES', limitInt: 100 }) as any
       )
-      vi.mocked(prisma.application.count).mockResolvedValue(50)
+      vi.mocked(prisma.application.count).mockResolvedValue(50 as any)
 
       const result = await canAddCandidate('org-123')
 
@@ -135,9 +153,9 @@ describe('Entitlements', () => {
 
     it('should return false when at limit', async () => {
       vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(
-        createMockEntitlement({ featureKey: 'MAX_CANDIDATES', limitInt: 100 })
+        createMockEntitlement({ featureKey: 'MAX_CANDIDATES', limitInt: 100 }) as any
       )
-      vi.mocked(prisma.application.count).mockResolvedValue(100)
+      vi.mocked(prisma.application.count).mockResolvedValue(100 as any)
 
       const result = await canAddCandidate('org-123')
 
@@ -148,9 +166,9 @@ describe('Entitlements', () => {
   describe('canAddTeamMember', () => {
     it('should return true when under limit', async () => {
       vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(
-        createMockEntitlement({ featureKey: 'MAX_TEAM_MEMBERS', limitInt: 10 })
+        createMockEntitlement({ featureKey: 'MAX_TEAM_MEMBERS', limitInt: 10 }) as any
       )
-      vi.mocked(prisma.orgMember.count).mockResolvedValue(5)
+      vi.mocked(prisma.orgMember.count).mockResolvedValue(5 as any)
 
       const result = await canAddTeamMember('org-123')
 

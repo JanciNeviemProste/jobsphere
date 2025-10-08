@@ -58,11 +58,13 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
     redirect(`/${params.locale}/dashboard`)
   }
 
+  type ApplicationWithRelations = typeof applications extends (infer T)[] ? T : never
+
   const stats = {
     total: applications.length,
-    new: applications.filter((a) => a.status === 'PENDING').length,
-    reviewing: applications.filter((a) => a.status === 'REVIEWING').length,
-    interviewed: applications.filter((a) => a.status === 'INTERVIEWED').length,
+    new: applications.filter((a: ApplicationWithRelations) => a.status === 'PENDING').length,
+    reviewing: applications.filter((a: ApplicationWithRelations) => a.status === 'REVIEWING').length,
+    interviewed: applications.filter((a: ApplicationWithRelations) => a.status === 'INTERVIEWED').length,
   }
 
   const getStatusBadge = (status: string) => {
@@ -137,7 +139,7 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
         <Card>
           <CardContent className="pt-6">
             <div className="space-y-4">
-              {applications.map((application) => (
+              {applications.map((application: ApplicationWithRelations) => (
                 <div
                   key={application.id}
                   className="flex items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -148,7 +150,7 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
                         <span className="font-semibold text-primary">
                           {(application.candidate.name || application.candidate.email)
                             .split(' ')
-                            .map((n) => n[0])
+                            .map((n: string) => n[0])
                             .join('')
                             .toUpperCase()
                             .slice(0, 2)}

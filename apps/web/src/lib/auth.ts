@@ -5,6 +5,13 @@ import GoogleProvider from "next-auth/providers/google"
 import { prisma } from "./prisma"
 import { compare } from "bcryptjs"
 
+export class UnauthorizedError extends Error {
+  constructor(message = 'Unauthorized') {
+    super(message)
+    this.name = 'UnauthorizedError'
+  }
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: {
@@ -73,3 +80,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 })
+
+/**
+ * Require authentication - throws UnauthorizedError if not authenticated
+ * Use this in API routes to ensure user is logged in
+ */
+export async function requireAuth() {
+  const session = await auth()
+
+  if (!session?.user?.id) {
+    throw new UnauthorizedError('You must be logged in to access this resource')
+  }
+
+  return session
+}

@@ -32,8 +32,15 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
     setSaving(true)
 
     try {
-      // TODO: Get organizationId from session when multi-tenant is implemented
-      const organizationId = 'temp-org-id' // Placeholder
+      // Get user's organization from session API
+      const sessionRes = await fetch('/api/auth/session')
+      const sessionData = await sessionRes.json()
+
+      if (!sessionData?.user?.organizationId) {
+        throw new Error('No organization found. Please contact support.')
+      }
+
+      const organizationId = sessionData.user.organizationId
 
       const response = await fetch('/api/jobs', {
         method: 'POST',

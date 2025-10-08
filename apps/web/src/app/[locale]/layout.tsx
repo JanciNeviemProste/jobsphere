@@ -5,9 +5,11 @@ import { getMessages, getTranslations } from 'next-intl/server'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { TRPCProvider } from '@/lib/trpc/provider'
-import { Header } from '@/components/layout/header'
+import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/footer'
+import { SkipNav } from '@/components/layout/skip-nav'
 import { locales } from '@/config/i18n'
+import { Analytics } from '@vercel/analytics/react'
 import '@/styles/globals.css'
 
 const inter = Inter({
@@ -98,15 +100,19 @@ export default async function LocaleLayout({
         >
           <NextIntlClientProvider messages={messages}>
             <TRPCProvider>
+              <SkipNav />
               <div className="relative flex min-h-screen flex-col">
                 <Header />
-                <main className="flex-1">{children}</main>
+                <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
+                  {children}
+                </main>
                 <Footer />
               </div>
               <Toaster />
             </TRPCProvider>
           </NextIntlClientProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   )

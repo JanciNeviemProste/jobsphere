@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { addAssessmentGradingJob } from '@/lib/queue'
 
 export async function POST(
   request: NextRequest,
@@ -38,7 +39,7 @@ export async function POST(
     }
 
     // Find candidate
-    const candidate = await prisma.candidate.findUnique({
+    const candidate = await prisma.candidate.findFirst({
       where: { userId: session.user.id },
     })
 
@@ -58,27 +59,52 @@ export async function POST(
       return NextResponse.json({ error: 'Assessment invite not found' }, { status: 404 })
     }
 
-    // Create attempt
+    // Create assessment attempt with responses
     const attempt = await prisma.attempt.create({
       data: {
-        inviteId: invite.id,
+        invite: {
+          connectOrCreate: {
+            where: {
+              assessmentId_candidateId: {
+                assessmentId: params.id,
+                candidateId: candidate.id,
+              },
+            },
+            create: {
+              assessmentId: params.id,
+              candidateId: candidate.id,
+              token: Math.random().toString(36).substring(2),
+              status: 'STARTED',
+            },
+          },
+        },
+        candidateId: candidate.id,
         startedAt: new Date(),
         submittedAt: new Date(),
+        status: 'SUBMITTED',
         answers: {
           create: answers.map((ans: any) => ({
             questionId: ans.questionId,
-            response: ans.response || ans.answer, // Support both field names
+            response: ans.response || ans.answer || {}, // Support both field names, store as JSON
           })),
         },
       },
     })
 
-    // TODO: Trigger grading worker via BullMQ or API call
-    // For now, grading will be done manually or via cron job
+    // Trigger automatic grading via BullMQ worker
+    try {
+      await addAssessmentGradingJob({ attemptId: attempt.id })
+      console.log('Assessment grading job queued', { attemptId: attempt.id })
+    } catch (error) {
+      console.error('Failed to queue grading job:', error)
+      // Don't fail the submission if queueing fails
+      // Assessment can be graded manually or by retry mechanism
+    }
 
     return NextResponse.json({
       success: true,
       attemptId: attempt.id,
+      message: 'Assessment submitted successfully. Grading in progress.',
     })
   } catch (error) {
     console.error('Assessment submission error:', error)

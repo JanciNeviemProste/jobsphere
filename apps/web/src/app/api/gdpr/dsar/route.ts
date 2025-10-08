@@ -36,10 +36,54 @@ export async function POST(request: NextRequest) {
         type,
         status: 'PENDING',
       },
+      include: {
+        user: { select: { email: true, name: true } },
+      },
     })
 
-    // TODO: Send email notification to admin
-    // TODO: Add to processing queue
+    // Send email notifications
+    try {
+      const { sendEmail } = await import('@/lib/email')
+      const adminEmail = process.env.ADMIN_EMAIL || 'admin@jobsphere.com'
+
+      // Notify admin
+      await sendEmail({
+        to: adminEmail,
+        subject: `New GDPR ${type} Request`,
+        html: `
+          <h2>New GDPR Data Subject Access Request</h2>
+          <p><strong>Request Type:</strong> ${type}</p>
+          <p><strong>User:</strong> ${dsarRequest.user?.name || 'Unknown'} (${dsarRequest.user?.email || 'N/A'})</p>
+          <p><strong>User ID:</strong> ${session.user.id}</p>
+          <p><strong>Request ID:</strong> ${dsarRequest.id}</p>
+          <p><strong>Status:</strong> PENDING</p>
+          <p>This request must be processed within 30 days according to GDPR requirements.</p>
+          <hr />
+          <p style="color: #666; font-size: 12px;">JobSphere ATS - GDPR Compliance</p>
+        `,
+      })
+
+      // Notify user
+      if (session.user.email) {
+        await sendEmail({
+          to: session.user.email,
+          subject: `Your GDPR ${type} Request - JobSphere`,
+          html: `
+            <h2>Request Received</h2>
+            <p>Hi ${session.user.name || 'there'},</p>
+            <p>We have received your GDPR ${type} request.</p>
+            <p><strong>Request ID:</strong> ${dsarRequest.id}</p>
+            <p>Your request will be processed within 30 days as required by GDPR regulations.</p>
+            <p>You will receive an email notification once your request has been completed.</p>
+            <hr />
+            <p style="color: #666; font-size: 12px;">JobSphere ATS - GDPR Compliance</p>
+          `,
+        })
+      }
+    } catch (emailError) {
+      console.error('Failed to send DSAR notification:', emailError)
+      // Don't fail the request if email fails
+    }
 
     return NextResponse.json({
       success: true,

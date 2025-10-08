@@ -39,10 +39,12 @@ model Organization {
   candidates      Candidate[]
   applications    Application[]
   emailAccounts   EmailAccount[]
+  emailThreads    EmailThread[]
   emailSequences  EmailSequence[]
   assessments     Assessment[]
   customer        OrgCustomer?
   subscriptions   Subscription[]
+  invoices        Invoice[]
   entitlements    Entitlement[]
   usageEvents     UsageEvent[]
   matchScores     MatchScore[]
@@ -167,6 +169,9 @@ model Job {
   slug           String?
   metaTitle      String?
   metaDescription String?
+
+  // AI/ML - Vector embedding for semantic search
+  embedding      Unsupported("vector(1536)")?
 
   createdBy      String
   createdAt      DateTime @default(now())

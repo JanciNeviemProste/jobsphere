@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { extractCvFromText } from '@jobsphere/ai'
+import { generateCVEmbeddings } from '@/lib/embeddings'
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,11 +32,15 @@ export async function POST(request: NextRequest) {
       where: { userId: session.user.id },
     })
 
+    // Get locale from accept-language header or default to 'en'
+    const acceptLanguage = request.headers.get('accept-language')
+    const locale = acceptLanguage?.split(',')[0]?.split('-')[0] || 'en'
+
     if (!candidate) {
       candidate = await prisma.candidate.create({
         data: {
           userId: session.user.id,
-          locale: 'sk', // TODO: Get from user preferences
+          locale: ['en', 'de', 'cs', 'sk', 'pl'].includes(locale) ? locale : 'en',
         },
       })
     }
@@ -65,14 +70,96 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // TODO: Create ResumeSection records from extractedCV
-    // TODO: Generate embeddings for sections
+    // 6. Create ResumeSection records from extractedCV
+    const sections = []
+
+    if (extractedCV.summary) {
+      sections.push({
+        resumeId: resume.id,
+        kind: 'SUMMARY',
+        text: extractedCV.summary,
+        order: 1,
+      })
+    }
+
+    if (extractedCV.experience && Array.isArray(extractedCV.experience)) {
+      const experienceText = extractedCV.experience
+        .map((exp: any) => {
+          const parts = []
+          if (exp.title) parts.push(exp.title)
+          if (exp.company) parts.push(exp.company)
+          if (exp.period) parts.push(exp.period)
+          if (exp.description) parts.push(exp.description)
+          return parts.join(' | ')
+        })
+        .join('\n\n')
+
+      if (experienceText) {
+        sections.push({
+          resumeId: resume.id,
+          kind: 'EXPERIENCE',
+          text: experienceText,
+          order: 2,
+        })
+      }
+    }
+
+    if (extractedCV.education && Array.isArray(extractedCV.education)) {
+      const educationText = extractedCV.education
+        .map((edu: any) => {
+          const parts = []
+          if (edu.degree) parts.push(edu.degree)
+          if (edu.institution) parts.push(edu.institution)
+          if (edu.year) parts.push(edu.year)
+          if (edu.field) parts.push(edu.field)
+          return parts.join(' | ')
+        })
+        .join('\n\n')
+
+      if (educationText) {
+        sections.push({
+          resumeId: resume.id,
+          kind: 'EDUCATION',
+          text: educationText,
+          order: 3,
+        })
+      }
+    }
+
+    if (extractedCV.skills && Array.isArray(extractedCV.skills)) {
+      const skillsText = extractedCV.skills.join(', ')
+
+      if (skillsText) {
+        sections.push({
+          resumeId: resume.id,
+          kind: 'SKILLS',
+          text: skillsText,
+          order: 4,
+        })
+      }
+    }
+
+    // Bulk create sections
+    if (sections.length > 0) {
+      await prisma.resumeSection.createMany({
+        data: sections,
+      })
+    }
+
+    // 7. Generate embeddings asynchronously (don't wait for completion)
+    if (sections.length > 0) {
+      generateCVEmbeddings(resume.id).catch((error) => {
+        console.error('Failed to generate embeddings:', error)
+        // Don't fail the request if embedding generation fails
+      })
+    }
 
     return NextResponse.json({
       resumeId: resume.id,
       candidateId: candidate.id,
       success: true,
       parsed: extractedCV, // Return parsed data to client
+      sectionsCreated: sections.length,
     })
 
   } catch (error) {
