@@ -13,7 +13,7 @@ export async function createJob(formData: {
   type: string
   seniority: string
   description: string
-  organizationId: string
+  orgId: string
 }) {
   const session = await auth()
 
@@ -25,7 +25,7 @@ export async function createJob(formData: {
   const membership = await prisma.orgMember.findFirst({
     where: {
       userId: session.user.id,
-      organizationId: formData.organizationId,
+      orgId: formData.orgId,
     },
   })
 
@@ -43,7 +43,7 @@ export async function createJob(formData: {
       type: formData.type as any,
       seniority: formData.seniority as any,
       description: formData.description,
-      organizationId: formData.organizationId,
+      orgId: formData.orgId,
       status: 'ACTIVE',
     },
   })
@@ -73,7 +73,7 @@ export async function updateJobStatus(jobId: string, status: string) {
   const membership = await prisma.orgMember.findFirst({
     where: {
       userId: session.user.id,
-      organizationId: job.organizationId,
+      orgId: job.orgId,
     },
   })
 
@@ -111,7 +111,7 @@ export async function deleteJob(jobId: string) {
   const membership = await prisma.orgMember.findFirst({
     where: {
       userId: session.user.id,
-      organizationId: job.organizationId,
+      orgId: job.orgId,
     },
   })
 

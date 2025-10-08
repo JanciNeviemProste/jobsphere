@@ -3,13 +3,13 @@
 // Version: 2.0
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
   extensions = [pgvector(map: "vector")]
 }
 
@@ -29,11 +29,11 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   // Relations
-  accounts      Account[]
-  sessions      Session[]
-  orgMembers    OrgMember[]
-  applications  Application[]
-  candidate     Candidate?
+  accounts     Account[]
+  sessions     Session[]
+  orgMembers   OrgMember[]
+  applications Application[]
+  candidate    Candidate?
 
   @@index([email])
 }
@@ -94,8 +94,8 @@ model Organization {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  members       OrgMember[]
-  jobs          Job[]
+  members OrgMember[]
+  jobs    Job[]
 
   @@index([name])
 }
@@ -103,15 +103,15 @@ model Organization {
 model OrgMember {
   id     String @id @default(cuid())
   userId String
-  organizationId String
+  orgId  String
   role   String @default("MEMBER") // ADMIN, RECRUITER, MEMBER
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, organizationId])
+  @@unique([userId, orgId])
   @@index([userId])
-  @@index([organizationId])
+  @@index([orgId])
 }
 
 // ============================================================================
@@ -119,25 +119,25 @@ model OrgMember {
 // ============================================================================
 
 model Job {
-  id             String   @id @default(cuid())
-  organizationId String
-  title          String
-  description    String   @db.Text
-  location       String
-  salaryMin      Int?
-  salaryMax      Int?
-  workMode       String   @default("HYBRID") // REMOTE, HYBRID, ONSITE
-  type           String   @default("FULL_TIME") // FULL_TIME, PART_TIME, CONTRACT
-  seniority      String   @default("MEDIOR") // JUNIOR, MEDIOR, SENIOR, LEAD
-  status         String   @default("ACTIVE") // ACTIVE, CLOSED, DRAFT
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id          String   @id @default(cuid())
+  orgId       String
+  title       String
+  description String   @db.Text
+  location    String
+  salaryMin   Int?
+  salaryMax   Int?
+  workMode    String   @default("HYBRID") // REMOTE, HYBRID, ONSITE
+  type        String   @default("FULL_TIME") // FULL_TIME, PART_TIME, CONTRACT
+  seniority   String   @default("MEDIOR") // JUNIOR, MEDIOR, SENIOR, LEAD
+  status      String   @default("ACTIVE") // ACTIVE, CLOSED, DRAFT
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   applications Application[]
   matchScores  MatchScore[]
 
-  @@index([organizationId])
+  @@index([orgId])
   @@index([status])
 }
 
@@ -181,13 +181,13 @@ model ApplicationEvent {
 // ============================================================================
 
 model Email {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   to        String
   subject   String
-  body      String   @db.Text
-  status    String   @default("PENDING") // PENDING, SENT, FAILED
-  provider  String?  // resend, sendgrid, log
-  createdAt DateTime @default(now())
+  body      String    @db.Text
+  status    String    @default("PENDING") // PENDING, SENT, FAILED
+  provider  String? // resend, sendgrid, log
+  createdAt DateTime  @default(now())
   sentAt    DateTime?
 
   @@index([to])
@@ -199,31 +199,31 @@ model Email {
 // ============================================================================
 
 model Subscription {
-  id             String    @id @default(cuid())
-  organizationId String
-  plan           String    @default("FREE") // FREE, STARTER, PROFESSIONAL, ENTERPRISE
-  status         String    @default("ACTIVE") // ACTIVE, CANCELED, PAST_DUE
+  id                 String   @id @default(cuid())
+  orgId              String
+  plan               String   @default("FREE") // FREE, STARTER, PROFESSIONAL, ENTERPRISE
+  status             String   @default("ACTIVE") // ACTIVE, CANCELED, PAST_DUE
   currentPeriodStart DateTime
   currentPeriodEnd   DateTime
   cancelAtPeriodEnd  Boolean  @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  @@index([organizationId])
+  @@index([orgId])
   @@index([status])
 }
 
 model Invoice {
-  id             String   @id @default(cuid())
-  organizationId String
-  amount         Int
-  currency       String   @default("EUR")
-  status         String   @default("PENDING") // PENDING, PAID, FAILED
-  dueDate        DateTime
-  paidAt         DateTime?
-  createdAt      DateTime @default(now())
+  id        String    @id @default(cuid())
+  orgId     String
+  amount    Int
+  currency  String    @default("EUR")
+  status    String    @default("PENDING") // PENDING, PAID, FAILED
+  dueDate   DateTime
+  paidAt    DateTime?
+  createdAt DateTime  @default(now())
 
-  @@index([organizationId])
+  @@index([orgId])
   @@index([status])
 }
 
@@ -238,7 +238,7 @@ model Candidate {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   resumes   Resume[]
   documents CandidateDocument[]
 
@@ -248,12 +248,12 @@ model Candidate {
 model CandidateDocument {
   id          String   @id @default(cuid())
   candidateId String
-  type        String   // CV, COVER_LETTER, CERTIFICATE, OTHER
+  type        String // CV, COVER_LETTER, CERTIFICATE, OTHER
   fileName    String
   fileUrl     String
   mimeType    String
   fileSize    Int
-  hash        String?  // SHA256 pre dedup
+  hash        String? // SHA256 pre dedup
   createdAt   DateTime @default(now())
 
   candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
@@ -263,15 +263,15 @@ model CandidateDocument {
 }
 
 model Resume {
-  id              String   @id @default(cuid())
-  candidateId     String
+  id               String   @id @default(cuid())
+  candidateId      String
   sourceDocumentId String?
-  language        String   @default("sk")
-  title           String?
-  summary         String?  @db.Text
-  anonymized      Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  language         String   @default("sk")
+  title            String?
+  summary          String?  @db.Text
+  anonymized       Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   candidate Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   sections  ResumeSection[]
@@ -281,17 +281,17 @@ model Resume {
 }
 
 model ResumeSection {
-  id              String  @id @default(cuid())
+  id              String                      @id @default(cuid())
   resumeId        String
-  kind            String  // PERSONAL, EXPERIENCE, EDUCATION, SKILLS, LANGUAGES, CERTIFICATIONS, PROJECTS
-  order           Int     @default(0)
+  kind            String // PERSONAL, EXPERIENCE, EDUCATION, SKILLS, LANGUAGES, CERTIFICATIONS, PROJECTS
+  order           Int                         @default(0)
   title           String?
   organization    String?
   location        String?
   startDate       DateTime?
   endDate         DateTime?
-  current         Boolean  @default(false)
-  description     String?  @db.Text
+  current         Boolean                     @default(false)
+  description     String?                     @db.Text
   skills          String[] // Array of skill tags
   embeddingVector Unsupported("vector(768)")?
 
@@ -310,11 +310,11 @@ model MatchScore {
   jobId       String
   candidateId String
   resumeId    String?
-  score0to100 Int      // 0-100 calibrated score
+  score0to100 Int // 0-100 calibrated score
   bm25Score   Float?
   vectorScore Float?
   llmScore    Float?
-  evidence    Json     // Structured evidence for explainability
+  evidence    Json // Structured evidence for explainability
   version     String   @default("v1") // Algorithm version
   createdAt   DateTime @default(now())
 
@@ -332,23 +332,23 @@ model MatchScore {
 // ============================================================================
 
 model EmailAccount {
-  id           String   @id @default(cuid())
-  orgId        String
-  provider     String   // MICROSOFT, GMAIL, IMAP
-  email        String
-  displayName  String?
-  oauthTokens  Json?    // Encrypted OAuth tokens
-  imapHost     String?
-  imapPort     Int?
-  smtpHost     String?
-  smtpPort     Int?
-  username     String?
-  password     String?  // Encrypted
-  signature    String?  @db.Text
-  active       Boolean  @default(true)
-  lastSyncAt   DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String    @id @default(cuid())
+  orgId       String
+  provider    String // MICROSOFT, GMAIL, IMAP
+  email       String
+  displayName String?
+  oauthTokens Json? // Encrypted OAuth tokens
+  imapHost    String?
+  imapPort    Int?
+  smtpHost    String?
+  smtpPort    Int?
+  username    String?
+  password    String? // Encrypted
+  signature   String?   @db.Text
+  active      Boolean   @default(true)
+  lastSyncAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   threads  EmailThread[]
   messages EmailMessage[]
@@ -358,15 +358,15 @@ model EmailAccount {
 }
 
 model EmailThread {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   accountId     String
   subject       String?
   participants  String[] // Email addresses
-  entityType    String?  // APPLICATION, CANDIDATE, JOB
+  entityType    String? // APPLICATION, CANDIDATE, JOB
   entityId      String?
   labels        String[]
   lastMessageAt DateTime?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 
   account  EmailAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
   messages EmailMessage[]
@@ -376,27 +376,27 @@ model EmailThread {
 }
 
 model EmailMessage {
-  id            String    @id @default(cuid())
-  threadId      String
-  accountId     String
-  messageId     String?   // Provider message ID
-  fromEmail     String
-  fromName      String?
-  toEmails      String[]
-  ccEmails      String[]
-  bccEmails     String[]
-  replyTo       String?
-  subject       String?
-  bodyHtml      String?   @db.Text
-  bodyText      String?   @db.Text
-  attachments   Json?     // Array of attachment metadata
-  inReplyTo     String?
-  references    String[]
-  direction     String    // INBOUND, OUTBOUND
-  status        String    @default("SENT") // DRAFT, SENDING, SENT, FAILED, BOUNCED
-  sentAt        DateTime?
-  receivedAt    DateTime?
-  createdAt     DateTime  @default(now())
+  id          String    @id @default(cuid())
+  threadId    String
+  accountId   String
+  messageId   String? // Provider message ID
+  fromEmail   String
+  fromName    String?
+  toEmails    String[]
+  ccEmails    String[]
+  bccEmails   String[]
+  replyTo     String?
+  subject     String?
+  bodyHtml    String?   @db.Text
+  bodyText    String?   @db.Text
+  attachments Json? // Array of attachment metadata
+  inReplyTo   String?
+  references  String[]
+  direction   String // INBOUND, OUTBOUND
+  status      String    @default("SENT") // DRAFT, SENDING, SENT, FAILED, BOUNCED
+  sentAt      DateTime?
+  receivedAt  DateTime?
+  createdAt   DateTime  @default(now())
 
   thread  EmailThread  @relation(fields: [threadId], references: [id], onDelete: Cascade)
   account EmailAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
@@ -410,7 +410,7 @@ model EmailMessage {
 model EmailEvent {
   id        String   @id @default(cuid())
   messageId String
-  kind      String   // OPENED, CLICKED, BOUNCED, COMPLAINED, UNSUBSCRIBED
+  kind      String // OPENED, CLICKED, BOUNCED, COMPLAINED, UNSUBSCRIBED
   metadata  Json?
   ipAddress String?
   userAgent String?
@@ -447,28 +447,28 @@ model EmailStep {
   id           String  @id @default(cuid())
   sequenceId   String
   order        Int
-  dayOffset    Int     // Days after sequence start
+  dayOffset    Int // Days after sequence start
   subject      String
   bodyTemplate String  @db.Text
-  conditions   Json?   // JSON rules for conditional sending
+  conditions   Json? // JSON rules for conditional sending
   abVariant    String? // A, B, C for A/B testing
 
-  sequence EmailSequence      @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  sequence EmailSequence        @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
   events   EmailSequenceEvent[]
 
   @@index([sequenceId])
 }
 
 model EmailSequenceRun {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   sequenceId  String
   candidateId String
   jobId       String?
-  status      String   @default("ACTIVE") // ACTIVE, PAUSED, COMPLETED, STOPPED
-  startedAt   DateTime @default(now())
+  status      String    @default("ACTIVE") // ACTIVE, PAUSED, COMPLETED, STOPPED
+  startedAt   DateTime  @default(now())
   completedAt DateTime?
 
-  sequence EmailSequence       @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  sequence EmailSequence        @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
   events   EmailSequenceEvent[]
 
   @@index([sequenceId])
@@ -480,7 +480,7 @@ model EmailSequenceEvent {
   id        String   @id @default(cuid())
   runId     String
   stepId    String
-  kind      String   // SCHEDULED, SENT, SKIPPED, FAILED
+  kind      String // SCHEDULED, SENT, SKIPPED, FAILED
   messageId String?
   metadata  Json?
   createdAt DateTime @default(now())
@@ -496,32 +496,33 @@ model EmailSuppressionList {
   id        String   @id @default(cuid())
   orgId     String
   email     String
-  reason    String   // BOUNCED, COMPLAINED, UNSUBSCRIBED, MANUAL
-  source    String?  // Which sequence/campaign caused it
+  reason    String // BOUNCED, COMPLAINED, UNSUBSCRIBED, MANUAL
+  source    String? // Which sequence/campaign caused it
   createdAt DateTime @default(now())
 
   @@unique([orgId, email])
   @@index([orgId])
   @@index([email])
 }
+
 // ============================================================================
 // ASSESSMENT MODELS (Testy a hodnotenia)
 // ============================================================================
 
 model Assessment {
-  id          String   @id @default(cuid())
-  orgId       String
-  name        String
-  description String?  @db.Text
-  locale      String   @default("sk")
-  durationMin Int?     // Time limit in minutes
-  passingScore Float?   // Minimum score to pass (0-100)
-  randomize   Boolean  @default(false)
-  settings    Json?    // Additional settings
-  active      Boolean  @default(true)
-  createdBy   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  orgId        String
+  name         String
+  description  String?  @db.Text
+  locale       String   @default("sk")
+  durationMin  Int? // Time limit in minutes
+  passingScore Float? // Minimum score to pass (0-100)
+  randomize    Boolean  @default(false)
+  settings     Json? // Additional settings
+  active       Boolean  @default(true)
+  createdBy    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   sections AssessmentSection[]
   invites  AssessmentInvite[]
@@ -531,7 +532,7 @@ model Assessment {
 }
 
 model AssessmentSection {
-  id           String @id @default(cuid())
+  id           String  @id @default(cuid())
   assessmentId String
   title        String
   description  String? @db.Text
@@ -546,15 +547,15 @@ model AssessmentSection {
 model Question {
   id             String   @id @default(cuid())
   sectionId      String
-  type           String   // MCQ, MULTI_SELECT, SHORT_TEXT, LONG_TEXT, CODE
+  type           String // MCQ, MULTI_SELECT, SHORT_TEXT, LONG_TEXT, CODE
   text           String   @db.Text
   choices        String[] // For MCQ/MULTI
-  correctIndexes Int[]    // For auto-grading
+  correctIndexes Int[] // For auto-grading
   code           String?  @db.Text // Starter code for CODE type
-  language       String?  // Programming language
+  language       String? // Programming language
   skillTag       String?
   points         Int      @default(1)
-  rubric         Json?    // Grading rubric for AI
+  rubric         Json? // Grading rubric for AI
   order          Int      @default(0)
 
   section AssessmentSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
@@ -584,14 +585,14 @@ model AssessmentInvite {
 }
 
 model Attempt {
-  id         String    @id @default(cuid())
-  inviteId   String    @unique
-  startedAt  DateTime?
+  id          String    @id @default(cuid())
+  inviteId    String    @unique
+  startedAt   DateTime?
   submittedAt DateTime?
-  timeSpent  Int?      // Seconds
-  totalScore Float?    // 0-100
-  passed     Boolean?
-  detail     Json?     // Detailed results
+  timeSpent   Int? // Seconds
+  totalScore  Float? // 0-100
+  passed      Boolean?
+  detail      Json? // Detailed results
 
   invite  AssessmentInvite @relation(fields: [inviteId], references: [id], onDelete: Cascade)
   answers Answer[]
@@ -603,10 +604,10 @@ model Answer {
   id         String  @id @default(cuid())
   attemptId  String
   questionId String
-  response   Json    // Text, array of indexes, code, etc.
-  autoScore  Float?  // Auto-graded score
-  aiScore    Float?  // AI-graded score
-  finalScore Float?  // Final score used
+  response   Json // Text, array of indexes, code, etc.
+  autoScore  Float? // Auto-graded score
+  aiScore    Float? // AI-graded score
+  finalScore Float? // Final score used
   feedback   String? @db.Text
 
   attempt  Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
@@ -638,9 +639,9 @@ model Price {
   productId     String
   stripeId      String   @unique
   currency      String   @default("EUR")
-  interval      String   // MONTH, YEAR
+  interval      String // MONTH, YEAR
   intervalCount Int      @default(1)
-  amount        Int      // In cents
+  amount        Int // In cents
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
 
@@ -670,9 +671,9 @@ model Plan {
 model PlanFeature {
   id          String  @id @default(cuid())
   planId      String
-  featureKey  String  // job_slots, seats, assessments_per_month, email_sends_per_month
+  featureKey  String // job_slots, seats, assessments_per_month, email_sends_per_month
   name        String
-  limitInt    Int?    // null = unlimited
+  limitInt    Int? // null = unlimited
   limitBool   Boolean @default(true)
   description String? @db.Text
 
@@ -683,15 +684,15 @@ model PlanFeature {
 }
 
 model OrgCustomer {
-  id                 String   @id @default(cuid())
-  orgId              String   @unique
-  stripeCustomerId   String   @unique
+  id                  String   @id @default(cuid())
+  orgId               String   @unique
+  stripeCustomerId    String   @unique
   stripePaymentMethod String?
-  vatId              String?
-  taxExempt          Boolean  @default(false)
-  address            Json?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  vatId               String?
+  taxExempt           Boolean  @default(false)
+  address             Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   subscriptions StripeSubscription[]
 
@@ -705,7 +706,7 @@ model StripeSubscription {
   stripeSubId        String    @unique
   productId          String
   planKey            String
-  status             String    // ACTIVE, CANCELED, PAST_DUE, UNPAID
+  status             String // ACTIVE, CANCELED, PAST_DUE, UNPAID
   currentPeriodStart DateTime
   currentPeriodEnd   DateTime
   cancelAtPeriodEnd  Boolean   @default(false)
@@ -713,7 +714,7 @@ model StripeSubscription {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  customer OrgCustomer           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer OrgCustomer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
   items    SubscriptionItem[]
   invoices StripeInvoice[]
 
@@ -734,17 +735,17 @@ model SubscriptionItem {
 }
 
 model StripeInvoice {
-  id             String    @id @default(cuid())
-  subscriptionId String?
-  stripeInvoiceId String   @unique
-  amount         Int      // In cents
-  currency       String   @default("EUR")
-  status         String   // DRAFT, OPEN, PAID, VOID, UNCOLLECTIBLE
-  pdfUrl         String?
-  hostedUrl      String?
-  dueDate        DateTime?
-  paidAt         DateTime?
-  createdAt      DateTime @default(now())
+  id              String    @id @default(cuid())
+  subscriptionId  String?
+  stripeInvoiceId String    @unique
+  amount          Int // In cents
+  currency        String    @default("EUR")
+  status          String // DRAFT, OPEN, PAID, VOID, UNCOLLECTIBLE
+  pdfUrl          String?
+  hostedUrl       String?
+  dueDate         DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime  @default(now())
 
   subscription StripeSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   payments     Payment[]
@@ -760,7 +761,7 @@ model Payment {
   stripePaymentId String   @unique
   amount          Int
   currency        String   @default("EUR")
-  status          String   // SUCCEEDED, FAILED, PENDING
+  status          String // SUCCEEDED, FAILED, PENDING
   failureMessage  String?
   createdAt       DateTime @default(now())
 
@@ -772,13 +773,13 @@ model Payment {
 
 // Entitlements - aktuálne oprávnenia organizácie
 model Entitlement {
-  id          String   @id @default(cuid())
-  orgId       String
-  featureKey  String
-  limitInt    Int?     // null = unlimited
+  id           String    @id @default(cuid())
+  orgId        String
+  featureKey   String
+  limitInt     Int? // null = unlimited
   remainingInt Int?
-  resetAt     DateTime? // Kedy sa resetuje (mesačné kvóty)
-  updatedAt   DateTime @default(now())
+  resetAt      DateTime? // Kedy sa resetuje (mesačné kvóty)
+  updatedAt    DateTime  @default(now())
 
   @@unique([orgId, featureKey])
   @@index([orgId])
@@ -789,8 +790,8 @@ model UsageEvent {
   id         String   @id @default(cuid())
   orgId      String
   featureKey String
-  delta      Int      // +1 pre increment, -1 pre decrement
-  entityType String?  // JOB, EMAIL, ASSESSMENT
+  delta      Int // +1 pre increment, -1 pre decrement
+  entityType String? // JOB, EMAIL, ASSESSMENT
   entityId   String?
   metadata   Json?
   createdAt  DateTime @default(now())
@@ -820,7 +821,7 @@ model StripeWebhookEvent {
 model ConsentRecord {
   id        String   @id @default(cuid())
   userId    String
-  purpose   String   // MARKETING, ANALYTICS, COOKIES
+  purpose   String // MARKETING, ANALYTICS, COOKIES
   granted   Boolean
   ipAddress String?
   userAgent String?
@@ -834,10 +835,10 @@ model AuditLog {
   id         String   @id @default(cuid())
   orgId      String?
   userId     String?
-  action     String   // CREATED, UPDATED, DELETED, ACCESSED
+  action     String // CREATED, UPDATED, DELETED, ACCESSED
   entityType String
   entityId   String
-  changes    Json?    // Before/after values
+  changes    Json? // Before/after values
   ipAddress  String?
   userAgent  String?
   createdAt  DateTime @default(now())
@@ -851,7 +852,7 @@ model AuditLog {
 model DataRetentionPolicy {
   id            String   @id @default(cuid())
   orgId         String
-  entityType    String   // APPLICATION, CANDIDATE, EMAIL
+  entityType    String // APPLICATION, CANDIDATE, EMAIL
   retentionDays Int      @default(365)
   autoDelete    Boolean  @default(false)
   createdAt     DateTime @default(now())
@@ -864,9 +865,9 @@ model DataRetentionPolicy {
 model DSARRequest {
   id          String    @id @default(cuid())
   userId      String
-  type        String    // EXPORT, DELETE
+  type        String // EXPORT, DELETE
   status      String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
-  exportUrl   String?   // Pre EXPORT type
+  exportUrl   String? // Pre EXPORT type
   completedAt DateTime?
   createdAt   DateTime  @default(now())
 

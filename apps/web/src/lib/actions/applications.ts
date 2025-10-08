@@ -81,7 +81,7 @@ export async function updateApplicationStatus(
   const membership = await prisma.orgMember.findFirst({
     where: {
       userId: session.user.id,
-      organizationId: application.job.organizationId,
+      orgId: application.job.orgId,
     },
   })
 
@@ -172,7 +172,7 @@ export async function addApplicationNote(applicationId: string, note: string) {
   const membership = await prisma.orgMember.findFirst({
     where: {
       userId: session.user.id,
-      organizationId: application.job.organizationId,
+      orgId: application.job.orgId,
     },
   })
 

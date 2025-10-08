@@ -51,7 +51,7 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
 
   return {
     userId: session.user.id,
-    orgId: orgMember.organizationId,
+    orgId: orgMember.orgId,
     role: orgMember.role,
     email: session.user.email!,
   }

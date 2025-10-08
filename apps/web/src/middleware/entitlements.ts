@@ -32,17 +32,17 @@ export async function requireFeatureMiddleware(
   }
 
   // Check feature access
-  const enabled = await hasFeature(orgMember.organizationId, feature)
+  const enabled = await hasFeature(orgMember.orgId, feature)
 
   if (!enabled) {
     return {
       allowed: false,
       error: `Feature ${feature} is not available on your plan. Please upgrade.`,
-      organizationId: orgMember.organizationId,
+      organizationId: orgMember.orgId,
     }
   }
 
-  return { allowed: true, organizationId: orgMember.organizationId }
+  return { allowed: true, organizationId: orgMember.orgId }
 }
 
 /**
@@ -65,7 +65,7 @@ export async function canCreateJobMiddleware(
     return { allowed: false, error: 'No organization' }
   }
 
-  const canCreate = await canCreateJob(orgMember.organizationId)
+  const canCreate = await canCreateJob(orgMember.orgId)
 
   if (!canCreate) {
     return {
@@ -97,7 +97,7 @@ export async function canAddCandidateMiddleware(
     return { allowed: false, error: 'No organization' }
   }
 
-  const canAdd = await canAddCandidate(orgMember.organizationId)
+  const canAdd = await canAddCandidate(orgMember.orgId)
 
   if (!canAdd) {
     return {

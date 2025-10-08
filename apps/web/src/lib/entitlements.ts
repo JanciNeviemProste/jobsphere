@@ -67,7 +67,7 @@ export async function canCreateJob(orgId: string): Promise<boolean> {
   if (limit === null) return true // unlimited
 
   const currentCount = await prisma.job.count({
-    where: { organizationId: orgId, status: 'PUBLISHED' },
+    where: { orgId: orgId, status: 'PUBLISHED' },
   })
 
   return currentCount < limit
@@ -79,7 +79,7 @@ export async function canAddCandidate(orgId: string): Promise<boolean> {
   if (limit === null) return true
 
   const currentCount = await prisma.application.count({
-    where: { job: { organizationId: orgId } },
+    where: { job: { orgId } },
   })
 
   return currentCount < limit
@@ -91,7 +91,7 @@ export async function canAddTeamMember(orgId: string): Promise<boolean> {
   if (limit === null) return true
 
   const currentCount = await prisma.orgMember.count({
-    where: { organizationId: orgId },
+    where: { orgId },
   })
 
   return currentCount < limit
