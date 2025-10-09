@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       where: { id: session.user.id },
       include: {
         sessions: true,
-        organizations: {
+        orgMembers: {
           include: {
             organization: true,
           },
@@ -39,14 +39,12 @@ export async function GET(request: NextRequest) {
     // They're linked via applications, so we skip this for now
     const candidate = null
 
-    // TODO: ConsentRecord model not yet implemented in schema
-    // @ts-ignore
+    // Get consent records
     const consents = await prisma.consentRecord.findMany({
       where: { userId: session.user.id },
     }).catch(() => [])
 
-    // TODO: DSARRequest model not yet implemented in schema
-    // @ts-ignore
+    // Get DSAR requests (Data Subject Access Requests)
     const dsarRequests = await prisma.dSARRequest.findMany({
       where: { userId: session.user.id },
     }).catch(() => [])
@@ -65,12 +63,12 @@ export async function GET(request: NextRequest) {
         id: user.id,
         email: user.email,
         name: user.name,
-        avatar: user.avatar,
+        image: user.image,
         emailVerified: user.emailVerified,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
-      organizations: user.organizations.map((om) => ({
+      organizations: user.orgMembers.map((om) => ({
         organizationId: om.orgId,
         organizationName: om.organization.name,
         role: om.role,

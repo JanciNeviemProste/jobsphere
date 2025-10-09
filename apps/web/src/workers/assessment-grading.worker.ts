@@ -99,24 +99,11 @@ async function processAssessmentGrading(job: Job<AssessmentJobData>) {
             question: true,
           },
         },
-        candidate: {
-          include: {
-            contacts: {
-              where: { isPrimary: true },
-              take: 1
-            }
-          },
-        },
       },
     })
 
     if (!attempt) {
       throw new Error(`Assessment attempt ${attemptId} not found`)
-    }
-
-    if (attempt.status === 'GRADED') {
-      logger.warn('Attempt already graded', { attemptId })
-      return
     }
 
     let totalScore = 0
@@ -158,10 +145,11 @@ async function processAssessmentGrading(job: Job<AssessmentJobData>) {
 
         case 'CODING':
           // Grade with Claude AI
+          // Note: Question model doesn't have testCases field, using empty array
           const gradingResult = await gradeCodeWithClaude(
             question.text || '',
             answerValue,
-            (question.testCases as any[]) || []
+            []
           )
 
           earnedPoints = gradingResult.score * questionPoints
@@ -193,7 +181,7 @@ async function processAssessmentGrading(job: Job<AssessmentJobData>) {
         where: { id: response.id },
         data: {
           aiScore: earnedPoints,
-          aiRationale: feedback,
+          feedback: feedback,
           finalScore: earnedPoints,
         },
       })
@@ -201,14 +189,14 @@ async function processAssessmentGrading(job: Job<AssessmentJobData>) {
 
     // 3. Calculate final score
     const percentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0
+    const passed = percentage >= 70 // 70% passing threshold
 
     // 4. Update attempt
     await prisma.attempt.update({
       where: { id: attemptId },
       data: {
         totalScore,
-        percentage: Math.round(percentage * 10) / 10, // Round to 1 decimal
-        status: 'GRADED',
+        passed,
         submittedAt: new Date(),
       },
     })
@@ -221,16 +209,21 @@ async function processAssessmentGrading(job: Job<AssessmentJobData>) {
     })
 
     // 5. Send notification email to candidate
-    const candidateEmail = attempt.candidate?.contacts?.[0]?.email
-    if (candidateEmail) {
+    const candidate = await prisma.candidate.findUnique({
+      where: { id: attempt.invite.candidateId },
+      include: {
+        user: true
+      }
+    })
+
+    if (candidate?.user?.email) {
       const { sendEmail } = await import('@/lib/email')
 
-      const candidateName = attempt.candidate.contacts?.[0]?.fullName || 'there'
+      const candidateName = candidate.user.name || 'there'
       const assessmentTitle = attempt.invite.assessment.name
-      const passed = percentage >= 70 // 70% passing threshold
 
       await sendEmail({
-        to: candidateEmail,
+        to: candidate.user.email,
         subject: `Assessment Results - ${assessmentTitle}`,
         html: `
           <h2>Assessment Completed</h2>
@@ -255,7 +248,7 @@ async function processAssessmentGrading(job: Job<AssessmentJobData>) {
         `,
       })
 
-      logger.info('Assessment results email sent', { attemptId, email: candidateEmail })
+      logger.info('Assessment results email sent', { attemptId, email: candidate.user.email })
     }
 
     return { success: true, totalScore, maxScore, percentage }

@@ -54,15 +54,12 @@ export async function POST(request: NextRequest) {
         active: data.active,
         steps: {
           create: data.steps.map((step, index) => ({
-            name: `Step ${index + 1}`,
             order: step.order ?? index,
             dayOffset: step.dayOffset,
-            hourOffset: 0,
             subject: step.subject,
             bodyTemplate: step.bodyTemplate,
             conditions: step.conditions ?? undefined,
-            abGroup: step.abVariant ?? undefined,
-            abPercent: undefined,
+            abVariant: step.abVariant ?? undefined,
           })),
         },
       },

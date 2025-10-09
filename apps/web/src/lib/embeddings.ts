@@ -95,12 +95,15 @@ export async function generateCVEmbeddings(resumeId: string): Promise<void> {
     }
 
     for (const section of sections) {
-      if (!section.text || section.text.trim().length === 0) {
+      // ResumeSection doesn't have a text field, combine title and description
+      const sectionText = [section.title, section.description].filter(Boolean).join('\n')
+
+      if (!sectionText || sectionText.trim().length === 0) {
         continue
       }
 
       try {
-        const embedding = await generateEmbedding(section.text)
+        const embedding = await generateEmbedding(sectionText)
 
         await prisma.resumeSection.update({
           where: { id: section.id },
@@ -140,8 +143,7 @@ export async function generateJobEmbedding(jobId: string): Promise<void> {
       select: {
         title: true,
         description: true,
-        requirements: true,
-        responsibilities: true,
+        location: true,
       }
     })
 
@@ -153,8 +155,7 @@ export async function generateJobEmbedding(jobId: string): Promise<void> {
     const jobText = [
       job.title,
       job.description,
-      job.requirements,
-      job.responsibilities,
+      job.location,
     ].filter(Boolean).join('\n\n')
 
     if (jobText.trim().length === 0) {

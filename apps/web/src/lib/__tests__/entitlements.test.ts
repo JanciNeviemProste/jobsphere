@@ -79,7 +79,7 @@ describe('Entitlements', () => {
 
       expect(result).toBe(true)
       expect(prisma.job.count).toHaveBeenCalledWith({
-        where: { organizationId: 'org-123', status: 'PUBLISHED' }
+        where: { orgId: 'org-123', status: 'PUBLISHED' }
       })
     })
 
@@ -147,7 +147,7 @@ describe('Entitlements', () => {
 
       expect(result).toBe(true)
       expect(prisma.application.count).toHaveBeenCalledWith({
-        where: { job: { organizationId: 'org-123' } }
+        where: { job: { orgId: 'org-123' } }
       })
     })
 
@@ -174,7 +174,7 @@ describe('Entitlements', () => {
 
       expect(result).toBe(true)
       expect(prisma.orgMember.count).toHaveBeenCalledWith({
-        where: { organizationId: 'org-123' }
+        where: { orgId: 'org-123' }
       })
     })
   })

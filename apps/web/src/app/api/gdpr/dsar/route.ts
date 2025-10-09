@@ -30,16 +30,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Create DSAR request
-    // TODO: DSARRequest model not yet implemented in schema
-    // @ts-ignore
     const dsarRequest = await prisma.dSARRequest.create({
       data: {
         userId: session.user.id,
         type,
         status: 'PENDING',
-      },
-      include: {
-        user: { select: { email: true, name: true } },
       },
     })
 
@@ -55,7 +50,7 @@ export async function POST(request: NextRequest) {
         html: `
           <h2>New GDPR Data Subject Access Request</h2>
           <p><strong>Request Type:</strong> ${type}</p>
-          <p><strong>User:</strong> ${dsarRequest.user?.name || 'Unknown'} (${dsarRequest.user?.email || 'N/A'})</p>
+          <p><strong>User:</strong> ${session.user.name || 'Unknown'} (${session.user.email || 'N/A'})</p>
           <p><strong>User ID:</strong> ${session.user.id}</p>
           <p><strong>Request ID:</strong> ${dsarRequest.id}</p>
           <p><strong>Status:</strong> PENDING</p>
@@ -112,8 +107,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // TODO: DSARRequest model not yet implemented in schema
-    // @ts-ignore
     const requests = await prisma.dSARRequest.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: 'desc' },

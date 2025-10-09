@@ -108,10 +108,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     where: { orgId: organizationId },
     create: {
       orgId: organizationId,
-      providerCustomerId: session.customer as string,
+      stripeCustomerId: session.customer as string,
     },
     update: {
-      providerCustomerId: session.customer as string,
+      stripeCustomerId: session.customer as string,
     },
   })
 
@@ -126,7 +126,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
 
   // Find organization by customer ID
   const customer = await prisma.orgCustomer.findUnique({
-    where: { providerCustomerId: customerId },
+    where: { stripeCustomerId: customerId },
   })
 
   if (!customer) {
@@ -152,43 +152,56 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   }
 
   // Get product ID from price lookup
-  const product = await prisma.product.findFirst({
+  const price = await prisma.price.findFirst({
     where: {
-      prices: {
-        some: {
-          providerPriceId: priceId,
-        },
-      },
+      stripeId: priceId,
+    },
+    include: {
+      product: true,
     },
   })
 
-  if (!product) {
-    console.error('No product found for price ID:', priceId)
+  if (!price) {
+    console.error('No price found for price ID:', priceId)
     return
   }
 
-  // Upsert subscription
-  await prisma.subscription.upsert({
-    where: {
-      providerSubId: subscription.id,
-    },
-    create: {
-      orgId: customer.orgId,
-      productId: product.id,
-      providerSubId: subscription.id,
-      status: subscription.status,
-      currentPeriodStart: new Date(subscription.current_period_start * 1000),
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-      cancelAt: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
-    },
-    update: {
-      productId: product.id,
-      status: subscription.status,
-      currentPeriodStart: new Date(subscription.current_period_start * 1000),
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-      cancelAt: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
-    },
+  // Determine plan name based on product
+  let planName = 'FREE'
+  if (price.product.name.includes('Professional')) {
+    planName = 'PROFESSIONAL'
+  } else if (price.product.name.includes('Enterprise')) {
+    planName = 'ENTERPRISE'
+  } else if (price.product.name.includes('Starter')) {
+    planName = 'STARTER'
+  }
+
+  // Find existing subscription or create new one
+  const existingSubscription = await prisma.subscription.findFirst({
+    where: { orgId: customer.orgId },
   })
+
+  const subscriptionData = {
+    plan: planName,
+    status: subscription.status === 'active' ? 'ACTIVE' : subscription.status === 'past_due' ? 'PAST_DUE' : 'CANCELED',
+    currentPeriodStart: new Date(subscription.current_period_start * 1000),
+    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+    cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+  }
+
+  if (existingSubscription) {
+    await prisma.subscription.update({
+      where: { id: existingSubscription.id },
+      data: subscriptionData,
+    })
+  } else {
+    await prisma.subscription.create({
+      data: {
+        orgId: customer.orgId,
+        ...subscriptionData,
+      },
+    })
+  }
 
   // Update entitlements based on plan
   await updateEntitlements(customer.orgId, plan)
@@ -208,7 +221,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string
 
   const customer = await prisma.orgCustomer.findUnique({
-    where: { providerCustomerId: customerId },
+    where: { stripeCustomerId: customerId },
   })
 
   if (!customer) return
@@ -216,11 +229,10 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   // Update subscription status
   await prisma.subscription.updateMany({
     where: {
-      providerSubId: subscription.id,
+      orgId: customer.orgId,
     },
     data: {
-      status: 'canceled',
-      canceledAt: new Date(),
+      status: 'CANCELED',
     },
   })
 
@@ -246,24 +258,26 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
   try {
     // Get customer details
     const customer = await prisma.orgCustomer.findUnique({
-      where: { providerCustomerId: invoice.customer as string },
+      where: { stripeCustomerId: invoice.customer as string },
+    })
+
+    if (!customer) return
+
+    // Get organization admin
+    const orgMember = await prisma.orgMember.findFirst({
+      where: {
+        orgId: customer.orgId,
+        role: 'ORG_ADMIN',
+      },
       include: {
-        organization: {
-          include: {
-            users: {
-              where: { role: 'ORG_ADMIN' },
-              include: { user: true },
-              take: 1,
-            },
-          },
-        },
+        user: true,
       },
     })
 
-    if (customer?.organization?.users[0]?.user?.email) {
+    if (orgMember?.user?.email) {
       const { sendEmail } = await import('@/lib/email')
-      const adminEmail = customer.organization.users[0].user.email
-      const adminName = customer.organization.users[0].user.name || 'there'
+      const adminEmail = orgMember.user.email
+      const adminName = orgMember.user.name || 'there'
       const amount = (invoice.amount_paid / 100).toFixed(2)
       const currency = invoice.currency?.toUpperCase() || 'USD'
 
@@ -300,40 +314,41 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
   try {
     // Get customer details
     const customer = await prisma.orgCustomer.findUnique({
-      where: { providerCustomerId: invoice.customer as string },
-      include: {
-        organization: {
-          include: {
-            users: {
-              where: { role: 'ORG_ADMIN' },
-              include: { user: true },
-              take: 1,
-            },
-            subscriptions: {
-              where: { status: { in: ['active', 'past_due'] } },
-              orderBy: { currentPeriodEnd: 'desc' },
-              take: 1,
-            },
-          },
-        },
-      },
+      where: { stripeCustomerId: invoice.customer as string },
     })
 
     if (!customer) return
 
-    const adminEmail = customer.organization?.users[0]?.user?.email
-    const adminName = customer.organization?.users[0]?.user?.name || 'there'
+    // Get organization admin
+    const orgMember = await prisma.orgMember.findFirst({
+      where: {
+        orgId: customer.orgId,
+        role: 'ORG_ADMIN',
+      },
+      include: {
+        user: true,
+      },
+    })
+
+    const adminEmail = orgMember?.user?.email
+    const adminName = orgMember?.user?.name || 'there'
 
     // Implement grace period: 7 days after first failed payment
     const gracePeriodEnd = new Date()
     gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 7)
 
     // Update subscription to past_due if first failure
-    const subscription = customer.organization?.subscriptions?.[0]
-    if (subscription && subscription.status === 'active') {
+    const subscription = await prisma.subscription.findFirst({
+      where: {
+        orgId: customer.orgId,
+        status: 'ACTIVE',
+      },
+    })
+
+    if (subscription) {
       await prisma.subscription.update({
         where: { id: subscription.id },
-        data: { status: 'past_due' },
+        data: { status: 'PAST_DUE' },
       })
     }
 

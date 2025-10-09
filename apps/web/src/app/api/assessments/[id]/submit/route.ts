@@ -39,11 +39,8 @@ export async function POST(
     }
 
     // Find candidate
-    // TODO: Fix data model - Candidate doesn't have userId
-    // @ts-ignore - Temporary workaround
-    const orgId = (session.user as any).organizationId || 'default'
     const candidate = await prisma.candidate.findFirst({
-      where: { orgId },
+      where: { userId: session.user.id },
     })
 
     if (!candidate) {
@@ -66,10 +63,8 @@ export async function POST(
     const attempt = await prisma.attempt.create({
       data: {
         inviteId: invite.id,
-        candidateId: candidate.id,
         startedAt: new Date(),
         submittedAt: new Date(),
-        status: 'SUBMITTED',
         answers: {
           create: answers.map((ans: any) => ({
             questionId: ans.questionId,

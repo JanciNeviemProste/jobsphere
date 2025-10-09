@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get organization
-    const userOrgRole = await prisma.userOrgRole.findFirst({
+    const userOrgRole = await prisma.orgMember.findFirst({
       where: { userId: session.user.id },
       include: { organization: true },
     })
@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
 
     let stripeCustomerId: string
 
-    if (customer?.providerCustomerId) {
-      stripeCustomerId = customer.providerCustomerId
+    if (customer?.stripeCustomerId) {
+      stripeCustomerId = customer.stripeCustomerId
     } else {
       // Create Stripe customer
       const stripeCustomer = await stripe.customers.create({
@@ -61,10 +61,10 @@ export async function POST(request: NextRequest) {
         where: { orgId: userOrgRole.orgId },
         create: {
           orgId: userOrgRole.orgId,
-          providerCustomerId: stripeCustomerId,
+          stripeCustomerId: stripeCustomerId,
         },
         update: {
-          providerCustomerId: stripeCustomerId,
+          stripeCustomerId: stripeCustomerId,
         },
       })
     }

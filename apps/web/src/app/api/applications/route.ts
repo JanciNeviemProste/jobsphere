@@ -13,13 +13,13 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url)
-    const stage = searchParams.get('stage')
+    const status = searchParams.get('status')
     const jobId = searchParams.get('jobId')
 
     const applications = await prisma.application.findMany({
       where: {
         candidateId: session.user.id,
-        ...(stage && { stage: stage as any }),
+        ...(status && { status: status as any }),
         ...(jobId && { jobId }),
       },
       include: {
@@ -108,10 +108,9 @@ export async function POST(req: Request) {
       data: {
         jobId,
         candidateId: session.user.id,
-        orgId: job.orgId,
         coverLetter,
         // TODO: expectedSalary and availableFrom not in current schema
-        stage: 'NEW',
+        status: 'PENDING',
       },
       include: {
         job: {
@@ -122,12 +121,12 @@ export async function POST(req: Request) {
       },
     })
 
-    // Create application activity
-    await prisma.applicationActivity.create({
+    // Create application event
+    await prisma.applicationEvent.create({
       data: {
         applicationId: application.id,
         type: 'APPLIED',
-        description: 'Your application has been successfully submitted',
+        title: 'Your application has been successfully submitted',
       },
     })
 
@@ -149,7 +148,7 @@ export async function POST(req: Request) {
       }
 
       // Email to employer (get org admin email)
-      const orgAdmin = await prisma.userOrgRole.findFirst({
+      const orgAdmin = await prisma.orgMember.findFirst({
         where: {
           orgId: application.job.orgId,
           role: 'ADMIN',

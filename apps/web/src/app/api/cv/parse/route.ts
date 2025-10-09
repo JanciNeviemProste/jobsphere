@@ -28,11 +28,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Find or create Candidate record
-    // TODO: Fix data model - Candidate doesn't have userId, needs proper user-candidate relation
-    // @ts-ignore - Temporary workaround for missing userId field
-    const orgId = (session.user as any).organizationId || 'default'
     let candidate = await prisma.candidate.findFirst({
-      where: { orgId },
+      where: { userId: session.user.id },
     })
 
     // Get locale from accept-language header or default to 'en'
@@ -40,11 +37,10 @@ export async function POST(request: NextRequest) {
     const locale = acceptLanguage?.split(',')[0]?.split('-')[0] || 'en'
 
     if (!candidate) {
-      // @ts-ignore - Temporary workaround
       candidate = await prisma.candidate.create({
         data: {
-          orgId,
-          source: 'WEBSITE',
+          userId: session.user.id,
+          locale,
         },
       })
     }

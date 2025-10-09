@@ -107,7 +107,7 @@ describe('UserService', () => {
     it('should add user to organization when organizationId provided', async () => {
       const inputWithOrg = {
         ...createInput,
-        organizationId: mockOrgId,
+        orgId: mockOrgId,
       }
       const mockUser = createMockUser({ email: createInput.email })
 
@@ -378,13 +378,13 @@ describe('UserService', () => {
       vi.mocked(prisma.user.findMany).mockResolvedValue(mockUsers as any)
       vi.mocked(prisma.user.count).mockResolvedValue(1)
 
-      await UserService.searchUsers({ organizationId: mockOrgId })
+      await UserService.searchUsers({ orgId: mockOrgId })
 
       expect(prisma.user.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             orgMembers: {
-              some: { organizationId: mockOrgId },
+              some: { orgId: mockOrgId },
             },
           }),
         })

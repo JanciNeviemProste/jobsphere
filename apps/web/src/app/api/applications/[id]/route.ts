@@ -30,12 +30,8 @@ export async function GET(
             },
           },
         },
-        candidate: {
-          include: {
-            contacts: true,
-          },
-        },
-        activities: {
+        candidate: true,
+        events: {
           orderBy: {
             createdAt: 'asc',
           },
@@ -52,7 +48,7 @@ export async function GET(
 
     // Check authorization - only candidate or employer can view
     const isCandidate = application.candidateId === session.user.id
-    const isEmployer = await prisma.userOrgRole.findFirst({
+    const isEmployer = await prisma.orgMember.findFirst({
       where: {
         userId: session.user.id,
         orgId: application.job.orgId,
@@ -90,7 +86,7 @@ export async function PATCH(
     }
 
     const body = await req.json()
-    const { stage, notes } = body
+    const { status, notes } = body
 
     const application = await prisma.application.findUnique({
       where: { id: params.id },
@@ -105,7 +101,7 @@ export async function PATCH(
     }
 
     // Only employer can update status
-    const isEmployer = await prisma.userOrgRole.findFirst({
+    const isEmployer = await prisma.orgMember.findFirst({
       where: {
         userId: session.user.id,
         orgId: application.job.orgId,
@@ -123,25 +119,25 @@ export async function PATCH(
     const updatedApplication = await prisma.application.update({
       where: { id: params.id },
       data: {
-        ...(stage && { stage }),
+        ...(status && { status }),
         ...(notes && { notes }),
       },
     })
 
-    // Create activity for stage change
-    if (stage && stage !== application.stage) {
-      const stageDescriptions: Record<string, string> = {
+    // Create event for status change
+    if (status && status !== application.status) {
+      const statusDescriptions: Record<string, string> = {
         REVIEWING: 'Application is now under review',
         INTERVIEWED: 'Interview has been scheduled',
         ACCEPTED: 'Application has been accepted',
         REJECTED: 'Application has been rejected',
       }
 
-      await prisma.applicationActivity.create({
+      await prisma.applicationEvent.create({
         data: {
           applicationId: application.id,
           type: 'STATUS_CHANGED',
-          description: stageDescriptions[stage] || `Application stage changed to ${stage}`,
+          title: statusDescriptions[status] || `Application status changed to ${status}`,
         },
       })
     }

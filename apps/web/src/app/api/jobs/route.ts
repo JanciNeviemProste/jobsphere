@@ -43,8 +43,8 @@ export const GET = withRateLimit(
               { organization: { name: { contains: params.search, mode: 'insensitive' } } },
             ],
           }),
-          ...(params.workMode && { remote: params.workMode === 'REMOTE' }),
-          ...(params.jobType && { employmentType: params.jobType }),
+          ...(params.workMode && { workMode: params.workMode }),
+          ...(params.jobType && { type: params.jobType }),
           ...(params.seniority && { seniority: params.seniority }),
         },
         include: {
@@ -111,14 +111,12 @@ export const POST = withRateLimit(
           title: data.title,
           location: data.location,
           description: data.description,
-          requirements: data.requirements,
-          benefits: data.benefits,
           salaryMin: data.salaryMin,
           salaryMax: data.salaryMax,
           workMode: data.workMode as 'REMOTE' | 'HYBRID' | 'ONSITE',
           type: data.type as 'FULL_TIME' | 'PART_TIME' | 'CONTRACT',
           seniority: data.seniority as 'JUNIOR' | 'MEDIOR' | 'SENIOR' | 'LEAD',
-          organizationId: data.organizationId,
+          orgId: data.organizationId,
         },
         session.user.id
       )

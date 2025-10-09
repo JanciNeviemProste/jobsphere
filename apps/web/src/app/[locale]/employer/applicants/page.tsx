@@ -9,11 +9,11 @@ import { ArrowLeft, Download } from 'lucide-react'
 
 async function getApplicants(userId: string) {
   // Get user's organization
-  const userOrgRole = await prisma.userOrgRole.findFirst({
+  const orgMember = await prisma.orgMember.findFirst({
     where: { userId },
   })
 
-  if (!userOrgRole) {
+  if (!orgMember) {
     return null
   }
 
@@ -21,7 +21,7 @@ async function getApplicants(userId: string) {
   const applications = await prisma.application.findMany({
     where: {
       job: {
-        orgId: userOrgRole.orgId,
+        orgId: orgMember.orgId,
       },
     },
     include: {
@@ -30,14 +30,7 @@ async function getApplicants(userId: string) {
           title: true,
         },
       },
-      candidate: {
-        include: {
-          contacts: {
-            where: { isPrimary: true },
-            take: 1,
-          },
-        },
-      },
+      candidate: true,
     },
     orderBy: {
       createdAt: 'desc',
@@ -64,25 +57,25 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
 
   const stats = {
     total: applications.length,
-    new: applications.filter((a: ApplicationWithRelations) => a.stage === 'NEW').length,
-    reviewing: applications.filter((a: ApplicationWithRelations) => a.stage === 'SCREENING').length,
-    interviewed: applications.filter((a: ApplicationWithRelations) => a.stage === 'PHONE').length,
+    new: applications.filter((a: ApplicationWithRelations) => a.status === 'PENDING').length,
+    reviewing: applications.filter((a: ApplicationWithRelations) => a.status === 'REVIEWING').length,
+    interviewed: applications.filter((a: ApplicationWithRelations) => a.status === 'INTERVIEWED').length,
   }
 
-  const getStatusBadge = (stage: string) => {
-    switch (stage) {
-      case 'NEW':
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'PENDING':
         return <Badge>Nový</Badge>
-      case 'SCREENING':
+      case 'REVIEWING':
         return <Badge variant="secondary">Preveruje sa</Badge>
-      case 'PHONE':
+      case 'INTERVIEWED':
         return <Badge className="bg-blue-600">Interview</Badge>
-      case 'OFFER':
+      case 'ACCEPTED':
         return <Badge className="bg-green-600">Prijatý</Badge>
       case 'REJECTED':
         return <Badge variant="destructive">Zamietnutý</Badge>
       default:
-        return <Badge>{stage}</Badge>
+        return <Badge>{status}</Badge>
     }
   }
 
@@ -150,7 +143,7 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
                     <div className="flex items-center gap-3 mb-2">
                       <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                         <span className="font-semibold text-primary">
-                          {(application.candidate.contacts[0]?.fullName || application.candidate.contacts[0]?.email || '')
+                          {(application.candidate.name || application.candidate.email || '')
                             .split(' ')
                             .map((n: string) => n[0])
                             .join('')
@@ -160,9 +153,9 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
                       </div>
                       <div>
                         <h3 className="font-semibold">
-                          {application.candidate.contacts[0]?.fullName || application.candidate.contacts[0]?.email}
+                          {application.candidate.name || application.candidate.email}
                         </h3>
-                        <p className="text-sm text-muted-foreground">{application.candidate.contacts[0]?.email}</p>
+                        <p className="text-sm text-muted-foreground">{application.candidate.email}</p>
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground ml-13">
@@ -172,7 +165,7 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    {getStatusBadge(application.stage)}
+                    {getStatusBadge(application.status)}
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/${params.locale}/employer/applicants/${application.id}`}>
                         Detail

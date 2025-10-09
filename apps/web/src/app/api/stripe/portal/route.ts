@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get organization
-    const userOrgRole = await prisma.userOrgRole.findFirst({
+    const userOrgRole = await prisma.orgMember.findFirst({
       where: { userId: session.user.id },
     })
 
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       where: { orgId: userOrgRole.orgId },
     })
 
-    if (!customer?.providerCustomerId) {
+    if (!customer?.stripeCustomerId) {
       return NextResponse.json(
         { error: 'No Stripe customer found' },
         { status: 400 }
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     // Create portal session
     const portalSession = await stripe.billingPortal.sessions.create({
-      customer: customer.providerCustomerId,
+      customer: customer.stripeCustomerId,
       return_url: `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings`,
     })
 

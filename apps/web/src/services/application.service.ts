@@ -81,7 +81,7 @@ export class ApplicationService {
 
     // Check organization's candidate limit
     const canAddCandidate = await checkEntitlement(
-      job.organizationId,
+      job.orgId,
       'MAX_CANDIDATES'
     )
 
@@ -110,7 +110,7 @@ export class ApplicationService {
 
       // Consume entitlement
       await consumeEntitlement(
-        job.organizationId,
+        job.orgId,
         'MAX_CANDIDATES',
         1,
         tx as unknown as PrismaClient
@@ -119,7 +119,7 @@ export class ApplicationService {
       // Create audit log
       await createAuditLog({
         userId: 'SYSTEM',
-        orgId: job.organizationId,
+        orgId: job.orgId,
         action: 'CREATE',
         resource: 'APPLICATION',
         resourceId: newApplication.id,
@@ -171,7 +171,7 @@ export class ApplicationService {
       // Create audit log
       await createAuditLog({
         userId,
-        orgId: existingApplication.job.organizationId,
+        orgId: existingApplication.job.orgId,
         action: 'UPDATE',
         resource: 'APPLICATION',
         resourceId: applicationId,
@@ -179,7 +179,7 @@ export class ApplicationService {
       })
 
       // If status changed to interview or offer, create notification
-      if (input.status && ['INTERVIEWING', 'OFFER'].includes(input.status)) {
+      if (input.status && ['INTERVIEWED', 'ACCEPTED'].includes(input.status)) {
         await this.createStatusChangeNotification(application, input.status)
       }
 
@@ -208,7 +208,7 @@ export class ApplicationService {
         throw new AppError('No applications found', 404)
       }
 
-      const orgId = applications[0].job.organizationId
+      const orgId = applications[0].job.orgId
 
       // Update all applications
       const updateResult = await tx.application.updateMany({
@@ -334,7 +334,7 @@ export class ApplicationService {
 
       await createAuditLog({
         userId,
-        orgId: application.job.organizationId,
+        orgId: application.job.orgId,
         action: 'DELETE',
         resource: 'APPLICATION',
         resourceId: applicationId,
@@ -354,7 +354,10 @@ export class ApplicationService {
     application: {
       id: string
       job?: any
-      candidate?: any
+      candidate?: {
+        name?: string | null
+        email?: string
+      }
     }
   ): Promise<void> {
     try {
@@ -363,7 +366,7 @@ export class ApplicationService {
       // Get organization admin email
       const orgAdmin = await prisma.orgMember.findFirst({
         where: {
-          organizationId: application.job?.organizationId,
+          orgId: application.job?.orgId,
           role: 'ADMIN',
         },
         include: {
@@ -376,7 +379,7 @@ export class ApplicationService {
         return
       }
 
-      const candidateName = `${application.candidate?.firstName || ''} ${application.candidate?.lastName || ''}`.trim() || 'A candidate'
+      const candidateName = application.candidate?.name || 'A candidate'
       const jobTitle = application.job?.title || 'a position'
       const appUrl = `${process.env.NEXT_PUBLIC_APP_URL}/employer/applications/${application.id}`
 
@@ -404,7 +407,7 @@ export class ApplicationService {
   private static async createStatusChangeNotification(
     application: {
       id: string
-      candidate?: { email?: string; firstName?: string; lastName?: string }
+      candidate?: { email?: string; name?: string | null }
       job?: any
     },
     newStatus: ApplicationStatus
@@ -417,13 +420,13 @@ export class ApplicationService {
         return
       }
 
-      const candidateName = application.candidate?.firstName || 'there'
+      const candidateName = application.candidate?.name || 'there'
       const jobTitle = application.job?.title || 'the position'
 
       let subject = ''
       let message = ''
 
-      if (newStatus === 'INTERVIEWING') {
+      if (newStatus === 'INTERVIEWED') {
         subject = `Interview Invitation - ${jobTitle}`
         message = `
           <h2>You're Invited for an Interview!</h2>
@@ -432,7 +435,7 @@ export class ApplicationService {
           <p>The hiring team will reach out to you soon with more details about the interview schedule.</p>
           <p>Good luck!</p>
         `
-      } else if (newStatus === 'OFFER') {
+      } else if (newStatus === 'ACCEPTED') {
         subject = `Job Offer - ${jobTitle}`
         message = `
           <h2>Congratulations! Job Offer</h2>
@@ -442,7 +445,7 @@ export class ApplicationService {
           <p>Congratulations on this achievement!</p>
         `
       } else {
-        return // Only send for INTERVIEWING and OFFER statuses
+        return // Only send for INTERVIEWED and ACCEPTED statuses
       }
 
       await sendEmail({

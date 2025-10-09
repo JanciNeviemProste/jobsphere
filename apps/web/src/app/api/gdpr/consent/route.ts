@@ -18,8 +18,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // TODO: ConsentRecord model not yet implemented in schema
-    // @ts-ignore
+    // Get user's consent records
     const consents = await prisma.consentRecord.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: 'desc' },
@@ -70,8 +69,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Create consent record
-    // TODO: ConsentRecord model not yet implemented in schema
-    // @ts-ignore
     const consent = await prisma.consentRecord.create({
       data: {
         userId: session.user.id,

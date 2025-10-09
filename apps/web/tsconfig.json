@@ -38,12 +38,6 @@
     "dist/**/*",
     "prisma/seed.ts",
     "sentry.*.config.ts",
-    "vitest.config.ts",
-    "src/workers/**/*",
-    "src/lib/embeddings.ts",
-    "src/lib/semantic-search.ts",
-    "src/app/api/**/*",
-    "src/services/**/*",
-    "src/app/[locale]/employer/**/*"
+    "vitest.config.ts"
   ]
 }

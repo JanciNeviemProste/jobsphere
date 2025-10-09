@@ -66,7 +66,7 @@ describe('ApplicationService', () => {
     }
 
     it('should create application successfully', async () => {
-      const mockJob = createMockJob({ id: mockJobId, organizationId: mockOrgId, status: 'ACTIVE' })
+      const mockJob = createMockJob({ id: mockJobId, orgId: mockOrgId, status: 'ACTIVE' })
       const mockApplication = createMockApplication({ ...createInput, status: 'PENDING' })
 
       vi.mocked(prisma.application.findFirst).mockResolvedValue(null)
@@ -128,7 +128,7 @@ describe('ApplicationService', () => {
     })
 
     it('should throw error when candidate limit reached', async () => {
-      const mockJob = createMockJob({ id: mockJobId, organizationId: mockOrgId, status: 'ACTIVE' })
+      const mockJob = createMockJob({ id: mockJobId, orgId: mockOrgId, status: 'ACTIVE' })
 
       vi.mocked(prisma.application.findFirst).mockResolvedValue(null)
       vi.mocked(prisma.job.findUnique).mockResolvedValue({
@@ -143,7 +143,7 @@ describe('ApplicationService', () => {
     })
 
     it('should consume entitlement and create audit log', async () => {
-      const mockJob = createMockJob({ id: mockJobId, organizationId: mockOrgId, status: 'ACTIVE' })
+      const mockJob = createMockJob({ id: mockJobId, orgId: mockOrgId, status: 'ACTIVE' })
       const mockApplication = createMockApplication(createInput)
 
       vi.mocked(prisma.application.findFirst).mockResolvedValue(null)
@@ -185,7 +185,7 @@ describe('ApplicationService', () => {
         id: applicationId,
         status: 'PENDING',
       })
-      const mockJob = createMockJob({ organizationId: mockOrgId })
+      const mockJob = createMockJob({ orgId: mockOrgId })
       const updateInput = { status: 'REVIEWING' as const }
 
       vi.mocked(prisma.application.findUnique).mockResolvedValue({
@@ -226,7 +226,7 @@ describe('ApplicationService', () => {
 
     it('should update notes', async () => {
       const existingApplication = createMockApplication({ id: applicationId })
-      const mockJob = createMockJob({ organizationId: mockOrgId })
+      const mockJob = createMockJob({ orgId: mockOrgId })
       const updateInput = { notes: 'Strong candidate' }
 
       let capturedData: any
@@ -253,7 +253,7 @@ describe('ApplicationService', () => {
 
     it('should create audit log for update', async () => {
       const existingApplication = createMockApplication({ id: applicationId })
-      const mockJob = createMockJob({ organizationId: mockOrgId })
+      const mockJob = createMockJob({ orgId: mockOrgId })
 
       vi.mocked(prisma.application.findUnique).mockResolvedValue({
         ...existingApplication,
@@ -286,7 +286,7 @@ describe('ApplicationService', () => {
   describe('bulkUpdateStatus', () => {
     it('should update multiple applications successfully', async () => {
       const applicationIds = ['app-1', 'app-2', 'app-3']
-      const mockJob = createMockJob({ organizationId: mockOrgId })
+      const mockJob = createMockJob({ orgId: mockOrgId })
       const applications = applicationIds.map((id) =>
         createMockApplication({ id, job: mockJob })
       )
@@ -330,7 +330,7 @@ describe('ApplicationService', () => {
 
     it('should create audit log for bulk update', async () => {
       const applicationIds = ['app-1', 'app-2']
-      const mockJob = createMockJob({ organizationId: mockOrgId })
+      const mockJob = createMockJob({ orgId: mockOrgId })
 
       vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
         return callback({
@@ -528,7 +528,7 @@ describe('ApplicationService', () => {
   describe('deleteApplication', () => {
     it('should soft delete application by setting status to WITHDRAWN', async () => {
       const applicationId = 'app-123'
-      const mockJob = createMockJob({ organizationId: mockOrgId })
+      const mockJob = createMockJob({ orgId: mockOrgId })
       const existingApplication = createMockApplication({ id: applicationId })
 
       vi.mocked(prisma.application.findUnique).mockResolvedValue({
@@ -558,7 +558,7 @@ describe('ApplicationService', () => {
 
     it('should create audit log for deletion', async () => {
       const applicationId = 'app-123'
-      const mockJob = createMockJob({ organizationId: mockOrgId })
+      const mockJob = createMockJob({ orgId: mockOrgId })
       const existingApplication = createMockApplication({ id: applicationId })
 
       vi.mocked(prisma.application.findUnique).mockResolvedValue({

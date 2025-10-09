@@ -18,8 +18,8 @@ export interface CandidateMatch {
   }
   candidate?: {
     id: string
-    orgId: string
-    tags: string[]
+    userId: string
+    locale: string
   }
 }
 
@@ -62,7 +62,7 @@ export async function searchCandidates(
         r.title as "resumeTitle",
         r."candidateId" as "candidateId",
         rs.kind as "sectionType",
-        rs.text as "sectionContent",
+        COALESCE(rs.description, rs.title, '') as "sectionContent",
         1 - (rs."embeddingVector" <=> ${embeddingString}::vector) as similarity
       FROM "ResumeSection" rs
       JOIN "Resume" r ON rs."resumeId" = r.id
@@ -70,7 +70,6 @@ export async function searchCandidates(
       WHERE
         rs."embeddingVector" IS NOT NULL
         AND (1 - (rs."embeddingVector" <=> ${embeddingString}::vector)) >= ${minSimilarity}
-        ${organizationId ? prisma.$queryRaw`AND c."organizationId" = ${organizationId}` : prisma.$queryRaw``}
       ORDER BY rs."embeddingVector" <=> ${embeddingString}::vector ASC
       LIMIT ${limit}
     `
@@ -94,8 +93,8 @@ export async function searchCandidates(
         where: { id: { in: candidateIds } },
         select: {
           id: true,
-          orgId: true,
-          tags: true
+          userId: true,
+          locale: true
         }
       })
 

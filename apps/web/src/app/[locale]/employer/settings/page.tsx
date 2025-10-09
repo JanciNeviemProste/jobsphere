@@ -11,21 +11,21 @@ import { ArrowLeft, Building2, Globe } from 'lucide-react'
 
 async function getOrganizationData(userId: string) {
   // Get user's organization
-  const userOrgRole = await prisma.userOrgRole.findFirst({
+  const orgMember = await prisma.orgMember.findFirst({
     where: { userId },
     include: {
       organization: true,
     },
   })
 
-  if (!userOrgRole) {
+  if (!orgMember) {
     return null
   }
 
   // Get subscription info if exists
   const subscription = await prisma.subscription.findFirst({
     where: {
-      orgId: userOrgRole.orgId,
+      orgId: orgMember.orgId,
       status: 'active',
     },
     orderBy: {
@@ -34,7 +34,7 @@ async function getOrganizationData(userId: string) {
   })
 
   return {
-    organization: userOrgRole.organization,
+    organization: orgMember.organization,
     subscription,
   }
 }

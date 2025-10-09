@@ -13,7 +13,7 @@ export interface CreateUserInput {
   email: string
   password: string
   name: string
-  organizationId?: string
+  orgId?: string
 }
 
 export interface UpdateUserInput {
@@ -30,7 +30,7 @@ export interface ChangePasswordInput {
 
 export interface UserSearchParams {
   search?: string
-  organizationId?: string
+  orgId?: string
   emailVerified?: boolean
   limit?: number
   offset?: number
@@ -71,12 +71,12 @@ export class UserService {
         },
       })
 
-      // If organizationId provided, add to organization
-      if (input.organizationId) {
+      // If orgId provided, add to organization
+      if (input.orgId) {
         await tx.orgMember.create({
           data: {
             userId: newUser.id,
-            organizationId: input.organizationId,
+            orgId: input.orgId,
             role: 'MEMBER',
           },
         })
@@ -85,7 +85,7 @@ export class UserService {
       // Create audit log
       await createAuditLog({
         userId: newUser.id,
-        orgId: input.organizationId || 'SYSTEM',
+        orgId: input.orgId || 'SYSTEM',
         action: 'CREATE',
         resource: 'USER',
         resourceId: newUser.id,
@@ -223,7 +223,7 @@ export class UserService {
   }> {
     const {
       search,
-      organizationId,
+      orgId,
       emailVerified,
       limit = 50,
       offset = 0,
@@ -236,9 +236,9 @@ export class UserService {
           { name: { contains: search, mode: 'insensitive' } },
         ],
       }),
-      ...(organizationId && {
+      ...(orgId && {
         orgMembers: {
-          some: { organizationId },
+          some: { orgId },
         },
       }),
       ...(emailVerified !== undefined && {

@@ -23,14 +23,12 @@ export interface CreateJobInput {
   title: string
   location: string
   description: string
-  requirements?: string
-  benefits?: string
   salaryMin?: number
   salaryMax?: number
   workMode?: WorkMode
   type?: JobType
   seniority?: SeniorityLevel
-  organizationId: string
+  orgId: string
 }
 
 export interface UpdateJobInput extends Partial<CreateJobInput> {
@@ -42,7 +40,7 @@ export interface JobSearchParams {
   workMode?: WorkMode
   jobType?: JobType
   seniority?: SeniorityLevel
-  organizationId?: string
+  orgId?: string
   status?: JobStatus
   limit?: number
   offset?: number
@@ -58,7 +56,7 @@ export class JobService {
   ): Promise<Job> {
     // Check entitlement
     const canCreate = await checkEntitlement(
-      input.organizationId,
+      input.orgId,
       'MAX_JOBS'
     )
 
@@ -76,21 +74,19 @@ export class JobService {
           title: input.title,
           location: input.location,
           description: input.description,
-          ...(input.requirements && { requirements: input.requirements }),
-          ...(input.benefits && { benefits: input.benefits }),
           ...(input.salaryMin !== undefined && { salaryMin: input.salaryMin }),
           ...(input.salaryMax !== undefined && { salaryMax: input.salaryMax }),
           workMode: input.workMode ?? 'HYBRID',
           type: input.type ?? 'FULL_TIME',
           seniority: input.seniority ?? 'MEDIOR',
           status: 'ACTIVE',
-          organizationId: input.organizationId,
+          orgId: input.orgId,
         },
       })
 
       // Consume entitlement
       await consumeEntitlement(
-        input.organizationId,
+        input.orgId,
         'MAX_JOBS',
         1,
         tx as unknown as PrismaClient
@@ -99,7 +95,7 @@ export class JobService {
       // Create audit log
       await createAuditLog({
         userId,
-        orgId: input.organizationId,
+        orgId: input.orgId,
         action: 'CREATE',
         resource: 'JOB',
         resourceId: newJob.id,
@@ -138,8 +134,6 @@ export class JobService {
           ...(input.title && { title: input.title }),
           ...(input.location && { location: input.location }),
           ...(input.description && { description: input.description }),
-          ...(input.requirements && { requirements: input.requirements }),
-          ...(input.benefits && { benefits: input.benefits }),
           ...(input.salaryMin !== undefined && { salaryMin: input.salaryMin }),
           ...(input.salaryMax !== undefined && { salaryMax: input.salaryMax }),
           ...(input.workMode && { workMode: input.workMode }),
@@ -152,7 +146,7 @@ export class JobService {
       // Create audit log
       await createAuditLog({
         userId,
-        orgId: existingJob.organizationId,
+        orgId: existingJob.orgId,
         action: 'UPDATE',
         resource: 'JOB',
         resourceId: jobId,
@@ -177,7 +171,7 @@ export class JobService {
       workMode,
       jobType,
       seniority,
-      organizationId,
+      orgId,
       status = 'ACTIVE',
       limit = 50,
       offset = 0,
@@ -185,7 +179,7 @@ export class JobService {
 
     const where: Prisma.JobWhereInput = {
       status,
-      ...(organizationId && { organizationId }),
+      ...(orgId && { orgId }),
       ...(search && {
         OR: [
           { title: { contains: search, mode: 'insensitive' } },
@@ -265,7 +259,7 @@ export class JobService {
 
       await createAuditLog({
         userId,
-        orgId: job.organizationId,
+        orgId: job.orgId,
         action: 'DELETE',
         resource: 'JOB',
         resourceId: jobId,

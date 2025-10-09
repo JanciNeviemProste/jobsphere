@@ -46,14 +46,12 @@ describe('JobService', () => {
         title: 'Senior Developer',
         location: 'Prague',
         description: 'Great opportunity',
-        requirements: 'Experience with TypeScript',
-        benefits: 'Remote work',
         salaryMin: 60000,
         salaryMax: 90000,
         workMode: 'HYBRID' as const,
         type: 'FULL_TIME' as const,
         seniority: 'SENIOR' as const,
-        organizationId: mockOrgId,
+        orgId: mockOrgId,
       }
 
       const mockJob = createMockJob(input)
@@ -76,7 +74,7 @@ describe('JobService', () => {
         title: 'Developer',
         location: 'Prague',
         description: 'Job posting',
-        organizationId: mockOrgId,
+        orgId: mockOrgId,
       }
 
       vi.mocked(checkEntitlement).mockResolvedValue(false)
@@ -92,7 +90,7 @@ describe('JobService', () => {
         title: 'Developer',
         location: 'Prague',
         description: 'Job description',
-        organizationId: mockOrgId,
+        orgId: mockOrgId,
       }
 
       const mockJob = createMockJob({
@@ -130,7 +128,7 @@ describe('JobService', () => {
         title: 'Developer',
         location: 'Prague',
         description: 'Job description',
-        organizationId: mockOrgId,
+        orgId: mockOrgId,
       }
 
       const mockJob = createMockJob(input)
@@ -166,7 +164,7 @@ describe('JobService', () => {
   describe('updateJob', () => {
     it('should update job successfully', async () => {
       const jobId = 'job-123'
-      const existingJob = createMockJob({ id: jobId, organizationId: mockOrgId })
+      const existingJob = createMockJob({ id: jobId, orgId: mockOrgId })
       const updateInput = {
         title: 'Updated Title',
         salaryMin: 70000,
@@ -203,7 +201,7 @@ describe('JobService', () => {
 
     it('should create audit log for update', async () => {
       const jobId = 'job-123'
-      const existingJob = createMockJob({ id: jobId, organizationId: mockOrgId })
+      const existingJob = createMockJob({ id: jobId, orgId: mockOrgId })
       const updateInput = { title: 'Updated Title' }
 
       vi.mocked(prisma.job.findUnique).mockResolvedValue(existingJob)
@@ -331,17 +329,17 @@ describe('JobService', () => {
     })
 
     it('should filter by organization', async () => {
-      const mockJobs = [createMockJob({ organizationId: mockOrgId })]
+      const mockJobs = [createMockJob({ orgId: mockOrgId })]
 
       vi.mocked(prisma.job.findMany).mockResolvedValue(mockJobs as any)
       vi.mocked(prisma.job.count).mockResolvedValue(1)
 
-      await JobService.searchJobs({ organizationId: mockOrgId })
+      await JobService.searchJobs({ orgId: mockOrgId })
 
       expect(prisma.job.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            organizationId: mockOrgId,
+            orgId: mockOrgId,
           }),
         })
       )
@@ -429,7 +427,7 @@ describe('JobService', () => {
   describe('deleteJob', () => {
     it('should soft delete job by setting status to ARCHIVED', async () => {
       const jobId = 'job-123'
-      const existingJob = createMockJob({ id: jobId, organizationId: mockOrgId })
+      const existingJob = createMockJob({ id: jobId, orgId: mockOrgId })
       const archivedJob = { ...existingJob, status: 'ARCHIVED' as const }
 
       vi.mocked(prisma.job.findUnique).mockResolvedValue(existingJob)
@@ -458,7 +456,7 @@ describe('JobService', () => {
 
     it('should create audit log for deletion', async () => {
       const jobId = 'job-123'
-      const existingJob = createMockJob({ id: jobId, organizationId: mockOrgId })
+      const existingJob = createMockJob({ id: jobId, orgId: mockOrgId })
 
       vi.mocked(prisma.job.findUnique).mockResolvedValue(existingJob)
       vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {

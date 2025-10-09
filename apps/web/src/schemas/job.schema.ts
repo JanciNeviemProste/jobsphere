@@ -5,8 +5,6 @@ const baseJobSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().min(10).max(10000),
   location: z.string().min(1).max(200),
-  requirements: z.string().optional(),
-  benefits: z.string().optional(),
   salaryMin: z.number().int().positive().optional(),
   salaryMax: z.number().int().positive().optional(),
   workMode: z.enum(['REMOTE', 'HYBRID', 'ONSITE']).default('HYBRID'),

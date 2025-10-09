@@ -13,9 +13,8 @@ import mammoth from 'mammoth'
 async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
   try {
     // Dynamic import for server-only pdf-parse
-    const pdfParseModule = await import('pdf-parse')
-    const pdfParse = pdfParseModule.default || pdfParseModule
-    const data = await pdfParse(Buffer.from(buffer))
+    const pdfParse = await import('pdf-parse')
+    const data = await (pdfParse as any)(Buffer.from(buffer))
     return data.text
   } catch (error) {
     console.error('PDF parsing error:', error)
