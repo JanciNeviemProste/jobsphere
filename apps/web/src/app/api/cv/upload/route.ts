@@ -93,10 +93,18 @@ export const POST = withRateLimit(
 
       // Check if text extraction failed
       if (rawText.length < 10) {
-        console.warn('Very short text extracted. PDF might be image-based or corrupted.')
+        console.warn(`Very short text extracted (${rawText.length} chars). PDF might be image-based or corrupted.`)
         return NextResponse.json({
-          error: 'Could not extract text from file. PDF might be image-based (scanned). Please use a text-based PDF or DOCX file.',
+          error: 'Cannot extract text from this PDF. This usually means:\n\n' +
+                 '• Your PDF is scanned/image-based (not text-selectable)\n' +
+                 '• Try copying text from PDF - if you can\'t select text, it\'s image-based\n\n' +
+                 'Solutions:\n' +
+                 '1. Export CV as DOCX from Word/Google Docs\n' +
+                 '2. Use "Print to PDF" to create text-based PDF\n' +
+                 '3. Convert scanned PDF using OCR tool first\n' +
+                 '4. Manually fill the form below',
           extractedLength: rawText.length,
+          hint: 'Try DOCX format instead, or fill form manually',
         }, { status: 400 })
       }
 
