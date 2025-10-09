@@ -209,11 +209,11 @@
   },
   "forEmployers": {
     "hero": {
-      "title": "Nájdite najlepších kandidátov rýchlejšie",
-      "subtitle": "JobSphere je moderný ATS systém, ktorý vám pomôže efektívne spravovať náborový proces a nájsť tých správnych ľudí pre váš tím.",
+      "title": "Najděte nejlepší kandidáty rychleji",
+      "subtitle": "JobSphere je moderní ATS systém, který vám pomůže efektivně spravovat náborový proces a najít ty správné lidi pro váš tým.",
       "cta": {
-        "start": "Začať zadarmo",
-        "pricing": "Pozrieť ceny"
+        "start": "Začít zdarma",
+        "pricing": "Zobrazit ceny"
       },
       "stats": {
         "candidates": "234 aktivních kandidátů",
@@ -225,55 +225,55 @@
       }
     },
     "whyUs": {
-      "title": "Prečo vybrať JobSphere?",
-      "subtitle": "Všetko čo potrebujete pre efektívny nábor na jednom mieste"
+      "title": "Proč zvolit JobSphere?",
+      "subtitle": "Vše, co potřebujete pro efektivní nábor na jednom místě"
     },
     "features": {
       "findCandidates": {
-        "title": "Nájdite tých správnych kandidátov",
-        "description": "Prístup k tisíckam kvalifikovaných profesionálov hľadajúcich nové príležitosti."
+        "title": "Najděte ty správné kandidáty",
+        "description": "Přístup k tisícům kvalifikovaných profesionálů hledajících nové příležitosti."
       },
       "aiMatching": {
         "title": "AI-Powered Matching",
-        "description": "Naša AI technológia automaticky vyhodnotí a priradí najlepších kandidátov k vašim pozíciám."
+        "description": "Naše AI technologie automaticky vyhodnotí a přiřadí nejlepší kandidáty k vašim pozicím."
       },
       "fastRecruitment": {
-        "title": "Rýchly nábor",
-        "description": "Zrýchlite proces náboru s našimi automatizovanými nástrojmi a workflow."
+        "title": "Rychlý nábor",
+        "description": "Zrychlete proces náboru s našimi automatizovanými nástroji a workflow."
       },
       "analytics": {
-        "title": "Prehľadné štatistiky",
-        "description": "Sledujte výkonnosť vašich inzerátov a optimalizujte náborový proces."
+        "title": "Přehledné statistiky",
+        "description": "Sledujte výkonnost vašich inzerátů a optimalizujte náborový proces."
       },
       "saveTime": {
-        "title": "Ušetrite čas",
-        "description": "Automatizácia rutinných úloh vám ušetrí hodiny času každý týždeň."
+        "title": "Ušetřete čas",
+        "description": "Automatizace rutinních úkolů vám ušetří hodiny času každý týden."
       },
       "secure": {
-        "title": "Bezpečné a spoľahlivé",
-        "description": "Enterprise-level bezpečnosť pre ochranu vašich dát a kandidátov."
+        "title": "Bezpečné a spolehlivé",
+        "description": "Enterprise-level bezpečnost pro ochranu vašich dat a kandidátů."
       }
     },
     "benefits": {
-      "title": "Kompletný ATS systém",
-      "subtitle": "Všetky funkcie, ktoré potrebujete na efektívne riadenie náborového procesu od začiatku až po úspešné prijatie kandidáta.",
+      "title": "Kompletní ATS systém",
+      "subtitle": "Všechny funkce, které potřebujete pro efektivní řízení náborového procesu od začátku až po úspěšné přijetí kandidáta.",
       "list": {
-        "unlimited": "Neomedzený počet aktívnych pozícií",
-        "aiEvaluation": "AI vyhodnotenie kandidátov",
-        "database": "Prístup k databáze kandidátov",
-        "workflow": "Vlastné náborové workflow",
-        "collaboration": "Team collaboration nástroje",
+        "unlimited": "Neomezený počet aktivních pozic",
+        "aiEvaluation": "AI vyhodnocení kandidátů",
+        "database": "Přístup k databázi kandidátů",
+        "workflow": "Vlastní náborové workflow",
+        "collaboration": "Nástroje pro týmovou spolupráci",
         "analytics": "Pokročilá analytika a reporty",
-        "integrations": "Integrácie s HR systémami",
-        "support": "Prioritná zákaznícka podpora"
+        "integrations": "Integrace s HR systémy",
+        "support": "Prioritní zákaznická podpora"
       }
     },
     "plans": {
       "starter": {
         "name": "Starter",
-        "description": "Pre malé tímy",
+        "description": "Pro malé týmy",
         "price": "Free",
-        "cta": "Začať zadarmo"
+        "cta": "Začít zdarma"
       },
       "pro": {
         "name": "Professional",
@@ -285,23 +285,23 @@
       }
     },
     "cta": {
-      "title": "Pripravení začať?",
-      "subtitle": "Pridajte sa k stovkám spoločností, ktoré už používajú JobSphere pre efektívnejší nábor.",
-      "create": "Vytvoriť účet zadarmo",
-      "login": "Už máte účet? Prihlásiť sa"
+      "title": "Připraveni začít?",
+      "subtitle": "Připojte se ke stovkám společností, které již používají JobSphere pro efektivnější nábor.",
+      "create": "Vytvořit účet zdarma",
+      "login": "Už máte účet? Přihlásit se"
     }
   },
   "pricing": {
-    "title": "Cenník",
-    "subtitle": "Vyberte si plán, ktorý najlepšie vyhovuje vašim náborovým potrebám",
-    "popular": "Najobľúbenejšie",
-    "loading": "Načítava sa...",
+    "title": "Ceník",
+    "subtitle": "Vyberte si plán, který nejlépe vyhovuje vašim náborovým potřebám",
+    "popular": "Nejoblíbenější",
+    "loading": "Načítání...",
     "plans": {
       "starter": {
         "name": "Starter",
         "price": "0",
-        "period": "mesiac",
-        "description": "Pre malé firmy a začiatočníkov",
+        "period": "měsíc",
+        "description": "Pro malé firmy a začátečníky",
         "features": {
           "positions": "1 aktivní pozice",
           "aiMatching": "Základní AI matching",
@@ -309,13 +309,13 @@
           "visibility": "30 dní viditelnost",
           "basicStats": "Základní statistiky"
         },
-        "cta": "Začať zadarmo"
+        "cta": "Začít zdarma"
       },
       "pro": {
         "name": "Professional",
         "price": "99",
-        "period": "mesiac",
-        "description": "Pre rastúce spoločnosti",
+        "period": "měsíc",
+        "description": "Pro rostoucí společnosti",
         "features": {
           "positions": "10 aktivních pozic",
           "advancedAi": "Pokročilé AI matching",
@@ -326,12 +326,12 @@
           "emailTemplates": "Emailové šablony",
           "prioritySupport": "Prioritní podpora"
         },
-        "cta": "Vyskúšať 14 dní zadarmo"
+        "cta": "Vyzkoušet 14 dní zdarma"
       },
       "enterprise": {
         "name": "Enterprise",
         "price": "Custom",
-        "description": "Pre veľké organizácie",
+        "description": "Pro velké organizace",
         "features": {
           "unlimitedPositions": "Neomezené pozice",
           "customAi": "Vlastní AI model",
@@ -343,7 +343,7 @@
           "sla": "SLA 99.9%",
           "customReporting": "Custom reporting"
         },
-        "cta": "Kontaktovať predaj"
+        "cta": "Kontaktovat prodej"
       }
     },
     "comparison": {
@@ -363,20 +363,20 @@
     "faq": {
       "title": "Často kladené otázky",
       "q1": {
-        "question": "Môžem kedykoľvek zmeniť plán?",
-        "answer": "Áno, môžete kedykoľvek prejsť na vyšší alebo nižší plán. Zmeny sa prejavia okamžite."
+        "question": "Mohu kdykoli změnit plán?",
+        "answer": "Ano, můžete kdykoli přejít na vyšší nebo nižší plán. Změny se projeví okamžitě."
       },
       "q2": {
-        "question": "Ako funguje 14-dňová skúšobná doba?",
-        "answer": "Môžete vyskúšať Professional plán 14 dní zadarmo bez potreby platobnej karty."
+        "question": "Jak funguje 14denní zkušební doba?",
+        "answer": "Můžete vyzkoušet Professional plán 14 dní zdarma bez potřeby platební karty."
       },
       "q3": {
-        "question": "Aké platobné metódy akceptujete?",
-        "answer": "Akceptujeme kreditné karty (Visa, Mastercard), bankový prevod a faktúru pre Enterprise klientov."
+        "question": "Jaké platební metody akceptujete?",
+        "answer": "Akceptujeme kreditní karty (Visa, Mastercard), bankovní převod a fakturu pro Enterprise klienty."
       },
       "q4": {
-        "question": "Je možné získať refund?",
-        "answer": "Áno, ponúkame 30-dňovú záruku vrátenia peňazí bez udania dôvodu."
+        "question": "Je možné získat refund?",
+        "answer": "Ano, nabízíme 30denní záruku vrácení peněz bez udání důvodu."
       }
     },
     "cta": {
