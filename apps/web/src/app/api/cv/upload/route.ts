@@ -1,49 +1,27 @@
 /**
  * CV Upload API
- * Uploads file to Vercel Blob & extracts text
+ * Uploads file to Vercel Blob & extracts text using multi-stage pipeline
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
 import { auth } from '@/lib/auth'
 import { withRateLimit } from '@/lib/rate-limit'
-import mammoth from 'mammoth'
-
-// PDF text extraction
-async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
-  try {
-    // Dynamic import for server-only pdf-parse
-    const pdfParse = await import('pdf-parse')
-    const data = await (pdfParse as any)(Buffer.from(buffer))
-    return data.text
-  } catch (error) {
-    console.error('PDF parsing error:', error)
-    throw new Error('Failed to extract text from PDF. File may be corrupted or password-protected.')
-  }
-}
-
-// DOCX text extraction
-async function extractTextFromDOCX(buffer: ArrayBuffer): Promise<string> {
-  try {
-    const result = await mammoth.extractRawText({ buffer: Buffer.from(buffer) })
-
-    if (result.messages && result.messages.length > 0) {
-      console.warn('DOCX parsing warnings:', result.messages)
-    }
-
-    return result.value
-  } catch (error) {
-    console.error('DOCX parsing error:', error)
-    throw new Error('Failed to extract text from DOCX. File may be corrupted.')
-  }
-}
+import { parseCV } from '@/lib/cv-parser-pipeline'
+import { securityCheck } from '@/lib/antivirus'
+import { CVParseException } from '@jobsphere/ai/cv-errors'
+import { logger } from '@/lib/logger'
 
 export const POST = withRateLimit(
   async (request: NextRequest) => {
+    const requestId = crypto.randomUUID()
+
     try {
       // 1. Optional authentication - works for both logged in and anonymous users
       const session = await auth()
       const userId = session?.user?.id || 'anonymous'
+
+      logger.info('CV upload request', { requestId, userId })
 
       // 2. Get file from form data
       const formData = await request.formData()
@@ -53,17 +31,43 @@ export const POST = withRateLimit(
         return NextResponse.json({ error: 'No file provided' }, { status: 400 })
       }
 
-      // 3. Validate file
-      const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
+      // 3. Validate file type
+      const validTypes = [
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain'
+      ]
       if (!validTypes.includes(file.type)) {
-        return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
+        return NextResponse.json({
+          error: 'Invalid file type',
+          code: 'file_invalid_type'
+        }, { status: 400 })
       }
 
-      if (file.size > 10 * 1024 * 1024) {
-        return NextResponse.json({ error: 'File too large' }, { status: 400 })
+      // 4. Get file buffer
+      const arrayBuffer = await file.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+
+      // 5. Security check (antivirus, MIME verification, size check)
+      try {
+        await securityCheck(buffer, {
+          filename: file.name,
+          mimeType: file.type,
+          fileSize: file.size,
+        })
+      } catch (error) {
+        if (error instanceof CVParseException) {
+          logger.warn('Security check failed', { requestId, code: error.code, message: error.message })
+          return NextResponse.json({
+            error: error.message,
+            code: error.code,
+            details: error.details,
+          }, { status: 400 })
+        }
+        throw error
       }
 
-      // 4. Upload to Vercel Blob (use timestamp for anonymous users)
+      // 6. Upload to Vercel Blob (use timestamp for anonymous users)
       const timestamp = Date.now()
       const blobPath = session?.user?.id
         ? `cvs/${session.user.id}/${file.name}`
@@ -74,52 +78,60 @@ export const POST = withRateLimit(
         addRandomSuffix: true,
       })
 
-      // 5. Extract text based on file type
-      const arrayBuffer = await file.arrayBuffer()
-      let rawText: string
+      logger.info('File uploaded to blob', { requestId, blobUrl: blob.url })
 
-      if (file.type === 'application/pdf') {
-        rawText = await extractTextFromPDF(arrayBuffer)
-      } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-        rawText = await extractTextFromDOCX(arrayBuffer)
-      } else {
-        // Plain text
-        const decoder = new TextDecoder()
-        rawText = decoder.decode(arrayBuffer)
-      }
+      // 7. Parse CV with multi-stage pipeline
+      try {
+        const parseResult = await parseCV(arrayBuffer, {
+          filename: file.name,
+          mimeType: file.type,
+          fileSize: file.size,
+        })
 
-      // Log extracted text length for debugging
-      console.log(`Extracted ${rawText.length} characters from ${file.name}`)
+        logger.info('CV parsed successfully', {
+          requestId,
+          traceId: parseResult.traceId,
+          method: parseResult.method,
+          extractedLength: parseResult.extractedLength,
+          confidence: parseResult.confidence,
+        })
 
-      // Check if text extraction failed
-      if (rawText.length < 10) {
-        console.warn(`Very short text extracted (${rawText.length} chars). PDF might be image-based or corrupted.`)
+        // Return parse result
         return NextResponse.json({
-          error: 'Cannot extract text from this PDF. This usually means:\n\n' +
-                 '• Your PDF is scanned/image-based (not text-selectable)\n' +
-                 '• Try copying text from PDF - if you can\'t select text, it\'s image-based\n\n' +
-                 'Solutions:\n' +
-                 '1. Export CV as DOCX from Word/Google Docs\n' +
-                 '2. Use "Print to PDF" to create text-based PDF\n' +
-                 '3. Convert scanned PDF using OCR tool first\n' +
-                 '4. Manually fill the form below',
-          extractedLength: rawText.length,
-          hint: 'Try DOCX format instead, or fill form manually',
-        }, { status: 400 })
-      }
+          blobUrl: blob.url,
+          rawText: parseResult.text,
+          filename: file.name,
+          size: file.size,
+          extractedLength: parseResult.extractedLength,
+          parseMethod: parseResult.method,
+          confidence: parseResult.confidence,
+          traceId: parseResult.traceId,
+          warning: parseResult.error ? {
+            code: parseResult.error.code,
+            message: parseResult.error.message,
+          } : undefined,
+        })
 
-      return NextResponse.json({
-        blobUrl: blob.url,
-        rawText,
-        filename: file.name,
-        size: file.size,
-        extractedLength: rawText.length,
-      })
+      } catch (error) {
+        if (error instanceof CVParseException) {
+          logger.error('CV parsing failed', { requestId, code: error.code, message: error.message })
+          return NextResponse.json({
+            error: error.message,
+            code: error.code,
+            details: error.details,
+            hint: 'Try DOCX format instead, or fill form manually',
+          }, { status: 400 })
+        }
+        throw error
+      }
 
     } catch (error) {
-      console.error('CV upload error:', error)
+      logger.error('CV upload error', { requestId, error })
       return NextResponse.json(
-        { error: 'Failed to upload CV' },
+        {
+          error: 'Failed to upload CV',
+          code: 'internal_error'
+        },
         { status: 500 }
       )
     }

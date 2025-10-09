@@ -1,0 +1,528 @@
+    "hero": {
+      "title": "Nájdite najlepších kandidátov rýchlejšie",
+      "subtitle": "JobSphere je moderný ATS systém, ktorý vám pomôže efektívne spravovať náborový proces a nájsť tých správnych ľudí pre váš tím.",
+      "cta": {
+        "start": "Začať zadarmo",
+        "pricing": "Pozrieť ceny"
+      },
+      "stats": {
+        "candidates": "aktívnych kandidátov",
+        "today": "Dnes pribudlo",
+        "match": "AI match score",
+        "avgTime": "dni priemerný čas",
+        "toInterview": "Od prihlášky po interview"
+      }
+    },
+    "whyUs": {
+      "title": "Prečo vybrať JobSphere?",
+      "subtitle": "Všetko čo potrebujete pre efektívny nábor na jednom mieste"
+    },
+    "features": {
+      "findCandidates": {
+        "title": "Nájdite tých správnych kandidátov",
+        "description": "Prístup k tisíckam kvalifikovaných profesionálov hľadajúcich nové príležitosti."
+      },
+      "aiMatching": {
+        "title": "AI-Powered Matching",
+        "description": "Naša AI technológia automaticky vyhodnotí a priradí najlepších kandidátov k vašim pozíciám."
+      },
+      "fastRecruitment": {
+        "title": "Rýchly nábor",
+        "description": "Zrýchlite proces náboru s našimi automatizovanými nástrojmi a workflow."
+      },
+      "analytics": {
+        "title": "Prehľadné štatistiky",
+        "description": "Sledujte výkonnosť vašich inzerátov a optimalizujte náborový proces."
+      },
+      "saveTime": {
+        "title": "Ušetrite čas",
+        "description": "Automatizácia rutinných úloh vám ušetrí hodiny času každý týždeň."
+      },
+      "secure": {
+        "title": "Bezpečné a spoľahlivé",
+        "description": "Enterprise-level bezpečnosť pre ochranu vašich dát a kandidátov."
+      }
+    },
+    "benefits": {
+      "title": "Kompletný ATS systém",
+      "subtitle": "Všetky funkcie, ktoré potrebujete na efektívne riadenie náborového procesu od začiatku až po úspešné prijatie kandidáta.",
+      "list": {
+        "unlimited": "Neomedzený počet aktívnych pozícií",
+        "aiEvaluation": "AI vyhodnotenie kandidátov",
+        "database": "Prístup k databáze kandidátov",
+        "workflow": "Vlastné náborové workflow",
+        "collaboration": "Team collaboration nástroje",
+        "analytics": "Pokročilá analytika a reporty",
+        "integrations": "Integrácie s HR systémami",
+        "support": "Prioritná zákaznícka podpora"
+      }
+    },
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "description": "Pre malé tímy",
+        "price": "Free",
+        "cta": "Začať zadarmo"
+      },
+      "pro": {
+        "name": "Professional",
+        "description": "Pre rastúce firmy",
+        "price": "mesiac",
+        "cta": "Vyskúšať 14 dní zadarmo",
+        "badge": "Najpopulárnejšie"
+      }
+    },
+    "cta": {
+      "title": "Pripravení začať?",
+      "subtitle": "Pridajte sa k stovkám spoločností, ktoré už používajú JobSphere pre efektívnejší nábor.",
+      "create": "Vytvoriť účet zadarmo",
+      "login": "Už máte účet? Prihlásiť sa"
+    }
+  },
+  "pricing": {
+    "title": "Cenník",
+    "subtitle": "Vyberte si plán, ktorý najlepšie vyhovuje vašim náborovým potrebám",
+    "popular": "Najobľúbenejšie",
+    "loading": "Načítava sa...",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "price": "0",
+        "period": "mesiac",
+        "description": "Pre malé firmy a začiatočníkov",
+        "features": {
+          "positions": "1 aktívna pozícia",
+          "matching": "Základné AI matching",
+          "notifications": "Email notifikácie",
+          "visibility": "30 dní viditeľnosť",
+          "stats": "Základná štatistika"
+        },
+        "cta": "Začať zadarmo"
+      },
+      "pro": {
+        "name": "Professional",
+        "price": "99",
+        "period": "mesiac",
+        "description": "Pre rastúce spoločnosti",
+        "features": {
+          "positions": "10 aktívnych pozícií",
+          "matching": "Pokročilé AI matching",
+          "applications": "Neobmedzené prihlášky",
+          "visibility": "60 dní viditeľnosť",
+          "analytics": "Pokročilá analytika",
+          "parsing": "CV parsing s AI",
+          "templates": "Email šablóny",
+          "support": "Prioritná podpora"
+        },
+        "cta": "Vyskúšať 14 dní zadarmo"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Custom",
+        "description": "Pre veľké organizácie",
+        "features": {
+          "positions": "Neobmedzené pozície",
+          "model": "Vlastný AI model",
+          "manager": "Dedikovaný account manager",
+          "visibility": "Neobmedzená viditeľnosť",
+          "integrations": "Custom integrácie",
+          "api": "Advanced API prístup",
+          "whiteLabel": "White-label riešenie",
+          "sla": "SLA 99.9%",
+          "reporting": "Custom reporting"
+        },
+        "cta": "Kontaktovať predaj"
+      }
+    },
+    "comparison": {
+      "title": "Porovnanie funkcií",
+      "subtitle": "Všetky plány obsahujú základné funkcie JobSphere",
+      "feature": "Funkcia",
+      "allPlans": "Všetky plány",
+      "features": {
+        "multilingual": "Multilingválna podpora (5 jazykov)",
+        "mobile": "Mobilná aplikácia",
+        "storage": "Bezpečné úložisko CV",
+        "gdpr": "GDPR compliance",
+        "database": "Kandidátska databáza",
+        "support": "24/7 technická podpora"
+      }
+    },
+    "faq": {
+      "title": "Často kladené otázky",
+      "q1": {
+        "question": "Môžem kedykoľvek zmeniť plán?",
+        "answer": "Áno, môžete kedykoľvek prejsť na vyšší alebo nižší plán. Zmeny sa prejavia okamžite."
+      },
+      "q2": {
+        "question": "Ako funguje 14-dňová skúšobná doba?",
+        "answer": "Môžete vyskúšať Professional plán 14 dní zadarmo bez potreby platobnej karty."
+      },
+      "q3": {
+        "question": "Aké platobné metódy akceptujete?",
+        "answer": "Akceptujeme kreditné karty (Visa, Mastercard), bankový prevod a faktúru pre Enterprise klientov."
+      },
+      "q4": {
+        "question": "Je možné získať refund?",
+        "answer": "Áno, ponúkame 30-dňovú záruku vrátenia peňazí bez udania dôvodu."
+      }
+    },
+    "cta": {
+      "title": "Pripravení začať?",
+      "subtitle": "Pripojte sa k stovkám spoločností, ktoré nám dôverujú",
+      "start": "Začať zadarmo",
+      "login": "Prihlásiť sa"
+    }
+  }
+    "hero": {
+      "title": "Nájdite najlepších kandidátov rýchlejšie",
+      "subtitle": "JobSphere je moderný ATS systém, ktorý vám pomôže efektívne spravovať náborový proces a nájsť tých správnych ľudí pre váš tím.",
+      "cta": {
+        "start": "Začať zadarmo",
+        "pricing": "Pozrieť ceny"
+      },
+      "stats": {
+        "candidates": "aktívnych kandidátov",
+        "today": "Dnes pribudlo",
+        "match": "AI match score",
+        "avgTime": "dni priemerný čas",
+        "toInterview": "Od prihlášky po interview"
+      }
+    },
+    "whyUs": {
+      "title": "Prečo vybrať JobSphere?",
+      "subtitle": "Všetko čo potrebujete pre efektívny nábor na jednom mieste"
+    },
+    "features": {
+      "findCandidates": {
+        "title": "Nájdite tých správnych kandidátov",
+        "description": "Prístup k tisíckam kvalifikovaných profesionálov hľadajúcich nové príležitosti."
+      },
+      "aiMatching": {
+        "title": "AI-Powered Matching",
+        "description": "Naša AI technológia automaticky vyhodnotí a priradí najlepších kandidátov k vašim pozíciám."
+      },
+      "fastRecruitment": {
+        "title": "Rýchly nábor",
+        "description": "Zrýchlite proces náboru s našimi automatizovanými nástrojmi a workflow."
+      },
+      "analytics": {
+        "title": "Prehľadné štatistiky",
+        "description": "Sledujte výkonnosť vašich inzerátov a optimalizujte náborový proces."
+      },
+      "saveTime": {
+        "title": "Ušetrite čas",
+        "description": "Automatizácia rutinných úloh vám ušetrí hodiny času každý týždeň."
+      },
+      "secure": {
+        "title": "Bezpečné a spoľahlivé",
+        "description": "Enterprise-level bezpečnosť pre ochranu vašich dát a kandidátov."
+      }
+    },
+    "benefits": {
+      "title": "Kompletný ATS systém",
+      "subtitle": "Všetky funkcie, ktoré potrebujete na efektívne riadenie náborového procesu od začiatku až po úspešné prijatie kandidáta.",
+      "list": {
+        "unlimited": "Neomedzený počet aktívnych pozícií",
+        "aiEvaluation": "AI vyhodnotenie kandidátov",
+        "database": "Prístup k databáze kandidátov",
+        "workflow": "Vlastné náborové workflow",
+        "collaboration": "Team collaboration nástroje",
+        "analytics": "Pokročilá analytika a reporty",
+        "integrations": "Integrácie s HR systémami",
+        "support": "Prioritná zákaznícka podpora"
+      }
+    },
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "description": "Pre malé tímy",
+        "price": "Free",
+        "cta": "Začať zadarmo"
+      },
+      "pro": {
+        "name": "Professional",
+        "description": "Pre rastúce firmy",
+        "price": "mesiac",
+        "cta": "Vyskúšať 14 dní zadarmo",
+        "badge": "Najpopulárnejšie"
+      }
+    },
+    "cta": {
+      "title": "Pripravení začať?",
+      "subtitle": "Pridajte sa k stovkám spoločností, ktoré už používajú JobSphere pre efektívnejší nábor.",
+      "create": "Vytvoriť účet zadarmo",
+      "login": "Už máte účet? Prihlásiť sa"
+    }
+  },
+  "pricing": {
+    "title": "Cenník",
+    "subtitle": "Vyberte si plán, ktorý najlepšie vyhovuje vašim náborovým potrebám",
+    "popular": "Najobľúbenejšie",
+    "loading": "Načítava sa...",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "price": "0",
+        "period": "mesiac",
+        "description": "Pre malé firmy a začiatočníkov",
+        "features": {
+          "positions": "1 aktívna pozícia",
+          "matching": "Základné AI matching",
+          "notifications": "Email notifikácie",
+          "visibility": "30 dní viditeľnosť",
+          "stats": "Základná štatistika"
+        },
+        "cta": "Začať zadarmo"
+      },
+      "pro": {
+        "name": "Professional",
+        "price": "99",
+        "period": "mesiac",
+        "description": "Pre rastúce spoločnosti",
+        "features": {
+          "positions": "10 aktívnych pozícií",
+          "matching": "Pokročilé AI matching",
+          "applications": "Neobmedzené prihlášky",
+          "visibility": "60 dní viditeľnosť",
+          "analytics": "Pokročilá analytika",
+          "parsing": "CV parsing s AI",
+          "templates": "Email šablóny",
+          "support": "Prioritná podpora"
+        },
+        "cta": "Vyskúšať 14 dní zadarmo"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Custom",
+        "description": "Pre veľké organizácie",
+        "features": {
+          "positions": "Neobmedzené pozície",
+          "model": "Vlastný AI model",
+          "manager": "Dedikovaný account manager",
+          "visibility": "Neobmedzená viditeľnosť",
+          "integrations": "Custom integrácie",
+          "api": "Advanced API prístup",
+          "whiteLabel": "White-label riešenie",
+          "sla": "SLA 99.9%",
+          "reporting": "Custom reporting"
+        },
+        "cta": "Kontaktovať predaj"
+      }
+    },
+    "comparison": {
+      "title": "Porovnanie funkcií",
+      "subtitle": "Všetky plány obsahujú základné funkcie JobSphere",
+      "feature": "Funkcia",
+      "allPlans": "Všetky plány",
+      "features": {
+        "multilingual": "Multilingválna podpora (5 jazykov)",
+        "mobile": "Mobilná aplikácia",
+        "storage": "Bezpečné úložisko CV",
+        "gdpr": "GDPR compliance",
+        "database": "Kandidátska databáza",
+        "support": "24/7 technická podpora"
+      }
+    },
+    "faq": {
+      "title": "Často kladené otázky",
+      "q1": {
+        "question": "Môžem kedykoľvek zmeniť plán?",
+        "answer": "Áno, môžete kedykoľvek prejsť na vyšší alebo nižší plán. Zmeny sa prejavia okamžite."
+      },
+      "q2": {
+        "question": "Ako funguje 14-dňová skúšobná doba?",
+        "answer": "Môžete vyskúšať Professional plán 14 dní zadarmo bez potreby platobnej karty."
+      },
+      "q3": {
+        "question": "Aké platobné metódy akceptujete?",
+        "answer": "Akceptujeme kreditné karty (Visa, Mastercard), bankový prevod a faktúru pre Enterprise klientov."
+      },
+      "q4": {
+        "question": "Je možné získať refund?",
+        "answer": "Áno, ponúkame 30-dňovú záruku vrátenia peňazí bez udania dôvodu."
+      }
+    },
+    "cta": {
+      "title": "Pripravení začať?",
+      "subtitle": "Pripojte sa k stovkám spoločností, ktoré nám dôverujú",
+      "start": "Začať zadarmo",
+      "login": "Prihlásiť sa"
+    }
+  }
+    "hero": {
+      "title": "Nájdite najlepších kandidátov rýchlejšie",
+      "subtitle": "JobSphere je moderný ATS systém, ktorý vám pomôže efektívne spravovať náborový proces a nájsť tých správnych ľudí pre váš tím.",
+      "cta": {
+        "start": "Začať zadarmo",
+        "pricing": "Pozrieť ceny"
+      },
+      "stats": {
+        "candidates": "aktívnych kandidátov",
+        "today": "Dnes pribudlo",
+        "match": "AI match score",
+        "avgTime": "dni priemerný čas",
+        "toInterview": "Od prihlášky po interview"
+      }
+    },
+    "whyUs": {
+      "title": "Prečo vybrať JobSphere?",
+      "subtitle": "Všetko čo potrebujete pre efektívny nábor na jednom mieste"
+    },
+    "features": {
+      "findCandidates": {
+        "title": "Nájdite tých správnych kandidátov",
+        "description": "Prístup k tisíckam kvalifikovaných profesionálov hľadajúcich nové príležitosti."
+      },
+      "aiMatching": {
+        "title": "AI-Powered Matching",
+        "description": "Naša AI technológia automaticky vyhodnotí a priradí najlepších kandidátov k vašim pozíciám."
+      },
+      "fastRecruitment": {
+        "title": "Rýchly nábor",
+        "description": "Zrýchlite proces náboru s našimi automatizovanými nástrojmi a workflow."
+      },
+      "analytics": {
+        "title": "Prehľadné štatistiky",
+        "description": "Sledujte výkonnosť vašich inzerátov a optimalizujte náborový proces."
+      },
+      "saveTime": {
+        "title": "Ušetrite čas",
+        "description": "Automatizácia rutinných úloh vám ušetrí hodiny času každý týždeň."
+      },
+      "secure": {
+        "title": "Bezpečné a spoľahlivé",
+        "description": "Enterprise-level bezpečnosť pre ochranu vašich dát a kandidátov."
+      }
+    },
+    "benefits": {
+      "title": "Kompletný ATS systém",
+      "subtitle": "Všetky funkcie, ktoré potrebujete na efektívne riadenie náborového procesu od začiatku až po úspešné prijatie kandidáta.",
+      "list": {
+        "unlimited": "Neomedzený počet aktívnych pozícií",
+        "aiEvaluation": "AI vyhodnotenie kandidátov",
+        "database": "Prístup k databáze kandidátov",
+        "workflow": "Vlastné náborové workflow",
+        "collaboration": "Team collaboration nástroje",
+        "analytics": "Pokročilá analytika a reporty",
+        "integrations": "Integrácie s HR systémami",
+        "support": "Prioritná zákaznícka podpora"
+      }
+    },
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "description": "Pre malé tímy",
+        "price": "Free",
+        "cta": "Začať zadarmo"
+      },
+      "pro": {
+        "name": "Professional",
+        "description": "Pre rastúce firmy",
+        "price": "mesiac",
+        "cta": "Vyskúšať 14 dní zadarmo",
+        "badge": "Najpopulárnejšie"
+      }
+    },
+    "cta": {
+      "title": "Pripravení začať?",
+      "subtitle": "Pridajte sa k stovkám spoločností, ktoré už používajú JobSphere pre efektívnejší nábor.",
+      "create": "Vytvoriť účet zadarmo",
+      "login": "Už máte účet? Prihlásiť sa"
+    }
+  },
+  "pricing": {
+    "title": "Cenník",
+    "subtitle": "Vyberte si plán, ktorý najlepšie vyhovuje vašim náborovým potrebám",
+    "popular": "Najobľúbenejšie",
+    "loading": "Načítava sa...",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "price": "0",
+        "period": "mesiac",
+        "description": "Pre malé firmy a začiatočníkov",
+        "features": {
+          "positions": "1 aktívna pozícia",
+          "matching": "Základné AI matching",
+          "notifications": "Email notifikácie",
+          "visibility": "30 dní viditeľnosť",
+          "stats": "Základná štatistika"
+        },
+        "cta": "Začať zadarmo"
+      },
+      "pro": {
+        "name": "Professional",
+        "price": "99",
+        "period": "mesiac",
+        "description": "Pre rastúce spoločnosti",
+        "features": {
+          "positions": "10 aktívnych pozícií",
+          "matching": "Pokročilé AI matching",
+          "applications": "Neobmedzené prihlášky",
+          "visibility": "60 dní viditeľnosť",
+          "analytics": "Pokročilá analytika",
+          "parsing": "CV parsing s AI",
+          "templates": "Email šablóny",
+          "support": "Prioritná podpora"
+        },
+        "cta": "Vyskúšať 14 dní zadarmo"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Custom",
+        "description": "Pre veľké organizácie",
+        "features": {
+          "positions": "Neobmedzené pozície",
+          "model": "Vlastný AI model",
+          "manager": "Dedikovaný account manager",
+          "visibility": "Neobmedzená viditeľnosť",
+          "integrations": "Custom integrácie",
+          "api": "Advanced API prístup",
+          "whiteLabel": "White-label riešenie",
+          "sla": "SLA 99.9%",
+          "reporting": "Custom reporting"
+        },
+        "cta": "Kontaktovať predaj"
+      }
+    },
+    "comparison": {
+      "title": "Porovnanie funkcií",
+      "subtitle": "Všetky plány obsahujú základné funkcie JobSphere",
+      "feature": "Funkcia",
+      "allPlans": "Všetky plány",
+      "features": {
+        "multilingual": "Multilingválna podpora (5 jazykov)",
+        "mobile": "Mobilná aplikácia",
+        "storage": "Bezpečné úložisko CV",
+        "gdpr": "GDPR compliance",
+        "database": "Kandidátska databáza",
+        "support": "24/7 technická podpora"
+      }
+    },
+    "faq": {
+      "title": "Často kladené otázky",
+      "q1": {
+        "question": "Môžem kedykoľvek zmeniť plán?",
+        "answer": "Áno, môžete kedykoľvek prejsť na vyšší alebo nižší plán. Zmeny sa prejavia okamžite."
+      },
+      "q2": {
+        "question": "Ako funguje 14-dňová skúšobná doba?",
+        "answer": "Môžete vyskúšať Professional plán 14 dní zadarmo bez potreby platobnej karty."
+      },
+      "q3": {
+        "question": "Aké platobné metódy akceptujete?",
+        "answer": "Akceptujeme kreditné karty (Visa, Mastercard), bankový prevod a faktúru pre Enterprise klientov."
+      },
+      "q4": {
+        "question": "Je možné získať refund?",
+        "answer": "Áno, ponúkame 30-dňovú záruku vrátenia peňazí bez udania dôvodu."
+      }
+    },
+    "cta": {
+      "title": "Pripravení začať?",
+      "subtitle": "Pripojte sa k stovkám spoločností, ktoré nám dôverujú",
+      "start": "Začať zadarmo",
+      "login": "Prihlásiť sa"
+    }
+  }

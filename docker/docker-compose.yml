@@ -145,6 +145,22 @@ services:
       QDRANT__SERVICE__GRPC_PORT: 6334
       QDRANT__LOG_LEVEL: INFO
 
+  # Python CV Parser with OCR (Tesseract)
+  python-parser:
+    build: ./python-parser
+    container_name: jobsphere-python-parser
+    restart: unless-stopped
+    volumes:
+      - parser-temp:/tmp/parser
+    environment:
+      TESSDATA_PREFIX: /usr/share/tesseract-ocr/4.00/tessdata
+    healthcheck:
+      test: ['CMD', 'python', '-c', 'print("healthy")']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
 volumes:
   postgres-data:
   redis-data:
@@ -152,6 +168,7 @@ volumes:
   meilisearch-data:
   clamav-data:
   qdrant-data:
+  parser-temp:
 
 networks:
   default:

@@ -452,7 +452,30 @@
       "success": "CV úspešne spracované!",
       "error": "Nepodarilo sa spracovať CV. Skúste znova.",
       "manual": "Alebo vyplniť manuálne",
-      "uploadButton": "Nahrať CV"
+      "uploadButton": "Nahrať CV",
+      "errors": {
+        "file_too_large": "Súbor je príliš veľký (maximálne 10 MB)",
+        "file_invalid_type": "Neplatný typ súboru. Podporované sú len PDF, DOCX a TXT",
+        "mime_type_mismatch": "Typ súboru sa nezhoduje s príponou",
+        "file_malware_detected": "Súbor obsahuje malvér a bol zablokovaný",
+        "file_has_macros": "Dokument obsahuje makrá (VBA kód), ktoré nie sú povolené",
+        "file_encrypted": "Súbor je chránený heslom. Odstráňte ochranu a skúste znova.",
+        "file_corrupted": "Súbor je poškodený a nedá sa otvoriť",
+        "file_no_text_after_ocr": "Nepodarilo sa extrahovať text ani po OCR pokuse. Možno je dokument prázdny alebo obsahuje len obrázky.",
+        "file_empty": "Súbor je prázdny alebo neobsahuje žiadny text",
+        "parse_timeout": "Spracovanie trvalo príliš dlho (timeout)",
+        "ocr_failed": "OCR spracovanie zlyhalo. Skúste exportovať CV ako DOCX alebo vyplniť formulár manuálne.",
+        "ai_provider_failed": "AI služba je momentálne nedostupná. Skúste to prosím neskôr.",
+        "antivirus_unavailable": "Antivírusová kontrola je nedostupná",
+        "storage_failed": "Nepodarilo sa uložiť súbor",
+        "queue_failed": "Nepodarilo sa zaradiť úlohu do fronty",
+        "internal_error": "Interná chyba servera. Prosím kontaktujte podporu."
+      },
+      "hints": {
+        "scanned_pdf": "Váš PDF je naskenovaný (obsahuje len obrázky). Riešenia:\n• Exportujte CV ako DOCX z Wordu/Google Docs\n• Použite 'Tlačiť do PDF' na vytvorenie textového PDF\n• Vyplňte formulár manuálne",
+        "try_docx": "Skúste DOCX formát namiesto PDF, alebo vyplňte formulár manuálne",
+        "manual_fill": "Vyplňte prosím formulár manuálne"
+      }
     }
   },
   "postJob": {

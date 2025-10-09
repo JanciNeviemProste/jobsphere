@@ -81,6 +81,98 @@ JobSphere is an enterprise-grade Applicant Tracking System powered by Anthropic'
 
 ---
 
+## 🔬 CV Parsing Pipeline
+
+JobSphere features a **production-ready, multi-stage CV parsing system** with automatic fallbacks, OCR support, and comprehensive security checks.
+
+### Pipeline Overview
+
+```
+File Upload → Security Check → Node.js Parser → OCR Fallback → AI Extraction
+     ↓              ↓                ↓              ↓              ↓
+  Blob Store   Antivirus         pdf-parse      Tesseract      Claude AI
+               MIME Check         mammoth        PyMuPDF        Gemini Flash
+               Macro Check
+```
+
+### Features
+
+**Multi-Stage Fallback:**
+1. **Stage 1**: Fast Node.js parser (pdf-parse, mammoth) - ~100ms
+2. **Stage 2**: OCR with Tesseract (scanned PDFs) - ~2-3s per page
+3. **Stage 3**: Metadata extraction (graceful degradation)
+
+**Security Hardening:**
+- ✅ ClamAV antivirus scanning
+- ✅ MIME type verification (prevent spoofing)
+- ✅ VBA macro detection in DOCX
+- ✅ File size limits (10 MB default)
+- ✅ Rate limiting (10 uploads/5min per IP)
+
+**Multi-Language OCR:**
+- 🇬🇧 English
+- 🇩🇪 German
+- 🇸🇰 Slovak
+- 🇨🇿 Czech
+- 🇵🇱 Polish
+
+**Observability:**
+- Unique `traceId` for every upload
+- Structured logging at each stage
+- Parse method tracking (`node_pdf`, `ocr_tesseract`, `metadata_fallback`)
+- Confidence scores (0-1)
+
+### Usage
+
+**Docker Compose (Recommended):**
+```bash
+# Start all services (includes ClamAV + Python parser)
+docker-compose -f docker/docker-compose.yml up -d
+
+# Verify services
+docker ps | grep jobsphere
+```
+
+**Environment Setup:**
+```bash
+# Enable OCR
+ENABLE_OCR=true
+OCR_TIMEOUT=30000
+
+# Enable Antivirus
+ENABLE_ANTIVIRUS=true
+CLAMAV_HOST=clamav  # or 'localhost' outside Docker
+CLAMAV_PORT=3310
+
+# File Limits
+MAX_FILE_SIZE=10485760  # 10 MB
+```
+
+**API Example:**
+```typescript
+// Upload CV
+const formData = new FormData()
+formData.append('file', file)
+
+const response = await fetch('/api/cv/upload', {
+  method: 'POST',
+  body: formData
+})
+
+const result = await response.json()
+// {
+//   rawText: "John Doe\nSoftware Engineer...",
+//   parseMethod: "ocr_tesseract",
+//   confidence: 0.7,
+//   traceId: "550e8400-...",
+//   extractedLength: 1234
+// }
+```
+
+For detailed documentation, see [docs/PARSING.md](docs/PARSING.md).
+
+---
+
 ## 🔒 Security Features
 
 JobSphere implements enterprise-grade security measures:

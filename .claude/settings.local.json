@@ -36,7 +36,13 @@
       "Bash(npm exec:*)",
       "Bash(timeout 180 npm run typecheck)",
       "Bash(npm test:*)",
-      "Bash(Select-String -Pattern \"error|Error|warning|Warning|✓|failed|success\")"
+      "Bash(Select-String -Pattern \"error|Error|warning|Warning|✓|failed|success\")",
+      "Bash(gh api:*)",
+      "WebFetch(domain:jobsphere.vercel.app)",
+      "Bash(node:*)",
+      "WebFetch(domain:jobsphere-khaki.vercel.app)",
+      "Bash(OpenRouter: Invalid API key)",
+      "Bash(Anthropic: No API key provided\"\n\n## Debugging\nAll errors logged to Vercel console with full context.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ]
   }
 }
