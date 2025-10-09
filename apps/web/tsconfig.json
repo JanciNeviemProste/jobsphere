@@ -33,7 +33,6 @@
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/__tests__/**/*",
-    "**/*.d.ts",
     ".next/**/*",
     "dist/**/*",
     "prisma/seed.ts",
