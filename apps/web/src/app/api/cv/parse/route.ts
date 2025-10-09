@@ -28,9 +28,11 @@ export async function POST(request: NextRequest) {
     const acceptLanguage = request.headers.get('accept-language')
     const locale = acceptLanguage?.split(',')[0]?.split('-')[0] || 'en'
 
-    // 4. Parse CV with Claude
-    const apiKey = process.env.ANTHROPIC_API_KEY
-    if (!apiKey) {
+    // 4. Parse CV with AI (OpenRouter Gemini Flash or Claude fallback)
+    const openRouterKey = process.env.OPENROUTER_API_KEY
+    const anthropicKey = process.env.ANTHROPIC_API_KEY
+
+    if (!openRouterKey && !anthropicKey) {
       return NextResponse.json(
         { error: 'AI service not configured' },
         { status: 500 }
@@ -38,8 +40,9 @@ export async function POST(request: NextRequest) {
     }
 
     const extractedCV = await extractCvFromText(rawText, {
-      apiKey,
-      model: 'claude-opus-4-20250514',
+      openRouterApiKey: openRouterKey,
+      apiKey: anthropicKey,
+      model: openRouterKey ? 'google/gemini-flash-1.5-8b' : 'claude-opus-4-20250514',
       locale,
     })
 

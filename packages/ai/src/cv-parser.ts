@@ -1,9 +1,10 @@
 /**
- * CV Parser using Claude Opus 4
+ * CV Parser using OpenRouter (Gemini Flash - FREE) or Claude Opus 4
  * Extrahuje štruktúrované dáta z CV (PDF/DOCX/text)
  */
 
 import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import type { ExtractedCV } from './types'
 
 const CV_EXTRACTION_PROMPT = `You are an expert CV/Resume parser. Extract structured information from the following CV text.
@@ -82,8 +83,75 @@ Important:
 
 export async function extractCvFromText(
   rawText: string,
-  config: { apiKey: string; model?: string; locale?: string }
+  config: {
+    apiKey?: string
+    openRouterApiKey?: string
+    model?: string
+    locale?: string
+  }
 ): Promise<ExtractedCV> {
+  // Try OpenRouter first (FREE Gemini Flash)
+  if (config.openRouterApiKey) {
+    try {
+      return await extractWithOpenRouter(rawText, config)
+    } catch (error) {
+      console.warn('OpenRouter failed, falling back to Anthropic:', error)
+      // Fall through to Anthropic
+    }
+  }
+
+  // Fallback to Anthropic Claude
+  if (!config.apiKey) {
+    throw new Error('No API key provided (OpenRouter or Anthropic)')
+  }
+
+  return await extractWithAnthropic(rawText, config)
+}
+
+// OpenRouter implementation (FREE Gemini Flash)
+async function extractWithOpenRouter(
+  rawText: string,
+  config: { openRouterApiKey?: string; model?: string; locale?: string }
+): Promise<ExtractedCV> {
+  const openai = new OpenAI({
+    apiKey: config.openRouterApiKey,
+    baseURL: 'https://openrouter.ai/api/v1',
+  })
+
+  const response = await openai.chat.completions.create({
+    model: config.model || 'google/gemini-flash-1.5-8b', // FREE model
+    messages: [
+      {
+        role: 'user',
+        content: `${CV_EXTRACTION_PROMPT}\n\nCV Text (Language: ${config.locale || 'en'}):\n\n${rawText}`,
+      },
+    ],
+    max_tokens: 4096,
+    temperature: 0.1,
+  })
+
+  const content = response.choices[0]?.message?.content
+  if (!content) {
+    throw new Error('No response from OpenRouter')
+  }
+
+  try {
+    const extracted = JSON.parse(content) as ExtractedCV
+    return extracted
+  } catch (error) {
+    throw new Error(`Failed to parse CV JSON from OpenRouter: ${error}`)
+  }
+}
+
+// Anthropic Claude implementation (fallback)
+async function extractWithAnthropic(
+  rawText: string,
+  config: { apiKey?: string; model?: string; locale?: string }
+): Promise<ExtractedCV> {
+  if (!config.apiKey) {
+    throw new Error('Anthropic API key required')
+  }
+
   const anthropic = new Anthropic({ apiKey: config.apiKey })
 
   const message = await anthropic.messages.create({
