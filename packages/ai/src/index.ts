@@ -11,6 +11,14 @@ export {
   generateJobDescription,
 } from './cv-parser'
 
+// CV Errors
+export {
+  CVParseErrorCode,
+  CVParseException,
+  CVErrors,
+  type CVParseError,
+} from './cv-errors'
+
 // Embeddings
 export {
   VoyageEmbeddings,

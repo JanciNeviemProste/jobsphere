@@ -9,7 +9,7 @@ import { auth } from '@/lib/auth'
 import { withRateLimit } from '@/lib/rate-limit'
 import { parseCV } from '@/lib/cv-parser-pipeline'
 import { securityCheck } from '@/lib/antivirus'
-import { CVParseException } from '@jobsphere/ai/cv-errors'
+import { CVParseException } from '@jobsphere/ai'
 import { logger } from '@/lib/logger'
 
 export const POST = withRateLimit(

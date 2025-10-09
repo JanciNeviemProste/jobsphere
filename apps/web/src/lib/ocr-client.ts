@@ -6,7 +6,7 @@
 import { writeFile, unlink } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
-import { CVErrors } from '@jobsphere/ai/cv-errors'
+import { CVErrors } from '@jobsphere/ai'
 import { logger } from './logger'
 
 export interface OCRResult {

@@ -3,7 +3,7 @@
  * Scans files for malware before processing
  */
 
-import { CVErrors, CVParseException } from '@jobsphere/ai/cv-errors'
+import { CVErrors, CVParseException } from '@jobsphere/ai'
 import { logger } from './logger'
 
 export interface AntivirusResult {

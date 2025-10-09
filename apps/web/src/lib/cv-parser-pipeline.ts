@@ -5,7 +5,7 @@
  * Stage 3: Metadata extraction (graceful degradation)
  */
 
-import { CVParseErrorCode, CVErrors, CVParseException } from '@jobsphere/ai/cv-errors'
+import { CVParseErrorCode, CVErrors, CVParseException } from '@jobsphere/ai'
 import { logger } from './logger'
 
 export interface ParseResult {
