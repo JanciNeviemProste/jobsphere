@@ -3,5 +3,104 @@
     "siteName": "JobSphere",
     "description": "AI-powered HR ATS i platforma Job Board",
     "keywords": "praca, zatrudnienie, rekrutacja, ATS, job board"
+  },
+  "nav": {
+    "home": "Strona główna",
+    "jobs": "Oferty pracy",
+    "forEmployers": "Dla pracodawców",
+    "pricing": "Cennik",
+    "login": "Zaloguj się",
+    "signup": "Zarejestruj się"
+  },
+  "hero": {
+    "title": "Znajdź wymarzoną pracę z AI",
+    "subtitle": "Połącz się z najlepszymi pracodawcami w Europie. Nasza platforma AI dopasuje Cię do idealnych możliwości.",
+    "ctaPrimary": "Przeglądaj oferty",
+    "ctaSecondary": "Dla pracodawców"
+  },
+  "features": {
+    "title": "Dlaczego JobSphere",
+    "subtitle": "Najnowocześniejsza platforma rekrutacyjna w Europie",
+    "aiMatching": {
+      "title": "Dopasowanie AI",
+      "description": "Nasze inteligentne algorytmy znajdują idealne dopasowanie między kandydatami a pracą"
+    },
+    "multiLingual": {
+      "title": "Wsparcie wielojęzyczne",
+      "description": "Dostępne w języku angielskim, niemieckim, czeskim, słowackim i polskim"
+    },
+    "smartCV": {
+      "title": "Inteligentny kreator CV",
+      "description": "Twórz profesjonalne CV z asystą AI w ciągu minut"
+    },
+    "assessments": {
+      "title": "Ocena umiejętności",
+      "description": "Waliduj kandydatów dzięki konfigurowalnym testom technicznym i miękkim umiejętnościom"
+    },
+    "emailAutomation": {
+      "title": "Automatyzacja e-mail",
+      "description": "Uprość komunikację dzięki automatycznym sekwencjom e-mail"
+    },
+    "analytics": {
+      "title": "Zaawansowana analityka",
+      "description": "Podejmuj decyzje oparte na danych dzięki kompleksowym informacjom rekrutacyjnym"
+    }
+  },
+  "jobs": {
+    "title": "Najnowsze oferty pracy",
+    "viewAll": "Pokaż wszystkie oferty",
+    "remote": "Praca zdalna",
+    "hybrid": "Hybrydowa",
+    "onsite": "Stacjonarna",
+    "fullTime": "Pełny etat",
+    "partTime": "Część etatu",
+    "contract": "Kontrakt"
+  },
+  "auth": {
+    "login": {
+      "title": "Witamy ponownie",
+      "subtitle": "Zaloguj się do swojego konta",
+      "email": "E-mail",
+      "password": "Hasło",
+      "rememberMe": "Zapamiętaj mnie",
+      "forgotPassword": "Zapomniałeś hasła?",
+      "submit": "Zaloguj się",
+      "noAccount": "Nie masz konta?",
+      "signupLink": "Zarejestruj się",
+      "orContinueWith": "Lub kontynuuj z",
+      "google": "Google"
+    },
+    "signup": {
+      "title": "Utwórz konto",
+      "subtitle": "Rozpocznij z JobSphere już dziś",
+      "name": "Pełne imię i nazwisko",
+      "email": "E-mail",
+      "password": "Hasło",
+      "confirmPassword": "Potwierdź hasło",
+      "terms": "Zgadzam się z Warunkami i Polityką Prywatności",
+      "submit": "Utwórz konto",
+      "hasAccount": "Masz już konto?",
+      "loginLink": "Zaloguj się"
+    }
+  },
+  "footer": {
+    "tagline": "Rekrutacja wspierana przez AI dla nowoczesnego świata",
+    "forCandidates": "Dla Kandydatów",
+    "browseJobs": "Przeglądaj oferty",
+    "createCV": "Utwórz CV",
+    "careerAdvice": "Poradnictwo kariery",
+    "forEmployers": "Dla Pracodawców",
+    "postJob": "Dodaj ofertę",
+    "pricing": "Cennik",
+    "atsFeatures": "Funkcje ATS",
+    "company": "Firma",
+    "about": "O nas",
+    "contact": "Kontakt",
+    "blog": "Blog",
+    "legal": "Informacje prawne",
+    "privacy": "Polityka prywatności",
+    "terms": "Warunki korzystania",
+    "gdpr": "Zgodność RODO",
+    "allRightsReserved": "Wszelkie prawa zastrzeżone."
   }
 }

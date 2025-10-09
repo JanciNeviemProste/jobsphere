@@ -3,5 +3,104 @@
     "siteName": "JobSphere",
     "description": "AI-powered HR ATS a Job Board platforma",
     "keywords": "práce, zaměstnání, nábor, ATS, job board"
+  },
+  "nav": {
+    "home": "Domů",
+    "jobs": "Nabídky",
+    "forEmployers": "Pro zaměstnavatele",
+    "pricing": "Ceník",
+    "login": "Přihlásit se",
+    "signup": "Registrovat se"
+  },
+  "hero": {
+    "title": "Najděte svou vysněnou práci s AI",
+    "subtitle": "Spojte se s předními zaměstnavateli v Evropě. Naše AI platforma vás spáruje s dokonalými příležitostmi.",
+    "ctaPrimary": "Procházet nabídky",
+    "ctaSecondary": "Pro zaměstnavatele"
+  },
+  "features": {
+    "title": "Proč JobSphere",
+    "subtitle": "Nejmodernější náborová platforma v Evropě",
+    "aiMatching": {
+      "title": "AI Párování",
+      "description": "Naše inteligentní algoritmy najdou perfektní shodu mezi kandidáty a prací"
+    },
+    "multiLingual": {
+      "title": "Vícejazyčná podpora",
+      "description": "Dostupné v angličtině, němčině, češtině, slovenštině a polštině"
+    },
+    "smartCV": {
+      "title": "Inteligentní CV Builder",
+      "description": "Vytvořte profesionální CV s AI asistencí během minut"
+    },
+    "assessments": {
+      "title": "Testování dovedností",
+      "description": "Validujte kandidáty s přizpůsobitelnými technickými a soft skills testy"
+    },
+    "emailAutomation": {
+      "title": "Email Automatizace",
+      "description": "Zjednodušte komunikaci s automatizovanými email sekvencemi"
+    },
+    "analytics": {
+      "title": "Pokročilé Analytiky",
+      "description": "Rozhodujte se na základě dat s komplexními náborovými statistikami"
+    }
+  },
+  "jobs": {
+    "title": "Nejnovější pracovní příležitosti",
+    "viewAll": "Zobrazit všechny nabídky",
+    "remote": "Na dálku",
+    "hybrid": "Hybridní",
+    "onsite": "V kanceláři",
+    "fullTime": "Plný úvazek",
+    "partTime": "Částečný úvazek",
+    "contract": "Kontrakt"
+  },
+  "auth": {
+    "login": {
+      "title": "Vítejte zpět",
+      "subtitle": "Přihlaste se ke svému účtu",
+      "email": "Email",
+      "password": "Heslo",
+      "rememberMe": "Zapamatovat si mě",
+      "forgotPassword": "Zapomněli jste heslo?",
+      "submit": "Přihlásit se",
+      "noAccount": "Nemáte účet?",
+      "signupLink": "Registrovat se",
+      "orContinueWith": "Nebo pokračovat s",
+      "google": "Google"
+    },
+    "signup": {
+      "title": "Vytvořit účet",
+      "subtitle": "Začněte s JobSphere ještě dnes",
+      "name": "Celé jméno",
+      "email": "Email",
+      "password": "Heslo",
+      "confirmPassword": "Potvrdit heslo",
+      "terms": "Souhlasím s Podmínkami a Zásadami ochrany osobních údajů",
+      "submit": "Vytvořit účet",
+      "hasAccount": "Už máte účet?",
+      "loginLink": "Přihlásit se"
+    }
+  },
+  "footer": {
+    "tagline": "AI-powered nábor pro moderní svět",
+    "forCandidates": "Pro Kandidáty",
+    "browseJobs": "Procházet nabídky",
+    "createCV": "Vytvořit CV",
+    "careerAdvice": "Kariérní poradenství",
+    "forEmployers": "Pro Zaměstnavatele",
+    "postJob": "Vložit nabídku",
+    "pricing": "Ceník",
+    "atsFeatures": "ATS Funkce",
+    "company": "Společnost",
+    "about": "O nás",
+    "contact": "Kontakt",
+    "blog": "Blog",
+    "legal": "Právní informace",
+    "privacy": "Zásady ochrany osobních údajů",
+    "terms": "Podmínky používání",
+    "gdpr": "GDPR Shoda",
+    "allRightsReserved": "Všechna práva vyhrazena."
   }
 }
