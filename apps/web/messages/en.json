@@ -442,6 +442,18 @@
       "title": "AI Assistant",
       "improve": "Improve with AI",
       "generating": "Generating..."
+    },
+    "upload": {
+      "title": "Start by uploading your existing CV",
+      "subtitle": "Our AI will automatically extract and fill in all the information for you",
+      "dragDrop": "Drag & drop your CV here, or click to browse",
+      "supportedFormats": "PDF, DOCX, or TXT (max 10MB)",
+      "uploading": "Uploading file...",
+      "parsing": "Analyzing with AI...",
+      "success": "CV successfully processed!",
+      "error": "Failed to process CV. Please try again.",
+      "manual": "Or fill in manually",
+      "uploadButton": "Upload CV"
     }
   },
   "postJob": {

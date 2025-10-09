@@ -439,6 +439,18 @@
       "title": "Asystent AI",
       "improve": "Ulepsz za pomocą AI",
       "generating": "Generowanie..."
+    },
+    "upload": {
+      "title": "Zacznij od przesłania istniejącego CV",
+      "subtitle": "Nasza AI automatycznie wyodrębni i wypełni wszystkie informacje za Ciebie",
+      "dragDrop": "Przeciągnij CV tutaj lub kliknij, aby przeglądać",
+      "supportedFormats": "PDF, DOCX lub TXT (max 10MB)",
+      "uploading": "Przesyłanie pliku...",
+      "parsing": "Analizuję za pomocą AI...",
+      "success": "CV pomyślnie przetworzone!",
+      "error": "Nie udało się przetworzyć CV. Spróbuj ponownie.",
+      "manual": "Lub wypełnij ręcznie",
+      "uploadButton": "Prześlij CV"
     }
   },
   "postJob": {

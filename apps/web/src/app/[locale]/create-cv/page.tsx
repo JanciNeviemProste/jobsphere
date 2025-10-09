@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { CVUploadZone } from '@/components/cv-upload-zone'
 import {
   FileText,
   Sparkles,
@@ -43,6 +44,9 @@ interface Language {
 export default function CreateCVPage() {
   const t = useTranslations('createCV')
 
+  // Show upload zone or form
+  const [showUploadZone, setShowUploadZone] = useState(true)
+
   // Personal Info State
   const [personalInfo, setPersonalInfo] = useState({
     fullName: '',
@@ -64,6 +68,72 @@ export default function CreateCVPage() {
 
   // Languages State
   const [languages, setLanguages] = useState<Language[]>([])
+
+  // Handle parsed CV data from upload
+  const handleCVParsed = (parsedData: any) => {
+    // Map personal info
+    if (parsedData.personal) {
+      setPersonalInfo({
+        fullName: parsedData.personal.fullName || '',
+        email: parsedData.personal.email || '',
+        phone: parsedData.personal.phone || '',
+        location: parsedData.personal.location || '',
+        linkedin: parsedData.personal.linkedIn || '',
+        website: parsedData.personal.portfolio || parsedData.personal.github || ''
+      })
+    }
+
+    // Map experiences
+    if (parsedData.experiences && Array.isArray(parsedData.experiences)) {
+      const mappedExperiences = parsedData.experiences.map((exp: any) => ({
+        company: exp.company || '',
+        position: exp.title || '',
+        period: exp.startDate && exp.endDate
+          ? `${exp.startDate} - ${exp.endDate === 'present' ? 'Present' : exp.endDate}`
+          : '',
+        description: exp.description || '',
+        current: exp.current || false
+      }))
+      setExperiences(mappedExperiences)
+    }
+
+    // Map education
+    if (parsedData.education && Array.isArray(parsedData.education)) {
+      const mappedEducation = parsedData.education.map((edu: any) => ({
+        school: edu.institution || '',
+        degree: edu.degree || '',
+        field: edu.field || '',
+        year: edu.endDate || ''
+      }))
+      setEducation(mappedEducation)
+    }
+
+    // Map skills
+    if (parsedData.skills && Array.isArray(parsedData.skills)) {
+      const mappedSkills = parsedData.skills.map((skill: string) => ({
+        name: skill,
+        level: 'Intermediate'
+      }))
+      setSkills(mappedSkills)
+    }
+
+    // Map languages
+    if (parsedData.languages && Array.isArray(parsedData.languages)) {
+      const mappedLanguages = parsedData.languages.map((lang: any) => ({
+        name: lang.name || '',
+        proficiency: lang.level || 'Intermediate'
+      }))
+      setLanguages(mappedLanguages)
+    }
+
+    // Hide upload zone and show filled form
+    setShowUploadZone(false)
+  }
+
+  // Handle manual fill click
+  const handleManualFill = () => {
+    setShowUploadZone(false)
+  }
 
   const addExperience = () => {
     setExperiences([...experiences, {
@@ -122,7 +192,16 @@ export default function CreateCVPage() {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+        {/* CV Upload Zone - show before form */}
+        {showUploadZone && (
+          <div className="max-w-3xl mx-auto">
+            <CVUploadZone onCVParsed={handleCVParsed} onManualClick={handleManualFill} />
+          </div>
+        )}
+
+        {/* Form Section - only show when upload zone is hidden */}
+        {!showUploadZone && (
+          <div className="grid lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {/* Form Section */}
           <div className="lg:col-span-2 space-y-6">
             {/* Personal Information */}
@@ -481,6 +560,7 @@ export default function CreateCVPage() {
             </Card>
           </div>
         </div>
+        )}
       </div>
     </div>
   )

@@ -441,6 +441,18 @@
       "title": "AI Asistent",
       "improve": "Vylepšiť s AI",
       "generating": "Generujem..."
+    },
+    "upload": {
+      "title": "Začnite nahraním existujúceho CV",
+      "subtitle": "Naša AI automaticky extrahuje a vyplní všetky informácie za vás",
+      "dragDrop": "Pretiahn​ite CV sem alebo kliknite pre výber súboru",
+      "supportedFormats": "PDF, DOCX alebo TXT (max 10MB)",
+      "uploading": "Nahrávam súbor...",
+      "parsing": "Analyzujem s AI...",
+      "success": "CV úspešne spracované!",
+      "error": "Nepodarilo sa spracovať CV. Skúste znova.",
+      "manual": "Alebo vyplniť manuálne",
+      "uploadButton": "Nahrať CV"
     }
   },
   "postJob": {

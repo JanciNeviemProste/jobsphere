@@ -439,6 +439,18 @@
       "title": "KI-Assistent",
       "improve": "Mit KI verbessern",
       "generating": "Generiere..."
+    },
+    "upload": {
+      "title": "Beginnen Sie mit dem Hochladen Ihres vorhandenen Lebenslaufs",
+      "subtitle": "Unsere KI extrahiert und füllt automatisch alle Informationen für Sie aus",
+      "dragDrop": "Ziehen Sie Ihren Lebenslauf hierher oder klicken Sie zum Durchsuchen",
+      "supportedFormats": "PDF, DOCX oder TXT (max 10MB)",
+      "uploading": "Datei wird hochgeladen...",
+      "parsing": "Analysiere mit KI...",
+      "success": "Lebenslauf erfolgreich verarbeitet!",
+      "error": "Fehler beim Verarbeiten des Lebenslaufs. Bitte versuchen Sie es erneut.",
+      "manual": "Oder manuell ausfüllen",
+      "uploadButton": "Lebenslauf hochladen"
     }
   },
   "postJob": {
