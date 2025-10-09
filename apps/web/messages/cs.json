@@ -206,8 +206,8 @@
       "new": "Nový",
       "interviewed": "Interview"
     }
-  }
   },
+  "forEmployers": {
     "hero": {
       "title": "Nájdite najlepších kandidátov rýchlejšie",
       "subtitle": "JobSphere je moderný ATS systém, ktorý vám pomôže efektívne spravovať náborový proces a nájsť tých správnych ľudí pre váš tím.",
