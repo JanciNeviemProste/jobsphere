@@ -152,7 +152,7 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">{t('jobs.title')}</h1>
           <p className="text-muted-foreground">
-            {filteredJobs.length} {filteredJobs.length === 1 ? 'ponuka' : 'ponúk'} nájdených
+            {filteredJobs.length} {filteredJobs.length === 1 ? t('jobs.offer') : t('jobs.offers')} {t('jobs.found')}
           </p>
         </div>
 
@@ -161,7 +161,7 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Hľadať podľa pozície, firmy alebo lokality..."
+              placeholder={t('jobs.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -174,7 +174,7 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2">
                   <Filter className="h-4 w-4" />
-                  Pracovný režim
+                  {t('jobs.workMode')}
                   {selectedWorkModes.length > 0 && (
                     <Badge variant="secondary" className="ml-1 rounded-full">
                       {selectedWorkModes.length}
@@ -183,7 +183,7 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel>Pracovný režim</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('jobs.workMode')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {WORK_MODES.map((mode) => (
                   <DropdownMenuCheckboxItem
@@ -202,7 +202,7 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2">
                   <Briefcase className="h-4 w-4" />
-                  Typ úväzku
+                  {t('jobs.jobType')}
                   {selectedJobTypes.length > 0 && (
                     <Badge variant="secondary" className="ml-1 rounded-full">
                       {selectedJobTypes.length}
@@ -211,7 +211,7 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel>Typ úväzku</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('jobs.jobType')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {JOB_TYPES.map((type) => (
                   <DropdownMenuCheckboxItem
@@ -230,7 +230,7 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2">
                   <Clock className="h-4 w-4" />
-                  Seniority
+                  {t('jobs.seniority')}
                   {selectedSeniority.length > 0 && (
                     <Badge variant="secondary" className="ml-1 rounded-full">
                       {selectedSeniority.length}
@@ -239,7 +239,7 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel>Úroveň seniorita</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('jobs.seniorityLevel')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {SENIORITY_LEVELS.map((level) => (
                   <DropdownMenuCheckboxItem
@@ -275,7 +275,7 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Euro className="h-4 w-4" />
-                  {job.salary} € / mesiac
+                  {job.salary} € / {t('jobs.perMonth')}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="outline">{getWorkModeLabel(job.workMode)}</Badge>
@@ -288,7 +288,7 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
               <CardFooter className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">{job.postedAt}</span>
                 <Button asChild size="sm">
-                  <Link href={`/${locale}/jobs/${job.id}`}>Zobraziť detail</Link>
+                  <Link href={`/${locale}/jobs/${job.id}`}>{t('jobs.viewDetail')}</Link>
                 </Button>
               </CardFooter>
             </Card>
@@ -298,7 +298,7 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
         {filteredJobs.length === 0 && (
           <div className="text-center py-12">
             <p className="text-muted-foreground text-lg">
-              Nenašli sa žiadne ponuky zodpovedajúce vašim kritériám.
+              {t('jobs.noResults')}
             </p>
             <Button
               variant="outline"
@@ -310,7 +310,7 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
                 setSelectedSeniority([])
               }}
             >
-              Resetovať filtre
+              {t('jobs.resetFilters')}
             </Button>
           </div>
         )}

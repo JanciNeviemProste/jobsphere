@@ -34,13 +34,13 @@ export default function LoginPage({ params }: { params: { locale: string } }) {
       })
 
       if (result?.error) {
-        setError('Invalid email or password')
+        setError(t('invalidCredentials') || 'Invalid email or password')
       } else {
         router.push('/dashboard')
         router.refresh()
       }
     } catch (error) {
-      setError('An error occurred. Please try again.')
+      setError(t('error') || 'An error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -152,7 +152,7 @@ export default function LoginPage({ params }: { params: { locale: string } }) {
             )}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : t('submit')}
+              {loading ? (t('signingIn') || 'Signing in...') : t('submit')}
             </Button>
           </form>
         </CardContent>

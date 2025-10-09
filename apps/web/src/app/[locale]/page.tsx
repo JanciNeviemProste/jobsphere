@@ -183,7 +183,7 @@ export default function HomePage({ params }: { params: { locale: string } }) {
                       {job.salary}
                     </div>
                     <Button className="w-full mt-4" variant="outline" asChild>
-                      <Link href={`/${locale}/jobs/${job.id}`}>View Details</Link>
+                      <Link href={`/${locale}/jobs/${job.id}`}>{t('jobs.viewDetails')}</Link>
                     </Button>
                   </div>
                 </CardContent>
@@ -198,10 +198,10 @@ export default function HomePage({ params }: { params: { locale: string } }) {
         <div className="container">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="text-4xl font-bold tracking-tight sm:text-5xl text-foreground">
-              Ready to get started?
+              {t('page.cta.title')}
             </h2>
             <p className="mt-6 text-xl text-muted-foreground leading-relaxed">
-              Join thousands of companies and candidates using JobSphere
+              {t('page.cta.subtitle')}
             </p>
             <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="lg" className="px-8 py-6 text-lg font-medium" asChild>
