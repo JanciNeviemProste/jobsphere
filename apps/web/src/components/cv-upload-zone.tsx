@@ -104,7 +104,8 @@ export function CVUploadZone({ onCVParsed, onManualClick }: CVUploadZoneProps) {
       })
 
       if (!parseResponse.ok) {
-        throw new Error('Failed to parse CV')
+        const errorData = await parseResponse.json().catch(() => ({}))
+        throw new Error(errorData.error || `Failed to parse CV (${parseResponse.status})`)
       }
 
       const { parsed } = await parseResponse.json()

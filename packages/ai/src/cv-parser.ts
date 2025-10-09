@@ -122,12 +122,17 @@ async function extractWithOpenRouter(
     model: config.model || 'google/gemini-flash-1.5-8b', // FREE model
     messages: [
       {
+        role: 'system',
+        content: 'You are a precise CV parser. You MUST respond with valid JSON only. Do not include any text before or after the JSON object.',
+      },
+      {
         role: 'user',
         content: `${CV_EXTRACTION_PROMPT}\n\nCV Text (Language: ${config.locale || 'en'}):\n\n${rawText}`,
       },
     ],
     max_tokens: 4096,
     temperature: 0.1,
+    response_format: { type: 'json_object' },
   })
 
   const content = response.choices[0]?.message?.content
@@ -136,10 +141,18 @@ async function extractWithOpenRouter(
   }
 
   try {
-    const extracted = JSON.parse(content) as ExtractedCV
+    // Clean up response (remove markdown code blocks if present)
+    const cleanedContent = content
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim()
+
+    const extracted = JSON.parse(cleanedContent) as ExtractedCV
     return extracted
   } catch (error) {
-    throw new Error(`Failed to parse CV JSON from OpenRouter: ${error}`)
+    console.error('OpenRouter parsing error:', error)
+    console.error('Raw content:', content)
+    throw new Error(`Failed to parse CV JSON from OpenRouter: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
 }
 
