@@ -88,11 +88,24 @@ export const POST = withRateLimit(
         rawText = decoder.decode(arrayBuffer)
       }
 
+      // Log extracted text length for debugging
+      console.log(`Extracted ${rawText.length} characters from ${file.name}`)
+
+      // Check if text extraction failed
+      if (rawText.length < 10) {
+        console.warn('Very short text extracted. PDF might be image-based or corrupted.')
+        return NextResponse.json({
+          error: 'Could not extract text from file. PDF might be image-based (scanned). Please use a text-based PDF or DOCX file.',
+          extractedLength: rawText.length,
+        }, { status: 400 })
+      }
+
       return NextResponse.json({
         blobUrl: blob.url,
         rawText,
         filename: file.name,
         size: file.size,
+        extractedLength: rawText.length,
       })
 
     } catch (error) {

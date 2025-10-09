@@ -17,12 +17,14 @@ export async function POST(request: NextRequest) {
     // 2. Get raw text from body
     const { rawText } = await request.json()
 
-    if (!rawText || rawText.length < 50) {
+    if (!rawText || rawText.length < 20) {
       return NextResponse.json(
-        { error: 'Invalid CV text - too short' },
+        { error: `Invalid CV text - too short (${rawText?.length || 0} characters, minimum 20 required)` },
         { status: 400 }
       )
     }
+
+    console.log(`Parsing CV with ${rawText.length} characters`)
 
     // Get locale from accept-language header or default to 'en'
     const acceptLanguage = request.headers.get('accept-language')
