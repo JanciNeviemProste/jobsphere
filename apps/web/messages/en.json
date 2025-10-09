@@ -388,5 +388,116 @@
       "startFree": "Start for free",
       "login": "Sign in"
     }
+  },
+  "createCV": {
+    "title": "Create Your Professional CV",
+    "subtitle": "Build an AI-powered CV in minutes. Our smart builder helps you create a professional resume that stands out.",
+    "form": {
+      "personalInfo": {
+        "title": "Personal Information",
+        "fullName": "Full Name",
+        "email": "Email",
+        "phone": "Phone",
+        "location": "Location",
+        "linkedin": "LinkedIn Profile",
+        "website": "Website/Portfolio"
+      },
+      "experience": {
+        "title": "Work Experience",
+        "add": "Add Experience",
+        "company": "Company",
+        "position": "Position",
+        "period": "Period",
+        "description": "Description",
+        "current": "I currently work here"
+      },
+      "education": {
+        "title": "Education",
+        "add": "Add Education",
+        "school": "School/University",
+        "degree": "Degree",
+        "field": "Field of Study",
+        "year": "Year"
+      },
+      "skills": {
+        "title": "Skills",
+        "add": "Add Skill",
+        "skill": "Skill",
+        "level": "Level"
+      },
+      "languages": {
+        "title": "Languages",
+        "add": "Add Language",
+        "language": "Language",
+        "proficiency": "Proficiency"
+      }
+    },
+    "actions": {
+      "generate": "Generate CV with AI",
+      "preview": "Preview",
+      "download": "Download PDF",
+      "save": "Save Draft"
+    },
+    "aiHelper": {
+      "title": "AI Assistant",
+      "improve": "Improve with AI",
+      "generating": "Generating..."
+    }
+  },
+  "postJob": {
+    "title": "Post a Job",
+    "subtitle": "Find the perfect candidate for your team. Post your job and reach thousands of qualified professionals.",
+    "form": {
+      "basics": {
+        "title": "Job Details",
+        "jobTitle": "Job Title",
+        "company": "Company",
+        "location": "Location",
+        "remote": "Remote",
+        "remoteOptions": {
+          "onsite": "On-site",
+          "hybrid": "Hybrid",
+          "remote": "Fully Remote"
+        },
+        "type": "Employment Type",
+        "typeOptions": {
+          "fullTime": "Full-time",
+          "partTime": "Part-time",
+          "contract": "Contract",
+          "internship": "Internship"
+        }
+      },
+      "description": {
+        "title": "Job Description",
+        "description": "Description",
+        "responsibilities": "Responsibilities",
+        "requirements": "Requirements",
+        "niceToHave": "Nice to Have"
+      },
+      "compensation": {
+        "title": "Compensation & Benefits",
+        "salary": "Salary Range",
+        "salaryMin": "Min",
+        "salaryMax": "Max",
+        "currency": "Currency",
+        "benefits": "Benefits"
+      },
+      "application": {
+        "title": "Application Settings",
+        "email": "Application Email",
+        "deadline": "Application Deadline",
+        "questions": "Screening Questions"
+      }
+    },
+    "actions": {
+      "preview": "Preview",
+      "publish": "Publish Job",
+      "saveDraft": "Save as Draft"
+    },
+    "aiHelper": {
+      "title": "AI Assistant",
+      "improve": "Improve Description",
+      "generating": "Generating..."
+    }
   }
 }
