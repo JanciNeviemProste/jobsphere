@@ -44,9 +44,6 @@ interface Language {
 export default function CreateCVPage() {
   const t = useTranslations('createCV')
 
-  // Show upload zone or form
-  const [showUploadZone, setShowUploadZone] = useState(true)
-
   // Personal Info State
   const [personalInfo, setPersonalInfo] = useState({
     fullName: '',
@@ -126,13 +123,18 @@ export default function CreateCVPage() {
       setLanguages(mappedLanguages)
     }
 
-    // Hide upload zone and show filled form
-    setShowUploadZone(false)
+    // Scroll to form after data is filled
+    setTimeout(() => {
+      const formSection = document.getElementById('cv-form')
+      formSection?.scrollIntoView({ behavior: 'smooth' })
+    }, 500)
   }
 
-  // Handle manual fill click
+  // Handle manual fill click - scroll to form
   const handleManualFill = () => {
-    setShowUploadZone(false)
+    // Scroll to form section
+    const formSection = document.getElementById('cv-form')
+    formSection?.scrollIntoView({ behavior: 'smooth' })
   }
 
   const addExperience = () => {
@@ -192,16 +194,13 @@ export default function CreateCVPage() {
           </p>
         </div>
 
-        {/* CV Upload Zone - show before form */}
-        {showUploadZone && (
-          <div className="max-w-3xl mx-auto">
-            <CVUploadZone onCVParsed={handleCVParsed} onManualClick={handleManualFill} />
-          </div>
-        )}
+        {/* CV Upload Zone */}
+        <div className="max-w-3xl mx-auto mb-12">
+          <CVUploadZone onCVParsed={handleCVParsed} onManualClick={handleManualFill} />
+        </div>
 
-        {/* Form Section - only show when upload zone is hidden */}
-        {!showUploadZone && (
-          <div className="grid lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+        {/* Form Section - always visible */}
+        <div id="cv-form" className="grid lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {/* Form Section */}
           <div className="lg:col-span-2 space-y-6">
             {/* Personal Information */}
@@ -560,7 +559,6 @@ export default function CreateCVPage() {
             </Card>
           </div>
         </div>
-        )}
       </div>
     </div>
   )
