@@ -219,11 +219,12 @@
         "pricing": "View pricing"
       },
       "stats": {
-        "candidates": "active candidates",
-        "today": "Added today",
-        "match": "AI match score",
-        "avgTime": "days average time",
-        "toInterview": "From application to interview"
+        "candidates": "234 active candidates",
+        "today": "Added today +12",
+        "aiMatch": "92% AI match score",
+        "position": "Senior React Developer",
+        "avgTime": "3.2 days average time",
+        "process": "From application to interview"
       }
     },
     "whyUs": {
@@ -280,9 +281,10 @@
       "pro": {
         "name": "Professional",
         "description": "For growing companies",
-        "price": "per month",
+        "price": "€99",
+        "period": "/month",
         "cta": "Try 14 days free",
-        "badge": "Most popular"
+        "popular": "Most popular"
       }
     },
     "cta": {
@@ -305,10 +307,10 @@
         "description": "For small companies and beginners",
         "features": {
           "positions": "1 active position",
-          "matching": "Basic AI matching",
-          "notifications": "Email notifications",
+          "aiMatching": "Basic AI matching",
+          "emailNotifications": "Email notifications",
           "visibility": "30 days visibility",
-          "stats": "Basic statistics"
+          "basicStats": "Basic statistics"
         },
         "cta": "Start for free"
       },
@@ -319,13 +321,13 @@
         "description": "For growing companies",
         "features": {
           "positions": "10 active positions",
-          "matching": "Advanced AI matching",
-          "applications": "Unlimited applications",
+          "advancedAi": "Advanced AI matching",
+          "unlimitedApplications": "Unlimited applications",
           "visibility": "60 days visibility",
-          "analytics": "Advanced analytics",
-          "parsing": "AI CV parsing",
-          "templates": "Email templates",
-          "support": "Priority support"
+          "advancedAnalytics": "Advanced analytics",
+          "cvParsing": "AI CV parsing",
+          "emailTemplates": "Email templates",
+          "prioritySupport": "Priority support"
         },
         "cta": "Try 14 days free"
       },
@@ -334,15 +336,15 @@
         "price": "Custom",
         "description": "For large organizations",
         "features": {
-          "positions": "Unlimited positions",
-          "model": "Custom AI model",
-          "manager": "Dedicated account manager",
-          "visibility": "Unlimited visibility",
-          "integrations": "Custom integrations",
-          "api": "Advanced API access",
+          "unlimitedPositions": "Unlimited positions",
+          "customAi": "Custom AI model",
+          "accountManager": "Dedicated account manager",
+          "unlimitedVisibility": "Unlimited visibility",
+          "customIntegrations": "Custom integrations",
+          "apiAccess": "Advanced API access",
           "whiteLabel": "White-label solution",
           "sla": "SLA 99.9%",
-          "reporting": "Custom reporting"
+          "customReporting": "Custom reporting"
         },
         "cta": "Contact sales"
       }
@@ -350,15 +352,15 @@
     "comparison": {
       "title": "Feature comparison",
       "subtitle": "All plans include basic JobSphere features",
-      "feature": "Feature",
-      "allPlans": "All plans",
+      "featureColumn": "Feature",
+      "allPlansColumn": "All plans",
       "features": {
         "multilingual": "Multilingual support (5 languages)",
-        "mobile": "Mobile app",
-        "storage": "Secure CV storage",
+        "mobileApp": "Mobile app",
+        "cvStorage": "Secure CV storage",
         "gdpr": "GDPR compliance",
         "database": "Candidate database",
-        "support": "24/7 technical support"
+        "support247": "24/7 technical support"
       }
     },
     "faq": {
@@ -383,7 +385,7 @@
     "cta": {
       "title": "Ready to get started?",
       "subtitle": "Join hundreds of companies that trust us",
-      "start": "Start for free",
+      "startFree": "Start for free",
       "login": "Sign in"
     }
   }

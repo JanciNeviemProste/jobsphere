@@ -216,11 +216,12 @@
         "pricing": "Pozrieť ceny"
       },
       "stats": {
-        "candidates": "aktívnych kandidátov",
-        "today": "Dnes pribudlo",
-        "match": "AI match score",
-        "avgTime": "dni priemerný čas",
-        "toInterview": "Od prihlášky po interview"
+        "candidates": "234 aktivních kandidátů",
+        "today": "Dnes přibylo +12",
+        "aiMatch": "92% AI match score",
+        "position": "Senior React Developer",
+        "avgTime": "3.2 dní průměrný čas",
+        "process": "Od přihlášky po interview"
       }
     },
     "whyUs": {
@@ -276,10 +277,11 @@
       },
       "pro": {
         "name": "Professional",
-        "description": "Pre rastúce firmy",
-        "price": "mesiac",
-        "cta": "Vyskúšať 14 dní zadarmo",
-        "badge": "Najpopulárnejšie"
+        "description": "Pro rostoucí firmy",
+        "price": "€99",
+        "period": "/měsíc",
+        "cta": "Vyzkoušet 14 dní zdarma",
+        "popular": "Nejoblíbenější"
       }
     },
     "cta": {
@@ -301,11 +303,11 @@
         "period": "mesiac",
         "description": "Pre malé firmy a začiatočníkov",
         "features": {
-          "positions": "1 aktívna pozícia",
-          "matching": "Základné AI matching",
-          "notifications": "Email notifikácie",
-          "visibility": "30 dní viditeľnosť",
-          "stats": "Základná štatistika"
+          "positions": "1 aktivní pozice",
+          "aiMatching": "Základní AI matching",
+          "emailNotifications": "Emailové notifikace",
+          "visibility": "30 dní viditelnost",
+          "basicStats": "Základní statistiky"
         },
         "cta": "Začať zadarmo"
       },
@@ -315,14 +317,14 @@
         "period": "mesiac",
         "description": "Pre rastúce spoločnosti",
         "features": {
-          "positions": "10 aktívnych pozícií",
-          "matching": "Pokročilé AI matching",
-          "applications": "Neobmedzené prihlášky",
-          "visibility": "60 dní viditeľnosť",
-          "analytics": "Pokročilá analytika",
-          "parsing": "CV parsing s AI",
-          "templates": "Email šablóny",
-          "support": "Prioritná podpora"
+          "positions": "10 aktivních pozic",
+          "advancedAi": "Pokročilé AI matching",
+          "unlimitedApplications": "Neomezené přihlášky",
+          "visibility": "60 dní viditelnost",
+          "advancedAnalytics": "Pokročilá analytika",
+          "cvParsing": "CV parsing s AI",
+          "emailTemplates": "Emailové šablony",
+          "prioritySupport": "Prioritní podpora"
         },
         "cta": "Vyskúšať 14 dní zadarmo"
       },
@@ -331,31 +333,31 @@
         "price": "Custom",
         "description": "Pre veľké organizácie",
         "features": {
-          "positions": "Neobmedzené pozície",
-          "model": "Vlastný AI model",
-          "manager": "Dedikovaný account manager",
-          "visibility": "Neobmedzená viditeľnosť",
-          "integrations": "Custom integrácie",
-          "api": "Advanced API prístup",
-          "whiteLabel": "White-label riešenie",
+          "unlimitedPositions": "Neomezené pozice",
+          "customAi": "Vlastní AI model",
+          "accountManager": "Dedikovaný account manager",
+          "unlimitedVisibility": "Neomezená viditelnost",
+          "customIntegrations": "Custom integrace",
+          "apiAccess": "Advanced API přístup",
+          "whiteLabel": "White-label řešení",
           "sla": "SLA 99.9%",
-          "reporting": "Custom reporting"
+          "customReporting": "Custom reporting"
         },
         "cta": "Kontaktovať predaj"
       }
     },
     "comparison": {
-      "title": "Porovnanie funkcií",
-      "subtitle": "Všetky plány obsahujú základné funkcie JobSphere",
-      "feature": "Funkcia",
-      "allPlans": "Všetky plány",
+      "title": "Porovnání funkcí",
+      "subtitle": "Všechny plány obsahují základní funkce JobSphere",
+      "featureColumn": "Funkce",
+      "allPlansColumn": "Všechny plány",
       "features": {
-        "multilingual": "Multilingválna podpora (5 jazykov)",
-        "mobile": "Mobilná aplikácia",
-        "storage": "Bezpečné úložisko CV",
+        "multilingual": "Multilingvální podpora (5 jazyků)",
+        "mobileApp": "Mobilní aplikace",
+        "cvStorage": "Bezpečné úložiště CV",
         "gdpr": "GDPR compliance",
-        "database": "Kandidátska databáza",
-        "support": "24/7 technická podpora"
+        "database": "Databáze kandidátů",
+        "support247": "24/7 technická podpora"
       }
     },
     "faq": {
@@ -378,10 +380,10 @@
       }
     },
     "cta": {
-      "title": "Pripravení začať?",
-      "subtitle": "Pripojte sa k stovkám spoločností, ktoré nám dôverujú",
-      "start": "Začať zadarmo",
-      "login": "Prihlásiť sa"
+      "title": "Připraveni začít?",
+      "subtitle": "Připojte se ke stovkám společností, které nám důvěřují",
+      "startFree": "Začít zdarma",
+      "login": "Přihlásit se"
     }
   }
 }
