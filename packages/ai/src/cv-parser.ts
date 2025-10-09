@@ -90,22 +90,37 @@ export async function extractCvFromText(
     locale?: string
   }
 ): Promise<ExtractedCV> {
+  const errors: string[] = []
+
   // Try OpenRouter first (FREE Gemini Flash)
   if (config.openRouterApiKey) {
     try {
+      console.log('Attempting CV extraction with OpenRouter...')
       return await extractWithOpenRouter(rawText, config)
     } catch (error) {
-      console.warn('OpenRouter failed, falling back to Anthropic:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+      console.warn('OpenRouter failed:', errorMsg)
+      errors.push(`OpenRouter: ${errorMsg}`)
       // Fall through to Anthropic
     }
+  } else {
+    console.log('No OpenRouter API key, skipping to Anthropic')
   }
 
   // Fallback to Anthropic Claude
   if (!config.apiKey) {
-    throw new Error('No API key provided (OpenRouter or Anthropic)')
+    const allErrors = errors.length > 0 ? `\n\nPrevious errors:\n${errors.join('\n')}` : ''
+    throw new Error(`No API key provided (OpenRouter or Anthropic)${allErrors}`)
   }
 
-  return await extractWithAnthropic(rawText, config)
+  try {
+    console.log('Attempting CV extraction with Anthropic Claude...')
+    return await extractWithAnthropic(rawText, config)
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+    errors.push(`Anthropic: ${errorMsg}`)
+    throw new Error(`All AI providers failed:\n${errors.join('\n')}`)
+  }
 }
 
 // OpenRouter implementation (FREE Gemini Flash)
@@ -118,22 +133,34 @@ async function extractWithOpenRouter(
     baseURL: 'https://openrouter.ai/api/v1',
   })
 
-  const response = await openai.chat.completions.create({
-    model: config.model || 'google/gemini-flash-1.5-8b', // FREE model
-    messages: [
-      {
-        role: 'system',
-        content: 'You are a precise CV parser. You MUST respond with valid JSON only. Do not include any text before or after the JSON object.',
-      },
-      {
-        role: 'user',
-        content: `${CV_EXTRACTION_PROMPT}\n\nCV Text (Language: ${config.locale || 'en'}):\n\n${rawText}`,
-      },
-    ],
-    max_tokens: 4096,
-    temperature: 0.1,
-    response_format: { type: 'json_object' },
-  })
+  let response
+  try {
+    response = await openai.chat.completions.create({
+      model: config.model || 'google/gemini-flash-1.5-8b', // FREE model
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a precise CV parser. You MUST respond with valid JSON only. Do not include any text before or after the JSON object.',
+        },
+        {
+          role: 'user',
+          content: `${CV_EXTRACTION_PROMPT}\n\nCV Text (Language: ${config.locale || 'en'}):\n\n${rawText.substring(0, 8000)}`,
+        },
+      ],
+      max_tokens: 4096,
+      temperature: 0.1,
+      response_format: { type: 'json_object' },
+    })
+  } catch (error: any) {
+    console.error('OpenRouter API error:', error)
+    if (error?.status === 401) {
+      throw new Error('Invalid OpenRouter API key')
+    }
+    if (error?.status === 429) {
+      throw new Error('OpenRouter rate limit exceeded')
+    }
+    throw new Error(`OpenRouter API error: ${error?.message || 'Unknown'}`)
+  }
 
   const content = response.choices[0]?.message?.content
   if (!content) {
