@@ -385,5 +385,116 @@
       "startFree": "Kostenlos starten",
       "login": "Anmelden"
     }
+  },
+  "createCV": {
+    "title": "Erstellen Sie Ihren professionellen Lebenslauf",
+    "subtitle": "Erstellen Sie einen KI-gestützten Lebenslauf in Minuten. Unser intelligenter Builder hilft Ihnen, einen professionellen Lebenslauf zu erstellen, der heraussticht.",
+    "form": {
+      "personalInfo": {
+        "title": "Persönliche Informationen",
+        "fullName": "Vollständiger Name",
+        "email": "E-Mail",
+        "phone": "Telefon",
+        "location": "Standort",
+        "linkedin": "LinkedIn-Profil",
+        "website": "Website/Portfolio"
+      },
+      "experience": {
+        "title": "Berufserfahrung",
+        "add": "Erfahrung hinzufügen",
+        "company": "Unternehmen",
+        "position": "Position",
+        "period": "Zeitraum",
+        "description": "Beschreibung",
+        "current": "Ich arbeite derzeit hier"
+      },
+      "education": {
+        "title": "Ausbildung",
+        "add": "Ausbildung hinzufügen",
+        "school": "Schule/Universität",
+        "degree": "Abschluss",
+        "field": "Studienrichtung",
+        "year": "Jahr"
+      },
+      "skills": {
+        "title": "Fähigkeiten",
+        "add": "Fähigkeit hinzufügen",
+        "skill": "Fähigkeit",
+        "level": "Niveau"
+      },
+      "languages": {
+        "title": "Sprachen",
+        "add": "Sprache hinzufügen",
+        "language": "Sprache",
+        "proficiency": "Kenntnisstand"
+      }
+    },
+    "actions": {
+      "generate": "Lebenslauf mit KI generieren",
+      "preview": "Vorschau",
+      "download": "PDF herunterladen",
+      "save": "Entwurf speichern"
+    },
+    "aiHelper": {
+      "title": "KI-Assistent",
+      "improve": "Mit KI verbessern",
+      "generating": "Generiere..."
+    }
+  },
+  "postJob": {
+    "title": "Stellenangebot veröffentlichen",
+    "subtitle": "Finden Sie den perfekten Kandidaten für Ihr Team. Veröffentlichen Sie Ihre Stelle und erreichen Sie Tausende qualifizierter Fachkräfte.",
+    "form": {
+      "basics": {
+        "title": "Stellendetails",
+        "jobTitle": "Stellentitel",
+        "company": "Unternehmen",
+        "location": "Standort",
+        "remote": "Arbeitsort",
+        "remoteOptions": {
+          "onsite": "Vor Ort",
+          "hybrid": "Hybrid",
+          "remote": "Vollständig Remote"
+        },
+        "type": "Beschäftigungsart",
+        "typeOptions": {
+          "fullTime": "Vollzeit",
+          "partTime": "Teilzeit",
+          "contract": "Vertrag",
+          "internship": "Praktikum"
+        }
+      },
+      "description": {
+        "title": "Stellenbeschreibung",
+        "description": "Beschreibung",
+        "responsibilities": "Verantwortlichkeiten",
+        "requirements": "Anforderungen",
+        "niceToHave": "Von Vorteil"
+      },
+      "compensation": {
+        "title": "Vergütung & Leistungen",
+        "salary": "Gehaltsspanne",
+        "salaryMin": "Min",
+        "salaryMax": "Max",
+        "currency": "Währung",
+        "benefits": "Zusatzleistungen"
+      },
+      "application": {
+        "title": "Bewerbungseinstellungen",
+        "email": "Bewerbungs-E-Mail",
+        "deadline": "Bewerbungsfrist",
+        "questions": "Auswahlverfahren Fragen"
+      }
+    },
+    "actions": {
+      "preview": "Vorschau",
+      "publish": "Stelle veröffentlichen",
+      "saveDraft": "Als Entwurf speichern"
+    },
+    "aiHelper": {
+      "title": "KI-Assistent",
+      "improve": "Beschreibung verbessern",
+      "generating": "Generiere..."
+    }
   }
 }

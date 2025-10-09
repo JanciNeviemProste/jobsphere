@@ -385,5 +385,116 @@
       "startFree": "Začít zdarma",
       "login": "Přihlásit se"
     }
+  },
+  "createCV": {
+    "title": "Vytvořte svůj profesionální životopis",
+    "subtitle": "Vytvořte životopis s podporou AI během několika minut. Náš inteligentní tvůrce vám pomůže vytvořit profesionální životopis, který vyniká.",
+    "form": {
+      "personalInfo": {
+        "title": "Osobní informace",
+        "fullName": "Celé jméno",
+        "email": "Email",
+        "phone": "Telefon",
+        "location": "Lokalita",
+        "linkedin": "LinkedIn profil",
+        "website": "Web/Portfolio"
+      },
+      "experience": {
+        "title": "Pracovní zkušenosti",
+        "add": "Přidat zkušenost",
+        "company": "Společnost",
+        "position": "Pozice",
+        "period": "Období",
+        "description": "Popis",
+        "current": "Aktuálně zde pracuji"
+      },
+      "education": {
+        "title": "Vzdělání",
+        "add": "Přidat vzdělání",
+        "school": "Škola/Univerzita",
+        "degree": "Titul",
+        "field": "Obor studia",
+        "year": "Rok"
+      },
+      "skills": {
+        "title": "Dovednosti",
+        "add": "Přidat dovednost",
+        "skill": "Dovednost",
+        "level": "Úroveň"
+      },
+      "languages": {
+        "title": "Jazyky",
+        "add": "Přidat jazyk",
+        "language": "Jazyk",
+        "proficiency": "Úroveň znalosti"
+      }
+    },
+    "actions": {
+      "generate": "Vygenerovat životopis pomocí AI",
+      "preview": "Náhled",
+      "download": "Stáhnout PDF",
+      "save": "Uložit koncept"
+    },
+    "aiHelper": {
+      "title": "AI asistent",
+      "improve": "Vylepšit pomocí AI",
+      "generating": "Generování..."
+    }
+  },
+  "postJob": {
+    "title": "Zveřejnit nabídku práce",
+    "subtitle": "Najděte dokonalého kandidáta pro váš tým. Zveřejněte nabídku práce a oslovte tisíce kvalifikovaných profesionálů.",
+    "form": {
+      "basics": {
+        "title": "Informace o pozici",
+        "jobTitle": "Název pozice",
+        "company": "Společnost",
+        "location": "Lokalita",
+        "remote": "Režim práce",
+        "remoteOptions": {
+          "onsite": "Na místě",
+          "hybrid": "Hybridní",
+          "remote": "Plně na dálku"
+        },
+        "type": "Typ zaměstnání",
+        "typeOptions": {
+          "fullTime": "Plný úvazek",
+          "partTime": "Částečný úvazek",
+          "contract": "Kontrakt",
+          "internship": "Stáž"
+        }
+      },
+      "description": {
+        "title": "Popis pozice",
+        "description": "Popis",
+        "responsibilities": "Odpovědnosti",
+        "requirements": "Požadavky",
+        "niceToHave": "Výhodou"
+      },
+      "compensation": {
+        "title": "Odměna a benefity",
+        "salary": "Platové rozpětí",
+        "salaryMin": "Min",
+        "salaryMax": "Max",
+        "currency": "Měna",
+        "benefits": "Benefity"
+      },
+      "application": {
+        "title": "Nastavení přihlášek",
+        "email": "Email pro přihlášky",
+        "deadline": "Uzávěrka přihlášek",
+        "questions": "Výběrové otázky"
+      }
+    },
+    "actions": {
+      "preview": "Náhled",
+      "publish": "Zveřejnit nabídku",
+      "saveDraft": "Uložit jako koncept"
+    },
+    "aiHelper": {
+      "title": "AI asistent",
+      "improve": "Vylepšit popis",
+      "generating": "Generování..."
+    }
   }
 }

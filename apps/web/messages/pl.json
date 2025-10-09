@@ -385,5 +385,116 @@
       "startFree": "Zacznij za darmo",
       "login": "Zaloguj się"
     }
+  },
+  "createCV": {
+    "title": "Stwórz swoje profesjonalne CV",
+    "subtitle": "Zbuduj CV wspierane przez AI w kilka minut. Nasz inteligentny kreator pomoże Ci stworzyć profesjonalne CV, które się wyróżnia.",
+    "form": {
+      "personalInfo": {
+        "title": "Informacje osobiste",
+        "fullName": "Imię i nazwisko",
+        "email": "Email",
+        "phone": "Telefon",
+        "location": "Lokalizacja",
+        "linkedin": "Profil LinkedIn",
+        "website": "Strona/Portfolio"
+      },
+      "experience": {
+        "title": "Doświadczenie zawodowe",
+        "add": "Dodaj doświadczenie",
+        "company": "Firma",
+        "position": "Stanowisko",
+        "period": "Okres",
+        "description": "Opis",
+        "current": "Obecnie tu pracuję"
+      },
+      "education": {
+        "title": "Wykształcenie",
+        "add": "Dodaj wykształcenie",
+        "school": "Szkoła/Uniwersytet",
+        "degree": "Stopień",
+        "field": "Kierunek studiów",
+        "year": "Rok"
+      },
+      "skills": {
+        "title": "Umiejętności",
+        "add": "Dodaj umiejętność",
+        "skill": "Umiejętność",
+        "level": "Poziom"
+      },
+      "languages": {
+        "title": "Języki",
+        "add": "Dodaj język",
+        "language": "Język",
+        "proficiency": "Biegłość"
+      }
+    },
+    "actions": {
+      "generate": "Wygeneruj CV za pomocą AI",
+      "preview": "Podgląd",
+      "download": "Pobierz PDF",
+      "save": "Zapisz szkic"
+    },
+    "aiHelper": {
+      "title": "Asystent AI",
+      "improve": "Ulepsz za pomocą AI",
+      "generating": "Generowanie..."
+    }
+  },
+  "postJob": {
+    "title": "Dodaj ofertę pracy",
+    "subtitle": "Znajdź idealnego kandydata dla swojego zespołu. Opublikuj ofertę pracy i dotrzyj do tysięcy wykwalifikowanych profesjonalistów.",
+    "form": {
+      "basics": {
+        "title": "Szczegóły stanowiska",
+        "jobTitle": "Nazwa stanowiska",
+        "company": "Firma",
+        "location": "Lokalizacja",
+        "remote": "Tryb pracy",
+        "remoteOptions": {
+          "onsite": "Stacjonarnie",
+          "hybrid": "Hybrydowo",
+          "remote": "Całkowicie zdalnie"
+        },
+        "type": "Rodzaj zatrudnienia",
+        "typeOptions": {
+          "fullTime": "Pełny etat",
+          "partTime": "Część etatu",
+          "contract": "Kontrakt",
+          "internship": "Staż"
+        }
+      },
+      "description": {
+        "title": "Opis stanowiska",
+        "description": "Opis",
+        "responsibilities": "Obowiązki",
+        "requirements": "Wymagania",
+        "niceToHave": "Mile widziane"
+      },
+      "compensation": {
+        "title": "Wynagrodzenie i benefity",
+        "salary": "Widełki płacowe",
+        "salaryMin": "Min",
+        "salaryMax": "Max",
+        "currency": "Waluta",
+        "benefits": "Benefity"
+      },
+      "application": {
+        "title": "Ustawienia aplikacji",
+        "email": "Email do aplikacji",
+        "deadline": "Termin składania aplikacji",
+        "questions": "Pytania rekrutacyjne"
+      }
+    },
+    "actions": {
+      "preview": "Podgląd",
+      "publish": "Opublikuj ofertę",
+      "saveDraft": "Zapisz jako szkic"
+    },
+    "aiHelper": {
+      "title": "Asystent AI",
+      "improve": "Ulepsz opis",
+      "generating": "Generowanie..."
+    }
   }
 }
