@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Check, Loader2 } from 'lucide-react'
 
 export default function PricingPage({ params }: { params: { locale: string } }) {
-  const t = useTranslations()
+  const t = useTranslations('pricing')
   const locale = params.locale
   const router = useRouter()
   const [loading, setLoading] = useState<string | null>(null)
@@ -56,55 +56,55 @@ export default function PricingPage({ params }: { params: { locale: string } }) 
 
   const plans = [
     {
-      name: 'Starter',
+      name: t('plans.starter.name'),
       price: '0',
-      period: 'mesiac',
-      description: 'Pre malé firmy a začiatočníkov',
+      period: t('plans.starter.period'),
+      description: t('plans.starter.description'),
       features: [
-        '1 aktívna pozícia',
-        'Základné AI matching',
-        'Email notifikácie',
-        '30 dní viditeľnosť',
-        'Základná štatistika',
+        t('plans.starter.features.positions'),
+        t('plans.starter.features.aiMatching'),
+        t('plans.starter.features.emailNotifications'),
+        t('plans.starter.features.visibility'),
+        t('plans.starter.features.basicStats'),
       ],
-      cta: 'Začať zadarmo',
+      cta: t('plans.starter.cta'),
       popular: false,
     },
     {
-      name: 'Professional',
+      name: t('plans.pro.name'),
       price: '99',
-      period: 'mesiac',
-      description: 'Pre rastúce spoločnosti',
+      period: t('plans.pro.period'),
+      description: t('plans.pro.description'),
       features: [
-        '10 aktívnych pozícií',
-        'Pokročilé AI matching',
-        'Neobmedzené prihlášky',
-        '60 dní viditeľnosť',
-        'Pokročilá analytika',
-        'CV parsing s AI',
-        'Email šablóny',
-        'Prioritná podpora',
+        t('plans.pro.features.positions'),
+        t('plans.pro.features.advancedAi'),
+        t('plans.pro.features.unlimitedApplications'),
+        t('plans.pro.features.visibility'),
+        t('plans.pro.features.advancedAnalytics'),
+        t('plans.pro.features.cvParsing'),
+        t('plans.pro.features.emailTemplates'),
+        t('plans.pro.features.prioritySupport'),
       ],
-      cta: 'Vyskúšať 14 dní zadarmo',
+      cta: t('plans.pro.cta'),
       popular: true,
     },
     {
-      name: 'Enterprise',
-      price: 'Custom',
+      name: t('plans.enterprise.name'),
+      price: t('plans.enterprise.price'),
       period: '',
-      description: 'Pre veľké organizácie',
+      description: t('plans.enterprise.description'),
       features: [
-        'Neobmedzené pozície',
-        'Vlastný AI model',
-        'Dedikovaný account manager',
-        'Neobmedzená viditeľnosť',
-        'Custom integrácie',
-        'Advanced API prístup',
-        'White-label riešenie',
-        'SLA 99.9%',
-        'Custom reporting',
+        t('plans.enterprise.features.unlimitedPositions'),
+        t('plans.enterprise.features.customAi'),
+        t('plans.enterprise.features.accountManager'),
+        t('plans.enterprise.features.unlimitedVisibility'),
+        t('plans.enterprise.features.customIntegrations'),
+        t('plans.enterprise.features.apiAccess'),
+        t('plans.enterprise.features.whiteLabel'),
+        t('plans.enterprise.features.sla'),
+        t('plans.enterprise.features.customReporting'),
       ],
-      cta: 'Kontaktovať predaj',
+      cta: t('plans.enterprise.cta'),
       popular: false,
     },
   ]
@@ -114,9 +114,9 @@ export default function PricingPage({ params }: { params: { locale: string } }) 
       <div className="container mx-auto px-4 py-12">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Cenník</h1>
+          <h1 className="text-4xl font-bold mb-4">{t('title')}</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Vyberte si plán, ktorý najlepšie vyhovuje vašim náborovým potrebám
+            {t('subtitle')}
           </p>
         </div>
 
@@ -131,7 +131,7 @@ export default function PricingPage({ params }: { params: { locale: string } }) 
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-primary">Najobľúbenejšie</Badge>
+                  <Badge className="bg-primary">{t('popular')}</Badge>
                 </div>
               )}
               <CardHeader>
@@ -164,7 +164,7 @@ export default function PricingPage({ params }: { params: { locale: string } }) 
                   {loading === plan.name.toUpperCase() ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Loading...
+                      {t('loading')}
                     </>
                   ) : (
                     plan.cta
@@ -179,25 +179,25 @@ export default function PricingPage({ params }: { params: { locale: string } }) 
         <div className="max-w-4xl mx-auto">
           <Card>
             <CardHeader>
-              <CardTitle>Porovnanie funkcií</CardTitle>
+              <CardTitle>{t('comparison.title')}</CardTitle>
               <CardDescription>
-                Všetky plány obsahujú základné funkcie JobSphere
+                {t('comparison.subtitle')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="font-medium">Funkcia</div>
-                  <div className="font-medium text-right">Všetky plány</div>
+                  <div className="font-medium">{t('comparison.featureColumn')}</div>
+                  <div className="font-medium text-right">{t('comparison.allPlansColumn')}</div>
                 </div>
                 <div className="border-t pt-4 space-y-3">
                   {[
-                    'Multilingválna podpora (5 jazykov)',
-                    'Mobilná aplikácia',
-                    'Bezpečné úložisko CV',
-                    'GDPR compliance',
-                    'Kandidátska databáza',
-                    '24/7 technická podpora',
+                    t('comparison.features.multilingual'),
+                    t('comparison.features.mobileApp'),
+                    t('comparison.features.cvStorage'),
+                    t('comparison.features.gdpr'),
+                    t('comparison.features.database'),
+                    t('comparison.features.support247'),
                   ].map((feature) => (
                     <div key={feature} className="grid grid-cols-2 gap-4 text-sm">
                       <div className="text-muted-foreground">{feature}</div>
@@ -214,40 +214,38 @@ export default function PricingPage({ params }: { params: { locale: string } }) 
 
         {/* FAQ */}
         <div className="max-w-4xl mx-auto mt-16">
-          <h2 className="text-3xl font-bold text-center mb-8">Často kladené otázky</h2>
+          <h2 className="text-3xl font-bold text-center mb-8">{t('faq.title')}</h2>
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Môžem kedykoľvek zmeniť plán?</CardTitle>
+                <CardTitle className="text-lg">{t('faq.q1.question')}</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                Áno, môžete kedykoľvek prejsť na vyšší alebo nižší plán. Zmeny sa prejavia
-                okamžite.
+                {t('faq.q1.answer')}
               </CardContent>
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Ako funguje 14-dňová skúšobná doba?</CardTitle>
+                <CardTitle className="text-lg">{t('faq.q2.question')}</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                Môžete vyskúšať Professional plán 14 dní zadarmo bez potreby platobnej karty.
+                {t('faq.q2.answer')}
               </CardContent>
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Aké platobné metódy akceptujete?</CardTitle>
+                <CardTitle className="text-lg">{t('faq.q3.question')}</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                Akceptujeme kreditné karty (Visa, Mastercard), bankový prevod a faktúru pre
-                Enterprise klientov.
+                {t('faq.q3.answer')}
               </CardContent>
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Je možné získať refund?</CardTitle>
+                <CardTitle className="text-lg">{t('faq.q4.question')}</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                Áno, ponúkame 30-dňovú záruku vrátenia peňazí bez udania dôvodu.
+                {t('faq.q4.answer')}
               </CardContent>
             </Card>
           </div>
@@ -255,16 +253,16 @@ export default function PricingPage({ params }: { params: { locale: string } }) 
 
         {/* CTA */}
         <div className="text-center mt-16">
-          <h2 className="text-3xl font-bold mb-4">Pripravení začať?</h2>
+          <h2 className="text-3xl font-bold mb-4">{t('cta.title')}</h2>
           <p className="text-muted-foreground mb-8">
-            Pripojte sa k stovkám spoločností, ktoré nám dôverujú
+            {t('cta.subtitle')}
           </p>
           <div className="flex gap-4 justify-center">
             <Button size="lg" asChild>
-              <Link href={`/${locale}/signup`}>Začať zadarmo</Link>
+              <Link href={`/${locale}/signup`}>{t('cta.startFree')}</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <Link href={`/${locale}/login`}>Prihlásiť sa</Link>
+              <Link href={`/${locale}/login`}>{t('cta.login')}</Link>
             </Button>
           </div>
         </div>

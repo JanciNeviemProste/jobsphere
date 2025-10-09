@@ -209,5 +209,182 @@
       "new": "New",
       "interviewed": "Interviewed"
     }
+  },
+  "forEmployers": {
+    "hero": {
+      "title": "Find the best candidates faster",
+      "subtitle": "JobSphere is a modern ATS system that helps you efficiently manage the recruitment process and find the right people for your team.",
+      "cta": {
+        "start": "Start for free",
+        "pricing": "View pricing"
+      },
+      "stats": {
+        "candidates": "active candidates",
+        "today": "Added today",
+        "match": "AI match score",
+        "avgTime": "days average time",
+        "toInterview": "From application to interview"
+      }
+    },
+    "whyUs": {
+      "title": "Why choose JobSphere?",
+      "subtitle": "Everything you need for efficient recruitment in one place"
+    },
+    "features": {
+      "findCandidates": {
+        "title": "Find the right candidates",
+        "description": "Access thousands of qualified professionals looking for new opportunities."
+      },
+      "aiMatching": {
+        "title": "AI-Powered Matching",
+        "description": "Our AI technology automatically evaluates and assigns the best candidates to your positions."
+      },
+      "fastRecruitment": {
+        "title": "Fast recruitment",
+        "description": "Speed up the recruitment process with our automated tools and workflows."
+      },
+      "analytics": {
+        "title": "Clear statistics",
+        "description": "Track the performance of your job postings and optimize the recruitment process."
+      },
+      "saveTime": {
+        "title": "Save time",
+        "description": "Automation of routine tasks saves you hours of time every week."
+      },
+      "secure": {
+        "title": "Secure and reliable",
+        "description": "Enterprise-level security to protect your data and candidates."
+      }
+    },
+    "benefits": {
+      "title": "Complete ATS system",
+      "subtitle": "All the features you need to effectively manage the recruitment process from start to successful candidate acceptance.",
+      "list": {
+        "unlimited": "Unlimited number of active positions",
+        "aiEvaluation": "AI candidate evaluation",
+        "database": "Access to candidate database",
+        "workflow": "Custom recruitment workflows",
+        "collaboration": "Team collaboration tools",
+        "analytics": "Advanced analytics and reports",
+        "integrations": "Integrations with HR systems",
+        "support": "Priority customer support"
+      }
+    },
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "description": "For small teams",
+        "price": "Free",
+        "cta": "Start for free"
+      },
+      "pro": {
+        "name": "Professional",
+        "description": "For growing companies",
+        "price": "per month",
+        "cta": "Try 14 days free",
+        "badge": "Most popular"
+      }
+    },
+    "cta": {
+      "title": "Ready to get started?",
+      "subtitle": "Join hundreds of companies already using JobSphere for more efficient recruitment.",
+      "create": "Create free account",
+      "login": "Already have an account? Sign in"
+    }
+  },
+  "pricing": {
+    "title": "Pricing",
+    "subtitle": "Choose the plan that best suits your recruitment needs",
+    "popular": "Most popular",
+    "loading": "Loading...",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "price": "0",
+        "period": "month",
+        "description": "For small companies and beginners",
+        "features": {
+          "positions": "1 active position",
+          "matching": "Basic AI matching",
+          "notifications": "Email notifications",
+          "visibility": "30 days visibility",
+          "stats": "Basic statistics"
+        },
+        "cta": "Start for free"
+      },
+      "pro": {
+        "name": "Professional",
+        "price": "99",
+        "period": "month",
+        "description": "For growing companies",
+        "features": {
+          "positions": "10 active positions",
+          "matching": "Advanced AI matching",
+          "applications": "Unlimited applications",
+          "visibility": "60 days visibility",
+          "analytics": "Advanced analytics",
+          "parsing": "AI CV parsing",
+          "templates": "Email templates",
+          "support": "Priority support"
+        },
+        "cta": "Try 14 days free"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Custom",
+        "description": "For large organizations",
+        "features": {
+          "positions": "Unlimited positions",
+          "model": "Custom AI model",
+          "manager": "Dedicated account manager",
+          "visibility": "Unlimited visibility",
+          "integrations": "Custom integrations",
+          "api": "Advanced API access",
+          "whiteLabel": "White-label solution",
+          "sla": "SLA 99.9%",
+          "reporting": "Custom reporting"
+        },
+        "cta": "Contact sales"
+      }
+    },
+    "comparison": {
+      "title": "Feature comparison",
+      "subtitle": "All plans include basic JobSphere features",
+      "feature": "Feature",
+      "allPlans": "All plans",
+      "features": {
+        "multilingual": "Multilingual support (5 languages)",
+        "mobile": "Mobile app",
+        "storage": "Secure CV storage",
+        "gdpr": "GDPR compliance",
+        "database": "Candidate database",
+        "support": "24/7 technical support"
+      }
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "q1": {
+        "question": "Can I change my plan anytime?",
+        "answer": "Yes, you can upgrade or downgrade at any time. Changes take effect immediately."
+      },
+      "q2": {
+        "question": "How does the 14-day trial work?",
+        "answer": "You can try the Professional plan for 14 days free without a credit card."
+      },
+      "q3": {
+        "question": "What payment methods do you accept?",
+        "answer": "We accept credit cards (Visa, Mastercard), bank transfer and invoice for Enterprise clients."
+      },
+      "q4": {
+        "question": "Is refund possible?",
+        "answer": "Yes, we offer a 30-day money-back guarantee without any reason."
+      }
+    },
+    "cta": {
+      "title": "Ready to get started?",
+      "subtitle": "Join hundreds of companies that trust us",
+      "start": "Start for free",
+      "login": "Sign in"
+    }
   }
 }

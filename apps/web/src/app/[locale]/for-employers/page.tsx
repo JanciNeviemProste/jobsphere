@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -13,48 +14,49 @@ import {
 } from 'lucide-react'
 
 export default function ForEmployersPage({ params }: { params: { locale: string } }) {
+  const t = useTranslations('forEmployers')
   const features = [
     {
       icon: Users,
-      title: 'Nájdite tých správnych kandidátov',
-      description: 'Prístup k tisíckam kvalifikovaných profesionálov hľadajúcich nové príležitosti.'
+      title: t('features.findCandidates.title'),
+      description: t('features.findCandidates.description')
     },
     {
       icon: Target,
-      title: 'AI-Powered Matching',
-      description: 'Naša AI technológia automaticky vyhodnotí a priradí najlepších kandidátov k vašim pozíciám.'
+      title: t('features.aiMatching.title'),
+      description: t('features.aiMatching.description')
     },
     {
       icon: Zap,
-      title: 'Rýchly nábor',
-      description: 'Zrýchlite proces náboru s našimi automatizovanými nástrojmi a workflow.'
+      title: t('features.fastRecruitment.title'),
+      description: t('features.fastRecruitment.description')
     },
     {
       icon: BarChart3,
-      title: 'Prehľadné štatistiky',
-      description: 'Sledujte výkonnosť vašich inzerátov a optimalizujte náborový proces.'
+      title: t('features.analytics.title'),
+      description: t('features.analytics.description')
     },
     {
       icon: Clock,
-      title: 'Ušetrite čas',
-      description: 'Automatizácia rutinných úloh vám ušetrí hodiny času každý týždeň.'
+      title: t('features.saveTime.title'),
+      description: t('features.saveTime.description')
     },
     {
       icon: Shield,
-      title: 'Bezpečné a spoľahlivé',
-      description: 'Enterprise-level bezpečnosť pre ochranu vašich dát a kandidátov.'
+      title: t('features.secure.title'),
+      description: t('features.secure.description')
     }
   ]
 
   const benefits = [
-    'Neomedzený počet aktívnych pozícií',
-    'AI vyhodnotenie kandidátov',
-    'Prístup k databáze kandidátov',
-    'Vlastné náborové workflow',
-    'Team collaboration nástroje',
-    'Pokročilá analytika a reporty',
-    'Integrácie s HR systémami',
-    'Prioritná zákaznícka podpora'
+    t('benefits.list.unlimited'),
+    t('benefits.list.aiEvaluation'),
+    t('benefits.list.database'),
+    t('benefits.list.workflow'),
+    t('benefits.list.collaboration'),
+    t('benefits.list.analytics'),
+    t('benefits.list.integrations'),
+    t('benefits.list.support')
   ]
 
   return (
@@ -65,22 +67,21 @@ export default function ForEmployersPage({ params }: { params: { locale: string 
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-5xl font-bold mb-6 text-foreground leading-tight">
-                Nájdite najlepších kandidátov rýchlejšie
+                {t('hero.title')}
               </h1>
               <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-                JobSphere je moderný ATS systém, ktorý vám pomôže efektívne spravovať náborový proces
-                a nájsť tých správnych ľudí pre váš tím.
+                {t('hero.subtitle')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button size="lg" className="text-lg px-8" asChild>
                   <Link href={`/${params.locale}/signup`}>
-                    Začať zadarmo
+                    {t('hero.cta.start')}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" className="text-lg px-8" asChild>
                   <Link href={`/${params.locale}/pricing`}>
-                    Pozrieť ceny
+                    {t('hero.cta.pricing')}
                   </Link>
                 </Button>
               </div>
@@ -93,8 +94,8 @@ export default function ForEmployersPage({ params }: { params: { locale: string 
                       <Users className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <p className="font-semibold">234 aktívnych kandidátov</p>
-                      <p className="text-sm text-muted-foreground">Dnes pribudlo +12</p>
+                      <p className="font-semibold">{t('hero.stats.candidates')}</p>
+                      <p className="text-sm text-muted-foreground">{t('hero.stats.today')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -102,8 +103,8 @@ export default function ForEmployersPage({ params }: { params: { locale: string 
                       <Target className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <p className="font-semibold">92% AI match score</p>
-                      <p className="text-sm text-muted-foreground">Senior React Developer</p>
+                      <p className="font-semibold">{t('hero.stats.aiMatch')}</p>
+                      <p className="text-sm text-muted-foreground">{t('hero.stats.position')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -111,8 +112,8 @@ export default function ForEmployersPage({ params }: { params: { locale: string 
                       <Zap className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <p className="font-semibold">3.2 dni priemerný čas</p>
-                      <p className="text-sm text-muted-foreground">Od prihlášky po interview</p>
+                      <p className="font-semibold">{t('hero.stats.avgTime')}</p>
+                      <p className="text-sm text-muted-foreground">{t('hero.stats.process')}</p>
                     </div>
                   </div>
                 </div>
@@ -126,9 +127,9 @@ export default function ForEmployersPage({ params }: { params: { locale: string 
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Prečo vybrať JobSphere?</h2>
+            <h2 className="text-4xl font-bold mb-4">{t('whyUs.title')}</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Všetko čo potrebujete pre efektívny nábor na jednom mieste
+              {t('whyUs.subtitle')}
             </p>
           </div>
 
@@ -153,10 +154,9 @@ export default function ForEmployersPage({ params }: { params: { locale: string 
         <div className="container mx-auto max-w-6xl">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-4xl font-bold mb-6">Kompletný ATS systém</h2>
+              <h2 className="text-4xl font-bold mb-6">{t('benefits.title')}</h2>
               <p className="text-lg text-muted-foreground mb-8">
-                Všetky funkcie, ktoré potrebujete na efektívne riadenie náborového procesu
-                od začiatku až po úspešné prijatie kandidáta.
+                {t('benefits.subtitle')}
               </p>
               <div className="space-y-3">
                 {benefits.map((benefit, index) => (
@@ -172,24 +172,24 @@ export default function ForEmployersPage({ params }: { params: { locale: string 
             <div className="space-y-6">
               <Card className="border-2">
                 <CardContent className="p-6">
-                  <h3 className="text-2xl font-bold mb-2">Starter</h3>
-                  <p className="text-muted-foreground mb-4">Pre malé tímy</p>
-                  <p className="text-4xl font-bold mb-4">Free</p>
+                  <h3 className="text-2xl font-bold mb-2">{t('plans.starter.name')}</h3>
+                  <p className="text-muted-foreground mb-4">{t('plans.starter.description')}</p>
+                  <p className="text-4xl font-bold mb-4">{t('plans.starter.price')}</p>
                   <Button className="w-full" variant="outline" asChild>
-                    <Link href={`/${params.locale}/signup`}>Začať zadarmo</Link>
+                    <Link href={`/${params.locale}/signup`}>{t('plans.starter.cta')}</Link>
                   </Button>
                 </CardContent>
               </Card>
               <Card className="border-2 border-primary shadow-lg">
                 <CardContent className="p-6">
                   <div className="bg-primary text-primary-foreground text-sm font-semibold px-3 py-1 rounded-full inline-block mb-2">
-                    Najpopulárnejšie
+                    {t('plans.pro.popular')}
                   </div>
-                  <h3 className="text-2xl font-bold mb-2">Professional</h3>
-                  <p className="text-muted-foreground mb-4">Pre rastúce firmy</p>
-                  <p className="text-4xl font-bold mb-4">€99<span className="text-lg text-muted-foreground">/mes</span></p>
+                  <h3 className="text-2xl font-bold mb-2">{t('plans.pro.name')}</h3>
+                  <p className="text-muted-foreground mb-4">{t('plans.pro.description')}</p>
+                  <p className="text-4xl font-bold mb-4">{t('plans.pro.price')}<span className="text-lg text-muted-foreground">{t('plans.pro.period')}</span></p>
                   <Button className="w-full" asChild>
-                    <Link href={`/${params.locale}/signup`}>Vyskúšať 14 dní zadarmo</Link>
+                    <Link href={`/${params.locale}/signup`}>{t('plans.pro.cta')}</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -201,20 +201,20 @@ export default function ForEmployersPage({ params }: { params: { locale: string 
       {/* CTA Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-4xl text-center">
-          <h2 className="text-4xl font-bold mb-6">Pripravení začať?</h2>
+          <h2 className="text-4xl font-bold mb-6">{t('cta.title')}</h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Pridajte sa k stovkám spoločností, ktoré už používajú JobSphere pre efektívnejší nábor.
+            {t('cta.subtitle')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="text-lg px-8" asChild>
               <Link href={`/${params.locale}/signup`}>
-                Vytvoriť účet zadarmo
+                {t('cta.create')}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
             <Button size="lg" variant="outline" className="text-lg px-8" asChild>
               <Link href={`/${params.locale}/login`}>
-                Už máte účet? Prihlásiť sa
+                {t('cta.login')}
               </Link>
             </Button>
           </div>
