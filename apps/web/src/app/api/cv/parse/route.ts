@@ -11,11 +11,8 @@ import { generateCVEmbeddings } from '@/lib/embeddings'
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Authenticate
+    // 1. Optional authentication - allow anonymous users
     const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // 2. Get raw text from body
     const { rawText } = await request.json()
@@ -27,23 +24,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Find or create Candidate record
-    let candidate = await prisma.candidate.findFirst({
-      where: { userId: session.user.id },
-    })
-
     // Get locale from accept-language header or default to 'en'
     const acceptLanguage = request.headers.get('accept-language')
     const locale = acceptLanguage?.split(',')[0]?.split('-')[0] || 'en'
-
-    if (!candidate) {
-      candidate = await prisma.candidate.create({
-        data: {
-          userId: session.user.id,
-          locale,
-        },
-      })
-    }
 
     // 4. Parse CV with Claude
     const apiKey = process.env.ANTHROPIC_API_KEY
@@ -60,105 +43,129 @@ export async function POST(request: NextRequest) {
       locale,
     })
 
-    // 5. Create Resume record with basic info from parsed CV
-    const resume = await prisma.resume.create({
-      data: {
-        candidateId: candidate.id,
-        language: locale,
-        summary: extractedCV.summary || null,
-      },
-    })
+    // 5. If user is logged in, save to database
+    if (session?.user?.id) {
+      // Find or create Candidate record
+      let candidate = await prisma.candidate.findFirst({
+        where: { userId: session.user.id },
+      })
 
-    // 6. Create ResumeSection records from extractedCV
-    const sections = []
+      if (!candidate) {
+        candidate = await prisma.candidate.create({
+          data: {
+            userId: session.user.id,
+            locale,
+          },
+        })
+      }
 
-    if (extractedCV.summary) {
-      sections.push({
+      // Create Resume record with basic info from parsed CV
+      const resume = await prisma.resume.create({
+        data: {
+          candidateId: candidate.id,
+          language: locale,
+          summary: extractedCV.summary || null,
+        },
+      })
+
+      // 6. Create ResumeSection records from extractedCV
+      const sections = []
+
+      if (extractedCV.summary) {
+        sections.push({
+          resumeId: resume.id,
+          kind: 'SUMMARY',
+          text: extractedCV.summary,
+          order: 1,
+        })
+      }
+
+      if (extractedCV.experiences && Array.isArray(extractedCV.experiences)) {
+        const experienceText = extractedCV.experiences
+          .map((exp: any) => {
+            const parts = []
+            if (exp.title) parts.push(exp.title)
+            if (exp.company) parts.push(exp.company)
+            if (exp.period) parts.push(exp.period)
+            if (exp.description) parts.push(exp.description)
+            return parts.join(' | ')
+          })
+          .join('\n\n')
+
+        if (experienceText) {
+          sections.push({
+            resumeId: resume.id,
+            kind: 'EXPERIENCE',
+            text: experienceText,
+            order: 2,
+          })
+        }
+      }
+
+      if (extractedCV.education && Array.isArray(extractedCV.education)) {
+        const educationText = extractedCV.education
+          .map((edu: any) => {
+            const parts = []
+            if (edu.degree) parts.push(edu.degree)
+            if (edu.institution) parts.push(edu.institution)
+            if (edu.year) parts.push(edu.year)
+            if (edu.field) parts.push(edu.field)
+            return parts.join(' | ')
+          })
+          .join('\n\n')
+
+        if (educationText) {
+          sections.push({
+            resumeId: resume.id,
+            kind: 'EDUCATION',
+            text: educationText,
+            order: 3,
+          })
+        }
+      }
+
+      if (extractedCV.skills && Array.isArray(extractedCV.skills)) {
+        const skillsText = extractedCV.skills.join(', ')
+
+        if (skillsText) {
+          sections.push({
+            resumeId: resume.id,
+            kind: 'SKILLS',
+            text: skillsText,
+            order: 4,
+          })
+        }
+      }
+
+      // Bulk create sections
+      if (sections.length > 0) {
+        await prisma.resumeSection.createMany({
+          data: sections,
+        })
+      }
+
+      // 7. Generate embeddings asynchronously (don't wait for completion)
+      if (sections.length > 0) {
+        generateCVEmbeddings(resume.id).catch((error) => {
+          console.error('Failed to generate embeddings:', error)
+          // Don't fail the request if embedding generation fails
+        })
+      }
+
+      return NextResponse.json({
         resumeId: resume.id,
-        kind: 'SUMMARY',
-        text: extractedCV.summary,
-        order: 1,
+        candidateId: candidate.id,
+        success: true,
+        parsed: extractedCV,
+        sectionsCreated: sections.length,
       })
     }
 
-    if (extractedCV.experiences && Array.isArray(extractedCV.experiences)) {
-      const experienceText = extractedCV.experiences
-        .map((exp: any) => {
-          const parts = []
-          if (exp.title) parts.push(exp.title)
-          if (exp.company) parts.push(exp.company)
-          if (exp.period) parts.push(exp.period)
-          if (exp.description) parts.push(exp.description)
-          return parts.join(' | ')
-        })
-        .join('\n\n')
-
-      if (experienceText) {
-        sections.push({
-          resumeId: resume.id,
-          kind: 'EXPERIENCE',
-          text: experienceText,
-          order: 2,
-        })
-      }
-    }
-
-    if (extractedCV.education && Array.isArray(extractedCV.education)) {
-      const educationText = extractedCV.education
-        .map((edu: any) => {
-          const parts = []
-          if (edu.degree) parts.push(edu.degree)
-          if (edu.institution) parts.push(edu.institution)
-          if (edu.year) parts.push(edu.year)
-          if (edu.field) parts.push(edu.field)
-          return parts.join(' | ')
-        })
-        .join('\n\n')
-
-      if (educationText) {
-        sections.push({
-          resumeId: resume.id,
-          kind: 'EDUCATION',
-          text: educationText,
-          order: 3,
-        })
-      }
-    }
-
-    if (extractedCV.skills && Array.isArray(extractedCV.skills)) {
-      const skillsText = extractedCV.skills.join(', ')
-
-      if (skillsText) {
-        sections.push({
-          resumeId: resume.id,
-          kind: 'SKILLS',
-          text: skillsText,
-          order: 4,
-        })
-      }
-    }
-
-    // Bulk create sections
-    if (sections.length > 0) {
-      await prisma.resumeSection.createMany({
-        data: sections,
-      })
-    }
-
-    // 7. Generate embeddings asynchronously (don't wait for completion)
-    if (sections.length > 0) {
-      generateCVEmbeddings(resume.id).catch((error) => {
-        console.error('Failed to generate embeddings:', error)
-        // Don't fail the request if embedding generation fails
-      })
-    }
-
+    // 6. For anonymous users, just return parsed data (don't save to DB)
     return NextResponse.json({
-      resumeId: resume.id,
-      candidateId: candidate.id,
       success: true,
-      parsed: extractedCV, // Return parsed data to client
-      sectionsCreated: sections.length,
+      parsed: extractedCV,
+      anonymous: true,
     })
 
   } catch (error) {

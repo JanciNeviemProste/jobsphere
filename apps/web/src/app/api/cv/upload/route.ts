@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
-import { requireAuth } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 import { withRateLimit } from '@/lib/rate-limit'
 import mammoth from 'mammoth'
 
@@ -41,12 +41,9 @@ async function extractTextFromDOCX(buffer: ArrayBuffer): Promise<string> {
 export const POST = withRateLimit(
   async (request: NextRequest) => {
     try {
-      // 1. Authenticate
-      const session = await requireAuth()
-
-      if (!session.user?.id) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-      }
+      // 1. Optional authentication - works for both logged in and anonymous users
+      const session = await auth()
+      const userId = session?.user?.id || 'anonymous'
 
       // 2. Get file from form data
       const formData = await request.formData()
@@ -66,8 +63,13 @@ export const POST = withRateLimit(
         return NextResponse.json({ error: 'File too large' }, { status: 400 })
       }
 
-      // 4. Upload to Vercel Blob
-      const blob = await put(`cvs/${session.user.id}/${file.name}`, file, {
+      // 4. Upload to Vercel Blob (use timestamp for anonymous users)
+      const timestamp = Date.now()
+      const blobPath = session?.user?.id
+        ? `cvs/${session.user.id}/${file.name}`
+        : `cvs/anonymous/${timestamp}-${file.name}`
+
+      const blob = await put(blobPath, file, {
         access: 'public',
         addRandomSuffix: true,
       })
