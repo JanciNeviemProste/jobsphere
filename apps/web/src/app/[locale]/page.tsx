@@ -112,7 +112,7 @@ export default function HomePage({ params }: { params: { locale: string } }) {
               <Button size="lg" className="px-8 py-6 text-lg font-medium" asChild>
                 <Link href={`/${locale}/jobs`}>{t('hero.ctaPrimary')}</Link>
               </Button>
-              <Button size="lg" variant="outline" className="px-8 py-6 text-lg font-medium border-2 border-white text-white hover:bg-white hover:text-primary" asChild>
+              <Button size="lg" variant="outline" className="px-8 py-6 text-lg font-medium border-2 border-white text-white bg-white/10 hover:bg-white hover:text-primary transition-all" asChild>
                 <Link href={`/${locale}/for-employers`}>{t('hero.ctaSecondary')}</Link>
               </Button>
             </div>
