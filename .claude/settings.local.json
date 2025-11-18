@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn build)",
+      "Bash(npx tsc:*)",
+      "Bash(node --check:*)",
+      "Bash(git init:*)",
+      "Bash(git config:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git pull:*)",
+      "Bash(git push:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

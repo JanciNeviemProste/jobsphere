@@ -1,0 +1,114 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  quality-checks:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Type check
+        run: |
+          cd apps/web
+          yarn typecheck
+
+      - name: Lint
+        run: |
+          cd apps/web
+          yarn lint
+
+      - name: Run tests
+        run: |
+          cd apps/web
+          yarn test:run
+
+      - name: Check test coverage
+        run: |
+          cd apps/web
+          yarn test:coverage
+        continue-on-error: true
+
+      - name: Build
+        run: |
+          cd apps/web
+          yarn build
+        env:
+          DATABASE_URL: "postgresql://placeholder"
+          NEXTAUTH_SECRET: "test-secret"
+          NEXTAUTH_URL: "http://localhost:3000"
+          REDIS_URL: "redis://localhost:6379"
+          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+          NEXT_PUBLIC_API_URL: "http://localhost:3000/api"
+          ANTHROPIC_API_KEY: "test-key"
+          OPENAI_API_KEY: "test-key"
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: quality-checks
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install Playwright
+        run: |
+          cd apps/web
+          yarn playwright install chromium
+
+      - name: Run E2E tests
+        run: |
+          cd apps/web
+          yarn test:e2e
+        env:
+          DATABASE_URL: "postgresql://placeholder"
+          NEXTAUTH_SECRET: "test-secret"
+          NEXTAUTH_URL: "http://localhost:3000"
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'

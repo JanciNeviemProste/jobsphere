@@ -1,0 +1,59 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+.nyc_output
+playwright-report
+test-results
+
+# Build outputs
+dist
+build
+.next
+out
+
+# Local env files
+.env
+.env.local
+.env.*.local
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+.turbo
+
+# Docker
+Dockerfile
+.dockerignore
+docker
+docker-compose.yml
+
+# Documentation
+docs
+README.md
+*.md
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Temporary files
+temp
+tmp
+uploads

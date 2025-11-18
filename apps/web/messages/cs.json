@@ -1,0 +1,512 @@
+{
+  "metadata": {
+    "siteName": "JobSphere",
+    "description": "AI-powered HR ATS a Job Board platforma",
+    "keywords": "práce, zaměstnání, nábor, ATS, job board"
+  },
+  "nav": {
+    "home": "Domů",
+    "jobs": "Nabídky",
+    "forEmployers": "Pro zaměstnavatele",
+    "pricing": "Ceník",
+    "login": "Přihlásit se",
+    "signup": "Registrovat se"
+  },
+  "hero": {
+    "title": "Najděte svou vysněnou práci s AI",
+    "subtitle": "Spojte se s předními zaměstnavateli v Evropě. Naše AI platforma vás spáruje s dokonalými příležitostmi.",
+    "ctaPrimary": "Procházet nabídky",
+    "ctaSecondary": "Pro zaměstnavatele"
+  },
+  "features": {
+    "title": "Proč JobSphere",
+    "subtitle": "Nejmodernější náborová platforma v Evropě",
+    "aiMatching": {
+      "title": "AI Párování",
+      "description": "Naše inteligentní algoritmy najdou perfektní shodu mezi kandidáty a prací"
+    },
+    "multiLingual": {
+      "title": "Vícejazyčná podpora",
+      "description": "Dostupné v angličtině, němčině, češtině, slovenštině a polštině"
+    },
+    "smartCV": {
+      "title": "Inteligentní CV Builder",
+      "description": "Vytvořte profesionální CV s AI asistencí během minut"
+    },
+    "assessments": {
+      "title": "Testování dovedností",
+      "description": "Validujte kandidáty s přizpůsobitelnými technickými a soft skills testy"
+    },
+    "emailAutomation": {
+      "title": "Email Automatizace",
+      "description": "Zjednodušte komunikaci s automatizovanými email sekvencemi"
+    },
+    "analytics": {
+      "title": "Pokročilé Analytiky",
+      "description": "Rozhodujte se na základě dat s komplexními náborovými statistikami"
+    }
+  },
+  "jobs": {
+    "title": "Nejnovější pracovní příležitosti",
+    "viewAll": "Zobrazit všechny nabídky",
+    "remote": "Na dálku",
+    "hybrid": "Hybridní",
+    "onsite": "V kanceláři",
+    "fullTime": "Plný úvazek",
+    "partTime": "Částečný úvazek",
+    "contract": "Kontrakt"
+  },
+  "auth": {
+    "login": {
+      "title": "Vítejte zpět",
+      "subtitle": "Přihlaste se ke svému účtu",
+      "email": "Email",
+      "password": "Heslo",
+      "rememberMe": "Zapamatovat si mě",
+      "forgotPassword": "Zapomněli jste heslo?",
+      "submit": "Přihlásit se",
+      "noAccount": "Nemáte účet?",
+      "signupLink": "Registrovat se",
+      "orContinueWith": "Nebo pokračovat s",
+      "google": "Google"
+    },
+    "signup": {
+      "title": "Vytvořit účet",
+      "subtitle": "Začněte s JobSphere ještě dnes",
+      "name": "Celé jméno",
+      "email": "Email",
+      "password": "Heslo",
+      "confirmPassword": "Potvrdit heslo",
+      "terms": "Souhlasím s Podmínkami a Zásadami ochrany osobních údajů",
+      "submit": "Vytvořit účet",
+      "hasAccount": "Už máte účet?",
+      "loginLink": "Přihlásit se"
+    }
+  },
+  "footer": {
+    "tagline": "AI-powered nábor pro moderní svět",
+    "forCandidates": "Pro Kandidáty",
+    "browseJobs": "Procházet nabídky",
+    "createCV": "Vytvořit CV",
+    "careerAdvice": "Kariérní poradenství",
+    "forEmployers": "Pro Zaměstnavatele",
+    "postJob": "Vložit nabídku",
+    "pricing": "Ceník",
+    "atsFeatures": "ATS Funkce",
+    "company": "Společnost",
+    "about": "O nás",
+    "contact": "Kontakt",
+    "blog": "Blog",
+    "legal": "Právní informace",
+    "privacy": "Zásady ochrany osobních údajů",
+    "terms": "Podmínky používání",
+    "gdpr": "GDPR Shoda",
+    "allRightsReserved": "Všechna práva vyhrazena."
+  },
+  "page": {
+    "cta": {
+      "title": "Připraveni začít?",
+      "subtitle": "Připojte se k tisícům společností a kandidátů používajících JobSphere"
+    },
+    "or": "Nebo pokračovat s emailem"
+  },
+  "jobs": {
+    "title": "Nejnovější pracovní příležitosti",
+    "viewAll": "Zobrazit všechny nabídky",
+    "viewDetails": "Zobrazit detail",
+    "remote": "Na dálku",
+    "hybrid": "Hybridní",
+    "onsite": "V kanceláři",
+    "fullTime": "Plný úvazek",
+    "partTime": "Částečný úvazek",
+    "contract": "Kontrakt",
+    "searchPlaceholder": "Hledat podle pozice, firmy nebo lokality...",
+    "workMode": "Pracovní režim",
+    "jobType": "Typ úvazku",
+    "seniority": "Seniority",
+    "seniorityLevel": "Úroveň seniorita",
+    "perMonth": "měsíc",
+    "viewDetail": "Zobrazit detail",
+    "noResults": "Nenašly se žádné nabídky odpovídající vašim kritériím.",
+    "resetFilters": "Resetovat filtry",
+    "found": "nalezených",
+    "offer": "nabídka",
+    "offers": "nabídek",
+    "postedAt": "Přidáno"
+  },
+  "dashboard": {
+    "welcome": "Vítejte zpět",
+    "overview": "Zde je přehled vašich pracovních příležitostí",
+    "totalApplications": "Celkem přihlášek",
+    "pending": "Čeká se",
+    "inProcess": "V procesu",
+    "accepted": "Přijato",
+    "myApplications": "Moje přihlášky",
+    "allApplications": "Všechny vaše odeslané přihlášky",
+    "searchJobs": "Hledat práci",
+    "appliedOn": "Přihlášeno",
+    "detail": "Detail",
+    "noApplications": "Zatím nemáte žádné přihlášky",
+    "browseOffers": "Procházet nabídky",
+    "profile": "Profil",
+    "completeProfile": "Dokončete svůj profil pro lepší návrhy",
+    "completion": "Dokončení profilu",
+    "recommended": "Doporučené pro vás",
+    "aiSuggestions": "AI návrhy na základě vašeho profilu",
+    "basicInfo": "Základní informace",
+    "cvUploaded": "CV nahráno",
+    "skillsExperience": "Dovednosti a zkušenosti",
+    "workPreferences": "Preference práce",
+    "finishProfile": "Dokončit profil",
+    "match": "shoda"
+  },
+  "employer": {
+    "dashboard": "ATS Dashboard",
+    "manage": "Spravujte vaše pracovní nabídky a kandidáty",
+    "newPosition": "Nová pozice",
+    "activePositions": "Aktivní pozice",
+    "totalApplications": "Celkem přihlášek",
+    "newApplications": "Nové přihlášky",
+    "totalPositions": "Celkem pozic",
+    "positions": "Pracovní pozice",
+    "published": "Vaše zveřejněné nabídky práce",
+    "applications": "přihlášek",
+    "created": "Vytvořeno",
+    "view": "Zobrazit",
+    "noPositions": "Zatím nemáte žádné pracovní nabídky",
+    "createFirst": "Vytvořit první pozici",
+    "recent": "Nedávné přihlášky",
+    "lastApplied": "Poslední přihlášení kandidáti",
+    "viewAll": "Zobrazit vše",
+    "applied": "Přihlášen",
+    "quickActions": "Rychlé akce",
+    "createNew": "Vytvořit novou pozici",
+    "viewAllCandidates": "Zobrazit všechny kandidáty",
+    "companySettings": "Nastavení společnosti",
+    "tips": "Tipy pro lepší nábor",
+    "useAI": "Použijte AI matching",
+    "aiDesc": "Naše AI automaticky vyhodnotí kandidáty a přiřadí jim skóre shody",
+    "detailedDesc": "Podrobný popis pozice",
+    "descHelp": "Přesné popisy pozic přitahují kvalitnější kandidáty",
+    "quickResponse": "Rychlá reakce",
+    "responseHelp": "Kandidáti oceňují rychlou zpětnou vazbu po podání přihlášky",
+    "accessDenied": "Přístup odepřen",
+    "noAccess": "Nemáte přístup k employer dashboardu. Vytvořte si organizaci nebo se připojte k existující.",
+    "backToDashboard": "Zpět na dashboard"
+  },
+  "common": {
+    "status": {
+      "pending": "Čeká se",
+      "reviewing": "Prověřuje se",
+      "accepted": "Přijato",
+      "rejected": "Zamítnuto",
+      "active": "Aktivní",
+      "draft": "Koncept",
+      "closed": "Uzavřeno",
+      "new": "Nový",
+      "interviewed": "Interview"
+    }
+  },
+  "forEmployers": {
+    "hero": {
+      "title": "Najděte nejlepší kandidáty rychleji",
+      "subtitle": "JobSphere je moderní ATS systém, který vám pomůže efektivně spravovat náborový proces a najít ty správné lidi pro váš tým.",
+      "cta": {
+        "start": "Začít zdarma",
+        "pricing": "Zobrazit ceny"
+      },
+      "stats": {
+        "candidates": "234 aktivních kandidátů",
+        "today": "Dnes přibylo +12",
+        "aiMatch": "92% AI match score",
+        "position": "Senior React Developer",
+        "avgTime": "3.2 dní průměrný čas",
+        "process": "Od přihlášky po interview"
+      }
+    },
+    "whyUs": {
+      "title": "Proč zvolit JobSphere?",
+      "subtitle": "Vše, co potřebujete pro efektivní nábor na jednom místě"
+    },
+    "features": {
+      "findCandidates": {
+        "title": "Najděte ty správné kandidáty",
+        "description": "Přístup k tisícům kvalifikovaných profesionálů hledajících nové příležitosti."
+      },
+      "aiMatching": {
+        "title": "AI-Powered Matching",
+        "description": "Naše AI technologie automaticky vyhodnotí a přiřadí nejlepší kandidáty k vašim pozicím."
+      },
+      "fastRecruitment": {
+        "title": "Rychlý nábor",
+        "description": "Zrychlete proces náboru s našimi automatizovanými nástroji a workflow."
+      },
+      "analytics": {
+        "title": "Přehledné statistiky",
+        "description": "Sledujte výkonnost vašich inzerátů a optimalizujte náborový proces."
+      },
+      "saveTime": {
+        "title": "Ušetřete čas",
+        "description": "Automatizace rutinních úkolů vám ušetří hodiny času každý týden."
+      },
+      "secure": {
+        "title": "Bezpečné a spolehlivé",
+        "description": "Enterprise-level bezpečnost pro ochranu vašich dat a kandidátů."
+      }
+    },
+    "benefits": {
+      "title": "Kompletní ATS systém",
+      "subtitle": "Všechny funkce, které potřebujete pro efektivní řízení náborového procesu od začátku až po úspěšné přijetí kandidáta.",
+      "list": {
+        "unlimited": "Neomezený počet aktivních pozic",
+        "aiEvaluation": "AI vyhodnocení kandidátů",
+        "database": "Přístup k databázi kandidátů",
+        "workflow": "Vlastní náborové workflow",
+        "collaboration": "Nástroje pro týmovou spolupráci",
+        "analytics": "Pokročilá analytika a reporty",
+        "integrations": "Integrace s HR systémy",
+        "support": "Prioritní zákaznická podpora"
+      }
+    },
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "description": "Pro malé týmy",
+        "price": "Free",
+        "cta": "Začít zdarma"
+      },
+      "pro": {
+        "name": "Professional",
+        "description": "Pro rostoucí firmy",
+        "price": "€99",
+        "period": "/měsíc",
+        "cta": "Vyzkoušet 14 dní zdarma",
+        "popular": "Nejoblíbenější"
+      }
+    },
+    "cta": {
+      "title": "Připraveni začít?",
+      "subtitle": "Připojte se ke stovkám společností, které již používají JobSphere pro efektivnější nábor.",
+      "create": "Vytvořit účet zdarma",
+      "login": "Už máte účet? Přihlásit se"
+    }
+  },
+  "pricing": {
+    "title": "Ceník",
+    "subtitle": "Vyberte si plán, který nejlépe vyhovuje vašim náborovým potřebám",
+    "popular": "Nejoblíbenější",
+    "loading": "Načítání...",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "price": "0",
+        "period": "měsíc",
+        "description": "Pro malé firmy a začátečníky",
+        "features": {
+          "positions": "1 aktivní pozice",
+          "aiMatching": "Základní AI matching",
+          "emailNotifications": "Emailové notifikace",
+          "visibility": "30 dní viditelnost",
+          "basicStats": "Základní statistiky"
+        },
+        "cta": "Začít zdarma"
+      },
+      "pro": {
+        "name": "Professional",
+        "price": "99",
+        "period": "měsíc",
+        "description": "Pro rostoucí společnosti",
+        "features": {
+          "positions": "10 aktivních pozic",
+          "advancedAi": "Pokročilé AI matching",
+          "unlimitedApplications": "Neomezené přihlášky",
+          "visibility": "60 dní viditelnost",
+          "advancedAnalytics": "Pokročilá analytika",
+          "cvParsing": "CV parsing s AI",
+          "emailTemplates": "Emailové šablony",
+          "prioritySupport": "Prioritní podpora"
+        },
+        "cta": "Vyzkoušet 14 dní zdarma"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Custom",
+        "description": "Pro velké organizace",
+        "features": {
+          "unlimitedPositions": "Neomezené pozice",
+          "customAi": "Vlastní AI model",
+          "accountManager": "Dedikovaný account manager",
+          "unlimitedVisibility": "Neomezená viditelnost",
+          "customIntegrations": "Custom integrace",
+          "apiAccess": "Advanced API přístup",
+          "whiteLabel": "White-label řešení",
+          "sla": "SLA 99.9%",
+          "customReporting": "Custom reporting"
+        },
+        "cta": "Kontaktovat prodej"
+      }
+    },
+    "comparison": {
+      "title": "Porovnání funkcí",
+      "subtitle": "Všechny plány obsahují základní funkce JobSphere",
+      "featureColumn": "Funkce",
+      "allPlansColumn": "Všechny plány",
+      "features": {
+        "multilingual": "Multilingvální podpora (5 jazyků)",
+        "mobileApp": "Mobilní aplikace",
+        "cvStorage": "Bezpečné úložiště CV",
+        "gdpr": "GDPR compliance",
+        "database": "Databáze kandidátů",
+        "support247": "24/7 technická podpora"
+      }
+    },
+    "faq": {
+      "title": "Často kladené otázky",
+      "q1": {
+        "question": "Mohu kdykoli změnit plán?",
+        "answer": "Ano, můžete kdykoli přejít na vyšší nebo nižší plán. Změny se projeví okamžitě."
+      },
+      "q2": {
+        "question": "Jak funguje 14denní zkušební doba?",
+        "answer": "Můžete vyzkoušet Professional plán 14 dní zdarma bez potřeby platební karty."
+      },
+      "q3": {
+        "question": "Jaké platební metody akceptujete?",
+        "answer": "Akceptujeme kreditní karty (Visa, Mastercard), bankovní převod a fakturu pro Enterprise klienty."
+      },
+      "q4": {
+        "question": "Je možné získat refund?",
+        "answer": "Ano, nabízíme 30denní záruku vrácení peněz bez udání důvodu."
+      }
+    },
+    "cta": {
+      "title": "Připraveni začít?",
+      "subtitle": "Připojte se ke stovkám společností, které nám důvěřují",
+      "startFree": "Začít zdarma",
+      "login": "Přihlásit se"
+    }
+  },
+  "createCV": {
+    "title": "Vytvořte svůj profesionální životopis",
+    "subtitle": "Vytvořte životopis s podporou AI během několika minut. Náš inteligentní tvůrce vám pomůže vytvořit profesionální životopis, který vyniká.",
+    "form": {
+      "personalInfo": {
+        "title": "Osobní informace",
+        "fullName": "Celé jméno",
+        "email": "Email",
+        "phone": "Telefon",
+        "location": "Lokalita",
+        "linkedin": "LinkedIn profil",
+        "website": "Web/Portfolio"
+      },
+      "experience": {
+        "title": "Pracovní zkušenosti",
+        "add": "Přidat zkušenost",
+        "company": "Společnost",
+        "position": "Pozice",
+        "period": "Období",
+        "description": "Popis",
+        "current": "Aktuálně zde pracuji"
+      },
+      "education": {
+        "title": "Vzdělání",
+        "add": "Přidat vzdělání",
+        "school": "Škola/Univerzita",
+        "degree": "Titul",
+        "field": "Obor studia",
+        "year": "Rok"
+      },
+      "skills": {
+        "title": "Dovednosti",
+        "add": "Přidat dovednost",
+        "skill": "Dovednost",
+        "level": "Úroveň"
+      },
+      "languages": {
+        "title": "Jazyky",
+        "add": "Přidat jazyk",
+        "language": "Jazyk",
+        "proficiency": "Úroveň znalosti"
+      }
+    },
+    "actions": {
+      "generate": "Vygenerovat životopis pomocí AI",
+      "preview": "Náhled",
+      "download": "Stáhnout PDF",
+      "save": "Uložit koncept"
+    },
+    "aiHelper": {
+      "title": "AI asistent",
+      "improve": "Vylepšit pomocí AI",
+      "generating": "Generování..."
+    },
+    "upload": {
+      "title": "Začněte nahráním existujícího CV",
+      "subtitle": "Naše AI automaticky extrahuje a vyplní všechny informace za vás",
+      "dragDrop": "Přetáhněte CV sem nebo klikněte pro výběr souboru",
+      "supportedFormats": "PDF, DOCX nebo TXT (max 10MB)",
+      "uploading": "Nahrávám soubor...",
+      "parsing": "Analyzuji s AI...",
+      "success": "CV úspěšně zpracováno!",
+      "error": "Nepodařilo se zpracovat CV. Zkuste znovu.",
+      "manual": "Nebo vyplnit ručně",
+      "uploadButton": "Nahrát CV"
+    }
+  },
+  "postJob": {
+    "title": "Zveřejnit nabídku práce",
+    "subtitle": "Najděte dokonalého kandidáta pro váš tým. Zveřejněte nabídku práce a oslovte tisíce kvalifikovaných profesionálů.",
+    "form": {
+      "basics": {
+        "title": "Informace o pozici",
+        "jobTitle": "Název pozice",
+        "company": "Společnost",
+        "location": "Lokalita",
+        "remote": "Režim práce",
+        "remoteOptions": {
+          "onsite": "Na místě",
+          "hybrid": "Hybridní",
+          "remote": "Plně na dálku"
+        },
+        "type": "Typ zaměstnání",
+        "typeOptions": {
+          "fullTime": "Plný úvazek",
+          "partTime": "Částečný úvazek",
+          "contract": "Kontrakt",
+          "internship": "Stáž"
+        }
+      },
+      "description": {
+        "title": "Popis pozice",
+        "description": "Popis",
+        "responsibilities": "Odpovědnosti",
+        "requirements": "Požadavky",
+        "niceToHave": "Výhodou"
+      },
+      "compensation": {
+        "title": "Odměna a benefity",
+        "salary": "Platové rozpětí",
+        "salaryMin": "Min",
+        "salaryMax": "Max",
+        "currency": "Měna",
+        "benefits": "Benefity"
+      },
+      "application": {
+        "title": "Nastavení přihlášek",
+        "email": "Email pro přihlášky",
+        "deadline": "Uzávěrka přihlášek",
+        "questions": "Výběrové otázky"
+      }
+    },
+    "actions": {
+      "preview": "Náhled",
+      "publish": "Zveřejnit nabídku",
+      "saveDraft": "Uložit jako koncept"
+    },
+    "aiHelper": {
+      "title": "AI asistent",
+      "improve": "Vylepšit popis",
+      "generating": "Generování..."
+    }
+  }
+}

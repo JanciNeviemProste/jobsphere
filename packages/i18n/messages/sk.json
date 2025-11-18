@@ -1,0 +1,167 @@
+{
+  "metadata": {
+    "siteName": "JobSphere",
+    "description": "HR ATS a pracovný portál poháňaný AI",
+    "keywords": "práca, nábor, recruitment, ATS, HR, AI"
+  },
+  "nav": {
+    "jobs": "Ponuky práce",
+    "candidates": "Kandidáti",
+    "applications": "Žiadosti",
+    "assessments": "Hodnotenia",
+    "emails": "E-maily",
+    "billing": "Fakturácia",
+    "settings": "Nastavenia"
+  },
+  "auth": {
+    "signIn": "Prihlásiť sa",
+    "signUp": "Registrovať sa",
+    "signOut": "Odhlásiť sa",
+    "email": "E-mail",
+    "password": "Heslo",
+    "forgotPassword": "Zabudli ste heslo?",
+    "rememberMe": "Zapamätať si ma",
+    "2fa": "Dvojfaktorová autentifikácia"
+  },
+  "job": {
+    "title": "Názov pozície",
+    "description": "Popis",
+    "requirements": "Požiadavky",
+    "benefits": "Benefity",
+    "location": "Lokalita",
+    "remote": "Na diaľku",
+    "hybrid": "Hybridne",
+    "salary": "Plat",
+    "employmentType": "Typ zamestnania",
+    "seniority": "Úroveň seniorit",
+    "applyNow": "Uchádzať sa",
+    "saveJob": "Uložiť ponuku",
+    "shareJob": "Zdieľať ponuku"
+  },
+  "application": {
+    "stage": {
+      "new": "Nová",
+      "screening": "Preverovanie",
+      "phone": "Telefonický pohovor",
+      "technical": "Technický pohovor",
+      "onsite": "Osobný pohovor",
+      "offer": "Ponuka",
+      "hired": "Prijatý",
+      "rejected": "Zamietnutý",
+      "withdrawn": "Stiahnutá"
+    },
+    "actions": {
+      "moveStage": "Presunúť do fázy",
+      "sendEmail": "Poslať e-mail",
+      "scheduleInterview": "Naplánovať pohovor",
+      "addNote": "Pridať poznámku",
+      "assignTo": "Priradiť",
+      "reject": "Zamietnuť",
+      "makeOffer": "Urobiť ponuku"
+    }
+  },
+  "candidate": {
+    "name": "Meno",
+    "email": "E-mail",
+    "phone": "Telefón",
+    "location": "Lokalita",
+    "resume": "Životopis",
+    "coverLetter": "Motivačný list",
+    "linkedIn": "LinkedIn",
+    "github": "GitHub",
+    "portfolio": "Portfólio",
+    "yearsOfExperience": "Roky skúseností",
+    "skills": "Zručnosti",
+    "languages": "Jazyky"
+  },
+  "email": {
+    "connect": "Pripojiť e-mail",
+    "compose": "Napísať",
+    "inbox": "Doručené",
+    "sent": "Odoslané",
+    "drafts": "Koncepty",
+    "templates": "Šablóny",
+    "sequences": "Sekvencie",
+    "subject": "Predmet",
+    "to": "Komu",
+    "cc": "Kópia",
+    "bcc": "Skrytá kópia",
+    "send": "Odoslať",
+    "schedule": "Naplánovať",
+    "attachments": "Prílohy"
+  },
+  "assessment": {
+    "create": "Vytvoriť hodnotenie",
+    "invite": "Poslať pozvánku",
+    "results": "Zobraziť výsledky",
+    "duration": "Trvanie",
+    "questions": "Otázky",
+    "passingScore": "Minimálne skóre",
+    "attempts": "Pokusy",
+    "score": "Skóre",
+    "startTest": "Začať test",
+    "submitTest": "Odoslať test",
+    "timeRemaining": "Zostávajúci čas"
+  },
+  "billing": {
+    "currentPlan": "Aktuálny plán",
+    "upgrade": "Vylepšiť",
+    "downgrade": "Znížiť",
+    "subscribe": "Predplatiť",
+    "cancel": "Zrušiť predplatné",
+    "invoices": "Faktúry",
+    "paymentMethod": "Spôsob platby",
+    "usage": "Používanie",
+    "plan": {
+      "starter": "Štartér",
+      "pro": "Profesionál",
+      "enterprise": "Podnik"
+    },
+    "features": {
+      "jobSlots": "Pracovné miesta",
+      "seats": "Tímové miesta",
+      "emailsPerMonth": "E-maily/mesiac",
+      "assessmentsPerMonth": "Hodnotenia/mesiac",
+      "sso": "Jednotné prihlásenie"
+    }
+  },
+  "common": {
+    "save": "Uložiť",
+    "cancel": "Zrušiť",
+    "delete": "Vymazať",
+    "edit": "Upraviť",
+    "create": "Vytvoriť",
+    "search": "Hľadať",
+    "filter": "Filtrovať",
+    "export": "Exportovať",
+    "import": "Importovať",
+    "loading": "Načítava sa...",
+    "noResults": "Nenašli sa žiadne výsledky",
+    "error": "Nastala chyba",
+    "success": "Úspech",
+    "confirm": "Potvrdiť",
+    "actions": "Akcie",
+    "status": "Stav",
+    "date": "Dátum",
+    "time": "Čas",
+    "all": "Všetko"
+  },
+  "match": {
+    "percent": "Zhoda %",
+    "explain": "Vysvetliť zhodu",
+    "skills": "Zhodné zručnosti",
+    "experience": "Zhoda skúseností",
+    "education": "Zhoda vzdelania",
+    "location": "Zhoda lokality",
+    "requirements": "Zhoda požiadaviek"
+  },
+  "cta": {
+    "createCv": "Vytvoriť životopis",
+    "uploadCv": "Nahrať životopis",
+    "editCv": "Upraviť životopis",
+    "exportCv": "Exportovať životopis",
+    "findJobs": "Nájsť prácu",
+    "postJob": "Zverejniť ponuku",
+    "viewApplications": "Zobraziť žiadosti"
+  }
+}

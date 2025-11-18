@@ -1,0 +1,512 @@
+{
+  "metadata": {
+    "siteName": "JobSphere",
+    "description": "AI-powered HR ATS i platforma Job Board",
+    "keywords": "praca, zatrudnienie, rekrutacja, ATS, job board"
+  },
+  "nav": {
+    "home": "Strona główna",
+    "jobs": "Oferty pracy",
+    "forEmployers": "Dla pracodawców",
+    "pricing": "Cennik",
+    "login": "Zaloguj się",
+    "signup": "Zarejestruj się"
+  },
+  "hero": {
+    "title": "Znajdź wymarzoną pracę z AI",
+    "subtitle": "Połącz się z najlepszymi pracodawcami w Europie. Nasza platforma AI dopasuje Cię do idealnych możliwości.",
+    "ctaPrimary": "Przeglądaj oferty",
+    "ctaSecondary": "Dla pracodawców"
+  },
+  "features": {
+    "title": "Dlaczego JobSphere",
+    "subtitle": "Najnowocześniejsza platforma rekrutacyjna w Europie",
+    "aiMatching": {
+      "title": "Dopasowanie AI",
+      "description": "Nasze inteligentne algorytmy znajdują idealne dopasowanie między kandydatami a pracą"
+    },
+    "multiLingual": {
+      "title": "Wsparcie wielojęzyczne",
+      "description": "Dostępne w języku angielskim, niemieckim, czeskim, słowackim i polskim"
+    },
+    "smartCV": {
+      "title": "Inteligentny kreator CV",
+      "description": "Twórz profesjonalne CV z asystą AI w ciągu minut"
+    },
+    "assessments": {
+      "title": "Ocena umiejętności",
+      "description": "Waliduj kandydatów dzięki konfigurowalnym testom technicznym i miękkim umiejętnościom"
+    },
+    "emailAutomation": {
+      "title": "Automatyzacja e-mail",
+      "description": "Uprość komunikację dzięki automatycznym sekwencjom e-mail"
+    },
+    "analytics": {
+      "title": "Zaawansowana analityka",
+      "description": "Podejmuj decyzje oparte na danych dzięki kompleksowym informacjom rekrutacyjnym"
+    }
+  },
+  "jobs": {
+    "title": "Najnowsze oferty pracy",
+    "viewAll": "Pokaż wszystkie oferty",
+    "remote": "Praca zdalna",
+    "hybrid": "Hybrydowa",
+    "onsite": "Stacjonarna",
+    "fullTime": "Pełny etat",
+    "partTime": "Część etatu",
+    "contract": "Kontrakt"
+  },
+  "auth": {
+    "login": {
+      "title": "Witamy ponownie",
+      "subtitle": "Zaloguj się do swojego konta",
+      "email": "E-mail",
+      "password": "Hasło",
+      "rememberMe": "Zapamiętaj mnie",
+      "forgotPassword": "Zapomniałeś hasła?",
+      "submit": "Zaloguj się",
+      "noAccount": "Nie masz konta?",
+      "signupLink": "Zarejestruj się",
+      "orContinueWith": "Lub kontynuuj z",
+      "google": "Google"
+    },
+    "signup": {
+      "title": "Utwórz konto",
+      "subtitle": "Rozpocznij z JobSphere już dziś",
+      "name": "Pełne imię i nazwisko",
+      "email": "E-mail",
+      "password": "Hasło",
+      "confirmPassword": "Potwierdź hasło",
+      "terms": "Zgadzam się z Warunkami i Polityką Prywatności",
+      "submit": "Utwórz konto",
+      "hasAccount": "Masz już konto?",
+      "loginLink": "Zaloguj się"
+    }
+  },
+  "footer": {
+    "tagline": "Rekrutacja wspierana przez AI dla nowoczesnego świata",
+    "forCandidates": "Dla Kandydatów",
+    "browseJobs": "Przeglądaj oferty",
+    "createCV": "Utwórz CV",
+    "careerAdvice": "Poradnictwo kariery",
+    "forEmployers": "Dla Pracodawców",
+    "postJob": "Dodaj ofertę",
+    "pricing": "Cennik",
+    "atsFeatures": "Funkcje ATS",
+    "company": "Firma",
+    "about": "O nas",
+    "contact": "Kontakt",
+    "blog": "Blog",
+    "legal": "Informacje prawne",
+    "privacy": "Polityka prywatności",
+    "terms": "Warunki korzystania",
+    "gdpr": "Zgodność RODO",
+    "allRightsReserved": "Wszelkie prawa zastrzeżone."
+  },
+  "page": {
+    "cta": {
+      "title": "Gotowy, aby zacząć?",
+      "subtitle": "Dołącz do tysięcy firm i kandydatów korzystających z JobSphere"
+    },
+    "or": "Lub kontynuuj z e-mailem"
+  },
+  "jobs": {
+    "title": "Najnowsze oferty pracy",
+    "viewAll": "Pokaż wszystkie oferty",
+    "viewDetails": "Pokaż szczegóły",
+    "remote": "Praca zdalna",
+    "hybrid": "Hybrydowa",
+    "onsite": "Stacjonarna",
+    "fullTime": "Pełny etat",
+    "partTime": "Część etatu",
+    "contract": "Kontrakt",
+    "searchPlaceholder": "Szukaj według stanowiska, firmy lub lokalizacji...",
+    "workMode": "Tryb pracy",
+    "jobType": "Typ pracy",
+    "seniority": "Poziom stanowiska",
+    "seniorityLevel": "Poziom doświadczenia",
+    "perMonth": "miesięcznie",
+    "viewDetail": "Pokaż szczegóły",
+    "noResults": "Nie znaleziono ofert spełniających Twoje kryteria.",
+    "resetFilters": "Resetuj filtry",
+    "found": "znalezionych",
+    "offer": "oferta",
+    "offers": "ofert",
+    "postedAt": "Dodano"
+  },
+  "dashboard": {
+    "welcome": "Witamy ponownie",
+    "overview": "Oto przegląd Twoich możliwości pracy",
+    "totalApplications": "Wszystkie aplikacje",
+    "pending": "Oczekujące",
+    "inProcess": "W trakcie",
+    "accepted": "Zaakceptowane",
+    "myApplications": "Moje aplikacje",
+    "allApplications": "Wszystkie Twoje wysłane aplikacje",
+    "searchJobs": "Szukaj pracy",
+    "appliedOn": "Aplikowano",
+    "detail": "Szczegóły",
+    "noApplications": "Nie masz jeszcze żadnych aplikacji",
+    "browseOffers": "Przeglądaj oferty",
+    "profile": "Profil",
+    "completeProfile": "Uzupełnij swój profil, aby uzyskać lepsze sugestie",
+    "completion": "Ukończenie profilu",
+    "recommended": "Polecane dla Ciebie",
+    "aiSuggestions": "Sugestie AI oparte na Twoim profilu",
+    "basicInfo": "Podstawowe informacje",
+    "cvUploaded": "CV przesłane",
+    "skillsExperience": "Umiejętności i doświadczenie",
+    "workPreferences": "Preferencje pracy",
+    "finishProfile": "Ukończ profil",
+    "match": "dopasowanie"
+  },
+  "employer": {
+    "dashboard": "Panel ATS",
+    "manage": "Zarządzaj swoimi ofertami pracy i kandydatami",
+    "newPosition": "Nowe stanowisko",
+    "activePositions": "Aktywne stanowiska",
+    "totalApplications": "Wszystkie aplikacje",
+    "newApplications": "Nowe aplikacje",
+    "totalPositions": "Wszystkie stanowiska",
+    "positions": "Stanowiska pracy",
+    "published": "Twoje opublikowane oferty pracy",
+    "applications": "aplikacji",
+    "created": "Utworzono",
+    "view": "Pokaż",
+    "noPositions": "Nie masz jeszcze żadnych ofert pracy",
+    "createFirst": "Utwórz pierwsze stanowisko",
+    "recent": "Ostatnie aplikacje",
+    "lastApplied": "Ostatnio zgłoszeni kandydaci",
+    "viewAll": "Pokaż wszystkie",
+    "applied": "Aplikowano",
+    "quickActions": "Szybkie akcje",
+    "createNew": "Utwórz nowe stanowisko",
+    "viewAllCandidates": "Pokaż wszystkich kandydatów",
+    "companySettings": "Ustawienia firmy",
+    "tips": "Wskazówki dotyczące lepszego rekrutowania",
+    "useAI": "Użyj dopasowania AI",
+    "aiDesc": "Nasza sztuczna inteligencja automatycznie ocenia kandydatów i przypisuje im wyniki dopasowania",
+    "detailedDesc": "Szczegółowy opis stanowiska",
+    "descHelp": "Precyzyjne opisy stanowisk przyciągają kandydatów wyższej jakości",
+    "quickResponse": "Szybka odpowiedź",
+    "responseHelp": "Kandydaci doceniają szybką informację zwrotną po złożeniu aplikacji",
+    "accessDenied": "Brak dostępu",
+    "noAccess": "Nie masz dostępu do panelu pracodawcy. Utwórz organizację lub dołącz do istniejącej.",
+    "backToDashboard": "Powrót do panelu"
+  },
+  "common": {
+    "status": {
+      "pending": "Oczekujące",
+      "reviewing": "W trakcie przeglądu",
+      "accepted": "Zaakceptowane",
+      "rejected": "Odrzucone",
+      "active": "Aktywne",
+      "draft": "Szkic",
+      "closed": "Zamknięte",
+      "new": "Nowe",
+      "interviewed": "Po rozmowie"
+    }
+  },
+  "forEmployers": {
+    "hero": {
+      "title": "Znajdź najlepszych kandydatów szybciej",
+      "subtitle": "JobSphere to nowoczesny system ATS, który pomaga efektywnie zarządzać procesem rekrutacji i znaleźć odpowiednie osoby do Twojego zespołu.",
+      "cta": {
+        "start": "Rozpocznij za darmo",
+        "pricing": "Zobacz ceny"
+      },
+      "stats": {
+        "candidates": "234 aktywnych kandydatów",
+        "today": "Dzisiaj dodano +12",
+        "aiMatch": "92% AI match score",
+        "position": "Senior React Developer",
+        "avgTime": "3,2 dni średni czas",
+        "process": "Od aplikacji do rozmowy"
+      }
+    },
+    "whyUs": {
+      "title": "Dlaczego wybrać JobSphere?",
+      "subtitle": "Wszystko, czego potrzebujesz do efektywnej rekrutacji w jednym miejscu"
+    },
+    "features": {
+      "findCandidates": {
+        "title": "Znajdź odpowiednich kandydatów",
+        "description": "Dostęp do tysięcy wykwalifikowanych profesjonalistów poszukujących nowych możliwości."
+      },
+      "aiMatching": {
+        "title": "AI-Powered Matching",
+        "description": "Nasza technologia AI automatycznie ocenia i przypisuje najlepszych kandydatów do Twoich pozycji."
+      },
+      "fastRecruitment": {
+        "title": "Szybka rekrutacja",
+        "description": "Przyspiesz proces rekrutacji dzięki naszym zautomatyzowanym narzędziom i procesom."
+      },
+      "analytics": {
+        "title": "Przejrzyste statystyki",
+        "description": "Śledź wydajność swoich ogłoszeń i optymalizuj proces rekrutacji."
+      },
+      "saveTime": {
+        "title": "Oszczędź czas",
+        "description": "Automatyzacja rutynowych zadań oszczędza godziny czasu każdego tygodnia."
+      },
+      "secure": {
+        "title": "Bezpieczne i niezawodne",
+        "description": "Bezpieczeństwo na poziomie korporacyjnym dla ochrony Twoich danych i kandydatów."
+      }
+    },
+    "benefits": {
+      "title": "Kompletny system ATS",
+      "subtitle": "Wszystkie funkcje potrzebne do efektywnego zarządzania procesem rekrutacji od początku do pomyślnego zatrudnienia kandydata.",
+      "list": {
+        "unlimited": "Nieograniczona liczba aktywnych pozycji",
+        "aiEvaluation": "Ocena kandydatów przez AI",
+        "database": "Dostęp do bazy kandydatów",
+        "workflow": "Własne procesy rekrutacyjne",
+        "collaboration": "Narzędzia do współpracy zespołowej",
+        "analytics": "Zaawansowana analityka i raporty",
+        "integrations": "Integracje z systemami HR",
+        "support": "Priorytetowe wsparcie klienta"
+      }
+    },
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "description": "Dla małych zespołów",
+        "price": "Free",
+        "cta": "Rozpocznij za darmo"
+      },
+      "pro": {
+        "name": "Professional",
+        "description": "Dla rozwijających się firm",
+        "price": "€99",
+        "period": "/miesiąc",
+        "cta": "Wypróbuj 14 dni za darmo",
+        "popular": "Najpopularniejszy"
+      }
+    },
+    "cta": {
+      "title": "Gotowy, aby zacząć?",
+      "subtitle": "Dołącz do setek firm, które już wykorzystują JobSphere do bardziej efektywnej rekrutacji.",
+      "create": "Utwórz darmowe konto",
+      "login": "Masz już konto? Zaloguj się"
+    }
+  },
+  "pricing": {
+    "title": "Cennik",
+    "subtitle": "Wybierz plan, który najlepiej odpowiada Twoim potrzebom rekrutacyjnym",
+    "popular": "Najpopularniejszy",
+    "loading": "Ładowanie...",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "price": "0",
+        "period": "miesiąc",
+        "description": "Dla małych firm i początkujących",
+        "features": {
+          "positions": "1 aktywna pozycja",
+          "aiMatching": "Podstawowe dopasowanie AI",
+          "emailNotifications": "Powiadomienia e-mail",
+          "visibility": "30 dni widoczność",
+          "basicStats": "Podstawowe statystyki"
+        },
+        "cta": "Rozpocznij za darmo"
+      },
+      "pro": {
+        "name": "Professional",
+        "price": "99",
+        "period": "miesiąc",
+        "description": "Dla rozwijających się firm",
+        "features": {
+          "positions": "10 aktywnych pozycji",
+          "advancedAi": "Zaawansowane dopasowanie AI",
+          "unlimitedApplications": "Nieograniczone aplikacje",
+          "visibility": "60 dni widoczność",
+          "advancedAnalytics": "Zaawansowana analityka",
+          "cvParsing": "Parsowanie CV z AI",
+          "emailTemplates": "Szablony e-mail",
+          "prioritySupport": "Priorytetowe wsparcie"
+        },
+        "cta": "Wypróbuj 14 dni za darmo"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Custom",
+        "description": "Dla dużych organizacji",
+        "features": {
+          "unlimitedPositions": "Nieograniczone pozycje",
+          "customAi": "Własny model AI",
+          "accountManager": "Dedykowany account manager",
+          "unlimitedVisibility": "Nieograniczona widoczność",
+          "customIntegrations": "Niestandardowe integracje",
+          "apiAccess": "Zaawansowany dostęp API",
+          "whiteLabel": "Rozwiązanie white-label",
+          "sla": "SLA 99.9%",
+          "customReporting": "Niestandardowe raporty"
+        },
+        "cta": "Skontaktuj się z działem sprzedaży"
+      }
+    },
+    "comparison": {
+      "title": "Porównanie funkcji",
+      "subtitle": "Wszystkie plany zawierają podstawowe funkcje JobSphere",
+      "featureColumn": "Funkcja",
+      "allPlansColumn": "Wszystkie plany",
+      "features": {
+        "multilingual": "Wsparcie wielojęzyczne (5 języków)",
+        "mobileApp": "Aplikacja mobilna",
+        "cvStorage": "Bezpieczne przechowywanie CV",
+        "gdpr": "Zgodność z RODO",
+        "database": "Baza kandydatów",
+        "support247": "24/7 wsparcie techniczne"
+      }
+    },
+    "faq": {
+      "title": "Najczęściej zadawane pytania",
+      "q1": {
+        "question": "Czy mogę zmienić plan w dowolnym momencie?",
+        "answer": "Tak, możesz w dowolnym momencie przejść na wyższy lub niższy plan. Zmiany są natychmiastowe."
+      },
+      "q2": {
+        "question": "Jak działa 14-dniowy okres próbny?",
+        "answer": "Możesz wypróbować plan Professional przez 14 dni za darmo bez potrzeby podawania karty płatniczej."
+      },
+      "q3": {
+        "question": "Jakie metody płatności akceptujecie?",
+        "answer": "Akceptujemy karty kredytowe (Visa, Mastercard), przelew bankowy i faktury dla klientów Enterprise."
+      },
+      "q4": {
+        "question": "Czy możliwy jest zwrot pieniędzy?",
+        "answer": "Tak, oferujemy 30-dniową gwarancję zwrotu pieniędzy bez podania przyczyny."
+      }
+    },
+    "cta": {
+      "title": "Gotowy, aby zacząć?",
+      "subtitle": "Dołącz do setek firm, które nam ufają",
+      "startFree": "Zacznij za darmo",
+      "login": "Zaloguj się"
+    }
+  },
+  "createCV": {
+    "title": "Stwórz swoje profesjonalne CV",
+    "subtitle": "Zbuduj CV wspierane przez AI w kilka minut. Nasz inteligentny kreator pomoże Ci stworzyć profesjonalne CV, które się wyróżnia.",
+    "form": {
+      "personalInfo": {
+        "title": "Informacje osobiste",
+        "fullName": "Imię i nazwisko",
+        "email": "Email",
+        "phone": "Telefon",
+        "location": "Lokalizacja",
+        "linkedin": "Profil LinkedIn",
+        "website": "Strona/Portfolio"
+      },
+      "experience": {
+        "title": "Doświadczenie zawodowe",
+        "add": "Dodaj doświadczenie",
+        "company": "Firma",
+        "position": "Stanowisko",
+        "period": "Okres",
+        "description": "Opis",
+        "current": "Obecnie tu pracuję"
+      },
+      "education": {
+        "title": "Wykształcenie",
+        "add": "Dodaj wykształcenie",
+        "school": "Szkoła/Uniwersytet",
+        "degree": "Stopień",
+        "field": "Kierunek studiów",
+        "year": "Rok"
+      },
+      "skills": {
+        "title": "Umiejętności",
+        "add": "Dodaj umiejętność",
+        "skill": "Umiejętność",
+        "level": "Poziom"
+      },
+      "languages": {
+        "title": "Języki",
+        "add": "Dodaj język",
+        "language": "Język",
+        "proficiency": "Biegłość"
+      }
+    },
+    "actions": {
+      "generate": "Wygeneruj CV za pomocą AI",
+      "preview": "Podgląd",
+      "download": "Pobierz PDF",
+      "save": "Zapisz szkic"
+    },
+    "aiHelper": {
+      "title": "Asystent AI",
+      "improve": "Ulepsz za pomocą AI",
+      "generating": "Generowanie..."
+    },
+    "upload": {
+      "title": "Zacznij od przesłania istniejącego CV",
+      "subtitle": "Nasza AI automatycznie wyodrębni i wypełni wszystkie informacje za Ciebie",
+      "dragDrop": "Przeciągnij CV tutaj lub kliknij, aby przeglądać",
+      "supportedFormats": "PDF, DOCX lub TXT (max 10MB)",
+      "uploading": "Przesyłanie pliku...",
+      "parsing": "Analizuję za pomocą AI...",
+      "success": "CV pomyślnie przetworzone!",
+      "error": "Nie udało się przetworzyć CV. Spróbuj ponownie.",
+      "manual": "Lub wypełnij ręcznie",
+      "uploadButton": "Prześlij CV"
+    }
+  },
+  "postJob": {
+    "title": "Dodaj ofertę pracy",
+    "subtitle": "Znajdź idealnego kandydata dla swojego zespołu. Opublikuj ofertę pracy i dotrzyj do tysięcy wykwalifikowanych profesjonalistów.",
+    "form": {
+      "basics": {
+        "title": "Szczegóły stanowiska",
+        "jobTitle": "Nazwa stanowiska",
+        "company": "Firma",
+        "location": "Lokalizacja",
+        "remote": "Tryb pracy",
+        "remoteOptions": {
+          "onsite": "Stacjonarnie",
+          "hybrid": "Hybrydowo",
+          "remote": "Całkowicie zdalnie"
+        },
+        "type": "Rodzaj zatrudnienia",
+        "typeOptions": {
+          "fullTime": "Pełny etat",
+          "partTime": "Część etatu",
+          "contract": "Kontrakt",
+          "internship": "Staż"
+        }
+      },
+      "description": {
+        "title": "Opis stanowiska",
+        "description": "Opis",
+        "responsibilities": "Obowiązki",
+        "requirements": "Wymagania",
+        "niceToHave": "Mile widziane"
+      },
+      "compensation": {
+        "title": "Wynagrodzenie i benefity",
+        "salary": "Widełki płacowe",
+        "salaryMin": "Min",
+        "salaryMax": "Max",
+        "currency": "Waluta",
+        "benefits": "Benefity"
+      },
+      "application": {
+        "title": "Ustawienia aplikacji",
+        "email": "Email do aplikacji",
+        "deadline": "Termin składania aplikacji",
+        "questions": "Pytania rekrutacyjne"
+      }
+    },
+    "actions": {
+      "preview": "Podgląd",
+      "publish": "Opublikuj ofertę",
+      "saveDraft": "Zapisz jako szkic"
+    },
+    "aiHelper": {
+      "title": "Asystent AI",
+      "improve": "Ulepsz opis",
+      "generating": "Generowanie..."
+    }
+  }
+}

@@ -1,0 +1,515 @@
+{
+  "metadata": {
+    "siteName": "JobSphere",
+    "description": "AI-powered HR ATS and Job Board Platform",
+    "keywords": "jobs, hiring, recruitment, ATS, job board"
+  },
+  "nav": {
+    "home": "Home",
+    "jobs": "Jobs",
+    "forEmployers": "For Employers",
+    "pricing": "Pricing",
+    "login": "Log in",
+    "signup": "Sign up"
+  },
+  "hero": {
+    "title": "Find Your Dream Job with AI",
+    "subtitle": "Connect with top employers across Europe. Our AI-powered platform matches you with the perfect opportunities.",
+    "ctaPrimary": "Browse Jobs",
+    "ctaSecondary": "For Employers"
+  },
+  "features": {
+    "title": "Why Choose JobSphere",
+    "subtitle": "The most advanced recruitment platform in Europe",
+    "aiMatching": {
+      "title": "AI-Powered Matching",
+      "description": "Our intelligent algorithms find the perfect match between candidates and jobs"
+    },
+    "multiLingual": {
+      "title": "Multilingual Support",
+      "description": "Available in English, German, Czech, Slovak, and Polish"
+    },
+    "smartCV": {
+      "title": "Smart CV Builder",
+      "description": "Create professional CVs with AI assistance in minutes"
+    },
+    "assessments": {
+      "title": "Skills Assessments",
+      "description": "Validate candidates with customizable technical and soft skills tests"
+    },
+    "emailAutomation": {
+      "title": "Email Automation",
+      "description": "Streamline communication with automated email sequences"
+    },
+    "analytics": {
+      "title": "Advanced Analytics",
+      "description": "Make data-driven decisions with comprehensive recruitment insights"
+    }
+  },
+  "jobs": {
+    "title": "Latest Job Opportunities",
+    "viewAll": "View All Jobs",
+    "remote": "Remote",
+    "hybrid": "Hybrid",
+    "onsite": "On-site",
+    "fullTime": "Full-time",
+    "partTime": "Part-time",
+    "contract": "Contract"
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to your account to continue",
+      "email": "Email",
+      "password": "Password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign in",
+      "noAccount": "Don't have an account?",
+      "signupLink": "Sign up",
+      "orContinueWith": "Or continue with",
+      "google": "Google",
+      "invalidCredentials": "Invalid email or password",
+      "error": "An error occurred. Please try again.",
+      "signingIn": "Signing in..."
+    },
+    "signup": {
+      "title": "Create an account",
+      "subtitle": "Get started with JobSphere today",
+      "name": "Full name",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm password",
+      "terms": "I agree to the Terms and Privacy Policy",
+      "submit": "Create account",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Sign in"
+    }
+  },
+  "footer": {
+    "tagline": "AI-powered recruitment for the modern world",
+    "forCandidates": "For Candidates",
+    "browseJobs": "Browse Jobs",
+    "createCV": "Create CV",
+    "careerAdvice": "Career Advice",
+    "forEmployers": "For Employers",
+    "postJob": "Post a Job",
+    "pricing": "Pricing",
+    "atsFeatures": "ATS Features",
+    "company": "Company",
+    "about": "About Us",
+    "contact": "Contact",
+    "blog": "Blog",
+    "legal": "Legal",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "gdpr": "GDPR Compliance",
+    "allRightsReserved": "All rights reserved."
+  },
+  "page": {
+    "cta": {
+      "title": "Ready to get started?",
+      "subtitle": "Join thousands of companies and candidates using JobSphere"
+    },
+    "or": "Or continue with email"
+  },
+  "jobs": {
+    "title": "Latest Job Opportunities",
+    "viewAll": "View All Jobs",
+    "viewDetails": "View Details",
+    "remote": "Remote",
+    "hybrid": "Hybrid",
+    "onsite": "On-site",
+    "fullTime": "Full-time",
+    "partTime": "Part-time",
+    "contract": "Contract",
+    "searchPlaceholder": "Search by position, company or location...",
+    "workMode": "Work Mode",
+    "jobType": "Job Type",
+    "seniority": "Seniority",
+    "seniorityLevel": "Seniority Level",
+    "perMonth": "per month",
+    "viewDetail": "View Details",
+    "noResults": "No jobs found matching your criteria.",
+    "resetFilters": "Reset filters",
+    "found": "found",
+    "offer": "offer",
+    "offers": "offers",
+    "postedAt": "Posted"
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "overview": "Here's an overview of your job opportunities",
+    "totalApplications": "Total Applications",
+    "pending": "Pending",
+    "inProcess": "In Process",
+    "accepted": "Accepted",
+    "myApplications": "My Applications",
+    "allApplications": "All your submitted applications",
+    "searchJobs": "Search Jobs",
+    "appliedOn": "Applied",
+    "detail": "Details",
+    "noApplications": "You don't have any applications yet",
+    "browseOffers": "Browse Offers",
+    "profile": "Profile",
+    "completeProfile": "Complete your profile for better suggestions",
+    "completion": "Profile Completion",
+    "recommended": "Recommended for you",
+    "aiSuggestions": "AI suggestions based on your profile",
+    "basicInfo": "Basic information",
+    "cvUploaded": "CV uploaded",
+    "skillsExperience": "Skills and experience",
+    "workPreferences": "Work preferences",
+    "finishProfile": "Finish Profile",
+    "match": "match"
+  },
+  "employer": {
+    "dashboard": "ATS Dashboard",
+    "manage": "Manage your job postings and candidates",
+    "newPosition": "New Position",
+    "activePositions": "Active Positions",
+    "totalApplications": "Total Applications",
+    "newApplications": "New Applications",
+    "totalPositions": "Total Positions",
+    "positions": "Job Positions",
+    "published": "Your published job offers",
+    "applications": "applications",
+    "created": "Created",
+    "view": "View",
+    "noPositions": "You don't have any job offers yet",
+    "createFirst": "Create first position",
+    "recent": "Recent Applications",
+    "lastApplied": "Recently applied candidates",
+    "viewAll": "View All",
+    "applied": "Applied",
+    "quickActions": "Quick Actions",
+    "createNew": "Create new position",
+    "viewAllCandidates": "View all candidates",
+    "companySettings": "Company Settings",
+    "tips": "Tips for better recruitment",
+    "useAI": "Use AI matching",
+    "aiDesc": "Our AI automatically evaluates candidates and assigns match scores",
+    "detailedDesc": "Detailed position description",
+    "descHelp": "Precise job descriptions attract higher quality candidates",
+    "quickResponse": "Quick response",
+    "responseHelp": "Candidates appreciate fast feedback after applying",
+    "accessDenied": "Access Denied",
+    "noAccess": "You don't have access to employer dashboard. Create an organization or join an existing one.",
+    "backToDashboard": "Back to dashboard"
+  },
+  "common": {
+    "status": {
+      "pending": "Pending",
+      "reviewing": "Reviewing",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "active": "Active",
+      "draft": "Draft",
+      "closed": "Closed",
+      "new": "New",
+      "interviewed": "Interviewed"
+    }
+  },
+  "forEmployers": {
+    "hero": {
+      "title": "Find the best candidates faster",
+      "subtitle": "JobSphere is a modern ATS system that helps you efficiently manage the recruitment process and find the right people for your team.",
+      "cta": {
+        "start": "Start for free",
+        "pricing": "View pricing"
+      },
+      "stats": {
+        "candidates": "234 active candidates",
+        "today": "Added today +12",
+        "aiMatch": "92% AI match score",
+        "position": "Senior React Developer",
+        "avgTime": "3.2 days average time",
+        "process": "From application to interview"
+      }
+    },
+    "whyUs": {
+      "title": "Why choose JobSphere?",
+      "subtitle": "Everything you need for efficient recruitment in one place"
+    },
+    "features": {
+      "findCandidates": {
+        "title": "Find the right candidates",
+        "description": "Access thousands of qualified professionals looking for new opportunities."
+      },
+      "aiMatching": {
+        "title": "AI-Powered Matching",
+        "description": "Our AI technology automatically evaluates and assigns the best candidates to your positions."
+      },
+      "fastRecruitment": {
+        "title": "Fast recruitment",
+        "description": "Speed up the recruitment process with our automated tools and workflows."
+      },
+      "analytics": {
+        "title": "Clear statistics",
+        "description": "Track the performance of your job postings and optimize the recruitment process."
+      },
+      "saveTime": {
+        "title": "Save time",
+        "description": "Automation of routine tasks saves you hours of time every week."
+      },
+      "secure": {
+        "title": "Secure and reliable",
+        "description": "Enterprise-level security to protect your data and candidates."
+      }
+    },
+    "benefits": {
+      "title": "Complete ATS system",
+      "subtitle": "All the features you need to effectively manage the recruitment process from start to successful candidate acceptance.",
+      "list": {
+        "unlimited": "Unlimited number of active positions",
+        "aiEvaluation": "AI candidate evaluation",
+        "database": "Access to candidate database",
+        "workflow": "Custom recruitment workflows",
+        "collaboration": "Team collaboration tools",
+        "analytics": "Advanced analytics and reports",
+        "integrations": "Integrations with HR systems",
+        "support": "Priority customer support"
+      }
+    },
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "description": "For small teams",
+        "price": "Free",
+        "cta": "Start for free"
+      },
+      "pro": {
+        "name": "Professional",
+        "description": "For growing companies",
+        "price": "€99",
+        "period": "/month",
+        "cta": "Try 14 days free",
+        "popular": "Most popular"
+      }
+    },
+    "cta": {
+      "title": "Ready to get started?",
+      "subtitle": "Join hundreds of companies already using JobSphere for more efficient recruitment.",
+      "create": "Create free account",
+      "login": "Already have an account? Sign in"
+    }
+  },
+  "pricing": {
+    "title": "Pricing",
+    "subtitle": "Choose the plan that best suits your recruitment needs",
+    "popular": "Most popular",
+    "loading": "Loading...",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "price": "0",
+        "period": "month",
+        "description": "For small companies and beginners",
+        "features": {
+          "positions": "1 active position",
+          "aiMatching": "Basic AI matching",
+          "emailNotifications": "Email notifications",
+          "visibility": "30 days visibility",
+          "basicStats": "Basic statistics"
+        },
+        "cta": "Start for free"
+      },
+      "pro": {
+        "name": "Professional",
+        "price": "99",
+        "period": "month",
+        "description": "For growing companies",
+        "features": {
+          "positions": "10 active positions",
+          "advancedAi": "Advanced AI matching",
+          "unlimitedApplications": "Unlimited applications",
+          "visibility": "60 days visibility",
+          "advancedAnalytics": "Advanced analytics",
+          "cvParsing": "AI CV parsing",
+          "emailTemplates": "Email templates",
+          "prioritySupport": "Priority support"
+        },
+        "cta": "Try 14 days free"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Custom",
+        "description": "For large organizations",
+        "features": {
+          "unlimitedPositions": "Unlimited positions",
+          "customAi": "Custom AI model",
+          "accountManager": "Dedicated account manager",
+          "unlimitedVisibility": "Unlimited visibility",
+          "customIntegrations": "Custom integrations",
+          "apiAccess": "Advanced API access",
+          "whiteLabel": "White-label solution",
+          "sla": "SLA 99.9%",
+          "customReporting": "Custom reporting"
+        },
+        "cta": "Contact sales"
+      }
+    },
+    "comparison": {
+      "title": "Feature comparison",
+      "subtitle": "All plans include basic JobSphere features",
+      "featureColumn": "Feature",
+      "allPlansColumn": "All plans",
+      "features": {
+        "multilingual": "Multilingual support (5 languages)",
+        "mobileApp": "Mobile app",
+        "cvStorage": "Secure CV storage",
+        "gdpr": "GDPR compliance",
+        "database": "Candidate database",
+        "support247": "24/7 technical support"
+      }
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "q1": {
+        "question": "Can I change my plan anytime?",
+        "answer": "Yes, you can upgrade or downgrade at any time. Changes take effect immediately."
+      },
+      "q2": {
+        "question": "How does the 14-day trial work?",
+        "answer": "You can try the Professional plan for 14 days free without a credit card."
+      },
+      "q3": {
+        "question": "What payment methods do you accept?",
+        "answer": "We accept credit cards (Visa, Mastercard), bank transfer and invoice for Enterprise clients."
+      },
+      "q4": {
+        "question": "Is refund possible?",
+        "answer": "Yes, we offer a 30-day money-back guarantee without any reason."
+      }
+    },
+    "cta": {
+      "title": "Ready to get started?",
+      "subtitle": "Join hundreds of companies that trust us",
+      "startFree": "Start for free",
+      "login": "Sign in"
+    }
+  },
+  "createCV": {
+    "title": "Create Your Professional CV",
+    "subtitle": "Build an AI-powered CV in minutes. Our smart builder helps you create a professional resume that stands out.",
+    "form": {
+      "personalInfo": {
+        "title": "Personal Information",
+        "fullName": "Full Name",
+        "email": "Email",
+        "phone": "Phone",
+        "location": "Location",
+        "linkedin": "LinkedIn Profile",
+        "website": "Website/Portfolio"
+      },
+      "experience": {
+        "title": "Work Experience",
+        "add": "Add Experience",
+        "company": "Company",
+        "position": "Position",
+        "period": "Period",
+        "description": "Description",
+        "current": "I currently work here"
+      },
+      "education": {
+        "title": "Education",
+        "add": "Add Education",
+        "school": "School/University",
+        "degree": "Degree",
+        "field": "Field of Study",
+        "year": "Year"
+      },
+      "skills": {
+        "title": "Skills",
+        "add": "Add Skill",
+        "skill": "Skill",
+        "level": "Level"
+      },
+      "languages": {
+        "title": "Languages",
+        "add": "Add Language",
+        "language": "Language",
+        "proficiency": "Proficiency"
+      }
+    },
+    "actions": {
+      "generate": "Generate CV with AI",
+      "preview": "Preview",
+      "download": "Download PDF",
+      "save": "Save Draft"
+    },
+    "aiHelper": {
+      "title": "AI Assistant",
+      "improve": "Improve with AI",
+      "generating": "Generating..."
+    },
+    "upload": {
+      "title": "Start by uploading your existing CV",
+      "subtitle": "Our AI will automatically extract and fill in all the information for you",
+      "dragDrop": "Drag & drop your CV here, or click to browse",
+      "supportedFormats": "PDF, DOCX, or TXT (max 10MB)",
+      "uploading": "Uploading file...",
+      "parsing": "Analyzing with AI...",
+      "success": "CV successfully processed!",
+      "error": "Failed to process CV. Please try again.",
+      "manual": "Or fill in manually",
+      "uploadButton": "Upload CV"
+    }
+  },
+  "postJob": {
+    "title": "Post a Job",
+    "subtitle": "Find the perfect candidate for your team. Post your job and reach thousands of qualified professionals.",
+    "form": {
+      "basics": {
+        "title": "Job Details",
+        "jobTitle": "Job Title",
+        "company": "Company",
+        "location": "Location",
+        "remote": "Remote",
+        "remoteOptions": {
+          "onsite": "On-site",
+          "hybrid": "Hybrid",
+          "remote": "Fully Remote"
+        },
+        "type": "Employment Type",
+        "typeOptions": {
+          "fullTime": "Full-time",
+          "partTime": "Part-time",
+          "contract": "Contract",
+          "internship": "Internship"
+        }
+      },
+      "description": {
+        "title": "Job Description",
+        "description": "Description",
+        "responsibilities": "Responsibilities",
+        "requirements": "Requirements",
+        "niceToHave": "Nice to Have"
+      },
+      "compensation": {
+        "title": "Compensation & Benefits",
+        "salary": "Salary Range",
+        "salaryMin": "Min",
+        "salaryMax": "Max",
+        "currency": "Currency",
+        "benefits": "Benefits"
+      },
+      "application": {
+        "title": "Application Settings",
+        "email": "Application Email",
+        "deadline": "Application Deadline",
+        "questions": "Screening Questions"
+      }
+    },
+    "actions": {
+      "preview": "Preview",
+      "publish": "Publish Job",
+      "saveDraft": "Save as Draft"
+    },
+    "aiHelper": {
+      "title": "AI Assistant",
+      "improve": "Improve Description",
+      "generating": "Generating..."
+    }
+  }
+}
