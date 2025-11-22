@@ -104,7 +104,7 @@ export const POST = withRateLimit(
       const userWithOrg = await prisma.user.findUnique({
         where: { id: session.user.id },
         include: {
-          organizations: {
+          orgMembers: {
             include: {
               organization: true
             }
@@ -112,32 +112,28 @@ export const POST = withRateLimit(
         }
       })
 
-      if (!userWithOrg?.organizations?.[0]?.organization) {
+      if (!userWithOrg?.orgMembers?.[0]?.organization) {
         return NextResponse.json(
           { error: 'You must belong to an organization to create jobs' },
           { status: 403 }
         )
       }
 
-      const organizationId = userWithOrg.organizations[0].organization.id
+      const organizationId = userWithOrg.orgMembers[0].organization.id
 
       // Create the job
       const job = await prisma.job.create({
         data: {
           title: data.title,
           description: data.description,
-          requirements: data.requirements,
-          benefits: data.benefits,
           location: data.location,
           salaryMin: data.salaryMin ? Number(data.salaryMin) : null,
           salaryMax: data.salaryMax ? Number(data.salaryMax) : null,
           workMode: data.workMode || 'ONSITE',
           type: data.type || 'FULL_TIME',
-          seniority: data.seniority || 'MID',
-          department: data.department,
-          keywords: data.keywords,
-          status: 'PUBLISHED',
-          organizationId,
+          seniority: data.seniority || 'MEDIOR',
+          status: 'ACTIVE',
+          orgId: organizationId,
         },
         include: {
           organization: {

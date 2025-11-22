@@ -51,8 +51,6 @@ async function getJob(id: string) {
             description: true,
             logo: true,
             website: true,
-            size: true,
-            industry: true,
           }
         },
         _count: {
@@ -274,31 +272,7 @@ export default async function JobDetailPage({
                   </div>
                 </div>
 
-                {/* Requirements */}
-                {job.requirements && (
-                  <>
-                    <Separator className="my-6" />
-                    <div className="space-y-4">
-                      <h3 className="text-xl font-semibold">{t('jobDetail.requirements')}</h3>
-                      <div className="prose prose-sm max-w-none dark:prose-invert">
-                        {renderDescription(job.requirements)}
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* Benefits */}
-                {job.benefits && (
-                  <>
-                    <Separator className="my-6" />
-                    <div className="space-y-4">
-                      <h3 className="text-xl font-semibold">{t('jobDetail.benefits')}</h3>
-                      <div className="prose prose-sm max-w-none dark:prose-invert">
-                        {renderDescription(job.benefits)}
-                      </div>
-                    </div>
-                  </>
-                )}
+                {/* Requirements and Benefits are part of the description field */}
               </CardContent>
             </Card>
 
@@ -355,9 +329,6 @@ export default async function JobDetailPage({
                   )}
                   <div>
                     <p className="font-semibold">{job.organization.name}</p>
-                    {job.organization.industry && (
-                      <p className="text-sm text-muted-foreground">{job.organization.industry}</p>
-                    )}
                   </div>
                 </div>
 
@@ -368,12 +339,6 @@ export default async function JobDetailPage({
                 )}
 
                 <div className="space-y-2">
-                  {job.organization.size && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Users className="h-4 w-4" />
-                      <span>{job.organization.size} {t('jobDetail.employees')}</span>
-                    </div>
-                  )}
                   {job.organization.website && (
                     <div className="flex items-center gap-2 text-sm">
                       <Globe className="h-4 w-4" />

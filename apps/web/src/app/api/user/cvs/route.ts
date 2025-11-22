@@ -15,17 +15,24 @@ export const GET = withRateLimit(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
 
+      // Get candidate profile first
+      const candidate = await prisma.candidate.findUnique({
+        where: { userId: session.user.id }
+      })
+
+      if (!candidate) {
+        return NextResponse.json({ cvs: [] })
+      }
+
       // Fetch user's resumes
       const resumes = await prisma.resume.findMany({
         where: {
-          candidateId: session.user.id,
+          candidateId: candidate.id,
         },
         select: {
           id: true,
           title: true,
           createdAt: true,
-          isDefault: true,
-          anonymized: false,
         },
         orderBy: {
           createdAt: 'desc',
@@ -33,11 +40,11 @@ export const GET = withRateLimit(
       })
 
       // Format for frontend
-      const cvs = resumes.map(resume => ({
+      const cvs = resumes.map((resume, index) => ({
         id: resume.id,
         title: resume.title || 'Untitled CV',
         uploadedAt: resume.createdAt.toLocaleDateString(),
-        isDefault: resume.isDefault,
+        isDefault: index === 0, // Mark first as default
       }))
 
       return NextResponse.json(cvs)

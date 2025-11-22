@@ -7,8 +7,13 @@ import { requireAuth } from '@/lib/auth'
 import { calculateMatchScore } from '@/lib/ai-matching'
 
 export const GET = withRateLimit(
-  async (req: Request, { params }: { params: { id: string } }) => {
+  async (req: Request, context?: { params?: Record<string, string> }) => {
     try {
+      const params = context?.params
+      if (!params?.id) {
+        return NextResponse.json({ error: 'Missing job ID' }, { status: 400 })
+      }
+
       logger.apiRequest('GET', `/api/jobs/${params.id}/match-score`)
 
       const session = await requireAuth()
@@ -16,11 +21,21 @@ export const GET = withRateLimit(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
 
-      // Get user's default resume
+      // Get user's candidate and their first resume
+      const candidate = await prisma.candidate.findUnique({
+        where: { userId: session.user.id }
+      })
+
+      if (!candidate) {
+        return NextResponse.json({ error: 'Candidate profile not found' }, { status: 404 })
+      }
+
       const resume = await prisma.resume.findFirst({
         where: {
-          candidateId: session.user.id,
-          isDefault: true
+          candidateId: candidate.id
+        },
+        orderBy: {
+          createdAt: 'desc'
         }
       })
 
@@ -60,7 +75,7 @@ export const GET = withRateLimit(
         matchScore
       })
     } catch (error) {
-      logger.apiError('GET', `/api/jobs/${params.id}/match-score`, error)
+      logger.apiError('GET', `/api/jobs/[id]/match-score`, error)
       const errorData = errorResponse(error)
       return NextResponse.json(
         { error: errorData.error },

@@ -38,13 +38,7 @@ export async function calculateMatchScore(
         where: { id: resumeId },
         include: {
           sections: true,
-          candidate: {
-            select: {
-              preferredLocations: true,
-              preferredSalaryMin: true,
-              preferredSalaryMax: true,
-            }
-          }
+          candidate: true
         }
       }),
       prisma.job.findUnique({
@@ -53,7 +47,6 @@ export async function calculateMatchScore(
           organization: {
             select: {
               name: true,
-              industry: true,
             }
           }
         }
@@ -99,14 +92,11 @@ CANDIDATE PROFILE:
 Skills: ${candidateSkills.join(', ') || 'Not specified'}
 Experience: ${JSON.stringify(candidateExperience, null, 2)}
 Education: ${JSON.stringify(candidateEducation, null, 2)}
-Preferred Locations: ${resume.candidate.preferredLocations?.join(', ') || 'Flexible'}
-Salary Expectation: ${resume.candidate.preferredSalaryMin || 0}-${resume.candidate.preferredSalaryMax || 'open'} EUR
 
 JOB REQUIREMENTS:
 Title: ${job.title}
-Company: ${job.organization.name} (${job.organization.industry || 'N/A'})
+Company: ${job.organization.name}
 Description: ${job.description}
-Requirements: ${job.requirements}
 Location: ${job.location}
 Salary: ${job.salaryMin || 0}-${job.salaryMax || 'negotiable'} EUR
 Work Mode: ${job.workMode}
@@ -200,13 +190,7 @@ async function calculateFallbackScore(
       where: { id: resumeId },
       include: {
         sections: true,
-        candidate: {
-          select: {
-            preferredLocations: true,
-            preferredSalaryMin: true,
-            preferredSalaryMax: true,
-          }
-        }
+        candidate: true
       }
     }),
     prisma.job.findUnique({
@@ -226,29 +210,20 @@ async function calculateFallbackScore(
     }
   })
 
-  // Simple skill matching
-  const jobRequirements = (job.requirements || '').toLowerCase()
+  // Simple skill matching using description
+  const jobDescription = (job.description || '').toLowerCase()
   const matchedSkills = candidateSkills.filter(skill =>
-    jobRequirements.includes(skill)
+    jobDescription.includes(skill)
   )
   const skillsScore = candidateSkills.length > 0
     ? Math.min((matchedSkills.length / candidateSkills.length) * 100, 100)
     : 50
 
-  // Location matching
-  const locationScore = resume.candidate.preferredLocations?.some(loc =>
-    job.location.toLowerCase().includes(loc.toLowerCase())
-  ) ? 90 : 60
+  // Location matching - simplified since preferredLocations doesn't exist
+  const locationScore = 70
 
-  // Salary matching
-  let salaryScore = 70
-  if (resume.candidate.preferredSalaryMin && job.salaryMax) {
-    if (resume.candidate.preferredSalaryMin <= job.salaryMax) {
-      salaryScore = 90
-    } else {
-      salaryScore = 50
-    }
-  }
+  // Salary matching - simplified since preferredSalaryMin doesn't exist
+  const salaryScore = 70
 
   // Experience score (basic)
   const hasExperience = resume.sections.some(s => s.kind === 'experience')
@@ -327,11 +302,13 @@ export async function getRecommendedJobsWithAI(
   limit: number = 10
 ): Promise<Array<{ job: any; matchScore: MatchScore }>> {
   try {
-    // Get candidate's default resume
+    // Get candidate's first resume
     const resume = await prisma.resume.findFirst({
       where: {
-        candidateId,
-        isDefault: true
+        candidateId
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
     })
 

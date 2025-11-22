@@ -111,10 +111,8 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
         })
       } catch (error) {
         console.error('Error fetching job:', error)
-        toast({
-          title: t('apply.error'),
+        toast.error(t('apply.error'), {
           description: t('apply.jobNotFound'),
-          variant: 'destructive',
         })
       }
     }
@@ -197,8 +195,7 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
       }
 
       setSubmitted(true)
-      toast({
-        title: t('apply.success'),
+      toast.success(t('apply.success'), {
         description: t('apply.successDescription'),
       })
 
@@ -208,10 +205,8 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
       }, 3000)
     } catch (error) {
       console.error('Error submitting application:', error)
-      toast({
-        title: t('apply.error'),
+      toast.error(t('apply.error'), {
         description: error instanceof Error ? error.message : t('apply.submitError'),
-        variant: 'destructive',
       })
     } finally {
       setSubmitting(false)

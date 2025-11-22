@@ -1,12 +1,12 @@
 import { Suspense } from 'react'
 import { getTranslations } from 'next-intl/server'
 import { redirect } from 'next/navigation'
-import { getServerSession } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 import DashboardClient from './dashboard-client'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 
 async function getDashboardData() {
-  const session = await getServerSession()
+  const session = await auth()
   if (!session?.user?.id) {
     return null
   }
@@ -22,9 +22,7 @@ async function getDashboardData() {
       select: {
         name: true,
         email: true,
-        avatarUrl: true,
-        preferredLocations: true,
-        preferredSalaryMin: true,
+        image: true,
       }
     }),
 
@@ -47,11 +45,13 @@ async function getDashboardData() {
       take: 10,
     }),
 
-    // Get default resume
+    // Get first resume (since isDefault field doesn't exist)
     prisma.resume.findFirst({
       where: {
         candidateId: session.user.id,
-        isDefault: true
+      },
+      orderBy: {
+        createdAt: 'desc'
       },
       include: {
         sections: true
@@ -110,10 +110,9 @@ async function getDashboardData() {
     profileCompletion += 25
   }
 
-  if (user?.preferredLocations || user?.preferredSalaryMin) {
-    profileSteps.preferences = true
-    profileCompletion += 25
-  }
+  // For now, mark preferences as not completed since these fields don't exist in the schema
+  // This could be extended later with actual preference fields
+  profileSteps.preferences = false
 
   // Format applications
   const formattedApplications = applications.map(app => ({
@@ -145,7 +144,7 @@ async function getDashboardData() {
     user: {
       name: user?.name || 'User',
       email: user?.email || '',
-      avatarUrl: user?.avatarUrl,
+      avatarUrl: user?.image,
     },
     stats,
     profileCompletion,
@@ -208,7 +207,7 @@ function DashboardLoading() {
 }
 
 export default async function DashboardPage({ params }: { params: { locale: string } }) {
-  const session = await getServerSession()
+  const session = await auth()
   if (!session) {
     redirect(`/${params.locale}/login`)
   }

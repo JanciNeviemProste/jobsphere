@@ -5,10 +5,15 @@ import { errorResponse } from '@/lib/errors'
 import { withRateLimit } from '@/lib/rate-limit'
 
 export const GET = withRateLimit(
-  async (req: Request, { params }: { params: { id: string } }) => {
+  async (req: Request, context?: { params?: Record<string, string> }) => {
     const startTime = Date.now()
 
     try {
+      const params = context?.params
+      if (!params?.id) {
+        return NextResponse.json({ error: 'Missing job ID' }, { status: 400 })
+      }
+
       logger.apiRequest('GET', `/api/jobs/${params.id}`)
 
       const job = await prisma.job.findUnique({
@@ -23,9 +28,7 @@ export const GET = withRateLimit(
               name: true,
               logo: true,
               description: true,
-              website: true,
-              size: true,
-              industry: true
+              website: true
             }
           },
           _count: {
@@ -48,7 +51,7 @@ export const GET = withRateLimit(
 
       return NextResponse.json(job)
     } catch (error) {
-      logger.apiError('GET', `/api/jobs/${params.id}`, error)
+      logger.apiError('GET', `/api/jobs/[id]`, error)
       const errorData = errorResponse(error)
       return NextResponse.json(
         { error: errorData.error },
@@ -61,8 +64,13 @@ export const GET = withRateLimit(
 
 // Update job (for employers)
 export const PUT = withRateLimit(
-  async (req: Request, { params }: { params: { id: string } }) => {
+  async (req: Request, context?: { params?: Record<string, string> }) => {
     try {
+      const params = context?.params
+      if (!params?.id) {
+        return NextResponse.json({ error: 'Missing job ID' }, { status: 400 })
+      }
+
       logger.apiRequest('PUT', `/api/jobs/${params.id}`)
 
       const { requireAuth } = await import('@/lib/auth')
@@ -78,7 +86,7 @@ export const PUT = withRateLimit(
         include: {
           organization: {
             include: {
-              users: {
+              members: {
                 where: { userId: session.user.id }
               }
             }
@@ -86,7 +94,7 @@ export const PUT = withRateLimit(
         }
       })
 
-      if (!job || job.organization.users.length === 0) {
+      if (!job || job.organization.members.length === 0) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
 
@@ -97,8 +105,6 @@ export const PUT = withRateLimit(
         data: {
           title: data.title,
           description: data.description,
-          requirements: data.requirements,
-          benefits: data.benefits,
           location: data.location,
           salaryMin: data.salaryMin,
           salaryMax: data.salaryMax,
@@ -112,7 +118,7 @@ export const PUT = withRateLimit(
 
       return NextResponse.json(updated)
     } catch (error) {
-      logger.apiError('PUT', `/api/jobs/${params.id}`, error)
+      logger.apiError('PUT', `/api/jobs/[id]`, error)
       const errorData = errorResponse(error)
       return NextResponse.json(errorData, { status: errorData.statusCode })
     }
@@ -122,8 +128,13 @@ export const PUT = withRateLimit(
 
 // Delete job (soft delete - set status to CLOSED)
 export const DELETE = withRateLimit(
-  async (req: Request, { params }: { params: { id: string } }) => {
+  async (req: Request, context?: { params?: Record<string, string> }) => {
     try {
+      const params = context?.params
+      if (!params?.id) {
+        return NextResponse.json({ error: 'Missing job ID' }, { status: 400 })
+      }
+
       logger.apiRequest('DELETE', `/api/jobs/${params.id}`)
 
       const { requireAuth } = await import('@/lib/auth')
@@ -139,7 +150,7 @@ export const DELETE = withRateLimit(
         include: {
           organization: {
             include: {
-              users: {
+              members: {
                 where: { userId: session.user.id }
               }
             }
@@ -147,7 +158,7 @@ export const DELETE = withRateLimit(
         }
       })
 
-      if (!job || job.organization.users.length === 0) {
+      if (!job || job.organization.members.length === 0) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
 
@@ -163,7 +174,7 @@ export const DELETE = withRateLimit(
 
       return NextResponse.json({ success: true })
     } catch (error) {
-      logger.apiError('DELETE', `/api/jobs/${params.id}`, error)
+      logger.apiError('DELETE', `/api/jobs/[id]`, error)
       const errorData = errorResponse(error)
       return NextResponse.json(errorData, { status: errorData.statusCode })
     }

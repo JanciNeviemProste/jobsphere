@@ -11,7 +11,14 @@
       "Bash(git commit:*)",
       "Bash(git branch:*)",
       "Bash(git pull:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(yarn install)",
+      "Bash(yarn run build:skip-verify:*)",
+      "Bash(timeout 120 yarn run build:skip-verify:*)",
+      "Bash(NEXT_DISABLE_ESLINT_PLUGIN=true yarn next build:*)",
+      "Bash(set NEXT_DISABLE_ESLINT_PLUGIN=true)",
+      "Bash(yarn next build)",
+      "Bash(yarn build:skip-verify:*)"
     ],
     "deny": [],
     "ask": []

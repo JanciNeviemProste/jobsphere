@@ -50,11 +50,22 @@ export const GET = withRateLimit(
       }
 
       // Fallback to simple matching if AI is not available
+      // Get user's candidate profile first
+      const candidate = await prisma.candidate.findUnique({
+        where: { userId: session.user.id }
+      })
+
+      if (!candidate) {
+        return NextResponse.json({ jobs: [], total: 0 })
+      }
+
       // Get user's resume for matching
       const resume = await prisma.resume.findFirst({
         where: {
-          candidateId: session.user.id,
-          isDefault: true
+          candidateId: candidate.id
+        },
+        orderBy: {
+          createdAt: 'desc'
         },
         include: {
           sections: true
@@ -102,32 +113,17 @@ export const GET = withRateLimit(
       const jobsWithScores = recommendedJobs.map(job => {
         let matchScore = 50 // Base score
 
-        // Simple skill matching
-        if (userSkills.length > 0 && job.requirements) {
-          const jobRequirements = job.requirements.toLowerCase()
+        // Simple skill matching using description
+        if (userSkills.length > 0 && job.description) {
+          const jobDescription = job.description.toLowerCase()
           const matchingSkills = userSkills.filter(skill =>
-            jobRequirements.includes(skill.toLowerCase())
+            jobDescription.includes(skill.toLowerCase())
           )
           matchScore += Math.min((matchingSkills.length * 10), 30)
         }
 
-        // Location matching
-        const user = session.user as any
-        if (user?.preferredLocations && job.location) {
-          const preferredLocations = user.preferredLocations as string[]
-          if (preferredLocations.some((loc: string) =>
-            job.location.toLowerCase().includes(loc.toLowerCase())
-          )) {
-            matchScore += 10
-          }
-        }
-
-        // Salary range matching
-        if (user?.preferredSalaryMin && job.salaryMin) {
-          const salaryDiff = Math.abs(user.preferredSalaryMin - job.salaryMin)
-          if (salaryDiff < 500) matchScore += 10
-          else if (salaryDiff < 1000) matchScore += 5
-        }
+        // Location and salary matching removed since user preference fields don't exist
+        // These could be extended later with actual preference fields
 
         // Cap at 95%
         matchScore = Math.min(matchScore, 95)

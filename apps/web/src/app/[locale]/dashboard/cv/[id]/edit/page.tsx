@@ -97,10 +97,8 @@ export default function CVEditPage({
         setResumeData(data)
       } catch (error) {
         console.error('Load CV error:', error)
-        toast({
-          title: t('cvEdit.error'),
+        toast.error(t('cvEdit.error'), {
           description: t('cvEdit.loadError'),
-          variant: 'destructive',
         })
       } finally {
         setLoading(false)
@@ -128,17 +126,14 @@ export default function CVEditPage({
       if (!response.ok) throw new Error('Failed to save CV')
 
       setSaved(true)
-      toast({
-        title: t('cvEdit.success'),
+      toast.success(t('cvEdit.success'), {
         description: t('cvEdit.saveSuccess'),
       })
       setTimeout(() => setSaved(false), 3000)
     } catch (error) {
       console.error('Save CV error:', error)
-      toast({
-        title: t('cvEdit.error'),
+      toast.error(t('cvEdit.error'), {
         description: t('cvEdit.saveError'),
-        variant: 'destructive',
       })
     } finally {
       setSaving(false)

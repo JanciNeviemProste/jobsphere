@@ -43,12 +43,20 @@ export const POST = withRateLimit(
         .update(resetToken)
         .digest('hex')
 
-      // Store the hashed token in database
-      await prisma.passwordResetToken.create({
+      // Store the hashed token in database using VerificationToken model
+      // First, delete any existing tokens for this email
+      await prisma.verificationToken.deleteMany({
+        where: {
+          identifier: user.email,
+        },
+      })
+
+      // Create new token
+      await prisma.verificationToken.create({
         data: {
-          userId: user.id,
+          identifier: user.email,
           token: hashedToken,
-          expiresAt: resetTokenExpiry,
+          expires: resetTokenExpiry,
         },
       })
 

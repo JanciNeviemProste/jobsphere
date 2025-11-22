@@ -32,15 +32,12 @@ export const POST = withRateLimit(
         .digest('hex')
 
       // Find valid reset token
-      const resetToken = await prisma.passwordResetToken.findFirst({
+      const resetToken = await prisma.verificationToken.findFirst({
         where: {
           token: hashedToken,
-          expiresAt: {
+          expires: {
             gt: new Date(), // Token must not be expired
           },
-        },
-        include: {
-          user: true,
         },
       })
 
@@ -51,34 +48,46 @@ export const POST = withRateLimit(
         )
       }
 
+      // Find user by email from the token identifier
+      const user = await prisma.user.findUnique({
+        where: { email: resetToken.identifier },
+      })
+
+      if (!user) {
+        return NextResponse.json(
+          { error: 'User not found' },
+          { status: 404 }
+        )
+      }
+
       // Hash the new password
       const hashedPassword = await bcrypt.hash(password, 12)
 
       // Update user password
       await prisma.user.update({
-        where: { id: resetToken.userId },
+        where: { id: user.id },
         data: {
           password: hashedPassword,
         },
       })
 
-      // Delete all reset tokens for this user
-      await prisma.passwordResetToken.deleteMany({
-        where: { userId: resetToken.userId },
+      // Delete all reset tokens for this email
+      await prisma.verificationToken.deleteMany({
+        where: { identifier: resetToken.identifier },
       })
 
-      logger.info('Password reset successful', { userId: resetToken.userId })
+      logger.info('Password reset successful', { userId: user.id })
 
       // Send confirmation email
       try {
         const { sendEmail } = await import('@/lib/email')
         await sendEmail({
-          to: resetToken.user.email,
+          to: user.email,
           subject: 'Password Changed Successfully - JobSphere',
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2>Password Changed Successfully</h2>
-              <p>Hi ${resetToken.user.name || 'there'},</p>
+              <p>Hi ${user.name || 'there'},</p>
               <p>Your password has been successfully changed.</p>
               <p>If you didn't make this change, please contact our support team immediately.</p>
               <p style="margin: 30px 0;">
@@ -95,7 +104,7 @@ export const POST = withRateLimit(
           text: `
             Password Changed Successfully
 
-            Hi ${resetToken.user.name || 'there'},
+            Hi ${user.name || 'there'},
 
             Your password has been successfully changed.
 

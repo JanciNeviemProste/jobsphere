@@ -15,13 +15,17 @@ export const GET = withRateLimit(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
 
-      // Get user profile with resume count
+      // Get user profile with candidate data
       const user = await prisma.user.findUnique({
         where: { id: session.user.id },
         include: {
-          _count: {
-            select: {
-              resumes: true
+          candidate: {
+            include: {
+              _count: {
+                select: {
+                  resumes: true
+                }
+              }
             }
           }
         }
@@ -57,38 +61,36 @@ export const GET = withRateLimit(
       }
 
       // Check CV uploaded
-      if (user?._count.resumes && user._count.resumes > 0) {
+      if (user?.candidate?._count.resumes && user.candidate._count.resumes > 0) {
         profileSteps.cvUploaded = true
         profileCompletion += 25
       }
 
-      // Check skills (stored in resume or user preferences)
-      const resume = await prisma.resume.findFirst({
-        where: { candidateId: session.user.id },
+      // Check skills (stored in resume)
+      const resume = user?.candidate ? await prisma.resume.findFirst({
+        where: { candidateId: user.candidate.id },
         select: {
           sections: {
             where: { kind: 'skills' },
             take: 1
           }
         }
-      })
+      }) : null
 
-      if (resume?.sections.length > 0) {
+      if (resume?.sections?.length && resume.sections.length > 0) {
         profileSteps.skills = true
         profileCompletion += 25
       }
 
-      // Check preferences (stored in user profile)
-      if (user?.preferredLocations || user?.preferredSalaryMin) {
-        profileSteps.preferences = true
-        profileCompletion += 25
-      }
+      // Check preferences - for now, leave as not completed since these fields don't exist in schema
+      // This could be extended later with actual preference fields
+      profileSteps.preferences = false
 
       return NextResponse.json({
         user: {
           name: user?.name || 'User',
           email: user?.email || '',
-          avatarUrl: user?.avatarUrl
+          avatarUrl: user?.image
         },
         stats,
         profileCompletion,
