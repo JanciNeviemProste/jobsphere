@@ -34,6 +34,7 @@ model User {
   orgMembers   OrgMember[]
   applications Application[]
   candidate    Candidate?
+  savedJobs    SavedJob[]
 
   @@index([email])
 }
@@ -130,15 +131,32 @@ model Job {
   type        String   @default("FULL_TIME") // FULL_TIME, PART_TIME, CONTRACT
   seniority   String   @default("MEDIOR") // JUNIOR, MEDIOR, SENIOR, LEAD
   status      String   @default("ACTIVE") // ACTIVE, CLOSED, DRAFT
+  views       Int      @default(0) // Job view counter
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   applications Application[]
   matchScores  MatchScore[]
+  savedJobs    SavedJob[]
 
   @@index([orgId])
   @@index([status])
+}
+
+// Saved/Favorite jobs for candidates
+model SavedJob {
+  id        String   @id @default(cuid())
+  jobId     String
+  userId    String
+  createdAt DateTime @default(now())
+
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, userId])
+  @@index([userId])
+  @@index([jobId])
 }
 
 model Application {

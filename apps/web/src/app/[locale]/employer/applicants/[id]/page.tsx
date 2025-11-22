@@ -32,7 +32,23 @@ async function getApplicationDetail(applicationId: string, userId: string) {
           organization: true,
         },
       },
-      candidate: true,
+      candidate: {
+        include: {
+          candidate: {
+            include: {
+              documents: {
+                where: {
+                  type: 'CV'
+                },
+                orderBy: {
+                  createdAt: 'desc'
+                },
+                take: 1
+              }
+            }
+          }
+        }
+      },
       events: {
         orderBy: {
           createdAt: 'asc',
@@ -215,7 +231,44 @@ export default async function EmployerApplicationDetailPage({
               </CardContent>
             </Card>
 
-            {/* CV Download - TODO: Implement document retrieval from CandidateDocument model */}
+            {/* CV Download */}
+            {(application.cvUrl || application.candidate.candidate?.documents?.[0]) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Životopis</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {/* CV from Application */}
+                  {application.cvUrl && (
+                    <Button asChild className="w-full mb-2">
+                      <a
+                        href={application.cvUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Stiahnuť CV z prihlášky
+                      </a>
+                    </Button>
+                  )}
+                  {/* CV from Candidate Documents */}
+                  {application.candidate.candidate?.documents?.[0] && (
+                    <Button asChild variant={application.cvUrl ? 'outline' : 'default'} className="w-full">
+                      <a
+                        href={application.candidate.candidate.documents[0].fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={application.candidate.candidate.documents[0].fileName}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        {application.candidate.candidate.documents[0].fileName}
+                      </a>
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Actions */}
             <Card>
@@ -253,7 +306,20 @@ export default async function EmployerApplicationDetailPage({
               </CardContent>
             </Card>
 
-            {/* Notes - TODO: Display notes from Json array */}
+            {/* Notes */}
+            {application.notes && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Poznámky</CardTitle>
+                  <CardDescription>Interné poznámky k uchádzačovi</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="whitespace-pre-wrap text-sm text-muted-foreground">
+                    {application.notes}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

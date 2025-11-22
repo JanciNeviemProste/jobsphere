@@ -61,7 +61,7 @@ async function getDashboardData() {
     // Get recommended jobs (simplified server-side version)
     prisma.job.findMany({
       where: {
-        status: 'PUBLISHED',
+        status: 'ACTIVE',
       },
       include: {
         organization: {

@@ -19,7 +19,7 @@ export const GET = withRateLimit(
       const job = await prisma.job.findUnique({
         where: {
           id: params.id,
-          status: 'PUBLISHED'
+          status: 'ACTIVE'
         },
         include: {
           organization: {

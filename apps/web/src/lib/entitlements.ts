@@ -67,7 +67,7 @@ export async function canCreateJob(orgId: string): Promise<boolean> {
   if (limit === null) return true // unlimited
 
   const currentCount = await prisma.job.count({
-    where: { orgId: orgId, status: 'PUBLISHED' },
+    where: { orgId: orgId, status: 'ACTIVE' },
   })
 
   return currentCount < limit

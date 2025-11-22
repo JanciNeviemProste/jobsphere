@@ -21,6 +21,9 @@ import {
   Heart,
   Send
 } from 'lucide-react'
+import { ViewTracker } from '@/components/job/view-tracker'
+import { SaveJobButton } from '@/components/job/save-job-button'
+import { ShareJobButton } from '@/components/job/share-job-button'
 import { formatDistanceToNow } from 'date-fns'
 import { sk, cs, pl, de, enUS } from 'date-fns/locale'
 
@@ -41,7 +44,7 @@ async function getJob(id: string) {
     const job = await prisma.job.findUnique({
       where: {
         id,
-        status: 'PUBLISHED'
+        status: 'ACTIVE'
       },
       include: {
         organization: {
@@ -73,7 +76,7 @@ async function getSimilarJobs(job: any, limit: number = 3) {
   try {
     const similarJobs = await prisma.job.findMany({
       where: {
-        status: 'PUBLISHED',
+        status: 'ACTIVE',
         id: { not: job.id },
         OR: [
           { seniority: job.seniority },
@@ -186,6 +189,9 @@ export default async function JobDetailPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+      {/* Track job view */}
+      <ViewTracker jobId={job.id} />
+
       <div className="container mx-auto px-4 py-8">
         {/* Back Button */}
         <div className="mb-6">
@@ -293,14 +299,12 @@ export default async function JobDetailPage({
                         {t('jobDetail.applyNow')}
                       </Link>
                     </Button>
-                    <Button size="lg" variant="outline">
-                      <Heart className="h-4 w-4" />
-                      <span className="sr-only">{t('jobDetail.save')}</span>
-                    </Button>
-                    <Button size="lg" variant="outline">
-                      <Share2 className="h-4 w-4" />
-                      <span className="sr-only">{t('jobDetail.share')}</span>
-                    </Button>
+                    <SaveJobButton jobId={job.id} />
+                    <ShareJobButton
+                      jobId={job.id}
+                      jobTitle={job.title}
+                      companyName={job.organization.name}
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -413,7 +417,7 @@ export default async function JobDetailPage({
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">{t('jobDetail.views')}:</span>
-                    <span className="font-medium">{Math.floor(Math.random() * 500) + 100}</span>
+                    <span className="font-medium">{job.views}</span>
                   </div>
                 </div>
               </CardContent>

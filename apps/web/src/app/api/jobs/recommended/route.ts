@@ -90,7 +90,7 @@ export const GET = withRateLimit(
       // Get recommended jobs
       let recommendedJobs = await prisma.job.findMany({
         where: {
-          status: 'PUBLISHED',
+          status: 'ACTIVE',
           id: {
             notIn: appliedJobIds
           }

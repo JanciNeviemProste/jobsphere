@@ -18,7 +18,8 @@
       "Bash(NEXT_DISABLE_ESLINT_PLUGIN=true yarn next build:*)",
       "Bash(set NEXT_DISABLE_ESLINT_PLUGIN=true)",
       "Bash(yarn next build)",
-      "Bash(yarn build:skip-verify:*)"
+      "Bash(yarn build:skip-verify:*)",
+      "Bash(yarn test:run:*)"
     ],
     "deny": [],
     "ask": []

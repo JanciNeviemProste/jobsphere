@@ -325,7 +325,7 @@ export async function getRecommendedJobsWithAI(
     // Get available jobs
     const jobs = await prisma.job.findMany({
       where: {
-        status: 'PUBLISHED',
+        status: 'ACTIVE',
         id: {
           notIn: appliedJobIds
         }

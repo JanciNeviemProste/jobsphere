@@ -35,7 +35,7 @@ export const GET = withRateLimit(
 
       const jobs = await prisma.job.findMany({
         where: {
-          status: 'PUBLISHED',
+          status: 'ACTIVE',
           ...(params.search && {
             OR: [
               { title: { contains: params.search, mode: 'insensitive' } },
