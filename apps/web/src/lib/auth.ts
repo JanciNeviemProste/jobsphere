@@ -2,6 +2,7 @@ import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
+import type { Provider } from "next-auth/providers"
 import { prisma } from "./prisma"
 import { compare } from "bcryptjs"
 
@@ -12,21 +13,34 @@ export class UnauthorizedError extends Error {
   }
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
-  session: {
-    strategy: "jwt",
-  },
-  pages: {
-    signIn: "/login",
-    error: "/auth/error",
-  },
-  providers: [
+// Build providers array dynamically based on available credentials
+const providers: Provider[] = []
+
+// Add Google OAuth provider only if credentials are configured
+const googleClientId = process.env.GOOGLE_CLIENT_ID
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
+
+if (googleClientId && googleClientSecret) {
+  providers.push(
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-    }),
-    CredentialsProvider({
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
+    })
+  )
+} else {
+  console.warn('⚠️ Google OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.local')
+}
+
+// Add Credentials provider (email/password login)
+providers.push(
+  CredentialsProvider({
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
@@ -63,8 +77,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           image: user.image,
         }
       },
-    }),
-  ],
+    })
+)
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  adapter: PrismaAdapter(prisma),
+  session: {
+    strategy: "jwt",
+  },
+  pages: {
+    signIn: "/login",
+    error: "/auth/error",
+  },
+  providers,
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
