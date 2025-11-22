@@ -1,6 +1,7 @@
 import { initTRPC, TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import superjson from 'superjson'
+import { randomUUID } from 'crypto'
 import { Context, requireAuth, requireOrg, requireRole } from './context'
 import { extractCV, computeMatchPercent, generateJobDescription } from '@jobsphere/ai'
 
@@ -503,8 +504,8 @@ const assessmentsRouter = router({
     .mutation(async ({ ctx, input }) => {
       requireOrg(ctx)
 
-      // Generate unique token
-      const token = Math.random().toString(36).substring(2, 15)
+      // Security: Generate cryptographically secure unique token
+      const token = randomUUID()
 
       const invite = await ctx.prisma.assessmentInvite.create({
         data: {

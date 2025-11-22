@@ -1,125 +1,126 @@
-'use client'
-
-import { useParams, useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { notFound } from 'next/navigation'
+import { prisma } from '@/lib/prisma'
+import { getTranslations } from 'next-intl/server'
+import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { MapPin, Briefcase, Clock, Euro, Building2, ArrowLeft, Send } from 'lucide-react'
-import Link from 'next/link'
+import {
+  MapPin,
+  Briefcase,
+  Clock,
+  Euro,
+  Calendar,
+  Building2,
+  Users,
+  Globe,
+  CheckCircle,
+  ArrowLeft,
+  Share2,
+  Heart,
+  Send
+} from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
+import { sk, cs, pl, de, enUS } from 'date-fns/locale'
 
-// Mock data - neskôr bude z databázy
-const MOCK_JOB_DATA: Record<string, any> = {
-  '1': {
-    id: '1',
-    title: 'Senior React Developer',
-    company: 'TechCorp SK',
-    location: 'Bratislava, Slovakia',
-    salary: '3000 - 5000',
-    type: 'FULL_TIME',
-    workMode: 'HYBRID',
-    seniority: 'SENIOR',
-    postedAt: '2 dni dozadu',
-    description: `
-## O pozícii
-
-Hľadáme skúseného Senior React Developer, ktorý sa pridá k nášmu dynamickému tímu. Budete pracovať na najnovších projektoch využívajúcich moderné technológie.
-
-## Vaše úlohy
-
-- Vývoj a údržba komplexných React aplikácií
-- Spolupráca s dizajnérmi a backend vývojármi
-- Code review a mentoring junior členov týmu
-- Návrh architektúry frontend riešení
-- Optimalizácia výkonu aplikácií
-
-## Požadujeme
-
-- 5+ rokov skúseností s React.js
-- Skúsenosti s TypeScript, Next.js
-- Znalosti state managementu (Redux, Zustand)
-- Skúsenosti s testovaním (Jest, React Testing Library)
-- Dobrá znalosť Git a CI/CD
-- Komunikatívna angličtina
-
-## Ponúkame
-
-- Konkurenčný plat 3000 - 5000 € brutto
-- Flexibilná pracovná doba
-- Home office 2-3 dni v týždni
-- Moderné technológie a nástroje
-- Vzdelávanie a certifikácie
-- Multisport karta
-- Tímové akcie a eventy
-    `.trim(),
-  },
-  '2': {
-    id: '2',
-    title: 'Frontend Developer',
-    company: 'Digital Solutions',
-    location: 'Praha, Czech Republic',
-    salary: '2500 - 4000',
-    type: 'FULL_TIME',
-    workMode: 'REMOTE',
-    seniority: 'MEDIOR',
-    postedAt: '5 dní dozadu',
-    description: `
-## O nás
-
-Digital Solutions je moderná IT spoločnosť zameraná na vývoj webových aplikácií pre klientov z celej Európy.
-
-## Náplň práce
-
-- Vývoj frontend riešení v React/Vue.js
-- Implementácia dizajnu podľa Figma mockupov
-- Spolupráca s produktovým tímom
-- Účasť na denných stand-upoch
-
-## Očakávame
-
-- 2-4 roky praxe vo frontend vývoji
-- Skúsenosti s React alebo Vue.js
-- HTML, CSS, JavaScript/TypeScript
-- Responsive dizajn a cross-browser kompatibilita
-- Samostatnosť a iniciatíva
-
-## Benefity
-
-- 100% remote práca
-- Flexibilný pracovný čas
-- Práca na medzinárodných projektoch
-- Vzdelávacie kurzy
-- Káva a ovocie v kancelárii (Praha)
-    `.trim(),
-  },
+// Get date locale based on current locale
+function getDateLocale(locale: string) {
+  switch(locale) {
+    case 'sk': return sk
+    case 'cs': return cs
+    case 'pl': return pl
+    case 'de': return de
+    default: return enUS
+  }
 }
 
-export default function JobDetailPage() {
-  const params = useParams()
-  const router = useRouter()
-  const t = useTranslations()
-  const jobId = params.id as string
-  const locale = params.locale as string
+// Fetch job data
+async function getJob(id: string) {
+  try {
+    const job = await prisma.job.findUnique({
+      where: {
+        id,
+        status: 'PUBLISHED'
+      },
+      include: {
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            logo: true,
+            website: true,
+            size: true,
+            industry: true,
+          }
+        },
+        _count: {
+          select: {
+            applications: true
+          }
+        }
+      }
+    })
 
-  const job = MOCK_JOB_DATA[jobId]
+    return job
+  } catch (error) {
+    console.error('Error fetching job:', error)
+    return null
+  }
+}
+
+// Similar jobs
+async function getSimilarJobs(job: any, limit: number = 3) {
+  try {
+    const similarJobs = await prisma.job.findMany({
+      where: {
+        status: 'PUBLISHED',
+        id: { not: job.id },
+        OR: [
+          { seniority: job.seniority },
+          { workMode: job.workMode },
+          { type: job.type },
+          { orgId: job.orgId }
+        ]
+      },
+      include: {
+        organization: {
+          select: {
+            name: true,
+            logo: true
+          }
+        }
+      },
+      take: limit,
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+
+    return similarJobs
+  } catch (error) {
+    console.error('Error fetching similar jobs:', error)
+    return []
+  }
+}
+
+export default async function JobDetailPage({
+  params
+}: {
+  params: { id: string; locale: string }
+}) {
+  const job = await getJob(params.id)
+  const t = await getTranslations()
+  const dateLocale = getDateLocale(params.locale)
 
   if (!job) {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Pracovná ponuka nenájdená</h1>
-          <Button asChild>
-            <Link href="/jobs">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Späť na ponuky
-            </Link>
-          </Button>
-        </div>
-      </div>
-    )
+    notFound()
   }
 
+  const similarJobs = await getSimilarJobs(job)
+
+  // Format work mode
   const getWorkModeLabel = (mode: string) => {
     switch (mode) {
       case 'REMOTE': return t('jobs.remote')
@@ -129,6 +130,7 @@ export default function JobDetailPage() {
     }
   }
 
+  // Format job type
   const getJobTypeLabel = (type: string) => {
     switch (type) {
       case 'FULL_TIME': return t('jobs.fullTime')
@@ -138,165 +140,319 @@ export default function JobDetailPage() {
     }
   }
 
+  // Parse markdown-like content for better display
+  const renderDescription = (text: string | null | undefined) => {
+    if (!text) return <p className="text-muted-foreground">{t('jobDetail.noDescription')}</p>
+
+    const sections = text.split('\n\n')
+    return sections.map((section, idx) => {
+      // Headers
+      if (section.startsWith('## ')) {
+        return (
+          <h3 key={idx} className="text-xl font-semibold mt-6 mb-3">
+            {section.replace('## ', '')}
+          </h3>
+        )
+      }
+      if (section.startsWith('# ')) {
+        return (
+          <h2 key={idx} className="text-2xl font-bold mt-6 mb-3">
+            {section.replace('# ', '')}
+          </h2>
+        )
+      }
+
+      // List items
+      if (section.includes('\n- ') || section.startsWith('- ')) {
+        const items = section.split('\n').filter(item => item.startsWith('- '))
+        return (
+          <ul key={idx} className="space-y-2 mb-4">
+            {items.map((item, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <span>{item.replace('- ', '')}</span>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+
+      // Regular paragraphs
+      return (
+        <p key={idx} className="mb-4 text-muted-foreground">
+          {section}
+        </p>
+      )
+    })
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <div className="container mx-auto px-4 py-8">
         {/* Back Button */}
-        <Button variant="ghost" asChild className="mb-6">
-          <Link href="/jobs">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Späť na ponuky
-          </Link>
-        </Button>
+        <div className="mb-6">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={`/${params.locale}/jobs`}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              {t('jobDetail.backToJobs')}
+            </Link>
+          </Button>
+        </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-8 lg:grid-cols-3">
           {/* Main Content */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-8">
+            {/* Job Header */}
             <Card>
               <CardHeader>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <CardTitle className="text-3xl mb-2">{job.title}</CardTitle>
-                    <CardDescription className="text-lg">{job.company}</CardDescription>
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
+                    <CardTitle className="text-3xl">{job.title}</CardTitle>
+                    <CardDescription className="text-lg">
+                      <Link
+                        href={`/${params.locale}/company/${job.organization.id}`}
+                        className="hover:underline"
+                      >
+                        {job.organization.name}
+                      </Link>
+                    </CardDescription>
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {job.seniority && (
+                        <Badge variant="secondary">{job.seniority}</Badge>
+                      )}
+                      <Badge variant="outline">{getWorkModeLabel(job.workMode)}</Badge>
+                      <Badge variant="outline">{getJobTypeLabel(job.type)}</Badge>
+                    </div>
                   </div>
-                  <Badge className="text-base px-4 py-2">{job.seniority}</Badge>
+                  {job.organization.logo && (
+                    <img
+                      src={job.organization.logo}
+                      alt={job.organization.name}
+                      className="h-16 w-16 rounded-lg object-cover"
+                    />
+                  )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Key Info */}
+              <CardContent className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex items-center gap-3">
-                    <MapPin className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Lokalita</p>
-                      <p className="font-medium">{job.location}</p>
-                    </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    <span>{job.location}</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Euro className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Plat</p>
-                      <p className="font-medium">{job.salary} € / mesiac</p>
+                  {(job.salaryMin || job.salaryMax) && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Euro className="h-4 w-4" />
+                      <span>
+                        {job.salaryMin && job.salaryMax
+                          ? `€${job.salaryMin.toLocaleString()} - €${job.salaryMax.toLocaleString()}`
+                          : job.salaryMin
+                          ? `€${job.salaryMin.toLocaleString()}+`
+                          : `${t('jobDetail.upTo')} €${job.salaryMax?.toLocaleString()}`
+                        } / {t('jobs.perMonth')}
+                      </span>
                     </div>
+                  )}
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>
+                      {t('jobDetail.posted')} {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true, locale: dateLocale })}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Briefcase className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Typ úväzku</p>
-                      <p className="font-medium">{getJobTypeLabel(job.type)}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Building2 className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Režim práce</p>
-                      <p className="font-medium">{getWorkModeLabel(job.workMode)}</p>
-                    </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Users className="h-4 w-4" />
+                    <span>{job._count.applications} {t('jobDetail.applications')}</span>
                   </div>
                 </div>
 
-                <Separator />
+                <Separator className="my-6" />
 
-                {/* Description */}
-                <div className="prose prose-sm max-w-none">
-                  {job.description.split('\n\n').map((section: string, idx: number) => {
-                    if (section.startsWith('## ')) {
-                      return (
-                        <h2 key={idx} className="text-xl font-bold mt-6 mb-3">
-                          {section.replace('## ', '')}
-                        </h2>
-                      )
-                    }
-                    if (section.startsWith('- ')) {
-                      const items = section.split('\n')
-                      return (
-                        <ul key={idx} className="list-disc list-inside space-y-1 mb-4">
-                          {items.map((item, i) => (
-                            <li key={i}>{item.replace('- ', '')}</li>
-                          ))}
-                        </ul>
-                      )
-                    }
-                    return (
-                      <p key={idx} className="mb-4">
-                        {section}
-                      </p>
-                    )
-                  })}
+                {/* Job Description */}
+                <div className="space-y-4">
+                  <h3 className="text-xl font-semibold">{t('jobDetail.description')}</h3>
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                    {renderDescription(job.description)}
+                  </div>
+                </div>
+
+                {/* Requirements */}
+                {job.requirements && (
+                  <>
+                    <Separator className="my-6" />
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-semibold">{t('jobDetail.requirements')}</h3>
+                      <div className="prose prose-sm max-w-none dark:prose-invert">
+                        {renderDescription(job.requirements)}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Benefits */}
+                {job.benefits && (
+                  <>
+                    <Separator className="my-6" />
+                    <div className="space-y-4">
+                      <h3 className="text-xl font-semibold">{t('jobDetail.benefits')}</h3>
+                      <div className="prose prose-sm max-w-none dark:prose-invert">
+                        {renderDescription(job.benefits)}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Application Section */}
+            <Card className="bg-primary/5 border-primary/20">
+              <CardContent className="pt-6">
+                <div className="flex flex-col sm:flex-row gap-4 items-center">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold mb-1">{t('jobDetail.readyToApply')}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {t('jobDetail.applyDescription')}
+                    </p>
+                  </div>
+                  <div className="flex gap-3 w-full sm:w-auto">
+                    <Button size="lg" className="flex-1 sm:flex-initial" asChild>
+                      <Link href={`/${params.locale}/jobs/${job.id}/apply`}>
+                        <Send className="h-4 w-4 mr-2" />
+                        {t('jobDetail.applyNow')}
+                      </Link>
+                    </Button>
+                    <Button size="lg" variant="outline">
+                      <Heart className="h-4 w-4" />
+                      <span className="sr-only">{t('jobDetail.save')}</span>
+                    </Button>
+                    <Button size="lg" variant="outline">
+                      <Share2 className="h-4 w-4" />
+                      <span className="sr-only">{t('jobDetail.share')}</span>
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
           {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-6 space-y-4">
-              {/* Apply Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Uchádzať sa o pozíciu</CardTitle>
-                  <CardDescription>
-                    Odošlite svoju prihlášku a my sa vám ozveme
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button className="w-full" size="lg" asChild>
-                    <Link href={`/${locale}/jobs/${jobId}/apply`}>
-                      <Send className="mr-2 h-4 w-4" />
-                      Odoslať prihlášku
-                    </Link>
-                  </Button>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Budete presmerovaný na prihlasovací formulár
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Company Info */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>O spoločnosti</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                      <Building2 className="h-6 w-6 text-primary" />
+          <div className="space-y-6">
+            {/* Company Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('jobDetail.aboutCompany')}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-3">
+                  {job.organization.logo ? (
+                    <img
+                      src={job.organization.logo}
+                      alt={job.organization.name}
+                      className="h-12 w-12 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
+                      <Building2 className="h-6 w-6" />
                     </div>
-                    <div>
-                      <p className="font-semibold">{job.company}</p>
-                      <p className="text-sm text-muted-foreground">IT & Software</p>
-                    </div>
+                  )}
+                  <div>
+                    <p className="font-semibold">{job.organization.name}</p>
+                    {job.organization.industry && (
+                      <p className="text-sm text-muted-foreground">{job.organization.industry}</p>
+                    )}
                   </div>
-                  <Separator />
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Veľkosť:</span>
-                      <span className="font-medium">50-200 zamestnancov</span>
+                </div>
+
+                {job.organization.description && (
+                  <p className="text-sm text-muted-foreground">
+                    {job.organization.description}
+                  </p>
+                )}
+
+                <div className="space-y-2">
+                  {job.organization.size && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Users className="h-4 w-4" />
+                      <span>{job.organization.size} {t('jobDetail.employees')}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Založená:</span>
-                      <span className="font-medium">2015</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Webstránka:</span>
-                      <a href="#" className="font-medium text-primary hover:underline">
-                        techcorp.sk
+                  )}
+                  {job.organization.website && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Globe className="h-4 w-4" />
+                      <a
+                        href={job.organization.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline text-primary"
+                      >
+                        {t('jobDetail.visitWebsite')}
                       </a>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  )}
+                </div>
 
-              {/* Posted Time */}
+                <Button variant="outline" className="w-full" asChild>
+                  <Link href={`/${params.locale}/company/${job.organization.id}`}>
+                    {t('jobDetail.viewAllJobs')}
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Similar Jobs */}
+            {similarJobs.length > 0 && (
               <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>Pridané {job.postedAt}</span>
-                  </div>
+                <CardHeader>
+                  <CardTitle>{t('jobDetail.similarJobs')}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {similarJobs.map((similarJob) => (
+                    <Link
+                      key={similarJob.id}
+                      href={`/${params.locale}/jobs/${similarJob.id}`}
+                      className="block space-y-1 p-3 -mx-3 rounded-lg hover:bg-muted transition-colors"
+                    >
+                      <p className="font-medium line-clamp-1">{similarJob.title}</p>
+                      <p className="text-sm text-muted-foreground">{similarJob.organization.name}</p>
+                      <p className="text-sm text-muted-foreground">{similarJob.location}</p>
+                      {(similarJob.salaryMin || similarJob.salaryMax) && (
+                        <p className="text-sm font-medium text-primary">
+                          {similarJob.salaryMin && similarJob.salaryMax
+                            ? `€${similarJob.salaryMin.toLocaleString()} - €${similarJob.salaryMax.toLocaleString()}`
+                            : similarJob.salaryMin
+                            ? `€${similarJob.salaryMin.toLocaleString()}+`
+                            : `${t('jobDetail.upTo')} €${similarJob.salaryMax?.toLocaleString()}`
+                          }
+                        </p>
+                      )}
+                    </Link>
+                  ))}
                 </CardContent>
               </Card>
-            </div>
+            )}
+
+            {/* Quick Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('jobDetail.quickStats')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{t('jobDetail.posted')}:</span>
+                    <span className="font-medium">
+                      {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true, locale: dateLocale })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{t('jobDetail.applications')}:</span>
+                    <span className="font-medium">{job._count.applications}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{t('jobDetail.views')}:</span>
+                    <span className="font-medium">{Math.floor(Math.random() * 500) + 100}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

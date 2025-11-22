@@ -12,6 +12,18 @@ import { createContext } from './trpc/context'
 import { appRouter } from './trpc/router'
 import { prisma } from '@jobsphere/db'
 
+// Security: Require secrets in production
+function getRequiredSecret(name: string, envVar: string | undefined): string {
+  if (!envVar) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(`${name} environment variable is required in production`)
+    }
+    console.warn(`WARNING: ${name} not set, using temporary development secret`)
+    return `dev-${name.toLowerCase()}-${Date.now().toString(36)}`
+  }
+  return envVar
+}
+
 const server = Fastify({
   logger: {
     level: process.env.NODE_ENV === 'production' ? 'warn' : 'info',
@@ -81,9 +93,9 @@ async function start() {
       skipOnError: true,
     })
 
-    // Cookie support
+    // Cookie support - Security: require COOKIE_SECRET in production
     await server.register(cookie, {
-      secret: process.env.COOKIE_SECRET || 'development-secret-change-in-production',
+      secret: getRequiredSecret('COOKIE_SECRET', process.env.COOKIE_SECRET),
       parseOptions: {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -91,9 +103,9 @@ async function start() {
       },
     })
 
-    // JWT
+    // JWT - Security: require JWT_SECRET in production
     await server.register(jwt, {
-      secret: process.env.JWT_SECRET || 'development-jwt-secret',
+      secret: getRequiredSecret('JWT_SECRET', process.env.JWT_SECRET),
       sign: {
         expiresIn: '7d',
       },

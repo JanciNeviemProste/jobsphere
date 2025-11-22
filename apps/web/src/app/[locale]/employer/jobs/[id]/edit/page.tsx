@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { AlertCircle, ArrowLeft, Briefcase, MapPin, DollarSign, Clock, Users } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Briefcase, MapPin, DollarSign, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
@@ -25,36 +25,69 @@ const jobSchema = z.object({
   location: z.string().min(2, 'Location is required'),
   salaryMin: z.number().min(0).optional().or(z.literal('')),
   salaryMax: z.number().min(0).optional().or(z.literal('')),
-  currency: z.string().default('EUR'),
   workMode: z.enum(['REMOTE', 'HYBRID', 'ONSITE']),
   type: z.enum(['FULL_TIME', 'PART_TIME', 'CONTRACT', 'FREELANCE', 'INTERNSHIP']),
   seniority: z.enum(['JUNIOR', 'MID', 'SENIOR', 'LEAD', 'EXECUTIVE']),
-  department: z.string().optional(),
-  keywords: z.string().optional(),
 })
 
 type JobFormData = z.infer<typeof jobSchema>
 
-export default function NewJobPage({ params }: { params: { locale: string } }) {
+export default function EditJobPage({
+  params
+}: {
+  params: { locale: string; id: string }
+}) {
   const router = useRouter()
   const t = useTranslations()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
+    reset,
   } = useForm<JobFormData>({
     resolver: zodResolver(jobSchema),
-    defaultValues: {
-      workMode: 'ONSITE',
-      type: 'FULL_TIME',
-      seniority: 'MID',
-      currency: 'EUR',
-    }
   })
+
+  // Load job data
+  useEffect(() => {
+    const loadJob = async () => {
+      try {
+        const response = await fetch(`/api/jobs/${params.id}`)
+        if (!response.ok) {
+          throw new Error('Job not found')
+        }
+
+        const job = await response.json()
+
+        // Reset form with job data
+        reset({
+          title: job.title,
+          description: job.description || '',
+          requirements: job.requirements || '',
+          benefits: job.benefits || '',
+          location: job.location,
+          salaryMin: job.salaryMin || '',
+          salaryMax: job.salaryMax || '',
+          workMode: job.workMode || 'ONSITE',
+          type: job.type || 'FULL_TIME',
+          seniority: job.seniority || 'MID',
+        })
+
+        setIsLoading(false)
+      } catch (error) {
+        console.error('Failed to load job:', error)
+        toast.error('Failed to load job')
+        router.push(`/${params.locale}/employer`)
+      }
+    }
+
+    loadJob()
+  }, [params.id, params.locale, reset, router])
 
   const onSubmit = async (data: JobFormData) => {
     setIsSubmitting(true)
@@ -67,8 +100,8 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
         salaryMax: data.salaryMax === '' ? undefined : Number(data.salaryMax),
       }
 
-      const response = await fetch('/api/jobs', {
-        method: 'POST',
+      const response = await fetch(`/api/jobs/${params.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -78,17 +111,55 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to create job')
+        throw new Error(result.error || 'Failed to update job')
       }
 
-      toast.success('Job posted successfully!')
+      toast.success('Job updated successfully!')
       router.push(`/${params.locale}/employer`)
     } catch (error) {
-      console.error('Failed to create job:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to create job')
+      console.error('Failed to update job:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to update job')
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to close this job posting? This action cannot be undone.')) {
+      return
+    }
+
+    setIsDeleting(true)
+
+    try {
+      const response = await fetch(`/api/jobs/${params.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const result = await response.json()
+        throw new Error(result.error || 'Failed to close job')
+      }
+
+      toast.success('Job closed successfully!')
+      router.push(`/${params.locale}/employer`)
+    } catch (error) {
+      console.error('Failed to close job:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to close job')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading job details...</span>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -102,8 +173,19 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
               {t('employer.backToDashboard')}
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold mb-2">{t('employer.newJob.title')}</h1>
-          <p className="text-muted-foreground">{t('employer.newJob.subtitle')}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">{t('employer.editJob.title')}</h1>
+              <p className="text-muted-foreground">{t('employer.editJob.subtitle')}</p>
+            </div>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Closing...' : 'Close Job'}
+            </Button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -170,15 +252,6 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="department">{t('employer.newJob.department')}</Label>
-                <Input
-                  id="department"
-                  placeholder={t('employer.newJob.departmentPlaceholder')}
-                  {...register('department')}
-                />
               </div>
             </CardContent>
           </Card>
@@ -288,7 +361,7 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
               <CardDescription>{t('employer.newJob.compensationDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="salaryMin">{t('employer.newJob.minSalary')}</Label>
                   <Input
@@ -308,46 +381,6 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
                     {...register('salaryMax', { valueAsNumber: true })}
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="currency">{t('employer.newJob.currency')}</Label>
-                  <Select
-                    onValueChange={(value) => setValue('currency', value)}
-                    defaultValue="EUR"
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="EUR">EUR</SelectItem>
-                      <SelectItem value="USD">USD</SelectItem>
-                      <SelectItem value="GBP">GBP</SelectItem>
-                      <SelectItem value="CZK">CZK</SelectItem>
-                      <SelectItem value="PLN">PLN</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* SEO & Keywords */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('employer.newJob.keywords')}</CardTitle>
-              <CardDescription>{t('employer.newJob.keywordsDesc')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="keywords">{t('employer.newJob.keywordsLabel')}</Label>
-                <Input
-                  id="keywords"
-                  placeholder={t('employer.newJob.keywordsPlaceholder')}
-                  {...register('keywords')}
-                />
-                <p className="text-sm text-muted-foreground">
-                  {t('employer.newJob.keywordsHint')}
-                </p>
               </div>
             </CardContent>
           </Card>
@@ -363,7 +396,7 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
               {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? t('employer.newJob.publishing') : t('employer.newJob.publish')}
+              {isSubmitting ? t('employer.editJob.saving') : t('employer.editJob.save')}
             </Button>
           </div>
         </form>

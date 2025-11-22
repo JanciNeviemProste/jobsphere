@@ -6,7 +6,21 @@
 import { randomBytes, createHmac } from 'crypto'
 import { cookies } from 'next/headers'
 
-const CSRF_SECRET = process.env.CSRF_SECRET || 'fallback-secret-change-in-production'
+// Security: Require CSRF_SECRET in production, use random fallback only in development
+function getCsrfSecret(): string {
+  const secret = process.env.CSRF_SECRET
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('CSRF_SECRET environment variable is required in production')
+    }
+    // Only for development - generate a random secret per process start
+    console.warn('WARNING: CSRF_SECRET not set, using temporary development secret')
+    return 'dev-' + Math.random().toString(36).substring(2) + Date.now().toString(36)
+  }
+  return secret
+}
+
+const CSRF_SECRET = getCsrfSecret()
 const CSRF_COOKIE_NAME = 'jobsphere-csrf-token'
 const CSRF_TOKEN_LENGTH = 32
 

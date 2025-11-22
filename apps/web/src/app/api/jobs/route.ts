@@ -89,11 +89,7 @@ export const POST = withRateLimit(
     try {
       logger.apiRequest('POST', '/api/jobs')
 
-      // Import and use the schema from schemas/job.schema.ts
-      const { createJobSchema } = await import('@/schemas/job.schema')
-      const { validateRequest } = await import('@/lib/validation')
       const { requireAuth } = await import('@/lib/auth')
-      const { JobService } = await import('@/services')
 
       // Authenticate
       const session = await requireAuth()
@@ -102,26 +98,58 @@ export const POST = withRateLimit(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
 
-      // Validate request body
-      const data = await validateRequest(req, createJobSchema)
+      const data = await req.json()
 
-      // Use service layer
-      const job = await JobService.createJob(
-        {
+      // Get user's organization
+      const userWithOrg = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        include: {
+          organizations: {
+            include: {
+              organization: true
+            }
+          }
+        }
+      })
+
+      if (!userWithOrg?.organizations?.[0]?.organization) {
+        return NextResponse.json(
+          { error: 'You must belong to an organization to create jobs' },
+          { status: 403 }
+        )
+      }
+
+      const organizationId = userWithOrg.organizations[0].organization.id
+
+      // Create the job
+      const job = await prisma.job.create({
+        data: {
           title: data.title,
-          location: data.location,
           description: data.description,
-          salaryMin: data.salaryMin,
-          salaryMax: data.salaryMax,
-          workMode: data.workMode as 'REMOTE' | 'HYBRID' | 'ONSITE',
-          type: data.type as 'FULL_TIME' | 'PART_TIME' | 'CONTRACT',
-          seniority: data.seniority as 'JUNIOR' | 'MEDIOR' | 'SENIOR' | 'LEAD',
-          orgId: data.organizationId,
+          requirements: data.requirements,
+          benefits: data.benefits,
+          location: data.location,
+          salaryMin: data.salaryMin ? Number(data.salaryMin) : null,
+          salaryMax: data.salaryMax ? Number(data.salaryMax) : null,
+          workMode: data.workMode || 'ONSITE',
+          type: data.type || 'FULL_TIME',
+          seniority: data.seniority || 'MID',
+          department: data.department,
+          keywords: data.keywords,
+          status: 'PUBLISHED',
+          organizationId,
         },
-        session.user.id
-      )
+        include: {
+          organization: {
+            select: {
+              name: true,
+              logo: true,
+            }
+          }
+        }
+      })
 
-      logger.info('Job created', { jobId: job.id, organizationId: data.organizationId })
+      logger.info('Job created', { jobId: job.id, organizationId })
 
       return NextResponse.json(job, { status: 201 })
     } catch (error) {

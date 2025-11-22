@@ -10,6 +10,17 @@ export interface AntivirusResult {
   clean: boolean
   virus?: string
   scanTime: number
+  skipped?: boolean  // True if scan was skipped due to unavailability
+}
+
+// Security: Determine fail mode - default to CLOSED in production, OPEN in development
+function getFailMode(): 'open' | 'closed' {
+  const envMode = process.env.ANTIVIRUS_FAIL_MODE?.toLowerCase()
+  if (envMode === 'open' || envMode === 'closed') {
+    return envMode
+  }
+  // Default: fail-closed in production, fail-open in development
+  return process.env.NODE_ENV === 'production' ? 'closed' : 'open'
 }
 
 /**
@@ -58,11 +69,24 @@ export async function scanWithClamAV(buffer: Buffer): Promise<AntivirusResult> {
 
   } catch (error) {
     const scanTime = Date.now() - startTime
-    logger.error('ClamAV scan error', { error, scanTime })
+    const failMode = getFailMode()
 
-    // Fail open if ClamAV unavailable (log warning but allow file)
-    logger.warn('ClamAV unavailable, allowing file (fail-open mode)')
-    return { clean: true, scanTime }
+    logger.error('ClamAV scan error', { error, scanTime, failMode })
+
+    if (failMode === 'closed') {
+      // Security: In fail-closed mode, reject files when AV is unavailable
+      logger.error('ClamAV unavailable - rejecting file (fail-closed mode)')
+      return {
+        clean: false,
+        virus: 'ANTIVIRUS_UNAVAILABLE',
+        scanTime,
+        skipped: true
+      }
+    }
+
+    // Fail-open mode (development only) - allow file but log warning
+    logger.warn('ClamAV unavailable - allowing file (fail-open mode). DO NOT USE IN PRODUCTION!')
+    return { clean: true, scanTime, skipped: true }
   }
 }
 
@@ -115,8 +139,17 @@ export async function verifyMimeType(
       actualType: fileType.mime,
     }
   } catch (error) {
-    logger.error('MIME verification error', { error })
-    // Fail open - allow file if verification fails
+    const failMode = getFailMode()
+    logger.error('MIME verification error', { error, failMode })
+
+    if (failMode === 'closed') {
+      // Security: In fail-closed mode, reject files when verification fails
+      logger.error('MIME verification failed - rejecting file (fail-closed mode)')
+      return { valid: false }
+    }
+
+    // Fail-open mode (development only)
+    logger.warn('MIME verification failed - allowing file (fail-open mode). DO NOT USE IN PRODUCTION!')
     return { valid: true }
   }
 }

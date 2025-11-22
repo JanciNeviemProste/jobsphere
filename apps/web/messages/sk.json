@@ -54,7 +54,43 @@
     "onsite": "V kancelárii",
     "fullTime": "Plný úväzok",
     "partTime": "Čiastočný úväzok",
-    "contract": "Kontrakt"
+    "contract": "Kontrakt",
+    "loading": "Načítavam ponuky...",
+    "retry": "Skúsiť znova",
+    "searchPlaceholder": "Hľadať ponuky podľa názvu, spoločnosti alebo lokality",
+    "workMode": "Režim práce",
+    "jobType": "Typ práce",
+    "seniority": "Seniorita",
+    "seniorityLevel": "Úroveň seniority",
+    "perMonth": "mesiac",
+    "viewDetail": "Zobraziť detaily",
+    "offer": "ponuka",
+    "offers": "ponúk",
+    "found": "nájdených",
+    "noResults": "Neboli nájdené žiadne ponuky zodpovedajúce vašim kritériám",
+    "resetFilters": "Resetovať filtre"
+  },
+  "jobDetail": {
+    "backToJobs": "Späť na ponuky",
+    "description": "Popis pozície",
+    "requirements": "Požiadavky",
+    "benefits": "Benefity",
+    "applyNow": "Odoslať prihlášku",
+    "save": "Uložiť",
+    "share": "Zdieľať",
+    "aboutCompany": "O spoločnosti",
+    "employees": "zamestnancov",
+    "visitWebsite": "Navštíviť webstránku",
+    "viewAllJobs": "Zobraziť všetky ponuky",
+    "similarJobs": "Podobné ponuky",
+    "upTo": "do",
+    "posted": "Pridané",
+    "applications": "prihlášok",
+    "views": "zobrazení",
+    "quickStats": "Rýchle štatistiky",
+    "readyToApply": "Pripravený sa prihlásiť?",
+    "applyDescription": "Prihláste sa na túto pozíciu a spravte ďalší krok vo vašej kariére",
+    "noDescription": "Popis nie je k dispozícii"
   },
   "auth": {
     "login": {
@@ -137,30 +173,51 @@
     "postedAt": "Pridané"
   },
   "dashboard": {
-    "welcome": "Vitajte späť",
-    "overview": "Tu je prehľad vašich pracovných príležitostí",
-    "totalApplications": "Celkovo prihlášok",
-    "pending": "Čaká sa",
-    "inProcess": "V procese",
-    "accepted": "Prijaté",
-    "myApplications": "Moje prihlášky",
-    "allApplications": "Všetky vaše odoslané prihlášky",
-    "searchJobs": "Hľadať prácu",
-    "appliedOn": "Prihlásené",
-    "detail": "Detail",
-    "noApplications": "Zatiaľ nemáte žiadne prihlášky",
-    "browseOffers": "Prehľadať ponuky",
-    "profile": "Profil",
-    "completeProfile": "Dokončite svoj profil pre lepšie návrhy",
-    "completion": "Dokončenie profilu",
-    "recommended": "Odporúčané pre vás",
-    "aiSuggestions": "AI návrhy na základe vášho profilu",
-    "basicInfo": "Základné informácie",
-    "cvUploaded": "CV nahrané",
-    "skillsExperience": "Zručnosti a skúsenosti",
-    "workPreferences": "Preferencie práce",
-    "finishProfile": "Dokončiť profil",
-    "match": "zhoda"
+    "welcome": "Vitajte späť, {name}!",
+    "subtitle": "Tu je prehľad vašich pracovných príležitostí",
+    "stats": {
+      "total": "Celkovo prihlášok",
+      "pending": "Čaká sa",
+      "reviewing": "Preveruje sa",
+      "accepted": "Prijaté",
+      "rejected": "Zamietnuté"
+    },
+    "applications": {
+      "title": "Moje prihlášky",
+      "subtitle": "Všetky vaše odoslané prihlášky",
+      "searchJobs": "Hľadať prácu",
+      "appliedOn": "Prihlásené {date}",
+      "viewJob": "Detail",
+      "empty": "Zatiaľ nemáte žiadne prihlášky",
+      "browseJobs": "Prehľadať ponuky"
+    },
+    "profile": {
+      "title": "Profil",
+      "subtitle": "Dokončite svoj profil pre lepšie návrhy",
+      "completion": "Dokončenie profilu",
+      "complete": "Dokončiť profil",
+      "steps": {
+        "basicInfo": "Základné informácie",
+        "cv": "CV nahrané",
+        "skills": "Zručnosti a skúsenosti",
+        "preferences": "Preferencie práce"
+      }
+    },
+    "recommended": {
+      "title": "Odporúčané pre vás",
+      "subtitle": "AI návrhy na základe vášho profilu",
+      "view": "Zobraziť",
+      "empty": "Dokončite svoj profil pre získanie odporúčaní"
+    },
+    "status": {
+      "pending": "Čaká sa",
+      "reviewing": "Preveruje sa",
+      "accepted": "Prijaté",
+      "rejected": "Zamietnuté"
+    },
+    "salary": {
+      "negotiable": "Dohodou"
+    }
   },
   "employer": {
     "dashboard": "ATS Dashboard",

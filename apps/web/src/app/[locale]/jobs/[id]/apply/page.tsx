@@ -1,109 +1,229 @@
 'use client'
 
-import { useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, Upload, Send, FileText, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
+import * as z from 'zod'
+import { format } from 'date-fns'
+import { CalendarIcon, ArrowLeft, Upload, FileText, Loader2, CheckCircle } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Calendar } from '@/components/ui/calendar'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { toast } from '@/components/ui/use-toast'
 
-// Mock job data
-const MOCK_JOB = {
-  id: '1',
-  title: 'Senior React Developer',
-  company: 'TechCorp SK',
-  location: 'Bratislava, Slovakia',
+// Form schema
+const applicationSchema = z.object({
+  coverLetter: z.string().min(50, {
+    message: 'Cover letter must be at least 50 characters.',
+  }).max(2000, {
+    message: 'Cover letter must not exceed 2000 characters.',
+  }),
+  cvSource: z.enum(['existing', 'upload', 'profile']),
+  cvId: z.string().optional(),
+  cvFile: z.any().optional(),
+  expectedSalary: z.string().optional(),
+  availableFrom: z.date().optional(),
+  phoneNumber: z.string().min(9, 'Please enter a valid phone number').optional(),
+  linkedin: z.string().url('Please enter a valid LinkedIn URL').optional().or(z.literal('')),
+})
+
+type ApplicationFormValues = z.infer<typeof applicationSchema>
+
+interface JobData {
+  id: string
+  title: string
+  company: string
+  location: string
+  salaryMin?: number
+  salaryMax?: number
 }
 
-export default function ApplyPage() {
-  const params = useParams()
-  const router = useRouter()
-  const t = useTranslations()
-  const jobId = params.id as string
-  const locale = params.locale as string
+interface UserCV {
+  id: string
+  title: string
+  uploadedAt: string
+  isDefault?: boolean
+}
 
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    coverLetter: '',
-    cvFile: null as File | null,
-  })
+export default function ApplyPage({ params }: { params: { id: string; locale: string } }) {
+  const router = useRouter()
+  const { data: session, status } = useSession()
+  const t = useTranslations()
+  const [job, setJob] = useState<JobData | null>(null)
+  const [userCVs, setUserCVs] = useState<UserCV[]>([])
+  const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFormData({ ...formData, cvFile: e.target.files[0] })
-    }
-  }
+  const form = useForm<ApplicationFormValues>({
+    resolver: zodResolver(applicationSchema),
+    defaultValues: {
+      coverLetter: '',
+      cvSource: 'existing',
+      expectedSalary: '',
+      linkedin: '',
+    },
+  })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Fetch job details
+  useEffect(() => {
+    async function fetchJobData() {
+      try {
+        const response = await fetch(`/api/jobs/${params.id}`)
+        if (!response.ok) throw new Error('Failed to fetch job')
+        const data = await response.json()
+        setJob({
+          id: data.id,
+          title: data.title,
+          company: data.organization.name,
+          location: data.location,
+          salaryMin: data.salaryMin,
+          salaryMax: data.salaryMax,
+        })
+      } catch (error) {
+        console.error('Error fetching job:', error)
+        toast({
+          title: t('apply.error'),
+          description: t('apply.jobNotFound'),
+          variant: 'destructive',
+        })
+      }
+    }
+
+    fetchJobData()
+  }, [params.id, t])
+
+  // Fetch user's CVs
+  useEffect(() => {
+    async function fetchUserCVs() {
+      if (status !== 'authenticated') return
+
+      try {
+        const response = await fetch('/api/user/cvs')
+        if (response.ok) {
+          const data = await response.json()
+          setUserCVs(data)
+          // Set default CV if exists
+          const defaultCV = data.find((cv: UserCV) => cv.isDefault)
+          if (defaultCV) {
+            form.setValue('cvId', defaultCV.id)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching CVs:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUserCVs()
+  }, [status, form])
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push(`/${params.locale}/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`)
+    }
+  }, [status, router, params.locale])
+
+  async function onSubmit(values: ApplicationFormValues) {
     setSubmitting(true)
 
     try {
-      let cvUrl = null
+      const formData = new FormData()
+      formData.append('jobId', params.id)
+      formData.append('coverLetter', values.coverLetter)
 
-      // Upload CV file if provided
-      if (formData.cvFile) {
-        const uploadFormData = new FormData()
-        uploadFormData.append('file', formData.cvFile)
+      if (values.expectedSalary) {
+        formData.append('expectedSalary', values.expectedSalary)
+      }
 
-        // Try Vercel Blob first, fallback to local upload
-        const uploadEndpoint = process.env.NEXT_PUBLIC_USE_VERCEL_BLOB === 'true'
-          ? '/api/upload-blob'
-          : '/api/upload'
+      if (values.availableFrom) {
+        formData.append('availableFrom', values.availableFrom.toISOString())
+      }
 
-        const uploadResponse = await fetch(uploadEndpoint, {
-          method: 'POST',
-          body: uploadFormData,
-        })
+      if (values.phoneNumber) {
+        formData.append('phoneNumber', values.phoneNumber)
+      }
 
-        if (!uploadResponse.ok) {
-          throw new Error('Failed to upload CV')
-        }
+      if (values.linkedin) {
+        formData.append('linkedin', values.linkedin)
+      }
 
-        const uploadData = await uploadResponse.json()
-        cvUrl = uploadData.url
+      // Handle CV based on source
+      if (values.cvSource === 'existing' && values.cvId) {
+        formData.append('cvId', values.cvId)
+      } else if (values.cvSource === 'upload' && values.cvFile) {
+        formData.append('cvFile', values.cvFile)
       }
 
       const response = await fetch('/api/applications', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jobId,
-          coverLetter: formData.coverLetter,
-          cvUrl,
-          expectedSalary: null,
-          availableFrom: null,
-        }),
+        body: formData,
       })
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to submit application')
+        throw new Error(error.message || 'Failed to submit application')
       }
 
-      setSubmitting(false)
       setSubmitted(true)
+      toast({
+        title: t('apply.success'),
+        description: t('apply.successDescription'),
+      })
 
       // Redirect after 3 seconds
       setTimeout(() => {
-        router.push(`/${locale}/dashboard`)
+        router.push(`/${params.locale}/dashboard`)
       }, 3000)
     } catch (error) {
       console.error('Error submitting application:', error)
-      alert('Nepodarilo sa odoslať prihlášku. Skúste to prosím znova.')
+      toast({
+        title: t('apply.error'),
+        description: error instanceof Error ? error.message : t('apply.submitError'),
+        variant: 'destructive',
+      })
+    } finally {
       setSubmitting(false)
     }
+  }
+
+  if (loading || status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
   }
 
   if (submitted) {
@@ -112,27 +232,16 @@ export default function ApplyPage() {
         <div className="container mx-auto px-4 py-12">
           <Card className="max-w-2xl mx-auto">
             <CardContent className="pt-12 pb-12 text-center">
-              <div className="flex justify-center mb-6">
-                <div className="rounded-full bg-green-100 p-6">
-                  <CheckCircle className="h-16 w-16 text-green-600" />
+              <div className="mb-6 flex justify-center">
+                <div className="h-20 w-20 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                  <CheckCircle className="h-12 w-12 text-green-600 dark:text-green-400" />
                 </div>
               </div>
-              <h1 className="text-3xl font-bold mb-4">Prihláška úspešne odoslaná!</h1>
-              <p className="text-muted-foreground mb-8">
-                Vaša prihláška na pozíciu <strong>{MOCK_JOB.title}</strong> v spoločnosti{' '}
-                <strong>{MOCK_JOB.company}</strong> bola odoslaná.
-              </p>
-              <p className="text-sm text-muted-foreground mb-8">
-                Budete presmerovaný na dashboard...
-              </p>
-              <div className="flex gap-4 justify-center">
-                <Button asChild>
-                  <Link href={`/${locale}/dashboard`}>Prejsť na dashboard</Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link href={`/${locale}/jobs`}>Hľadať ďalšie ponuky</Link>
-                </Button>
-              </div>
+              <h2 className="text-2xl font-bold mb-4">{t('apply.successTitle')}</h2>
+              <p className="text-muted-foreground mb-8">{t('apply.successMessage')}</p>
+              <Button asChild>
+                <Link href={`/${params.locale}/dashboard`}>{t('apply.goToDashboard')}</Link>
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -142,199 +251,324 @@ export default function ApplyPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-8">
         {/* Back Button */}
-        <Button variant="ghost" asChild className="mb-6">
-          <Link href={`/${locale}/jobs/${jobId}`}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Späť na ponuku
-          </Link>
-        </Button>
-
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Uchádzať sa o pozíciu</h1>
-          <p className="text-muted-foreground">
-            {MOCK_JOB.title} v {MOCK_JOB.company}
-          </p>
+        <div className="mb-6">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={`/${params.locale}/jobs/${params.id}`}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              {t('apply.backToJob')}
+            </Link>
+          </Button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-6">
-            {/* Personal Information */}
+        <div className="grid gap-8 lg:grid-cols-3">
+          {/* Application Form */}
+          <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <CardTitle>Osobné údaje</CardTitle>
-                <CardDescription>Základné informácie o vás</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">Krstné meno *</Label>
-                    <Input
-                      id="firstName"
-                      required
-                      value={formData.firstName}
-                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                      placeholder="Ján"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Priezvisko *</Label>
-                    <Input
-                      id="lastName"
-                      required
-                      value={formData.lastName}
-                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                      placeholder="Novák"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="jan.novak@example.com"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Telefón *</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="+421 900 123 456"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* CV Upload */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Životopis (CV) *</CardTitle>
-                <CardDescription>Nahrajte váš najnovší životopis</CardDescription>
+                <CardTitle className="text-2xl">{t('apply.title')}</CardTitle>
+                <CardDescription>{t('apply.description')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                    <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
-                    {formData.cvFile ? (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium">{formData.cvFile.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {(formData.cvFile.size / 1024).toFixed(2)} KB
-                        </p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setFormData({ ...formData, cvFile: null })}
-                        >
-                          Odstrániť
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Pretiahnite sem váš CV alebo kliknite pre výber
-                        </p>
-                        <p className="text-xs text-muted-foreground mb-4">
-                          PDF, DOC, DOCX (max. 5MB)
-                        </p>
-                        <label htmlFor="cv-upload">
-                          <Button type="button" variant="outline" asChild>
-                            <span>
-                              <Upload className="mr-2 h-4 w-4" />
-                              Vybrať súbor
-                            </span>
-                          </Button>
-                        </label>
-                        <input
-                          id="cv-upload"
-                          type="file"
-                          accept=".pdf,.doc,.docx"
-                          className="hidden"
-                          onChange={handleFileChange}
-                          required
-                        />
-                      </>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Cover Letter */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Motivačný list</CardTitle>
-                <CardDescription>Voliteľne - napíšte, prečo ste vhodný kandidát</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Label htmlFor="coverLetter">Správa pre zamestnávateľa</Label>
-                  <textarea
-                    id="coverLetter"
-                    rows={8}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Napíšte, prečo ste vhodný pre túto pozíciu..."
-                    value={formData.coverLetter}
-                    onChange={(e) => setFormData({ ...formData, coverLetter: e.target.value })}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {formData.coverLetter.length} / 2000 znakov
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Submit */}
-            <Card>
-              <CardContent className="pt-6">
-                <div className="space-y-4">
-                  <div className="bg-muted/50 rounded-lg p-4">
-                    <p className="text-sm text-muted-foreground">
-                      Odoslaním prihlášky súhlasíte so spracovaním vašich osobných údajov v súlade s{' '}
-                      <Link href="/privacy" className="text-primary hover:underline">
-                        Ochranou súkromia
-                      </Link>{' '}
-                      a{' '}
-                      <Link href="/terms" className="text-primary hover:underline">
-                        Podmienkami používania
-                      </Link>
-                      .
-                    </p>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <Button type="submit" className="flex-1" disabled={submitting}>
-                      {submitting ? (
-                        'Odosiela sa...'
-                      ) : (
-                        <>
-                          <Send className="mr-2 h-4 w-4" />
-                          Odoslať prihlášku
-                        </>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    {/* Cover Letter */}
+                    <FormField
+                      control={form.control}
+                      name="coverLetter"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('apply.coverLetter')}</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder={t('apply.coverLetterPlaceholder')}
+                              className="min-h-[200px]"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t('apply.coverLetterDescription')} ({field.value?.length || 0}/2000)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
                       )}
-                    </Button>
-                    <Button type="button" variant="outline" asChild>
-                      <Link href={`/${locale}/jobs/${jobId}`}>Zrušiť</Link>
-                    </Button>
-                  </div>
-                </div>
+                    />
+
+                    {/* CV Selection */}
+                    <FormField
+                      control={form.control}
+                      name="cvSource"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('apply.cv')}</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={t('apply.selectCV')} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="existing">{t('apply.useExisting')}</SelectItem>
+                              <SelectItem value="upload">{t('apply.uploadNew')}</SelectItem>
+                              <SelectItem value="profile">{t('apply.useProfile')}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Existing CV Selection */}
+                    {form.watch('cvSource') === 'existing' && userCVs.length > 0 && (
+                      <FormField
+                        control={form.control}
+                        name="cvId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('apply.selectYourCV')}</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder={t('apply.chooseCVPlaceholder')} />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {userCVs.map((cv) => (
+                                  <SelectItem key={cv.id} value={cv.id}>
+                                    {cv.title} - {cv.uploadedAt}
+                                    {cv.isDefault && ` (${t('apply.default')})`}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {/* Upload CV */}
+                    {form.watch('cvSource') === 'upload' && (
+                      <FormField
+                        control={form.control}
+                        name="cvFile"
+                        render={({ field: { onChange, value, ...field } }) => (
+                          <FormItem>
+                            <FormLabel>{t('apply.uploadCV')}</FormLabel>
+                            <FormControl>
+                              <div className="flex items-center gap-4">
+                                <Input
+                                  type="file"
+                                  accept=".pdf,.doc,.docx"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0]
+                                    if (file) {
+                                      onChange(file)
+                                    }
+                                  }}
+                                  {...field}
+                                />
+                                <Upload className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            </FormControl>
+                            <FormDescription>{t('apply.uploadCVDescription')}</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {/* Expected Salary */}
+                    <FormField
+                      control={form.control}
+                      name="expectedSalary"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('apply.expectedSalary')}</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder={job?.salaryMin ? `${job.salaryMin} - ${job.salaryMax}` : t('apply.salaryPlaceholder')}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription>{t('apply.salaryDescription')}</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Available From */}
+                    <FormField
+                      control={form.control}
+                      name="availableFrom"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>{t('apply.availableFrom')}</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    'w-full pl-3 text-left font-normal',
+                                    !field.value && 'text-muted-foreground'
+                                  )}
+                                >
+                                  {field.value ? (
+                                    format(field.value, 'PPP')
+                                  ) : (
+                                    <span>{t('apply.selectDate')}</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) =>
+                                  date < new Date()
+                                }
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormDescription>{t('apply.availableFromDescription')}</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Phone Number */}
+                    <FormField
+                      control={form.control}
+                      name="phoneNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('apply.phoneNumber')}</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="tel"
+                              placeholder="+421 900 123 456"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* LinkedIn */}
+                    <FormField
+                      control={form.control}
+                      name="linkedin"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('apply.linkedin')}</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="url"
+                              placeholder="https://linkedin.com/in/your-profile"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Submit Button */}
+                    <div className="flex gap-4">
+                      <Button type="submit" disabled={submitting} className="flex-1">
+                        {submitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            {t('apply.submitting')}
+                          </>
+                        ) : (
+                          t('apply.submit')
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => router.back()}
+                        disabled={submitting}
+                      >
+                        {t('apply.cancel')}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
               </CardContent>
             </Card>
           </div>
-        </form>
+
+          {/* Job Summary Sidebar */}
+          <div className="lg:col-span-1">
+            <Card className="sticky top-6">
+              <CardHeader>
+                <CardTitle>{t('apply.jobSummary')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {job ? (
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-semibold text-lg">{job.title}</h3>
+                      <p className="text-muted-foreground">{job.company}</p>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('apply.location')}:</span>
+                        <span>{job.location}</span>
+                      </div>
+                      {(job.salaryMin || job.salaryMax) && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">{t('apply.salary')}:</span>
+                          <span>
+                            €{job.salaryMin?.toLocaleString()} - €{job.salaryMax?.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="h-4 bg-muted rounded animate-pulse" />
+                    <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Tips */}
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>{t('apply.tips')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary">•</span>
+                    <span>{t('apply.tip1')}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary">•</span>
+                    <span>{t('apply.tip2')}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary">•</span>
+                    <span>{t('apply.tip3')}</span>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   )

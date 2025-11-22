@@ -8,9 +8,12 @@ const intlMiddleware = createMiddleware({
   localeDetection: true,
 })
 
-// CSRF token generation and validation
+// CSRF token generation and validation using cryptographically secure random
 function generateCSRFToken(): string {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+  // Use Web Crypto API (available in Edge Runtime) for secure random generation
+  const array = new Uint8Array(32)
+  crypto.getRandomValues(array)
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
 }
 
 function validateCSRFToken(request: NextRequest): boolean {

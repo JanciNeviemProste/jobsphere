@@ -1,8 +1,22 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
+import { writeFile, mkdir, unlink } from 'fs/promises'
+import { join, resolve, basename } from 'path'
 import { randomUUID } from 'crypto'
+
+// Security: Validate filename to prevent path traversal attacks
+function isValidFilename(filename: string): boolean {
+  // Only allow UUID-based filenames with valid extensions (our upload format)
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(pdf|doc|docx)$/i
+  return uuidPattern.test(filename)
+}
+
+// Security: Ensure resolved path is within allowed directory
+function isPathWithinDirectory(filepath: string, directory: string): boolean {
+  const resolvedPath = resolve(filepath)
+  const resolvedDirectory = resolve(directory)
+  return resolvedPath.startsWith(resolvedDirectory + '\\') || resolvedPath.startsWith(resolvedDirectory + '/')
+}
 
 export async function POST(req: Request) {
   try {
@@ -103,18 +117,30 @@ export async function DELETE(req: Request) {
       )
     }
 
-    // Extract filename from URL
-    const filename = url.split('/').pop()
-    if (!filename) {
+    // Security: Extract and validate filename using basename to prevent path traversal
+    const filename = basename(url)
+
+    // Security: Validate filename format (must be UUID.extension)
+    if (!filename || !isValidFilename(filename)) {
       return NextResponse.json(
-        { error: 'Invalid URL' },
+        { error: 'Invalid filename format' },
+        { status: 400 }
+      )
+    }
+
+    // Construct filepath
+    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'cvs')
+    const filepath = join(uploadsDir, filename)
+
+    // Security: Double-check path is within uploads directory (defense in depth)
+    if (!isPathWithinDirectory(filepath, uploadsDir)) {
+      return NextResponse.json(
+        { error: 'Invalid file path' },
         { status: 400 }
       )
     }
 
     // Delete file
-    const filepath = join(process.cwd(), 'public', 'uploads', 'cvs', filename)
-    const { unlink } = await import('fs/promises')
     await unlink(filepath)
 
     return NextResponse.json({ success: true })

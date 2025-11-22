@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { MapPin, Briefcase, Clock, Euro, Search, Filter } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { MapPin, Briefcase, Clock, Euro, Search, Filter, Loader2 } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,82 +18,57 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { formatDistanceToNow } from 'date-fns'
+import { sk, cs, pl, de, enUS } from 'date-fns/locale'
 
-// Mock data - neskôr bude z databázy
-const MOCK_JOBS = [
-  {
-    id: '1',
-    title: 'Senior React Developer',
-    company: 'TechCorp SK',
-    location: 'Bratislava, Slovakia',
-    salary: '3000 - 5000',
-    type: 'FULL_TIME',
-    workMode: 'HYBRID',
-    seniority: 'SENIOR',
-    description: 'Hľadáme skúseného React vývojára do nášho tímu...',
-    postedAt: '2 dni dozadu',
-  },
-  {
-    id: '2',
-    title: 'Frontend Developer',
-    company: 'Digital Solutions',
-    location: 'Praha, Czech Republic',
-    salary: '2500 - 4000',
-    type: 'FULL_TIME',
-    workMode: 'REMOTE',
-    seniority: 'MEDIOR',
-    description: 'Staň sa súčasťou nášho dynamického tímu...',
-    postedAt: '5 dní dozadu',
-  },
-  {
-    id: '3',
-    title: 'Full Stack Developer',
-    company: 'Innovation Labs',
-    location: 'Viedeň, Austria',
-    salary: '4000 - 6500',
-    type: 'FULL_TIME',
-    workMode: 'ONSITE',
-    seniority: 'SENIOR',
-    description: 'Pridaj sa k nám a pracuj na najnovších technológiách...',
-    postedAt: '1 týždeň dozadu',
-  },
-  {
-    id: '4',
-    title: 'Junior JavaScript Developer',
-    company: 'StartupHub',
-    location: 'Košice, Slovakia',
-    salary: '1500 - 2200',
-    type: 'FULL_TIME',
-    workMode: 'HYBRID',
-    seniority: 'JUNIOR',
-    description: 'Ideálna príležitosť pre začiatočníkov...',
-    postedAt: '3 dni dozadu',
-  },
-  {
-    id: '5',
-    title: 'React Native Developer',
-    company: 'Mobile First',
-    location: 'Brno, Czech Republic',
-    salary: '2800 - 4200',
-    type: 'FULL_TIME',
-    workMode: 'REMOTE',
-    seniority: 'MEDIOR',
-    description: 'Vyvíjaj mobilné aplikácie pre milióny používateľov...',
-    postedAt: '4 dni dozadu',
-  },
-  {
-    id: '6',
-    title: 'Lead Frontend Engineer',
-    company: 'Enterprise Solutions',
-    location: 'Berlín, Germany',
-    salary: '5500 - 8000',
-    type: 'FULL_TIME',
-    workMode: 'HYBRID',
-    seniority: 'LEAD',
-    description: 'Veď náš frontend tím a navrhuj architektúru...',
-    postedAt: '6 dní dozadu',
-  },
-]
+// Job type from database
+interface Job {
+  id: string
+  title: string
+  location: string
+  description?: string | null
+  salaryMin?: number | null
+  salaryMax?: number | null
+  workMode: string
+  type: string
+  seniority?: string | null
+  status: string
+  createdAt: string
+  organization: {
+    name: string
+    logo?: string | null
+  }
+}
+
+// Debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value)
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value)
+    }, delay)
+
+    return () => {
+      clearTimeout(handler)
+    }
+  }, [value, delay])
+
+  return debouncedValue
+}
+
+// Get date locale based on current locale
+function getDateLocale(locale: string) {
+  switch(locale) {
+    case 'sk': return sk
+    case 'cs': return cs
+    case 'pl': return pl
+    case 'de': return de
+    default: return enUS
+  }
+}
+
+// Constants
 
 const WORK_MODES = ['REMOTE', 'HYBRID', 'ONSITE']
 const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT']
@@ -101,23 +77,83 @@ const SENIORITY_LEVELS = ['JUNIOR', 'MEDIOR', 'SENIOR', 'LEAD']
 export default function JobsPage({ params }: { params: { locale: string } }) {
   const t = useTranslations()
   const locale = params.locale
+  const dateLocale = getDateLocale(locale)
+
+  // State
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedWorkModes, setSelectedWorkModes] = useState<string[]>([])
   const [selectedJobTypes, setSelectedJobTypes] = useState<string[]>([])
   const [selectedSeniority, setSelectedSeniority] = useState<string[]>([])
 
-  const filteredJobs = MOCK_JOBS.filter((job) => {
-    const matchesSearch =
-      job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.location.toLowerCase().includes(searchQuery.toLowerCase())
+  // Debounce search query
+  const debouncedSearch = useDebounce(searchQuery, 500)
 
-    const matchesWorkMode = selectedWorkModes.length === 0 || selectedWorkModes.includes(job.workMode)
-    const matchesJobType = selectedJobTypes.length === 0 || selectedJobTypes.includes(job.type)
-    const matchesSeniority = selectedSeniority.length === 0 || selectedSeniority.includes(job.seniority)
+  // Fetch jobs from API
+  const fetchJobs = useCallback(async () => {
+    setLoading(true)
+    setError(null)
 
-    return matchesSearch && matchesWorkMode && matchesJobType && matchesSeniority
-  })
+    try {
+      // Build query parameters
+      const params = new URLSearchParams()
+
+      if (debouncedSearch) {
+        params.append('search', debouncedSearch)
+      }
+
+      // Add single filters (API expects single value for these)
+      if (selectedWorkModes.length === 1) {
+        params.append('workMode', selectedWorkModes[0])
+      }
+      if (selectedJobTypes.length === 1) {
+        params.append('jobType', selectedJobTypes[0])
+      }
+      if (selectedSeniority.length === 1) {
+        params.append('seniority', selectedSeniority[0])
+      }
+
+      const response = await fetch(`/api/jobs?${params.toString()}`)
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch jobs: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+
+      // If multiple filters selected, filter client-side
+      let filteredData = data
+      if (selectedWorkModes.length > 1) {
+        filteredData = filteredData.filter((job: Job) =>
+          selectedWorkModes.includes(job.workMode)
+        )
+      }
+      if (selectedJobTypes.length > 1) {
+        filteredData = filteredData.filter((job: Job) =>
+          selectedJobTypes.includes(job.type)
+        )
+      }
+      if (selectedSeniority.length > 1) {
+        filteredData = filteredData.filter((job: Job) =>
+          job.seniority && selectedSeniority.includes(job.seniority)
+        )
+      }
+
+      setJobs(filteredData)
+    } catch (err) {
+      console.error('Error fetching jobs:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load jobs')
+    } finally {
+      setLoading(false)
+    }
+  }, [debouncedSearch, selectedWorkModes, selectedJobTypes, selectedSeniority])
+
+  // Fetch jobs when filters change
+  useEffect(() => {
+    fetchJobs()
+  }, [fetchJobs])
 
   const toggleFilter = (value: string, selected: string[], setter: (values: string[]) => void) => {
     if (selected.includes(value)) {
@@ -152,7 +188,16 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">{t('jobs.title')}</h1>
           <p className="text-muted-foreground">
-            {filteredJobs.length} {filteredJobs.length === 1 ? t('jobs.offer') : t('jobs.offers')} {t('jobs.found')}
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {t('jobs.loading')}
+              </span>
+            ) : (
+              <>
+                {jobs.length} {jobs.length === 1 ? t('jobs.offer') : t('jobs.offers')} {t('jobs.found')}
+              </>
+            )}
           </p>
         </div>
 
@@ -256,46 +301,92 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
         </div>
 
         {/* Jobs Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredJobs.map((job) => (
-            <Card key={job.id} className="flex flex-col">
-              <CardHeader>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    <CardTitle className="line-clamp-2">{job.title}</CardTitle>
-                    <CardDescription className="mt-1">{job.company}</CardDescription>
+        {error ? (
+          <div className="text-center py-12">
+            <p className="text-destructive text-lg mb-4">{error}</p>
+            <Button variant="outline" onClick={() => fetchJobs()}>
+              {t('jobs.retry')}
+            </Button>
+          </div>
+        ) : loading ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, index) => (
+              <Card key={index} className="flex flex-col">
+                <CardHeader>
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-1/2 mt-2" />
+                </CardHeader>
+                <CardContent className="flex-1 space-y-3">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                  <div className="flex gap-2">
+                    <Skeleton className="h-5 w-20" />
+                    <Skeleton className="h-5 w-20" />
                   </div>
-                  <Badge variant="secondary">{job.seniority}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1 space-y-3">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
-                  {job.location}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Euro className="h-4 w-4" />
-                  {job.salary} € / {t('jobs.perMonth')}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">{getWorkModeLabel(job.workMode)}</Badge>
-                  <Badge variant="outline">{getJobTypeLabel(job.type)}</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {job.description}
-                </p>
-              </CardContent>
-              <CardFooter className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">{job.postedAt}</span>
-                <Button asChild size="sm">
-                  <Link href={`/${locale}/jobs/${job.id}`}>{t('jobs.viewDetail')}</Link>
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
+                  <Skeleton className="h-8 w-full" />
+                </CardContent>
+                <CardFooter>
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-9 w-24 ml-auto" />
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {jobs.map((job) => (
+              <Card key={job.id} className="flex flex-col hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <CardTitle className="line-clamp-2">{job.title}</CardTitle>
+                      <CardDescription className="mt-1">{job.organization.name}</CardDescription>
+                    </div>
+                    {job.seniority && (
+                      <Badge variant="secondary">{job.seniority}</Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1 space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    {job.location}
+                  </div>
+                  {(job.salaryMin || job.salaryMax) && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Euro className="h-4 w-4" />
+                      {job.salaryMin && job.salaryMax
+                        ? `${job.salaryMin.toLocaleString()} - ${job.salaryMax.toLocaleString()}`
+                        : job.salaryMin
+                        ? `${job.salaryMin.toLocaleString()}+`
+                        : `až ${job.salaryMax?.toLocaleString()}`
+                      } € / {t('jobs.perMonth')}
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline">{getWorkModeLabel(job.workMode)}</Badge>
+                    <Badge variant="outline">{getJobTypeLabel(job.type)}</Badge>
+                  </div>
+                  {job.description && (
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {job.description}
+                    </p>
+                  )}
+                </CardContent>
+                <CardFooter className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true, locale: dateLocale })}
+                  </span>
+                  <Button asChild size="sm">
+                    <Link href={`/${locale}/jobs/${job.id}`}>{t('jobs.viewDetail')}</Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        )}
 
-        {filteredJobs.length === 0 && (
+        {!loading && !error && jobs.length === 0 && (
           <div className="text-center py-12">
             <p className="text-muted-foreground text-lg">
               {t('jobs.noResults')}
