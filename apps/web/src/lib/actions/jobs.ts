@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { addEmbeddingJob, addMatchScoreCacheJob } from '@/lib/queue'
 
 export async function createJob(formData: {
   title: string
@@ -46,6 +47,18 @@ export async function createJob(formData: {
       orgId: formData.orgId,
       status: 'ACTIVE',
     },
+  })
+
+  // Async embedding generation (non-blocking)
+  addEmbeddingJob({ jobId: job.id }).catch((err) => {
+    console.error('Failed to queue job embedding:', err)
+    // Don't throw - embedding is nice-to-have, not critical
+  })
+
+  // Async match score caching for popular jobs (non-blocking)
+  addMatchScoreCacheJob({ jobId: job.id }).catch((err) => {
+    console.error('Failed to queue match score caching:', err)
+    // Don't throw - caching is nice-to-have, not critical
   })
 
   revalidatePath('/employer')

@@ -6,7 +6,7 @@ const withNextIntl = createNextIntlPlugin('./src/i18n.ts')
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  transpilePackages: ['@jobsphere/db', '@jobsphere/ui', '@jobsphere/i18n'],
+  transpilePackages: ['@jobsphere/db'],
 
   images: {
     domains: ['localhost', 'jobsphere.com'],
@@ -46,9 +46,9 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' https://js.stripe.com https://browser.sentry-cdn.com https://js.sentry-cdn.com",
-              "style-src 'self' https://fonts.googleapis.com",
-              "img-src 'self' data: https: blob:",
+              "script-src 'self' https://js.stripe.com https://browser.sentry-cdn.com https://js.sentry-cdn.com 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://*.stripe.com",
               "font-src 'self' data: https://fonts.gstatic.com",
               "connect-src 'self' https://api.stripe.com https://*.sentry.io https://*.ingest.sentry.io https://o4506953367322624.ingest.us.sentry.io https://vitals.vercel-insights.com",
               "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
@@ -56,7 +56,8 @@ const nextConfig = {
               "base-uri 'self'",
               "form-action 'self'",
               "frame-ancestors 'none'",
-              "upgrade-insecure-requests"
+              "upgrade-insecure-requests",
+              "block-all-mixed-content"
             ].join('; ')
           }
         ]

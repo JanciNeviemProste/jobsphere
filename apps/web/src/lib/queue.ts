@@ -7,17 +7,15 @@ import { Queue, QueueOptions } from 'bullmq'
 import IORedis from 'ioredis'
 import { logger } from '@/lib/logger'
 
-// Redis connection config
-const redisConfig = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD || undefined,
+// Redis connection (uses REDIS_URL for consistency)
+// Format: redis://[:password@]host[:port][/db]
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379'
+
+// Create Redis connection from URL
+export const connection = new IORedis(redisUrl, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
-}
-
-// Create Redis connection
-export const connection = new IORedis(redisConfig)
+})
 
 connection.on('connect', () => {
   logger.info('Redis connected successfully')
@@ -73,6 +71,24 @@ export const assessmentQueue = new Queue('assessments', {
   },
 })
 
+// Match Score Cache Queue
+export const matchScoreCacheQueue = new Queue('match-score-cache', {
+  ...defaultQueueOptions,
+  defaultJobOptions: {
+    ...defaultQueueOptions.defaultJobOptions,
+    priority: 3, // Lowest priority (background task)
+  },
+})
+
+// Assessment Reminder Queue
+export const assessmentReminderQueue = new Queue('assessment-reminder', {
+  ...defaultQueueOptions,
+  defaultJobOptions: {
+    ...defaultQueueOptions.defaultJobOptions,
+    priority: 2, // Medium priority
+  },
+})
+
 /**
  * Email Sequence Job Data
  */
@@ -94,6 +110,21 @@ export interface EmbeddingJobData {
  */
 export interface AssessmentJobData {
   attemptId: string
+}
+
+/**
+ * Match Score Cache Job Data
+ */
+export interface MatchScoreCacheJobData {
+  jobId: string
+  candidateLimit?: number
+}
+
+/**
+ * Assessment Reminder Job Data
+ */
+export interface AssessmentReminderJobData {
+  inviteId: string
 }
 
 /**
@@ -146,6 +177,34 @@ export async function addAssessmentGradingJob(data: AssessmentJobData) {
 }
 
 /**
+ * Add match score cache job
+ */
+export async function addMatchScoreCacheJob(data: MatchScoreCacheJobData) {
+  try {
+    const job = await matchScoreCacheQueue.add('cache-scores', data)
+    logger.info('Match score cache job added', { jobId: job.id, data })
+    return job
+  } catch (error) {
+    logger.error('Failed to add match score cache job', { error, data })
+    throw error
+  }
+}
+
+/**
+ * Add assessment reminder job
+ */
+export async function addAssessmentReminderJob(data: AssessmentReminderJobData) {
+  try {
+    const job = await assessmentReminderQueue.add('send-reminder', data)
+    logger.info('Assessment reminder job added', { jobId: job.id, data })
+    return job
+  } catch (error) {
+    logger.error('Failed to add assessment reminder job', { error, data })
+    throw error
+  }
+}
+
+/**
  * Get queue stats
  */
 export async function getQueueStats(queueName: string) {
@@ -183,6 +242,8 @@ export async function closeQueues() {
     emailSequenceQueue.close(),
     embeddingQueue.close(),
     assessmentQueue.close(),
+    matchScoreCacheQueue.close(),
+    assessmentReminderQueue.close(),
     connection.quit(),
   ])
   logger.info('All queues closed')

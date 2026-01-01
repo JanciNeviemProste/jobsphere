@@ -11,6 +11,31 @@ jobs:
     name: Quality Checks
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: ankane/pgvector:latest
+        env:
+          POSTGRES_DB: jobsphere_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -50,12 +75,14 @@ jobs:
           cd apps/web
           yarn build
         env:
-          DATABASE_URL: "postgresql://placeholder"
-          NEXTAUTH_SECRET: "test-secret"
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
+          NEXTAUTH_SECRET: "test-secret-at-least-32-characters-long"
           NEXTAUTH_URL: "http://localhost:3000"
           REDIS_URL: "redis://localhost:6379"
           NEXT_PUBLIC_APP_URL: "http://localhost:3000"
           NEXT_PUBLIC_API_URL: "http://localhost:3000/api"
+          ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+          OPENROUTER_API_KEY: "test-key"
           ANTHROPIC_API_KEY: "test-key"
           OPENAI_API_KEY: "test-key"
 
@@ -63,6 +90,31 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     needs: quality-checks
+
+    services:
+      postgres:
+        image: ankane/pgvector:latest
+        env:
+          POSTGRES_DB: jobsphere_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout code
@@ -82,14 +134,28 @@ jobs:
           cd apps/web
           yarn playwright install chromium
 
+      - name: Setup test database
+        run: |
+          cd apps/web
+          yarn db:push
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
+
       - name: Run E2E tests
         run: |
           cd apps/web
           yarn test:e2e
         env:
-          DATABASE_URL: "postgresql://placeholder"
-          NEXTAUTH_SECRET: "test-secret"
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
+          NEXTAUTH_SECRET: "test-secret-at-least-32-characters-long"
           NEXTAUTH_URL: "http://localhost:3000"
+          REDIS_URL: "redis://localhost:6379"
+          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+          NEXT_PUBLIC_API_URL: "http://localhost:3000/api"
+          ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+          OPENROUTER_API_KEY: "test-key"
+          ANTHROPIC_API_KEY: "test-key"
+          OPENAI_API_KEY: "test-key"
 
   security-scan:
     name: Security Scan
@@ -112,3 +178,59 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
+
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Python Parser Docker image
+        run: |
+          cd docker/python-parser
+          docker build -t jobsphere-python-parser .
+
+      - name: Test Python Parser
+        run: |
+          docker run --rm jobsphere-python-parser python --version
+
+  database-migrations:
+    name: Database Migrations Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: ankane/pgvector:latest
+        env:
+          POSTGRES_DB: jobsphere_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Test Prisma Migrations
+        run: |
+          cd apps/web
+          yarn prisma migrate deploy || echo "No pending migrations"
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"

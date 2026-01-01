@@ -114,6 +114,15 @@ export const PUT = withRateLimit(
         }
       })
 
+      // Re-generate embedding if description changed
+      if (data.description && data.description !== job.description) {
+        const { addEmbeddingJob } = await import('@/lib/queue')
+        addEmbeddingJob({ jobId: params.id }).catch((err) => {
+          logger.error('Failed to queue job embedding:', err)
+          // Don't throw - embedding is nice-to-have, not critical
+        })
+      }
+
       logger.info('Job updated', { jobId: updated.id })
 
       return NextResponse.json(updated)

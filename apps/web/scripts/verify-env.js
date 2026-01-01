@@ -22,12 +22,19 @@ const requiredEnvVars = {
     'NEXTAUTH_URL',
     'DATABASE_URL',
     'REDIS_URL',
+    // Security Keys
+    'ENCRYPTION_KEY',
+    // AI API Keys
+    'OPENROUTER_API_KEY',
+    'ANTHROPIC_API_KEY',
+    'OPENAI_API_KEY',
   ],
   // Optional (warnings only)
   optional: [
     'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY',
     'NEXT_PUBLIC_POSTHOG_KEY',
     'NEXT_PUBLIC_SENTRY_DSN',
+    'CSRF_SECRET',
   ],
 }
 

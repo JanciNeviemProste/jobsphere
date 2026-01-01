@@ -114,6 +114,69 @@ export async function updateApplicationStatus(
         description: `Application status changed to ${status}`,
       },
     })
+
+    // Auto-enrollment for email sequences on status change
+    if (status === 'INTERVIEWED' || status === 'ACCEPTED') {
+      try {
+        // Find email sequence for this stage
+        const sequence = await prisma.emailSequence.findFirst({
+          where: {
+            orgId: application.job.orgId,
+            active: true,
+            name: { contains: status, mode: 'insensitive' }
+          },
+          include: {
+            steps: {
+              orderBy: { order: 'asc' }
+            }
+          }
+        })
+
+        if (sequence && sequence.steps.length > 0) {
+          // Create email sequence run
+          const run = await prisma.emailSequenceRun.create({
+            data: {
+              sequenceId: sequence.id,
+              candidateId: application.candidateId,
+              jobId: application.jobId,
+              status: 'ACTIVE'
+            }
+          })
+
+          // A/B Testing: Select variant for first step if multiple exist
+          const firstStepCandidates = sequence.steps.filter((s: any) => s.order === 1)
+          let selectedFirstStep = firstStepCandidates[0]
+
+          if (firstStepCandidates.length > 1) {
+            const variants = firstStepCandidates.filter((s: any) => s.abVariant)
+
+            if (variants.length > 1) {
+              // Random selection with equal distribution
+              const randomIndex = Math.floor(Math.random() * variants.length)
+              selectedFirstStep = variants[randomIndex]
+
+              console.log('A/B test variant selected for auto-enrollment', {
+                runId: run.id,
+                selectedVariant: selectedFirstStep.abVariant,
+                totalVariants: variants.length
+              })
+            }
+          }
+
+          // Queue first email
+          const { addEmailSequenceJob } = await import('@/lib/queue')
+          await addEmailSequenceJob({
+            enrollmentId: run.id,
+            stepId: selectedFirstStep.id
+          })
+
+          console.log(`Auto-enrolled candidate ${application.candidateId} into sequence ${sequence.id}`)
+        }
+      } catch (error) {
+        console.error('Failed to auto-enroll candidate in email sequence:', error)
+        // Don't throw - auto-enrollment is nice-to-have, not critical
+      }
+    }
   }
 
   revalidatePath('/dashboard')

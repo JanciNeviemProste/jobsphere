@@ -99,23 +99,44 @@ async function processEmailStep(job: Job<EmailSequenceJobData>) {
       recipient: recipientEmail,
     })
 
-    // 6. Schedule next step if exists
-    const nextStep = await prisma.emailStep.findFirst({
+    // 6. Schedule next step if exists (with A/B testing support)
+    const nextStepCandidates = await prisma.emailStep.findMany({
       where: {
         sequenceId: enrollment.sequenceId,
         order: step.order + 1,
       },
     })
 
-    if (nextStep) {
+    if (nextStepCandidates.length > 0) {
+      // A/B Testing: Select variant if multiple steps with same order exist
+      let selectedNextStep = nextStepCandidates[0]
+
+      if (nextStepCandidates.length > 1) {
+        // Check if these are A/B test variants
+        const variants = nextStepCandidates.filter(s => s.abVariant)
+
+        if (variants.length > 1) {
+          // Random selection with equal distribution (since abPercent doesn't exist in schema)
+          const randomIndex = Math.floor(Math.random() * variants.length)
+          selectedNextStep = variants[randomIndex]
+
+          logger.info('A/B test variant selected', {
+            enrollmentId,
+            selectedVariant: selectedNextStep.abVariant,
+            totalVariants: variants.length,
+            variantId: selectedNextStep.id
+          })
+        }
+      }
+
       // Calculate delay from dayOffset only
-      const delayMs = nextStep.dayOffset * 24 * 60 * 60 * 1000
+      const delayMs = selectedNextStep.dayOffset * 24 * 60 * 60 * 1000
 
       await emailSequenceQueue.add(
         'send-step',
         {
           enrollmentId,
-          stepId: nextStep.id,
+          stepId: selectedNextStep.id,
         },
         {
           delay: delayMs,
@@ -124,7 +145,8 @@ async function processEmailStep(job: Job<EmailSequenceJobData>) {
 
       logger.info('Scheduled next email step', {
         enrollmentId,
-        nextStepId: nextStep.id,
+        nextStepId: selectedNextStep.id,
+        abVariant: selectedNextStep.abVariant || null,
         delayMs,
       })
     } else {

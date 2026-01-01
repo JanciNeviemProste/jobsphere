@@ -24,6 +24,20 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   REDIS_URL: z.string().url(),
 
+  // ----- SECURITY KEYS -----
+  ENCRYPTION_KEY: z.string().min(64, 'ENCRYPTION_KEY must be at least 64 characters (32 bytes hex)'),
+  CSRF_SECRET: z.string().min(32, 'CSRF_SECRET must be at least 32 characters').optional(),
+
+  // ----- AI API KEYS -----
+  OPENROUTER_API_KEY: z.string().min(1, 'OPENROUTER_API_KEY is required for CV parsing'),
+  ANTHROPIC_API_KEY: z.string().min(1, 'ANTHROPIC_API_KEY is required for CV parsing fallback'),
+  OPENAI_API_KEY: z.string().min(1, 'OPENAI_API_KEY is required for embeddings generation'),
+
+  // Embedding Provider Selection (openai, voyage, cohere)
+  EMBEDDING_PROVIDER: z.enum(['openai', 'voyage', 'cohere']).default('openai').optional(),
+  OPENAI_EMBEDDING_MODEL: z.string().default('text-embedding-3-small').optional(),
+  OPENAI_EMBEDDING_DIMENSIONS: z.string().default('1536').optional(),
+
   // ----- OPTIONAL -----
   NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
@@ -52,6 +66,15 @@ function validateEnv(): Env {
       NEXTAUTH_URL: process.env.NEXTAUTH_URL,
       DATABASE_URL: process.env.DATABASE_URL,
       REDIS_URL: process.env.REDIS_URL,
+
+      // Security Keys
+      ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
+      CSRF_SECRET: process.env.CSRF_SECRET,
+
+      // AI API Keys
+      OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY,
 
       // Optional
       NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,

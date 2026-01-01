@@ -41,7 +41,6 @@
     { "path": "./packages/db" },
     { "path": "./packages/ai" },
     { "path": "./packages/ui" },
-    { "path": "./packages/i18n" },
-    { "path": "./packages/config" }
+    { "path": "./packages/i18n" }
   ]
 }

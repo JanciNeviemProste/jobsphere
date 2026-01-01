@@ -1,11 +1,25 @@
 /**
- * OpenAI Embeddings Library
+ * Embeddings Library
  * Generate and manage vector embeddings for CV and job semantic search
+ *
+ * MULTI-PROVIDER SUPPORT:
+ * Configure via EMBEDDING_PROVIDER env var (default: 'openai')
+ * Supported: 'openai', 'voyage', 'cohere'
+ *
+ * To add a new provider:
+ * 1. Install provider SDK (e.g., npm install voyage-ai)
+ * 2. Add API key to env.ts
+ * 3. Create provider-specific client and embedding function
+ * 4. Update generateEmbedding() to dispatch based on EMBEDDING_PROVIDER
+ *
+ * Current implementation: OpenAI (default)
  */
 
 import OpenAI from 'openai'
 import { prisma } from '@/lib/db'
 import { logger } from '@/lib/logger'
+
+const EMBEDDING_PROVIDER = process.env.EMBEDDING_PROVIDER || 'openai'
 
 let openai: OpenAI | null = null
 
