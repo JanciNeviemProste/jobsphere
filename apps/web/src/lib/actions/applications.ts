@@ -34,20 +34,17 @@ export async function createApplication(formData: {
       jobId: formData.jobId,
       candidateId: session.user.id,
       coverLetter: formData.coverLetter,
-      cvUrl: formData.cvUrl || null,
-      expectedSalary: formData.expectedSalary ? parseInt(formData.expectedSalary) : null,
-      availableFrom: formData.availableFrom ? new Date(formData.availableFrom) : null,
-      status: 'PENDING',
+      stage: 'NEW',
+      orgId: (await prisma.job.findUnique({ where: { id: formData.jobId }, select: { orgId: true }}))!.orgId,
     },
   })
 
-  // Create application event
-  await prisma.applicationEvent.create({
+  // Create application activity
+  await prisma.applicationActivity.create({
     data: {
       applicationId: application.id,
       type: 'APPLIED',
-      title: 'Application Submitted',
-      description: 'Your application has been successfully submitted',
+      description: 'Application submitted successfully',
     },
   })
 
@@ -78,7 +75,7 @@ export async function updateApplicationStatus(
   }
 
   // Verify user is member of organization
-  const membership = await prisma.orgMember.findFirst({
+  const membership = await prisma.userOrgRole.findFirst({
     where: {
       userId: session.user.id,
       orgId: application.job.orgId,
@@ -92,26 +89,28 @@ export async function updateApplicationStatus(
   const updatedApplication = await prisma.application.update({
     where: { id: applicationId },
     data: {
-      status: status as any,
-      ...(notes && { notes }),
+      stage: status as any,
+      ...(notes && { notes: notes }),
     },
   })
 
-  // Create event for status change
-  if (status !== application.status) {
-    const eventTitles: Record<string, string> = {
-      REVIEWING: 'Application Under Review',
-      INTERVIEWED: 'Interview Scheduled',
-      ACCEPTED: 'Application Accepted',
-      REJECTED: 'Application Rejected',
+  // Create activity for status change
+  if (status !== application.stage) {
+    const eventDescriptions: Record<string, string> = {
+      SCREENING: 'Application is being screened',
+      PHONE_SCREEN: 'Phone screen scheduled',
+      INTERVIEW: 'Interview scheduled',
+      OFFER: 'Offer extended',
+      HIRED: 'Candidate hired',
+      REJECTED: 'Application rejected',
     }
 
-    await prisma.applicationEvent.create({
+    await prisma.applicationActivity.create({
       data: {
         applicationId: application.id,
-        type: 'STATUS_CHANGED',
-        title: eventTitles[status] || 'Status Updated',
-        description: `Application status changed to ${status}`,
+        type: 'STAGE_CHANGED',
+        description: eventDescriptions[status] || `Stage changed to ${status}`,
+        performedBy: session.user.id,
       },
     })
 
@@ -138,7 +137,6 @@ export async function updateApplicationStatus(
             data: {
               sequenceId: sequence.id,
               candidateId: application.candidateId,
-              jobId: application.jobId,
               status: 'ACTIVE'
             }
           })
@@ -148,7 +146,7 @@ export async function updateApplicationStatus(
           let selectedFirstStep = firstStepCandidates[0]
 
           if (firstStepCandidates.length > 1) {
-            const variants = firstStepCandidates.filter((s: any) => s.abVariant)
+            const variants = firstStepCandidates.filter((s: any) => s.abGroup)
 
             if (variants.length > 1) {
               // Random selection with equal distribution
@@ -157,7 +155,7 @@ export async function updateApplicationStatus(
 
               console.log('A/B test variant selected for auto-enrollment', {
                 runId: run.id,
-                selectedVariant: selectedFirstStep.abVariant,
+                selectedVariant: selectedFirstStep.abGroup,
                 totalVariants: variants.length
               })
             }
@@ -232,7 +230,7 @@ export async function addApplicationNote(applicationId: string, note: string) {
   }
 
   // Verify user is member of organization
-  const membership = await prisma.orgMember.findFirst({
+  const membership = await prisma.userOrgRole.findFirst({
     where: {
       userId: session.user.id,
       orgId: application.job.orgId,
@@ -243,17 +241,17 @@ export async function addApplicationNote(applicationId: string, note: string) {
     throw new Error('Forbidden')
   }
 
-  const event = await prisma.applicationEvent.create({
+  const activity = await prisma.applicationActivity.create({
     data: {
       applicationId: application.id,
       type: 'NOTE_ADDED',
-      title: 'Note Added',
       description: note,
+      performedBy: session.user.id,
     },
   })
 
   revalidatePath(`/employer/applicants/${applicationId}`)
   revalidatePath(`/dashboard/applications/${applicationId}`)
 
-  return event
+  return activity
 }

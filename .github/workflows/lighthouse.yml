@@ -1,0 +1,118 @@
+name: Lighthouse Performance Audit
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly Monday at 2 AM UTC
+    - cron: '0 2 * * 1'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  lighthouse:
+    name: Run Lighthouse Audits
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build application
+        run: cd apps/web && yarn build:skip-verify
+        env:
+          # Minimal env vars for build
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          NEXTAUTH_SECRET: test-secret-minimum-32-characters-long
+          NEXTAUTH_URL: http://localhost:3000
+          ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          # Disable optional services
+          ENABLE_ANTIVIRUS: false
+          ENABLE_OCR: false
+          ENABLE_WORKERS: false
+
+      - name: Start production server
+        run: |
+          cd apps/web
+          yarn start &
+          # Wait for server to be ready
+          npx wait-on http://localhost:3000 --timeout 60000
+        env:
+          PORT: 3000
+
+      - name: Run Lighthouse CI
+        run: |
+          npm install -g @lhci/cli@0.13.x
+          lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+      - name: Upload Lighthouse results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-results
+          path: .lighthouseci
+          retention-days: 30
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const manifestPath = '.lighthouseci/manifest.json';
+
+            if (!fs.existsSync(manifestPath)) {
+              console.log('No Lighthouse manifest found');
+              return;
+            }
+
+            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+            const reports = manifest[0].summary;
+
+            const formatScore = (score) => {
+              const percentage = Math.round(score * 100);
+              const emoji = score >= 0.9 ? '🟢' : score >= 0.5 ? '🟡' : '🔴';
+              return `${emoji} ${percentage}`;
+            };
+
+            const comment = `## ⚡ Lighthouse Performance Report
+
+| Category | Score |
+|----------|-------|
+| Performance | ${formatScore(reports.performance)} |
+| Accessibility | ${formatScore(reports.accessibility)} |
+| Best Practices | ${formatScore(reports['best-practices'])} |
+| SEO | ${formatScore(reports.seo)} |
+
+<details>
+<summary>📊 Core Web Vitals</summary>
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| FCP | ${reports['first-contentful-paint']}ms | ${reports['first-contentful-paint'] < 1800 ? '🟢' : reports['first-contentful-paint'] < 3000 ? '🟡' : '🔴'} |
+| LCP | ${reports['largest-contentful-paint']}ms | ${reports['largest-contentful-paint'] < 2500 ? '🟢' : reports['largest-contentful-paint'] < 4000 ? '🟡' : '🔴'} |
+| CLS | ${reports['cumulative-layout-shift']} | ${reports['cumulative-layout-shift'] < 0.1 ? '🟢' : reports['cumulative-layout-shift'] < 0.25 ? '🟡' : '🔴'} |
+
+</details>
+
+*Lighthouse CI ran at ${new Date().toISOString()}*
+`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

@@ -73,7 +73,8 @@ export async function createAuditLog(entry: AuditLogEntry): Promise<void> {
         action: entry.action,
         entityType: entry.resource,
         entityId: entry.resourceId || 'SYSTEM',
-        changes: entry.metadata || {},
+        // Store metadata in newValues field (changes field doesn't exist in schema)
+        newValues: entry.metadata || {},
         ipAddress: entry.ipAddress,
         userAgent: entry.userAgent,
       },

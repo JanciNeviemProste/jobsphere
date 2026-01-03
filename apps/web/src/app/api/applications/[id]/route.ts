@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import { sendStatusChangeEmail } from '@/lib/email'
 
 export async function GET(
   req: Request,
@@ -31,7 +32,7 @@ export async function GET(
           },
         },
         candidate: true,
-        events: {
+        activities: {
           orderBy: {
             createdAt: 'asc',
           },
@@ -48,7 +49,7 @@ export async function GET(
 
     // Check authorization - only candidate or employer can view
     const isCandidate = application.candidateId === session.user.id
-    const isEmployer = await prisma.orgMember.findFirst({
+    const isEmployer = await prisma.userOrgRole.findFirst({
       where: {
         userId: session.user.id,
         orgId: application.job.orgId,
@@ -101,7 +102,7 @@ export async function PATCH(
     }
 
     // Only employer can update status
-    const isEmployer = await prisma.orgMember.findFirst({
+    const isEmployer = await prisma.userOrgRole.findFirst({
       where: {
         userId: session.user.id,
         orgId: application.job.orgId,
@@ -119,27 +120,43 @@ export async function PATCH(
     const updatedApplication = await prisma.application.update({
       where: { id: params.id },
       data: {
-        ...(status && { status }),
+        ...(status && { stage: status }),
         ...(notes && { notes }),
       },
     })
 
-    // Create event for status change
-    if (status && status !== application.status) {
+    // Create activity for stage change
+    if (status && status !== application.stage) {
       const statusDescriptions: Record<string, string> = {
-        REVIEWING: 'Application is now under review',
-        INTERVIEWED: 'Interview has been scheduled',
-        ACCEPTED: 'Application has been accepted',
+        SCREENING: 'Application is now under review',
+        PHONE_SCREEN: 'Phone screen scheduled',
+        INTERVIEW: 'Interview has been scheduled',
+        OFFER: 'Offer extended',
+        HIRED: 'Application has been accepted',
         REJECTED: 'Application has been rejected',
       }
 
-      await prisma.applicationEvent.create({
+      await prisma.applicationActivity.create({
         data: {
           applicationId: application.id,
-          type: 'STATUS_CHANGED',
-          title: statusDescriptions[status] || `Application status changed to ${status}`,
+          type: 'STAGE_CHANGED',
+          description: statusDescriptions[status] || `Application stage changed to ${status}`,
+          performedBy: session.user.id,
+          metadata: {
+            previousStage: application.stage,
+            newStage: status,
+            notes,
+          },
         },
       })
+
+      // Send email notification for HIRED or REJECTED status
+      if (status === 'HIRED' || status === 'REJECTED') {
+        // Send email asynchronously - don't wait for it
+        sendStatusChangeEmail(application.id, status).catch((error) => {
+          console.error('Failed to send status change email:', error)
+        })
+      }
     }
 
     return NextResponse.json(updatedApplication)

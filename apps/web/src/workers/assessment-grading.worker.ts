@@ -77,7 +77,7 @@ Return your evaluation in JSON format:
 /**
  * Process assessment grading
  */
-async function processAssessmentGrading(job: Job<AssessmentJobData>) {
+export async function processAssessmentGrading(job: Job<AssessmentJobData>) {
   const { attemptId } = job.data
 
   logger.info('Processing assessment grading', { attemptId, jobId: job.id })
@@ -177,11 +177,12 @@ async function processAssessmentGrading(job: Job<AssessmentJobData>) {
       })
 
       // Update response with AI scoring
+      // Note: feedback field doesn't exist on Answer model, stored in aiRationale instead
       await prisma.answer.update({
         where: { id: response.id },
         data: {
           aiScore: earnedPoints,
-          feedback: feedback,
+          aiRationale: feedback, // Store feedback in aiRationale field
           finalScore: earnedPoints,
         },
       })
@@ -192,12 +193,19 @@ async function processAssessmentGrading(job: Job<AssessmentJobData>) {
     const passed = percentage >= 70 // 70% passing threshold
 
     // 4. Update attempt
+    // Note: passed field doesn't exist on Attempt model, store in detail JSON field instead
     await prisma.attempt.update({
       where: { id: attemptId },
       data: {
         totalScore,
-        passed,
+        percentage,
+        status: 'GRADED',
         submittedAt: new Date(),
+        detail: {
+          passed,
+          percentage,
+          maxScore,
+        }
       },
     })
 
@@ -212,18 +220,22 @@ async function processAssessmentGrading(job: Job<AssessmentJobData>) {
     const candidate = await prisma.candidate.findUnique({
       where: { id: attempt.invite.candidateId },
       include: {
-        user: true
+        contacts: {
+          where: { isPrimary: true },
+          take: 1
+        }
       }
     })
 
-    if (candidate?.user?.email) {
+    const candidateEmail = candidate?.contacts?.[0]?.email
+    if (candidateEmail) {
       const { sendEmail } = await import('@/lib/email')
 
-      const candidateName = candidate.user.name || 'there'
+      const candidateName = candidate.contacts?.[0]?.fullName || 'there'
       const assessmentTitle = attempt.invite.assessment.name
 
       await sendEmail({
-        to: candidate.user.email,
+        to: candidateEmail,
         subject: `Assessment Results - ${assessmentTitle}`,
         html: `
           <h2>Assessment Completed</h2>
@@ -248,7 +260,7 @@ async function processAssessmentGrading(job: Job<AssessmentJobData>) {
         `,
       })
 
-      logger.info('Assessment results email sent', { attemptId, email: candidate.user.email })
+      logger.info('Assessment results email sent', { attemptId, email: candidateEmail })
     }
 
     return { success: true, totalScore, maxScore, percentage }

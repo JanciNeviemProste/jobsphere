@@ -40,24 +40,29 @@ async function handleResendWebhook(event: any) {
 
   if (emailId) {
     const run = await prisma.emailSequenceRun.findFirst({
-      where: { id: emailId },
-      include: {
-        events: {
-          take: 1,
-          orderBy: { createdAt: 'desc' }
-        }
-      }
+      where: { id: emailId }
     })
 
-    if (run && run.events && run.events[0]) {
-      await prisma.emailSequenceEvent.create({
-        data: {
-          runId: run.id,
-          stepId: run.events[0].stepId,
-          kind,
-          metadata: data
-        }
+    if (run) {
+      // Fetch the latest event separately since events is not a direct relation on EmailSequenceRun
+      const events = await prisma.emailSequenceEvent.findMany({
+        where: { runId: run.id },
+        orderBy: { at: 'desc' },
+        take: 1
       })
+
+      const lastEvent = events[0]
+
+      if (lastEvent) {
+        await prisma.emailSequenceEvent.create({
+          data: {
+            runId: run.id,
+            stepId: lastEvent.stepId,
+            kind,
+            metadata: data
+          }
+        })
+      }
     }
   }
 
@@ -71,24 +76,29 @@ async function handleSendGridWebhook(events: any[]) {
 
     if (emailId && kind) {
       const run = await prisma.emailSequenceRun.findFirst({
-        where: { id: emailId },
-        include: {
-          events: {
-            take: 1,
-            orderBy: { createdAt: 'desc' }
-          }
-        }
+        where: { id: emailId }
       })
 
-      if (run && run.events && run.events[0]) {
-        await prisma.emailSequenceEvent.create({
-          data: {
-            runId: run.id,
-            stepId: run.events[0].stepId,
-            kind,
-            metadata: event
-          }
+      if (run) {
+        // Fetch the latest event separately since events is not a direct relation on EmailSequenceRun
+        const events = await prisma.emailSequenceEvent.findMany({
+          where: { runId: run.id },
+          orderBy: { at: 'desc' },
+          take: 1
         })
+
+        const lastEvent = events[0]
+
+        if (lastEvent) {
+          await prisma.emailSequenceEvent.create({
+            data: {
+              runId: run.id,
+              stepId: lastEvent.stepId,
+              kind,
+              metadata: event
+            }
+          })
+        }
       }
     }
   }

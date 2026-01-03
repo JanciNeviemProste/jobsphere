@@ -19,7 +19,7 @@ export interface CreateUserInput {
 export interface UpdateUserInput {
   email?: string
   name?: string
-  image?: string
+  avatar?: string
   emailVerified?: boolean
 }
 
@@ -73,11 +73,11 @@ export class UserService {
 
       // If orgId provided, add to organization
       if (input.orgId) {
-        await tx.orgMember.create({
+        await tx.userOrgRole.create({
           data: {
             userId: newUser.id,
             orgId: input.orgId,
-            role: 'MEMBER',
+            role: 'RECRUITER',
           },
         })
       }
@@ -135,7 +135,7 @@ export class UserService {
         data: {
           ...(input.email && { email: input.email }),
           ...(input.name && { name: input.name }),
-          ...(input.image !== undefined && { image: input.image }),
+          ...(input.avatar !== undefined && { avatar: input.avatar }),
           ...(input.emailVerified !== undefined && {
             emailVerified: input.emailVerified ? new Date() : null,
           }),
@@ -237,7 +237,7 @@ export class UserService {
         ],
       }),
       ...(orgId && {
-        orgMembers: {
+        organizations: {
           some: { orgId },
         },
       }),
@@ -253,10 +253,10 @@ export class UserService {
           id: true,
           email: true,
           name: true,
-          image: true,
+          avatar: true,
           emailVerified: true,
           createdAt: true,
-          orgMembers: {
+          organizations: {
             include: {
               organization: true,
             },
@@ -279,16 +279,16 @@ export class UserService {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        orgMembers: {
+        organizations: {
           include: {
             organization: true,
           },
         },
         sessions: {
           where: {
-            expires: { gt: new Date() },
+            expiresAt: { gt: new Date() },
           },
-          orderBy: { expires: 'desc' },
+          orderBy: { expiresAt: 'desc' },
           take: 5,
         },
       },
@@ -319,7 +319,7 @@ export class UserService {
       })
 
       // Delete org memberships
-      await tx.orgMember.deleteMany({
+      await tx.userOrgRole.deleteMany({
         where: { userId },
       })
 
@@ -341,132 +341,144 @@ export class UserService {
 
   /**
    * Verify email with token
+   * TODO: Add VerificationToken model to schema for email verification
    */
   static async verifyEmail(token: string): Promise<User> {
-    const verificationToken = await prisma.verificationToken.findUnique({
-      where: { token },
-    })
+    // TODO: Uncomment after adding VerificationToken model to schema
+    throw new AppError('Email verification not implemented - VerificationToken model missing from schema', 501)
 
-    if (!verificationToken) {
-      throw new AppError('Invalid verification token', 400)
-    }
+    // const verificationToken = await prisma.verificationToken.findUnique({
+    //   where: { token },
+    // })
 
-    if (verificationToken.expires < new Date()) {
-      throw new AppError('Verification token has expired', 400)
-    }
+    // if (!verificationToken) {
+    //   throw new AppError('Invalid verification token', 400)
+    // }
 
-    const user = await prisma.$transaction(async (tx) => {
-      // Update user
-      const updatedUser = await tx.user.update({
-        where: { email: verificationToken.identifier },
-        data: { emailVerified: new Date() },
-      })
+    // if (verificationToken.expires < new Date()) {
+    //   throw new AppError('Verification token has expired', 400)
+    // }
 
-      // Delete token
-      await tx.verificationToken.delete({
-        where: { token },
-      })
+    // const user = await prisma.$transaction(async (tx) => {
+    //   // Update user
+    //   const updatedUser = await tx.user.update({
+    //     where: { email: verificationToken.identifier },
+    //     data: { emailVerified: new Date() },
+    //   })
 
-      return updatedUser
-    })
+    //   // Delete token
+    //   await tx.verificationToken.delete({
+    //     where: { token },
+    //   })
 
-    const { password: _, ...userWithoutPassword } = user
-    return userWithoutPassword as User
+    //   return updatedUser
+    // })
+
+    // const { password: _, ...userWithoutPassword } = user
+    // return userWithoutPassword as User
   }
 
   /**
    * Create password reset token
+   * TODO: Add VerificationToken model to schema for password reset
    */
   static async createPasswordResetToken(
     email: string
   ): Promise<string> {
-    const user = await prisma.user.findUnique({
-      where: { email },
-    })
+    // TODO: Uncomment after adding VerificationToken model to schema
+    throw new AppError('Password reset not implemented - VerificationToken model missing from schema', 501)
 
-    if (!user) {
-      // Don't reveal if user exists
-      return 'TOKEN_SENT'
-    }
+    // const user = await prisma.user.findUnique({
+    //   where: { email },
+    // })
 
-    // Generate secure token
-    const token = crypto.randomUUID()
-    const expires = new Date(Date.now() + 3600000) // 1 hour
+    // if (!user) {
+    //   // Don't reveal if user exists
+    //   return 'TOKEN_SENT'
+    // }
 
-    await prisma.verificationToken.create({
-      data: {
-        identifier: email,
-        token,
-        expires,
-      },
-    })
+    // // Generate secure token
+    // const token = crypto.randomUUID()
+    // const expires = new Date(Date.now() + 3600000) // 1 hour
 
-    // Send password reset email
-    try {
-      const { sendEmail } = await import('@/lib/email')
-      const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`
+    // await prisma.verificationToken.create({
+    //   data: {
+    //     identifier: email,
+    //     token,
+    //     expires,
+    //   },
+    // })
 
-      await sendEmail({
-        to: email,
-        subject: 'Reset Your Password - JobSphere',
-        html: `
-          <h2>Password Reset Request</h2>
-          <p>Hi ${user.name || 'there'},</p>
-          <p>We received a request to reset your password. Click the link below to create a new password:</p>
-          <p><a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background-color: #0070f3; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
-          <p>This link will expire in 1 hour.</p>
-          <p>If you didn't request this, please ignore this email.</p>
-          <hr />
-          <p style="color: #666; font-size: 12px;">JobSphere ATS - Modern recruitment platform</p>
-        `,
-      })
-    } catch (emailError) {
-      console.error('Failed to send password reset email:', emailError)
-      // Don't fail the request if email fails
-    }
+    // // Send password reset email
+    // try {
+    //   const { sendEmail } = await import('@/lib/email')
+    //   const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`
 
-    return token
+    //   await sendEmail({
+    //     to: email,
+    //     subject: 'Reset Your Password - JobSphere',
+    //     html: `
+    //       <h2>Password Reset Request</h2>
+    //       <p>Hi ${user.name || 'there'},</p>
+    //       <p>We received a request to reset your password. Click the link below to create a new password:</p>
+    //       <p><a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background-color: #0070f3; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
+    //       <p>This link will expire in 1 hour.</p>
+    //       <p>If you didn't request this, please ignore this email.</p>
+    //       <hr />
+    //       <p style="color: #666; font-size: 12px;">JobSphere ATS - Modern recruitment platform</p>
+    //     `,
+    //   })
+    // } catch (emailError) {
+    //   console.error('Failed to send password reset email:', emailError)
+    //   // Don't fail the request if email fails
+    // }
+
+    // return token
   }
 
   /**
    * Reset password with token
+   * TODO: Add VerificationToken model to schema for password reset
    */
   static async resetPassword(
     token: string,
     newPassword: string
   ): Promise<void> {
-    const resetToken = await prisma.verificationToken.findUnique({
-      where: { token },
-    })
+    // TODO: Uncomment after adding VerificationToken model to schema
+    throw new AppError('Password reset not implemented - VerificationToken model missing from schema', 501)
 
-    if (!resetToken) {
-      throw new AppError('Invalid reset token', 400)
-    }
+    // const resetToken = await prisma.verificationToken.findUnique({
+    //   where: { token },
+    // })
 
-    if (resetToken.expires < new Date()) {
-      throw new AppError('Reset token has expired', 400)
-    }
+    // if (!resetToken) {
+    //   throw new AppError('Invalid reset token', 400)
+    // }
 
-    if (newPassword.length < 8) {
-      throw new AppError(
-        'Password must be at least 8 characters long',
-        400
-      )
-    }
+    // if (resetToken.expires < new Date()) {
+    //   throw new AppError('Reset token has expired', 400)
+    // }
 
-    const hashedPassword = await hash(newPassword, 12)
+    // if (newPassword.length < 8) {
+    //   throw new AppError(
+    //     'Password must be at least 8 characters long',
+    //     400
+    //   )
+    // }
 
-    await prisma.$transaction(async (tx) => {
-      // Update password
-      await tx.user.update({
-        where: { email: resetToken.identifier },
-        data: { password: hashedPassword },
-      })
+    // const hashedPassword = await hash(newPassword, 12)
 
-      // Delete token
-      await tx.verificationToken.delete({
-        where: { token },
-      })
-    })
+    // await prisma.$transaction(async (tx) => {
+    //   // Update password
+    //   await tx.user.update({
+    //     where: { email: resetToken.identifier },
+    //     data: { password: hashedPassword },
+    //   })
+
+    //   // Delete token
+    //   await tx.verificationToken.delete({
+    //     where: { token },
+    //   })
+    // })
   }
 }

@@ -23,7 +23,7 @@ export async function createJob(formData: {
   }
 
   // Verify user is member of organization
-  const membership = await prisma.orgMember.findFirst({
+  const membership = await prisma.userOrgRole.findFirst({
     where: {
       userId: session.user.id,
       orgId: formData.orgId,
@@ -37,15 +37,18 @@ export async function createJob(formData: {
   const job = await prisma.job.create({
     data: {
       title: formData.title,
-      location: formData.location,
+      city: formData.location || null,
+      region: null,
+      remote: formData.workMode === 'REMOTE',
+      hybrid: formData.workMode === 'HYBRID',
       salaryMin: formData.minSalary ? parseInt(formData.minSalary) : null,
       salaryMax: formData.maxSalary ? parseInt(formData.maxSalary) : null,
-      workMode: formData.workMode as any,
-      type: formData.type as any,
+      employmentType: formData.type as any,
       seniority: formData.seniority as any,
       description: formData.description,
       orgId: formData.orgId,
-      status: 'ACTIVE',
+      status: 'PUBLISHED',
+      createdBy: session.user.id,
     },
   })
 
@@ -83,7 +86,7 @@ export async function updateJobStatus(jobId: string, status: string) {
   }
 
   // Verify user is member of organization
-  const membership = await prisma.orgMember.findFirst({
+  const membership = await prisma.userOrgRole.findFirst({
     where: {
       userId: session.user.id,
       orgId: job.orgId,
@@ -121,7 +124,7 @@ export async function deleteJob(jobId: string) {
   }
 
   // Verify user is member of organization
-  const membership = await prisma.orgMember.findFirst({
+  const membership = await prisma.userOrgRole.findFirst({
     where: {
       userId: session.user.id,
       orgId: job.orgId,

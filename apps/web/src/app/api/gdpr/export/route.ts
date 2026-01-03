@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       where: { id: session.user.id },
       include: {
         sessions: true,
-        orgMembers: {
+        organizations: {
           include: {
             organization: true,
           },
@@ -39,15 +39,19 @@ export async function GET(request: NextRequest) {
     // They're linked via applications, so we skip this for now
     const candidate = null
 
+    // TODO: Add ConsentRecord model to schema
     // Get consent records
-    const consents = await prisma.consentRecord.findMany({
-      where: { userId: session.user.id },
-    }).catch(() => [])
+    // const consents = await prisma.consentRecord.findMany({
+    //   where: { userId: session.user.id },
+    // }).catch(() => [])
+    const consents: any[] = []
 
+    // TODO: Add DSARRequest model to schema
     // Get DSAR requests (Data Subject Access Requests)
-    const dsarRequests = await prisma.dSARRequest.findMany({
-      where: { userId: session.user.id },
-    }).catch(() => [])
+    // const dsarRequests = await prisma.dSARRequest.findMany({
+    //   where: { userId: session.user.id },
+    // }).catch(() => [])
+    const dsarRequests: any[] = []
 
     // Get audit logs
     const auditLogs = await prisma.auditLog.findMany({
@@ -63,12 +67,12 @@ export async function GET(request: NextRequest) {
         id: user.id,
         email: user.email,
         name: user.name,
-        image: user.image,
+        avatar: user.avatar,
         emailVerified: user.emailVerified,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
-      organizations: user.orgMembers.map((om) => ({
+      organizations: user.organizations.map((om) => ({
         organizationId: om.orgId,
         organizationName: om.organization.name,
         role: om.role,

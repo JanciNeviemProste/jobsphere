@@ -40,7 +40,7 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
     throw new UnauthorizedError()
   }
 
-  const orgMember = await prisma.orgMember.findFirst({
+  const orgMember = await prisma.userOrgRole.findFirst({
     where: { userId: session.user.id },
     include: { organization: true }
   })

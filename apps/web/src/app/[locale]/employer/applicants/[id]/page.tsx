@@ -7,14 +7,15 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, Mail, Phone, Download, MapPin, Euro, Clock, Building2 } from 'lucide-react'
+import { ApplicantActions } from '@/components/applicant-actions'
 
 async function getApplicationDetail(applicationId: string, userId: string) {
   // Get user's organization
-  const orgMember = await prisma.orgMember.findFirst({
+  const userOrgRole = await prisma.userOrgRole.findFirst({
     where: { userId },
   })
 
-  if (!orgMember) {
+  if (!userOrgRole) {
     return null
   }
 
@@ -23,7 +24,7 @@ async function getApplicationDetail(applicationId: string, userId: string) {
     where: {
       id: applicationId,
       job: {
-        orgId: orgMember.orgId,
+        orgId: userOrgRole.orgId,
       },
     },
     include: {
@@ -34,22 +35,24 @@ async function getApplicationDetail(applicationId: string, userId: string) {
       },
       candidate: {
         include: {
-          candidate: {
+          contacts: {
+            where: {
+              isPrimary: true
+            },
+            take: 1
+          },
+          resumes: {
+            orderBy: {
+              createdAt: 'desc'
+            },
+            take: 1,
             include: {
-              documents: {
-                where: {
-                  type: 'CV'
-                },
-                orderBy: {
-                  createdAt: 'desc'
-                },
-                take: 1
-              }
+              sourceDocument: true
             }
           }
         }
       },
-      events: {
+      activities: {
         orderBy: {
           createdAt: 'asc',
         },
@@ -77,20 +80,24 @@ export default async function EmployerApplicationDetailPage({
     redirect(`/${params.locale}/employer/applicants`)
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return <Badge variant="secondary">Čaká</Badge>
-      case 'REVIEWING':
-        return <Badge>V procese</Badge>
-      case 'INTERVIEWED':
+  const getStatusBadge = (stage: string) => {
+    switch (stage) {
+      case 'NEW':
+        return <Badge variant="secondary">Nová</Badge>
+      case 'SCREENING':
+        return <Badge>Preveruje sa</Badge>
+      case 'PHONE_SCREEN':
+        return <Badge className="bg-blue-600">Telefonický pohovor</Badge>
+      case 'INTERVIEW':
         return <Badge className="bg-blue-600">Interview</Badge>
-      case 'ACCEPTED':
-        return <Badge className="bg-green-600">Prijatý</Badge>
+      case 'OFFER':
+        return <Badge className="bg-green-600">Ponuka</Badge>
+      case 'HIRED':
+        return <Badge className="bg-green-600">Prijaté</Badge>
       case 'REJECTED':
-        return <Badge variant="destructive">Zamietnutý</Badge>
+        return <Badge variant="destructive">Zamietnuté</Badge>
       default:
-        return <Badge>{status}</Badge>
+        return <Badge>{stage}</Badge>
     }
   }
 
@@ -118,15 +125,17 @@ export default async function EmployerApplicationDetailPage({
                       {application.job.organization.name}
                     </CardDescription>
                   </div>
-                  {getStatusBadge(application.status)}
+                  {getStatusBadge(application.stage)}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{application.job.location}</span>
-                  </div>
+                  {application.job.city && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <span>{application.job.city}{application.job.region ? `, ${application.job.region}` : ''}</span>
+                    </div>
+                  )}
                   {application.job.salaryMin && application.job.salaryMax && (
                     <div className="flex items-center gap-2 text-sm">
                       <Euro className="h-4 w-4 text-muted-foreground" />
@@ -135,14 +144,18 @@ export default async function EmployerApplicationDetailPage({
                       </span>
                     </div>
                   )}
-                  <div className="flex items-center gap-2 text-sm">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span>{application.job.workMode}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>{application.job.type}</span>
-                  </div>
+                  {(application.job.remote || application.job.hybrid) && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      <span>{application.job.remote ? 'Remote' : 'Hybrid'}</span>
+                    </div>
+                  )}
+                  {application.job.employmentType && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span>{application.job.employmentType.replace('_', ' ')}</span>
+                    </div>
+                  )}
                 </div>
                 <Separator />
                 <div className="text-sm text-muted-foreground">
@@ -162,33 +175,35 @@ export default async function EmployerApplicationDetailPage({
             </Card>
 
             {/* Timeline */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Časová os prihlášky</CardTitle>
-                <CardDescription>História tejto prihlášky</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {application.events.map((event: { id: string; type: string; title: string; createdAt: Date }, index: number) => (
-                    <div key={event.id} className="flex gap-4">
-                      <div className="flex flex-col items-center">
-                        <div className="h-3 w-3 rounded-full bg-primary" />
-                        {index !== application.events.length - 1 && (
-                          <div className="w-px flex-1 bg-border mt-2" />
-                        )}
+            {application.activities && application.activities.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Časová os prihlášky</CardTitle>
+                  <CardDescription>História tejto prihlášky</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {application.activities.map((activity: { id: string; type: string; description: string; createdAt: Date }, index: number) => (
+                      <div key={activity.id} className="flex gap-4">
+                        <div className="flex flex-col items-center">
+                          <div className="h-3 w-3 rounded-full bg-primary" />
+                          {index !== application.activities.length - 1 && (
+                            <div className="w-px flex-1 bg-border mt-2" />
+                          )}
+                        </div>
+                        <div className="flex-1 pb-4">
+                          <p className="font-medium">{activity.type.replace('_', ' ')}</p>
+                          <p className="text-sm text-muted-foreground">{activity.description}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {new Date(activity.createdAt).toLocaleDateString('sk-SK')}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 pb-4">
-                        <p className="font-medium">{event.type}</p>
-                        <p className="text-sm text-muted-foreground">{event.title}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(event.createdAt).toLocaleDateString('sk-SK')}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -201,28 +216,28 @@ export default async function EmployerApplicationDetailPage({
               <CardContent className="space-y-4">
                 <div>
                   <p className="font-semibold text-lg">
-                    {application.candidate.name || application.candidate.email}
+                    {application.candidate.contacts?.[0]?.fullName || application.candidate.contacts?.[0]?.email || 'Kandidát'}
                   </p>
                   <div className="mt-3 space-y-2">
-                    {application.candidate.email && (
+                    {application.candidate.contacts?.[0]?.email && (
                       <div className="flex items-center gap-2 text-sm">
                         <Mail className="h-4 w-4 text-muted-foreground" />
                         <a
-                          href={`mailto:${application.candidate.email}`}
+                          href={`mailto:${application.candidate.contacts[0].email}`}
                           className="text-primary hover:underline"
                         >
-                          {application.candidate.email}
+                          {application.candidate.contacts[0].email}
                         </a>
                       </div>
                     )}
-                    {application.candidate.phone && (
+                    {application.candidate.contacts?.[0]?.phone && (
                       <div className="flex items-center gap-2 text-sm">
                         <Phone className="h-4 w-4 text-muted-foreground" />
                         <a
-                          href={`tel:${application.candidate.phone}`}
+                          href={`tel:${application.candidate.contacts[0].phone}`}
                           className="hover:underline"
                         >
-                          {application.candidate.phone}
+                          {application.candidate.contacts[0].phone}
                         </a>
                       </div>
                     )}
@@ -232,90 +247,57 @@ export default async function EmployerApplicationDetailPage({
             </Card>
 
             {/* CV Download */}
-            {(application.cvUrl || application.candidate.candidate?.documents?.[0]) && (
+            {application.candidate.resumes?.[0]?.sourceDocument && (
               <Card>
                 <CardHeader>
                   <CardTitle>Životopis</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {/* CV from Application */}
-                  {application.cvUrl && (
-                    <Button asChild className="w-full mb-2">
-                      <a
-                        href={application.cvUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        download
-                      >
-                        <Download className="mr-2 h-4 w-4" />
-                        Stiahnuť CV z prihlášky
-                      </a>
-                    </Button>
-                  )}
-                  {/* CV from Candidate Documents */}
-                  {application.candidate.candidate?.documents?.[0] && (
-                    <Button asChild variant={application.cvUrl ? 'outline' : 'default'} className="w-full">
-                      <a
-                        href={application.candidate.candidate.documents[0].fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        download={application.candidate.candidate.documents[0].fileName}
-                      >
-                        <Download className="mr-2 h-4 w-4" />
-                        {application.candidate.candidate.documents[0].fileName}
-                      </a>
-                    </Button>
-                  )}
+                  <Button asChild className="w-full">
+                    <a
+                      href={application.candidate.resumes[0].sourceDocument.uri}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download={application.candidate.resumes[0].sourceDocument.filename}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      {application.candidate.resumes[0].sourceDocument.filename || 'Stiahnuť CV'}
+                    </a>
+                  </Button>
                 </CardContent>
               </Card>
             )}
 
             {/* Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Akcie</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {application.status === 'PENDING' && (
-                  <Button className="w-full" variant="default">
-                    Začať screening
-                  </Button>
-                )}
-                {application.status === 'REVIEWING' && (
-                  <Button className="w-full" variant="default">
-                    Naplánovať Interview
-                  </Button>
-                )}
-                {application.status === 'INTERVIEWED' && (
-                  <>
-                    <Button className="w-full bg-green-600 hover:bg-green-700">
-                      Prijať kandidáta
-                    </Button>
-                    <Button className="w-full" variant="destructive">
-                      Zamietnuť
-                    </Button>
-                  </>
-                )}
-                <Separator />
-                <Button className="w-full" variant="outline">
-                  Poslať email
-                </Button>
-                <Button className="w-full" variant="outline">
-                  Pridať poznámku
-                </Button>
-              </CardContent>
-            </Card>
+            <ApplicantActions
+              applicationId={application.id}
+              currentStage={application.stage}
+              locale={params.locale}
+            />
 
             {/* Notes */}
-            {application.notes && (
+            {Array.isArray(application.notes) && application.notes.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle>Poznámky</CardTitle>
                   <CardDescription>Interné poznámky k uchádzačovi</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="whitespace-pre-wrap text-sm text-muted-foreground">
-                    {application.notes}
+                  <div className="space-y-3">
+                    {application.notes.map((note: any, index: number) => (
+                      <div key={index} className="border-l-2 border-primary/30 pl-3 py-2">
+                        <p className="text-sm whitespace-pre-wrap">
+                          {typeof note === 'string' ? note : note.text || JSON.stringify(note)}
+                        </p>
+                        {typeof note === 'object' && note.createdAt && (
+                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                            <span>{note.createdByName}</span>
+                            <span>•</span>
+                            <span>{new Date(note.createdAt).toLocaleDateString('sk-SK')}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>

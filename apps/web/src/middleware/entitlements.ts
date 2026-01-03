@@ -23,7 +23,7 @@ export async function requireFeatureMiddleware(
   }
 
   // Get organization
-  const orgMember = await prisma.orgMember.findFirst({
+  const orgMember = await prisma.userOrgRole.findFirst({
     where: { userId: session.user.id },
   })
 
@@ -57,7 +57,7 @@ export async function canCreateJobMiddleware(
     return { allowed: false, error: 'Unauthorized' }
   }
 
-  const orgMember = await prisma.orgMember.findFirst({
+  const orgMember = await prisma.userOrgRole.findFirst({
     where: { userId: session.user.id },
   })
 
@@ -89,7 +89,7 @@ export async function canAddCandidateMiddleware(
     return { allowed: false, error: 'Unauthorized' }
   }
 
-  const orgMember = await prisma.orgMember.findFirst({
+  const orgMember = await prisma.userOrgRole.findFirst({
     where: { userId: session.user.id },
   })
 

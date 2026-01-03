@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
@@ -36,7 +36,15 @@ export default function LoginPage({ params }: { params: { locale: string } }) {
       if (result?.error) {
         setError(t('invalidCredentials') || 'Invalid email or password')
       } else {
-        router.push('/dashboard')
+        // Get session to determine redirect based on role
+        const session = await getSession()
+
+        // Redirect employers to employer dashboard, candidates to regular dashboard
+        if (session?.user?.orgId) {
+          router.push(`/${locale}/employer`)
+        } else {
+          router.push(`/${locale}/dashboard`)
+        }
         router.refresh()
       }
     } catch (error) {

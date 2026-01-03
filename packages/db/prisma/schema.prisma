@@ -84,6 +84,7 @@ model User {
   sessions         Session[]
   notifications    Notification[]
   auditLogs        AuditLog[]
+  savedJobs        SavedJob[]
 
   @@index([email])
   @@index([deletedAt])
@@ -127,6 +128,19 @@ model Session {
   @@index([token])
   @@index([userId])
   @@index([expiresAt])
+}
+
+model VerificationToken {
+  id         String   @id @default(cuid())
+  identifier String   // Email address
+  token      String   @unique
+  type       String   // 'EMAIL_VERIFICATION' | 'PASSWORD_RESET'
+  expires    DateTime
+  createdAt  DateTime @default(now())
+
+  @@unique([identifier, token])
+  @@index([token])
+  @@index([identifier])
 }
 
 // ============ JOB MODELS ============
@@ -184,11 +198,27 @@ model Job {
   applications   Application[]
   matchScores    MatchScore[]
   invites        AssessmentInvite[]
+  savedBy        SavedJob[]
 
   @@unique([orgId, slug])
   @@index([orgId, status])
   @@index([locale])
   @@index([deletedAt])
+}
+
+model SavedJob {
+  id        String   @id @default(cuid())
+  userId    String
+  jobId     String
+
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  job       Job      @relation(fields: [jobId], references: [id])
+
+  @@unique([userId, jobId])
+  @@index([userId])
+  @@index([jobId])
 }
 
 // ============ CANDIDATE MODELS ============

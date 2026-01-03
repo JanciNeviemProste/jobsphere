@@ -1,0 +1,2 @@
+# This directory stores authentication state files for Playwright E2E tests
+# The actual .json files are gitignored but the directory structure is preserved

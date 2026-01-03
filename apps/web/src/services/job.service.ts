@@ -13,22 +13,24 @@ import { createAuditLog } from '@/lib/audit-log'
 import { checkEntitlement, consumeEntitlement } from '@/lib/entitlements'
 import { AppError } from '@/lib/errors'
 
-// Define types for enum-like string fields
-type WorkMode = 'REMOTE' | 'HYBRID' | 'ONSITE'
-type JobType = 'FULL_TIME' | 'PART_TIME' | 'CONTRACT'
-type SeniorityLevel = 'JUNIOR' | 'MEDIOR' | 'SENIOR' | 'LEAD'
-type JobStatus = 'ACTIVE' | 'CLOSED' | 'DRAFT' | 'ARCHIVED'
+// Define types for enum-like string fields (matches Prisma schema)
+type EmploymentType = 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'TEMPORARY' | 'INTERNSHIP'
+type SeniorityLevel = 'ENTRY' | 'MID' | 'SENIOR' | 'LEAD' | 'EXECUTIVE'
+type JobStatus = 'DRAFT' | 'PUBLISHED' | 'PAUSED' | 'CLOSED'
 
 export interface CreateJobInput {
   title: string
-  location: string
   description: string
+  city?: string
+  region?: string
+  remote?: boolean
+  hybrid?: boolean
   salaryMin?: number
   salaryMax?: number
-  workMode?: WorkMode
-  type?: JobType
+  employmentType?: EmploymentType
   seniority?: SeniorityLevel
   orgId: string
+  createdBy: string
 }
 
 export interface UpdateJobInput extends Partial<CreateJobInput> {
@@ -37,8 +39,9 @@ export interface UpdateJobInput extends Partial<CreateJobInput> {
 
 export interface JobSearchParams {
   search?: string
-  workMode?: WorkMode
-  jobType?: JobType
+  remote?: boolean
+  hybrid?: boolean
+  employmentType?: EmploymentType
   seniority?: SeniorityLevel
   orgId?: string
   status?: JobStatus
@@ -51,8 +54,7 @@ export class JobService {
    * Create a new job posting
    */
   static async createJob(
-    input: CreateJobInput,
-    userId: string
+    input: CreateJobInput
   ): Promise<Job> {
     // Check entitlement
     const canCreate = await checkEntitlement(
@@ -72,15 +74,18 @@ export class JobService {
       const newJob = await tx.job.create({
         data: {
           title: input.title,
-          location: input.location,
           description: input.description,
+          ...(input.city && { city: input.city }),
+          ...(input.region && { region: input.region }),
+          remote: input.remote ?? false,
+          hybrid: input.hybrid ?? false,
           ...(input.salaryMin !== undefined && { salaryMin: input.salaryMin }),
           ...(input.salaryMax !== undefined && { salaryMax: input.salaryMax }),
-          workMode: input.workMode ?? 'HYBRID',
-          type: input.type ?? 'FULL_TIME',
-          seniority: input.seniority ?? 'MEDIOR',
-          status: 'ACTIVE',
+          employmentType: input.employmentType ?? 'FULL_TIME',
+          seniority: input.seniority ?? 'MID',
+          status: 'DRAFT',
           orgId: input.orgId,
+          createdBy: input.createdBy,
         },
       })
 
@@ -94,14 +99,14 @@ export class JobService {
 
       // Create audit log
       await createAuditLog({
-        userId,
+        userId: input.createdBy,
         orgId: input.orgId,
         action: 'CREATE',
         resource: 'JOB',
         resourceId: newJob.id,
         metadata: {
           title: input.title,
-          location: input.location,
+          city: input.city,
         },
       })
 
@@ -132,12 +137,14 @@ export class JobService {
         where: { id: jobId },
         data: {
           ...(input.title && { title: input.title }),
-          ...(input.location && { location: input.location }),
           ...(input.description && { description: input.description }),
+          ...(input.city && { city: input.city }),
+          ...(input.region && { region: input.region }),
+          ...(input.remote !== undefined && { remote: input.remote }),
+          ...(input.hybrid !== undefined && { hybrid: input.hybrid }),
           ...(input.salaryMin !== undefined && { salaryMin: input.salaryMin }),
           ...(input.salaryMax !== undefined && { salaryMax: input.salaryMax }),
-          ...(input.workMode && { workMode: input.workMode }),
-          ...(input.type && { type: input.type }),
+          ...(input.employmentType && { employmentType: input.employmentType }),
           ...(input.seniority && { seniority: input.seniority }),
           ...(input.status && { status: input.status }),
         },
@@ -168,11 +175,12 @@ export class JobService {
   }> {
     const {
       search,
-      workMode,
-      jobType,
+      remote,
+      hybrid,
+      employmentType,
       seniority,
       orgId,
-      status = 'ACTIVE',
+      status = 'PUBLISHED',
       limit = 50,
       offset = 0,
     } = params
@@ -183,12 +191,13 @@ export class JobService {
       ...(search && {
         OR: [
           { title: { contains: search, mode: 'insensitive' } },
-          { location: { contains: search, mode: 'insensitive' } },
+          { city: { contains: search, mode: 'insensitive' } },
           { description: { contains: search, mode: 'insensitive' } },
         ],
       }),
-      ...(workMode && { workMode }),
-      ...(jobType && { type: jobType }),
+      ...(remote !== undefined && { remote }),
+      ...(hybrid !== undefined && { hybrid }),
+      ...(employmentType && { employmentType }),
       ...(seniority && { seniority }),
     }
 
@@ -229,7 +238,11 @@ export class JobService {
         organization: true,
         applications: {
           include: {
-            candidate: true,
+            candidate: {
+              include: {
+                contacts: true,
+              },
+            },
           },
         },
       },
@@ -254,7 +267,7 @@ export class JobService {
     const deletedJob = await prisma.$transaction(async (tx) => {
       const updated = await tx.job.update({
         where: { id: jobId },
-        data: { status: 'ARCHIVED' },
+        data: { status: 'CLOSED' },
       })
 
       await createAuditLog({
@@ -263,7 +276,7 @@ export class JobService {
         action: 'DELETE',
         resource: 'JOB',
         resourceId: jobId,
-        metadata: { status: 'ARCHIVED' },
+        metadata: { status: 'CLOSED' },
       })
 
       return updated
@@ -278,38 +291,38 @@ export class JobService {
   static async getJobStats(jobId: string): Promise<{
     totalApplications: number
     newApplications: number
-    inReview: number
-    shortlisted: number
+    screening: number
+    interview: number
     rejected: number
   }> {
     const stats = await prisma.application.groupBy({
-      by: ['status'],
+      by: ['stage'],
       where: { jobId },
-      _count: { status: true },
+      _count: { stage: true },
     })
 
     const result = {
       totalApplications: 0,
       newApplications: 0,
-      inReview: 0,
-      shortlisted: 0,
+      screening: 0,
+      interview: 0,
       rejected: 0,
     }
 
     stats.forEach((stat) => {
-      result.totalApplications += stat._count.status
-      switch (stat.status) {
+      result.totalApplications += stat._count.stage
+      switch (stat.stage) {
         case 'NEW':
-          result.newApplications = stat._count.status
+          result.newApplications = stat._count.stage
           break
-        case 'REVIEWING':
-          result.inReview = stat._count.status
+        case 'SCREENING':
+          result.screening = stat._count.stage
           break
-        case 'SHORTLISTED':
-          result.shortlisted = stat._count.status
+        case 'INTERVIEW':
+          result.interview = stat._count.stage
           break
         case 'REJECTED':
-          result.rejected = stat._count.status
+          result.rejected = stat._count.stage
           break
       }
     })

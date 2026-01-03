@@ -80,8 +80,9 @@ async function getSimilarJobs(job: any, limit: number = 3) {
         id: { not: job.id },
         OR: [
           { seniority: job.seniority },
-          { workMode: job.workMode },
-          { type: job.type },
+          { remote: job.remote },
+          { hybrid: job.hybrid },
+          { employmentType: job.employmentType },
           { orgId: job.orgId }
         ]
       },
@@ -121,14 +122,11 @@ export default async function JobDetailPage({
 
   const similarJobs = await getSimilarJobs(job)
 
-  // Format work mode
-  const getWorkModeLabel = (mode: string) => {
-    switch (mode) {
-      case 'REMOTE': return t('jobs.remote')
-      case 'HYBRID': return t('jobs.hybrid')
-      case 'ONSITE': return t('jobs.onsite')
-      default: return mode
-    }
+  // Format work mode based on remote/hybrid boolean flags
+  const getWorkModeLabel = () => {
+    if (job.remote) return t('jobs.remote')
+    if (job.hybrid) return t('jobs.hybrid')
+    return t('jobs.onsite')
   }
 
   // Format job type
@@ -224,8 +222,8 @@ export default async function JobDetailPage({
                       {job.seniority && (
                         <Badge variant="secondary">{job.seniority}</Badge>
                       )}
-                      <Badge variant="outline">{getWorkModeLabel(job.workMode)}</Badge>
-                      <Badge variant="outline">{getJobTypeLabel(job.type)}</Badge>
+                      <Badge variant="outline">{getWorkModeLabel()}</Badge>
+                      <Badge variant="outline">{getJobTypeLabel(job.employmentType)}</Badge>
                     </div>
                   </div>
                   {job.organization.logo && (
@@ -241,7 +239,7 @@ export default async function JobDetailPage({
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <MapPin className="h-4 w-4" />
-                    <span>{job.location}</span>
+                    <span>{job.city || job.region || 'Remote'}</span>
                   </div>
                   {(job.salaryMin || job.salaryMax) && (
                     <div className="flex items-center gap-2 text-muted-foreground">
@@ -381,7 +379,7 @@ export default async function JobDetailPage({
                     >
                       <p className="font-medium line-clamp-1">{similarJob.title}</p>
                       <p className="text-sm text-muted-foreground">{similarJob.organization.name}</p>
-                      <p className="text-sm text-muted-foreground">{similarJob.location}</p>
+                      <p className="text-sm text-muted-foreground">{similarJob.city || similarJob.region || 'Remote'}</p>
                       {(similarJob.salaryMin || similarJob.salaryMax) && (
                         <p className="text-sm font-medium text-primary">
                           {similarJob.salaryMin && similarJob.salaryMax
@@ -414,10 +412,6 @@ export default async function JobDetailPage({
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">{t('jobDetail.applications')}:</span>
                     <span className="font-medium">{job._count.applications}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{t('jobDetail.views')}:</span>
-                    <span className="font-medium">{job.views}</span>
                   </div>
                 </div>
               </CardContent>

@@ -60,29 +60,31 @@ async function sendResendEmail(data: EmailData): Promise<void> {
       throw new Error(`Resend API error: ${error}`)
     }
 
+    // TODO: Add Email model to schema for email tracking
     // Log email in database
-    await prisma.email.create({
-      data: {
-        to: data.to,
-        subject: data.subject,
-        body: data.html,
-        status: 'SENT',
-        provider: 'resend',
-      },
-    })
+    // await prisma.email.create({
+    //   data: {
+    //     to: data.to,
+    //     subject: data.subject,
+    //     body: data.html,
+    //     status: 'SENT',
+    //     provider: 'resend',
+    //   },
+    // })
   } catch (error) {
     console.error('Error sending email via Resend:', error)
 
+    // TODO: Add Email model to schema for email tracking
     // Log failed email
-    await prisma.email.create({
-      data: {
-        to: data.to,
-        subject: data.subject,
-        body: data.html,
-        status: 'FAILED',
-        provider: 'resend',
-      },
-    })
+    // await prisma.email.create({
+    //   data: {
+    //     to: data.to,
+    //     subject: data.subject,
+    //     body: data.html,
+    //     status: 'FAILED',
+    //     provider: 'resend',
+    //   },
+    // })
 
     throw error
   }
@@ -132,29 +134,31 @@ async function sendSendGridEmail(data: EmailData): Promise<void> {
       throw new Error(`SendGrid API error: ${error}`)
     }
 
+    // TODO: Add Email model to schema for email tracking
     // Log email in database
-    await prisma.email.create({
-      data: {
-        to: data.to,
-        subject: data.subject,
-        body: data.html,
-        status: 'SENT',
-        provider: 'sendgrid',
-      },
-    })
+    // await prisma.email.create({
+    //   data: {
+    //     to: data.to,
+    //     subject: data.subject,
+    //     body: data.html,
+    //     status: 'SENT',
+    //     provider: 'sendgrid',
+    //   },
+    // })
   } catch (error) {
     console.error('Error sending email via SendGrid:', error)
 
+    // TODO: Add Email model to schema for email tracking
     // Log failed email
-    await prisma.email.create({
-      data: {
-        to: data.to,
-        subject: data.subject,
-        body: data.html,
-        status: 'FAILED',
-        provider: 'sendgrid',
-      },
-    })
+    // await prisma.email.create({
+    //   data: {
+    //     to: data.to,
+    //     subject: data.subject,
+    //     body: data.html,
+    //     status: 'FAILED',
+    //     provider: 'sendgrid',
+    //   },
+    // })
 
     throw error
   }
@@ -295,4 +299,132 @@ export function getApplicationStatusChangeEmail(
       </body>
     </html>
   `
+}
+
+/**
+ * Send status change email notification to candidate
+ */
+export async function sendStatusChangeEmail(
+  applicationId: string,
+  newStage: string
+): Promise<void> {
+  try {
+    // Get application with related data
+    const application = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: {
+        candidate: {
+          include: {
+            contacts: {
+              where: { isPrimary: true },
+              take: 1,
+            },
+          },
+        },
+        job: {
+          include: {
+            organization: true,
+          },
+        },
+      },
+    })
+
+    if (!application) {
+      console.warn('Application not found for email notification:', applicationId)
+      return
+    }
+
+    const email = application.candidate?.contacts?.[0]?.email
+    if (!email) {
+      console.warn('No email found for candidate:', application.candidateId)
+      return
+    }
+
+    const candidateName = application.candidate?.contacts?.[0]?.fullName || 'there'
+    const jobTitle = application.job?.title || 'the position'
+    const companyName = application.job?.organization?.name || 'our company'
+
+    let subject = ''
+    let html = ''
+
+    if (newStage === 'HIRED') {
+      subject = `Congratulations! You've been selected for ${jobTitle}`
+      html = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+              .button { display: inline-block; background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+              .footer { text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>Congratulations!</h1>
+              </div>
+              <div class="content">
+                <p>Hi ${candidateName},</p>
+                <p>We're thrilled to inform you that you've been selected for the <strong>${jobTitle}</strong> position at <strong>${companyName}</strong>!</p>
+                <p>We'll be in touch soon with next steps regarding your onboarding and start date.</p>
+                <p>Welcome to the team!</p>
+                <p>Best regards,<br>The ${companyName} Team</p>
+              </div>
+              <div class="footer">
+                <p>This is an automated email from JobSphere.</p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `
+    } else if (newStage === 'REJECTED') {
+      subject = `Update on your application for ${jobTitle}`
+      html = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+              .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+              .footer { text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>Application Update</h1>
+              </div>
+              <div class="content">
+                <p>Hi ${candidateName},</p>
+                <p>Thank you for your interest in the <strong>${jobTitle}</strong> position at <strong>${companyName}</strong>.</p>
+                <p>After careful consideration, we've decided to move forward with other candidates at this time.</p>
+                <p>We appreciate the time you invested in the application process and wish you the best in your job search.</p>
+                <p>Best regards,<br>The ${companyName} Team</p>
+              </div>
+              <div class="footer">
+                <p>This is an automated email from JobSphere.</p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `
+    } else {
+      // For other stages, don't send email
+      return
+    }
+
+    await sendEmail({ to: email, subject, html })
+  } catch (error) {
+    console.error('Error sending status change email:', error)
+    // Don't throw - email failures shouldn't block the application status update
+  }
 }

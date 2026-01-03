@@ -50,13 +50,10 @@ export default async function SavedJobsPage({
   const t = await getTranslations()
   const savedJobs = await getSavedJobs(session.user.id)
 
-  const getWorkModeLabel = (mode: string) => {
-    switch (mode) {
-      case 'REMOTE': return 'Remote'
-      case 'HYBRID': return 'Hybrid'
-      case 'ONSITE': return 'On-site'
-      default: return mode
-    }
+  const getWorkModeLabel = (job: typeof savedJobs[number]['job']) => {
+    if (job.remote) return 'Remote'
+    if (job.hybrid) return 'Hybrid'
+    return 'On-site'
   }
 
   const getJobTypeLabel = (type: string) => {
@@ -64,6 +61,8 @@ export default async function SavedJobsPage({
       case 'FULL_TIME': return 'Full-time'
       case 'PART_TIME': return 'Part-time'
       case 'CONTRACT': return 'Contract'
+      case 'TEMPORARY': return 'Temporary'
+      case 'INTERNSHIP': return 'Internship'
       default: return type
     }
   }
@@ -155,7 +154,7 @@ export default async function SavedJobsPage({
                       <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <MapPin className="h-4 w-4" />
-                          <span>{job.location}</span>
+                          <span>{job.city || 'Remote'}</span>
                         </div>
                         {(job.salaryMin || job.salaryMax) && (
                           <div className="flex items-center gap-1">
@@ -175,10 +174,10 @@ export default async function SavedJobsPage({
 
                       {/* Badges */}
                       <div className="flex flex-wrap gap-2 mt-3">
-                        <Badge variant="secondary">{job.seniority}</Badge>
-                        <Badge variant="outline">{getWorkModeLabel(job.workMode)}</Badge>
-                        <Badge variant="outline">{getJobTypeLabel(job.type)}</Badge>
-                        {job.status !== 'ACTIVE' && (
+                        {job.seniority && <Badge variant="secondary">{job.seniority}</Badge>}
+                        <Badge variant="outline">{getWorkModeLabel(job)}</Badge>
+                        <Badge variant="outline">{getJobTypeLabel(job.employmentType)}</Badge>
+                        {job.status !== 'PUBLISHED' && (
                           <Badge variant="destructive">Neaktívna</Badge>
                         )}
                       </div>

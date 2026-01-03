@@ -20,6 +20,10 @@ function isPathWithinDirectory(filepath: string, directory: string): boolean {
 
 export async function POST(req: Request) {
   try {
+    // DEPRECATED: This endpoint uses local filesystem storage which doesn't work on Vercel
+    // Use /api/cv/upload instead (Vercel Blob Storage)
+    console.warn('[DEPRECATED] /api/upload is deprecated. Use /api/cv/upload instead.')
+
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -87,6 +91,14 @@ export async function POST(req: Request) {
       filename: file.name,
       size: file.size,
       type: file.type,
+      _deprecated: true,
+      _migration: 'Use /api/cv/upload instead for Vercel Blob Storage'
+    }, {
+      headers: {
+        'X-Deprecated': 'true',
+        'X-Deprecation-Message': 'This endpoint will be removed in v2.0. Use /api/cv/upload instead.',
+        'X-Alternative-Endpoint': '/api/cv/upload'
+      }
     })
   } catch (error) {
     console.error('Error uploading file:', error)

@@ -18,8 +18,9 @@ export interface CandidateMatch {
   }
   candidate?: {
     id: string
-    userId: string
-    locale: string
+    orgId: string
+    tags: string[]
+    source: string | null
   }
 }
 
@@ -93,8 +94,9 @@ export async function searchCandidates(
         where: { id: { in: candidateIds } },
         select: {
           id: true,
-          userId: true,
-          locale: true
+          orgId: true,
+          tags: true,
+          source: true
         }
       })
 

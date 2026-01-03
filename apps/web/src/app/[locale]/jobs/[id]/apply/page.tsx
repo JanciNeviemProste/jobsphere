@@ -83,6 +83,7 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [parsingCV, setParsingCV] = useState(false)
 
   const form = useForm<ApplicationFormValues>({
     resolver: zodResolver(applicationSchema),
@@ -152,6 +153,92 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
       router.push(`/${params.locale}/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`)
     }
   }, [status, router, params.locale])
+
+  /**
+   * Auto-fill form from uploaded CV
+   */
+  async function handleCVUpload(file: File) {
+    setParsingCV(true)
+
+    try {
+      // First, upload CV to get raw text
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const uploadResponse = await fetch('/api/cv/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload CV')
+      }
+
+      const { rawText } = await uploadResponse.json()
+
+      // Then parse CV with AI
+      const parseResponse = await fetch('/api/cv/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rawText }),
+      })
+
+      if (!parseResponse.ok) {
+        throw new Error('Failed to parse CV')
+      }
+
+      const { parsed } = await parseResponse.json()
+
+      // Auto-fill form fields from parsed CV
+      if (parsed?.personal) {
+        if (parsed.personal.phone) {
+          form.setValue('phoneNumber', parsed.personal.phone)
+        }
+        if (parsed.personal.linkedIn) {
+          form.setValue('linkedin', parsed.personal.linkedIn)
+        }
+      }
+
+      toast.success(t('apply.cvParsed'), {
+        description: t('apply.fieldsAutoFilled'),
+      })
+    } catch (error) {
+      console.error('Error parsing CV:', error)
+      toast.error(t('apply.parseError'), {
+        description: error instanceof Error ? error.message : t('apply.parseErrorDescription'),
+      })
+    } finally {
+      setParsingCV(false)
+    }
+  }
+
+  /**
+   * Auto-fill form from existing CV selection
+   */
+  async function handleExistingCVSelection(cvId: string) {
+    try {
+      const response = await fetch(`/api/resumes/${cvId}`)
+
+      if (response.ok) {
+        const cvData = await response.json()
+
+        // Auto-fill form fields from CV metadata
+        if (cvData?.candidate?.contacts?.length > 0) {
+          const contact = cvData.candidate.contacts[0]
+
+          if (contact.phone) {
+            form.setValue('phoneNumber', contact.phone)
+          }
+          if (contact.linkedIn) {
+            form.setValue('linkedin', contact.linkedIn)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading CV details:', error)
+      // Don't show error toast, it's optional enhancement
+    }
+  }
 
   async function onSubmit(values: ApplicationFormValues) {
     setSubmitting(true)
@@ -322,7 +409,14 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>{t('apply.selectYourCV')}</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select
+                              onValueChange={(value) => {
+                                field.onChange(value)
+                                // Auto-fill form from selected CV
+                                handleExistingCVSelection(value)
+                              }}
+                              defaultValue={field.value}
+                            >
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder={t('apply.chooseCVPlaceholder')} />
@@ -356,18 +450,29 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
                                 <Input
                                   type="file"
                                   accept=".pdf,.doc,.docx"
-                                  onChange={(e) => {
+                                  disabled={parsingCV}
+                                  onChange={async (e) => {
                                     const file = e.target.files?.[0]
                                     if (file) {
                                       onChange(file)
+                                      // Auto-fill form from parsed CV
+                                      await handleCVUpload(file)
                                     }
                                   }}
                                   {...field}
                                 />
-                                <Upload className="h-5 w-5 text-muted-foreground" />
+                                {parsingCV ? (
+                                  <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
+                                ) : (
+                                  <Upload className="h-5 w-5 text-muted-foreground" />
+                                )}
                               </div>
                             </FormControl>
-                            <FormDescription>{t('apply.uploadCVDescription')}</FormDescription>
+                            <FormDescription>
+                              {parsingCV
+                                ? t('apply.parsingCV')
+                                : t('apply.uploadCVDescription')}
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}

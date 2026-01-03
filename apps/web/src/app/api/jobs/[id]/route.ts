@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { errorResponse } from '@/lib/errors'
 import { withRateLimit } from '@/lib/rate-limit'
+import { requireAuth } from '@/lib/auth'
 
 export const GET = withRateLimit(
   async (req: Request, context?: { params?: Record<string, string> }) => {
@@ -73,7 +74,6 @@ export const PUT = withRateLimit(
 
       logger.apiRequest('PUT', `/api/jobs/${params.id}`)
 
-      const { requireAuth } = await import('@/lib/auth')
       const session = await requireAuth()
 
       if (!session.user?.id) {
@@ -86,7 +86,7 @@ export const PUT = withRateLimit(
         include: {
           organization: {
             include: {
-              members: {
+              users: {
                 where: { userId: session.user.id }
               }
             }
@@ -94,7 +94,7 @@ export const PUT = withRateLimit(
         }
       })
 
-      if (!job || job.organization.members.length === 0) {
+      if (!job || job.organization.users.length === 0) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
 
@@ -105,11 +105,15 @@ export const PUT = withRateLimit(
         data: {
           title: data.title,
           description: data.description,
-          location: data.location,
+          requirements: data.requirements,
+          benefits: data.benefits,
+          city: data.city,
           salaryMin: data.salaryMin,
           salaryMax: data.salaryMax,
-          workMode: data.workMode,
-          type: data.type,
+          salaryCurrency: data.salaryCurrency,
+          remote: data.remote,
+          hybrid: data.hybrid,
+          employmentType: data.employmentType,
           seniority: data.seniority,
         }
       })
@@ -135,6 +139,9 @@ export const PUT = withRateLimit(
   { preset: 'api', byUser: true }
 )
 
+// PATCH is an alias for PUT (both allow updates)
+export const PATCH = PUT
+
 // Delete job (soft delete - set status to CLOSED)
 export const DELETE = withRateLimit(
   async (req: Request, context?: { params?: Record<string, string> }) => {
@@ -146,7 +153,6 @@ export const DELETE = withRateLimit(
 
       logger.apiRequest('DELETE', `/api/jobs/${params.id}`)
 
-      const { requireAuth } = await import('@/lib/auth')
       const session = await requireAuth()
 
       if (!session.user?.id) {
@@ -159,7 +165,7 @@ export const DELETE = withRateLimit(
         include: {
           organization: {
             include: {
-              members: {
+              users: {
                 where: { userId: session.user.id }
               }
             }
@@ -167,7 +173,7 @@ export const DELETE = withRateLimit(
         }
       })
 
-      if (!job || job.organization.members.length === 0) {
+      if (!job || job.organization.users.length === 0) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
 

@@ -22,7 +22,7 @@ async function getDashboardData() {
       select: {
         name: true,
         email: true,
-        image: true,
+        avatar: true,
       }
     }),
 
@@ -61,7 +61,7 @@ async function getDashboardData() {
     // Get recommended jobs (simplified server-side version)
     prisma.job.findMany({
       where: {
-        status: 'ACTIVE',
+        status: 'PUBLISHED',
       },
       include: {
         organization: {
@@ -79,10 +79,10 @@ async function getDashboardData() {
   // Calculate stats
   const stats = {
     total: applications.length,
-    pending: applications.filter(a => a.status === 'PENDING').length,
-    reviewing: applications.filter(a => a.status === 'REVIEWING').length,
-    accepted: applications.filter(a => a.status === 'ACCEPTED').length,
-    rejected: applications.filter(a => a.status === 'REJECTED').length,
+    pending: applications.filter(a => a.stage === 'NEW').length,
+    reviewing: applications.filter(a => a.stage === 'SCREENING' || a.stage === 'PHONE_SCREEN').length,
+    accepted: applications.filter(a => a.stage === 'HIRED' || a.stage === 'OFFER').length,
+    rejected: applications.filter(a => a.stage === 'REJECTED').length,
   }
 
   // Calculate profile completion
@@ -104,8 +104,8 @@ async function getDashboardData() {
     profileCompletion += 25
   }
 
-  const skillsSection = resume?.sections.find(s => s.kind === 'skills')
-  if (skillsSection?.skills && skillsSection.skills.length > 0) {
+  // Check if resume has skills (skills are in Resume, not in ResumeSection)
+  if (resume?.skills && resume.skills.length > 0) {
     profileSteps.skills = true
     profileCompletion += 25
   }
@@ -120,9 +120,9 @@ async function getDashboardData() {
     jobTitle: app.job.title,
     company: app.job.organization.name,
     companyLogo: app.job.organization.logo,
-    status: app.status as string,
+    status: app.stage as string,
     appliedAt: app.createdAt.toISOString(),
-    location: app.job.location,
+    location: app.job.city || '',
     jobId: app.job.id,
   }))
 
@@ -132,10 +132,10 @@ async function getDashboardData() {
     title: job.title,
     company: job.organization.name,
     companyLogo: job.organization.logo,
-    location: job.location,
+    location: job.city || '',
     salaryMin: job.salaryMin,
     salaryMax: job.salaryMax,
-    type: job.type,
+    type: job.employmentType,
     // Simple decreasing match score
     match: 95 - (index * 5)
   }))
@@ -144,7 +144,7 @@ async function getDashboardData() {
     user: {
       name: user?.name || 'User',
       email: user?.email || '',
-      avatarUrl: user?.image,
+      avatarUrl: user?.avatar,
     },
     stats,
     profileCompletion,

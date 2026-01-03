@@ -28,11 +28,11 @@ export const GET = withRateLimit(
           title: job.title,
           company: job.organization.name,
           companyLogo: job.organization.logo,
-          location: job.location,
+          location: job.city,
           salaryMin: job.salaryMin,
           salaryMax: job.salaryMax,
-          type: job.type,
-          workMode: job.workMode,
+          type: job.employmentType,
+          workMode: job.remote ? 'REMOTE' : job.hybrid ? 'HYBRID' : 'ONSITE',
           seniority: job.seniority,
           match: matchScore.overall,
           matchDetails: {
@@ -51,8 +51,10 @@ export const GET = withRateLimit(
 
       // Fallback to simple matching if AI is not available
       // Get user's candidate profile first
-      const candidate = await prisma.candidate.findUnique({
-        where: { userId: session.user.id }
+      const candidate = await prisma.candidate.findFirst({
+        where: {
+          orgId: session.user.id
+        }
       })
 
       if (!candidate) {
@@ -66,25 +68,19 @@ export const GET = withRateLimit(
         },
         orderBy: {
           createdAt: 'desc'
-        },
-        include: {
-          sections: true
         }
       })
 
       // Get user's applied job IDs to exclude
       const appliedJobIds = await prisma.application.findMany({
-        where: { candidateId: session.user.id },
+        where: { candidateId: candidate.id },
         select: { jobId: true }
       }).then(apps => apps.map(a => a.jobId))
 
       // Extract user skills from resume
       const userSkills: string[] = []
-      if (resume) {
-        const skillsSection = resume.sections.find(s => s.kind === 'skills')
-        if (skillsSection?.skills) {
-          userSkills.push(...skillsSection.skills)
-        }
+      if (resume?.skills) {
+        userSkills.push(...resume.skills)
       }
 
       // Get recommended jobs
@@ -133,11 +129,11 @@ export const GET = withRateLimit(
           title: job.title,
           company: job.organization.name,
           companyLogo: job.organization.logo,
-          location: job.location,
+          location: job.city,
           salaryMin: job.salaryMin,
           salaryMax: job.salaryMax,
-          type: job.type,
-          workMode: job.workMode,
+          type: job.employmentType,
+          workMode: job.remote ? 'REMOTE' : job.hybrid ? 'HYBRID' : 'ONSITE',
           seniority: job.seniority,
           match: matchScore
         }

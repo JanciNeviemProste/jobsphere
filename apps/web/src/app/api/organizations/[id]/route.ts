@@ -1,0 +1,139 @@
+import { NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { z } from 'zod'
+
+const updateOrgSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  website: z.string().url().optional().or(z.literal('')),
+  description: z.string().max(2000).optional().or(z.literal('')),
+  industry: z.string().max(100).optional().or(z.literal('')),
+  size: z.string().max(50).optional().or(z.literal(''))
+})
+
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Verify membership
+    const membership = await prisma.userOrgRole.findFirst({
+      where: {
+        userId: session.user.id,
+        orgId: params.id
+      }
+    })
+
+    if (!membership) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const organization = await prisma.organization.findUnique({
+      where: { id: params.id },
+      select: {
+        id: true,
+        name: true,
+        logo: true,
+        website: true,
+        description: true,
+        industry: true,
+        size: true,
+        slug: true
+      }
+    })
+
+    if (!organization) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
+    }
+
+    return NextResponse.json(organization)
+  } catch (error) {
+    console.error('Error fetching organization:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch organization' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Verify admin role
+    const membership = await prisma.userOrgRole.findFirst({
+      where: {
+        userId: session.user.id,
+        orgId: params.id,
+        role: 'ORG_ADMIN'
+      }
+    })
+
+    if (!membership) {
+      return NextResponse.json(
+        { error: 'Forbidden - Only organization admins can update organization settings' },
+        { status: 403 }
+      )
+    }
+
+    const body = await request.json()
+    const validatedData = updateOrgSchema.parse(body)
+
+    // Prepare update data (remove empty strings)
+    const updateData: any = {}
+    if (validatedData.name !== undefined) updateData.name = validatedData.name
+    if (validatedData.website !== undefined) {
+      updateData.website = validatedData.website === '' ? null : validatedData.website
+    }
+    if (validatedData.description !== undefined) {
+      updateData.description = validatedData.description === '' ? null : validatedData.description
+    }
+    if (validatedData.industry !== undefined) {
+      updateData.industry = validatedData.industry === '' ? null : validatedData.industry
+    }
+    if (validatedData.size !== undefined) {
+      updateData.size = validatedData.size === '' ? null : validatedData.size
+    }
+
+    const updated = await prisma.organization.update({
+      where: { id: params.id },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        logo: true,
+        website: true,
+        description: true,
+        industry: true,
+        size: true,
+        slug: true
+      }
+    })
+
+    return NextResponse.json(updated)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: error.errors },
+        { status: 400 }
+      )
+    }
+
+    console.error('Error updating organization:', error)
+    return NextResponse.json(
+      { error: 'Failed to update organization' },
+      { status: 500 }
+    )
+  }
+}

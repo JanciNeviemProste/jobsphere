@@ -48,6 +48,7 @@ export const POST = withRateLimit(
       await prisma.verificationToken.deleteMany({
         where: {
           identifier: user.email,
+          type: 'PASSWORD_RESET',
         },
       })
 
@@ -56,6 +57,7 @@ export const POST = withRateLimit(
         data: {
           identifier: user.email,
           token: hashedToken,
+          type: 'PASSWORD_RESET',
           expires: resetTokenExpiry,
         },
       })

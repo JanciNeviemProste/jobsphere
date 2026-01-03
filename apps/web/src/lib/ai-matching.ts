@@ -63,8 +63,14 @@ export async function calculateMatchScore(
     const candidateEducation: any[] = []
 
     resume.sections.forEach(section => {
-      if (section.kind === 'skills' && section.skills) {
-        candidateSkills.push(...section.skills)
+      if (section.kind === 'skills') {
+        // Skills stored in text, bullets, or json fields
+        if (section.text) {
+          candidateSkills.push(...section.text.split(',').map((s: string) => s.trim()))
+        }
+        if (section.bullets && section.bullets.length > 0) {
+          candidateSkills.push(...section.bullets)
+        }
       } else if (section.kind === 'experience') {
         candidateExperience.push({
           title: section.title,
@@ -72,7 +78,7 @@ export async function calculateMatchScore(
           startDate: section.startDate,
           endDate: section.endDate,
           current: section.current,
-          description: section.description,
+          description: section.text || section.bullets.join('\n'),
         })
       } else if (section.kind === 'education') {
         candidateEducation.push({
@@ -80,10 +86,13 @@ export async function calculateMatchScore(
           organization: section.organization,
           startDate: section.startDate,
           endDate: section.endDate,
-          description: section.description,
+          description: section.text || section.bullets.join('\n'),
         })
       }
     })
+
+    // Determine work mode from boolean flags
+    const workMode = job.remote ? 'Remote' : job.hybrid ? 'Hybrid' : 'On-site'
 
     // Prepare the prompt for AI analysis
     const prompt = `Analyze the match between this candidate and job:
@@ -97,9 +106,10 @@ JOB REQUIREMENTS:
 Title: ${job.title}
 Company: ${job.organization.name}
 Description: ${job.description}
-Location: ${job.location}
+Location: ${job.city || job.region || 'Not specified'}
 Salary: ${job.salaryMin || 0}-${job.salaryMax || 'negotiable'} EUR
-Work Mode: ${job.workMode}
+Work Mode: ${workMode}
+Employment Type: ${job.employmentType}
 Seniority: ${job.seniority}
 
 Please provide a match analysis with scores (0-100) for:
@@ -205,8 +215,14 @@ async function calculateFallbackScore(
   // Extract skills
   const candidateSkills: string[] = []
   resume.sections.forEach(section => {
-    if (section.kind === 'skills' && section.skills) {
-      candidateSkills.push(...section.skills.map(s => s.toLowerCase()))
+    if (section.kind === 'skills') {
+      // Skills stored in text, bullets, or json fields
+      if (section.text) {
+        candidateSkills.push(...section.text.split(',').map((s: string) => s.trim().toLowerCase()))
+      }
+      if (section.bullets && section.bullets.length > 0) {
+        candidateSkills.push(...section.bullets.map((s: string) => s.toLowerCase()))
+      }
     }
   })
 

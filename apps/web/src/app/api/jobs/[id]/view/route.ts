@@ -15,26 +15,24 @@ export const POST = withRateLimit(
 
       logger.apiRequest('POST', `/api/jobs/${params.id}/view`)
 
-      // Increment view count atomically
-      const job = await prisma.job.update({
+      // Verify job exists and is active
+      const job = await prisma.job.findUnique({
         where: {
           id: params.id,
           status: 'ACTIVE'
         },
-        data: {
-          views: {
-            increment: 1
-          }
-        },
         select: {
-          id: true,
-          views: true
+          id: true
         }
       })
 
-      logger.info(`Job view incremented`, { jobId: params.id, views: job.views })
+      if (!job) {
+        return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+      }
 
-      return NextResponse.json({ views: job.views })
+      logger.info(`Job view tracked`, { jobId: params.id })
+
+      return NextResponse.json({ success: true })
     } catch (error) {
       // If job not found, return 404 but don't log as error
       if ((error as any)?.code === 'P2025') {

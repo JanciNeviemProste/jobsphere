@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
     const email = user.mail || user.userPrincipalName
 
     // Find user's organization
-    const orgMember = await prisma.orgMember.findFirst({
+    const orgMember = await prisma.userOrgRole.findFirst({
       where: { userId },
     })
 
@@ -102,23 +102,23 @@ export async function GET(request: NextRequest) {
         email,
         provider: 'MICROSOFT',
         orgId: orgMember.orgId,
-        displayName: user.displayName || email,
-        oauthTokens: {
+        name: user.displayName || email,
+        oauthJson: {
           access_token,
           refresh_token,
           expires_in,
           token_type: 'Bearer',
         },
-        active: true,
+        isActive: true,
       },
       update: {
-        oauthTokens: {
+        oauthJson: {
           access_token,
           refresh_token,
           expires_in,
           token_type: 'Bearer',
         },
-        active: true,
+        isActive: true,
         lastSyncAt: new Date(),
       },
     })

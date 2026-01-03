@@ -38,20 +38,14 @@ export async function POST(
       return NextResponse.json({ error: 'Assessment not found' }, { status: 404 })
     }
 
-    // Find candidate
-    const candidate = await prisma.candidate.findFirst({
-      where: { userId: session.user.id },
-    })
-
-    if (!candidate) {
-      return NextResponse.json({ error: 'Candidate not found' }, { status: 404 })
-    }
-
-    // Find or get assessment invite
+    // Find assessment invite for this assessment
     const invite = await prisma.assessmentInvite.findFirst({
       where: {
         assessmentId: params.id,
-        candidateId: candidate.id,
+      },
+      select: {
+        id: true,
+        candidateId: true,
       },
     })
 
@@ -63,6 +57,7 @@ export async function POST(
     const attempt = await prisma.attempt.create({
       data: {
         inviteId: invite.id,
+        candidateId: invite.candidateId,
         startedAt: new Date(),
         submittedAt: new Date(),
         answers: {

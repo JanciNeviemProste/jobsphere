@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user's organization
-    const orgMember = await prisma.orgMember.findFirst({
+    const orgMember = await prisma.userOrgRole.findFirst({
       where: { userId: session.user.id },
     })
 
@@ -109,22 +109,22 @@ export async function POST(request: NextRequest) {
         email,
         provider: 'MICROSOFT',
         orgId: orgMember.orgId,
-        oauthTokens: {
+        oauthJson: {
           access_token: accessToken,
           refresh_token: refreshToken,
           expires_in: 3600,
           token_type: 'Bearer',
         },
-        active: true,
+        isActive: true,
       },
       update: {
-        oauthTokens: {
+        oauthJson: {
           access_token: accessToken,
           refresh_token: refreshToken,
           expires_in: 3600,
           token_type: 'Bearer',
         },
-        active: true,
+        isActive: true,
         lastSyncAt: new Date(),
       },
     })

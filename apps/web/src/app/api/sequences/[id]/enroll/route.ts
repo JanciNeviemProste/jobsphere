@@ -36,7 +36,7 @@ export const POST = withRateLimit(
       const { candidateId, jobId } = validation.data
 
       // Get user's organizations
-      const userOrgs = await prisma.orgMember.findMany({
+      const userOrgs = await prisma.userOrgRole.findMany({
         where: { userId: session.user.id },
         select: { orgId: true }
       })
@@ -86,7 +86,6 @@ export const POST = withRateLimit(
         data: {
           sequenceId: params.id,
           candidateId,
-          jobId: jobId || null,
           status: 'ACTIVE'
         }
       })
@@ -97,7 +96,7 @@ export const POST = withRateLimit(
 
       // A/B Testing: Select variant if multiple steps with order 1 exist
       if (firstStepCandidates.length > 1) {
-        const variants = firstStepCandidates.filter((s: any) => s.abVariant)
+        const variants = firstStepCandidates.filter((s: any) => s.abGroup)
 
         if (variants.length > 1) {
           // Random selection with equal distribution
@@ -106,7 +105,7 @@ export const POST = withRateLimit(
 
           console.log('A/B test variant selected for enrollment', {
             runId: run.id,
-            selectedVariant: selectedFirstStep.abVariant,
+            selectedVariant: selectedFirstStep.abGroup,
             totalVariants: variants.length
           })
         }

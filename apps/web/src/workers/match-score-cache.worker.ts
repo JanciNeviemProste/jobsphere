@@ -81,6 +81,7 @@ async function processMatchScoreCaching(job: Job<MatchScoreCacheJobData>) {
             }
           },
           create: {
+            orgId: jobRecord.orgId,
             jobId,
             candidateId: candidate.id,
             resumeId: resume.id,
@@ -89,6 +90,7 @@ async function processMatchScoreCaching(job: Job<MatchScoreCacheJobData>) {
             vectorScore: matchScore.experience / 100,
             llmScore: matchScore.education / 100,
             evidence: matchScore.details,
+            explanation: [], // Add empty array for explanation field
             version: 'v1'
           },
           update: {

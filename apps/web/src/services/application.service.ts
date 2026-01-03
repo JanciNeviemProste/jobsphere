@@ -13,12 +13,13 @@ import { checkEntitlement, consumeEntitlement } from '@/lib/entitlements'
 import { AppError } from '@/lib/errors'
 import { sendEmail } from '@/lib/email'
 
-// Application status as string literal (matches Prisma schema)
-type ApplicationStatus = 'PENDING' | 'REVIEWING' | 'INTERVIEWED' | 'ACCEPTED' | 'REJECTED'
+// Application stage as string literal (matches Prisma schema)
+type ApplicationStage = 'NEW' | 'SCREENING' | 'PHONE' | 'INTERVIEW' | 'OFFER' | 'HIRED' | 'REJECTED' | 'WITHDRAWN'
 
 export interface CreateApplicationInput {
   jobId: string
   candidateId: string
+  orgId: string
   cvUrl?: string
   coverLetter?: string
   phone?: string
@@ -29,7 +30,7 @@ export interface CreateApplicationInput {
 }
 
 export interface UpdateApplicationInput {
-  status?: ApplicationStatus
+  stage?: ApplicationStage
   notes?: string
   tags?: string[]
 }
@@ -37,7 +38,7 @@ export interface UpdateApplicationInput {
 export interface ApplicationSearchParams {
   jobId?: string
   candidateId?: string
-  status?: ApplicationStatus
+  stage?: ApplicationStage
   search?: string
   limit?: number
   offset?: number
@@ -75,7 +76,7 @@ export class ApplicationService {
       throw new AppError('Job not found', 404)
     }
 
-    if (job.status !== 'ACTIVE') {
+    if (job.status !== 'PUBLISHED') {
       throw new AppError('This position is no longer accepting applications', 400)
     }
 
@@ -98,13 +99,17 @@ export class ApplicationService {
         data: {
           jobId: input.jobId,
           candidateId: input.candidateId,
-          status: 'PENDING',
-          cvUrl: input.cvUrl,
+          orgId: input.orgId,
+          stage: 'NEW',
           coverLetter: input.coverLetter || '',
         },
         include: {
           job: true,
-          candidate: true,
+          candidate: {
+            include: {
+              contacts: true,
+            },
+          },
         },
       })
 
@@ -159,11 +164,15 @@ export class ApplicationService {
       const application = await tx.application.update({
         where: { id: applicationId },
         data: {
-          ...(input.status && { status: input.status }),
-          ...(input.notes && { notes: input.notes }),
+          ...(input.stage && { stage: input.stage }),
+          ...(input.tags && { tags: input.tags }),
         },
         include: {
-          candidate: true,
+          candidate: {
+            include: {
+              contacts: true,
+            },
+          },
           job: true,
         },
       })
@@ -178,9 +187,9 @@ export class ApplicationService {
         metadata: input as Prisma.InputJsonValue,
       })
 
-      // If status changed to interview or offer, create notification
-      if (input.status && ['INTERVIEWED', 'ACCEPTED'].includes(input.status)) {
-        await this.createStatusChangeNotification(application, input.status)
+      // If stage changed to interview or offer, create notification
+      if (input.stage && ['INTERVIEW', 'OFFER', 'HIRED'].includes(input.stage)) {
+        await this.createStatusChangeNotification(application, input.stage)
       }
 
       return application
@@ -192,9 +201,9 @@ export class ApplicationService {
   /**
    * Bulk update application statuses
    */
-  static async bulkUpdateStatus(
+  static async bulkUpdateStage(
     applicationIds: string[],
-    status: ApplicationStatus,
+    stage: ApplicationStage,
     userId: string
   ): Promise<number> {
     const result = await prisma.$transaction(async (tx) => {
@@ -213,7 +222,7 @@ export class ApplicationService {
       // Update all applications
       const updateResult = await tx.application.updateMany({
         where: { id: { in: applicationIds } },
-        data: { status },
+        data: { stage },
       })
 
       // Create audit log
@@ -225,7 +234,7 @@ export class ApplicationService {
         resourceId: 'BULK',
         metadata: {
           applicationIds,
-          status,
+          stage,
           count: updateResult.count,
         },
       })
@@ -245,7 +254,7 @@ export class ApplicationService {
     const {
       jobId,
       candidateId,
-      status,
+      stage,
       search,
       limit = 50,
       offset = 0,
@@ -254,15 +263,19 @@ export class ApplicationService {
     const where: Prisma.ApplicationWhereInput = {
       ...(jobId && { jobId }),
       ...(candidateId && { candidateId }),
-      ...(status && { status }),
+      ...(stage && { stage }),
       ...(search && {
         OR: [
           {
             candidate: {
-              OR: [
-                { name: { contains: search, mode: 'insensitive' } },
-                { email: { contains: search, mode: 'insensitive' } },
-              ],
+              contacts: {
+                some: {
+                  OR: [
+                    { fullName: { contains: search, mode: 'insensitive' } },
+                    { email: { contains: search, mode: 'insensitive' } },
+                  ],
+                },
+              },
             },
           },
         ],
@@ -273,7 +286,11 @@ export class ApplicationService {
       prisma.application.findMany({
         where,
         include: {
-          candidate: true,
+          candidate: {
+            include: {
+              contacts: true,
+            },
+          },
           job: {
             include: {
               organization: true,
@@ -299,13 +316,17 @@ export class ApplicationService {
     return prisma.application.findUnique({
       where: { id: applicationId },
       include: {
-        candidate: true,
+        candidate: {
+          include: {
+            contacts: true,
+          },
+        },
         job: {
           include: {
             organization: true,
           },
         },
-        events: true,
+        activities: true,
       },
     })
   }
@@ -329,7 +350,7 @@ export class ApplicationService {
     const deletedApplication = await prisma.$transaction(async (tx) => {
       const updated = await tx.application.update({
         where: { id: applicationId },
-        data: { status: 'WITHDRAWN' },
+        data: { stage: 'WITHDRAWN' },
       })
 
       await createAuditLog({
@@ -338,7 +359,7 @@ export class ApplicationService {
         action: 'DELETE',
         resource: 'APPLICATION',
         resourceId: applicationId,
-        metadata: { status: 'WITHDRAWN' },
+        metadata: { stage: 'WITHDRAWN' },
       })
 
       return updated
@@ -355,8 +376,10 @@ export class ApplicationService {
       id: string
       job?: any
       candidate?: {
-        name?: string | null
-        email?: string
+        contacts?: Array<{
+          fullName?: string | null
+          email?: string | null
+        }>
       }
     }
   ): Promise<void> {
@@ -364,10 +387,10 @@ export class ApplicationService {
       const { sendEmail } = await import('@/lib/email')
 
       // Get organization admin email
-      const orgAdmin = await prisma.orgMember.findFirst({
+      const orgAdmin = await prisma.userOrgRole.findFirst({
         where: {
           orgId: application.job?.orgId,
-          role: 'ADMIN',
+          role: 'ORG_ADMIN',
         },
         include: {
           user: { select: { email: true, name: true } },
@@ -379,7 +402,7 @@ export class ApplicationService {
         return
       }
 
-      const candidateName = application.candidate?.name || 'A candidate'
+      const candidateName = application.candidate?.contacts?.[0]?.fullName || 'A candidate'
       const jobTitle = application.job?.title || 'a position'
       const appUrl = `${process.env.NEXT_PUBLIC_APP_URL}/employer/applications/${application.id}`
 
@@ -407,26 +430,32 @@ export class ApplicationService {
   private static async createStatusChangeNotification(
     application: {
       id: string
-      candidate?: { email?: string; name?: string | null }
+      candidate?: {
+        contacts?: Array<{
+          email?: string | null
+          fullName?: string | null
+        }>
+      }
       job?: any
     },
-    newStatus: ApplicationStatus
+    newStage: ApplicationStage
   ): Promise<void> {
     try {
       const { sendEmail } = await import('@/lib/email')
 
-      if (!application.candidate?.email) {
+      const candidateEmail = application.candidate?.contacts?.[0]?.email
+      if (!candidateEmail) {
         console.warn('No candidate email found for notification')
         return
       }
 
-      const candidateName = application.candidate?.name || 'there'
+      const candidateName = application.candidate?.contacts?.[0]?.fullName || 'there'
       const jobTitle = application.job?.title || 'the position'
 
       let subject = ''
       let message = ''
 
-      if (newStatus === 'INTERVIEWED') {
+      if (newStage === 'INTERVIEW') {
         subject = `Interview Invitation - ${jobTitle}`
         message = `
           <h2>You're Invited for an Interview!</h2>
@@ -435,7 +464,7 @@ export class ApplicationService {
           <p>The hiring team will reach out to you soon with more details about the interview schedule.</p>
           <p>Good luck!</p>
         `
-      } else if (newStatus === 'ACCEPTED') {
+      } else if (newStage === 'OFFER' || newStage === 'HIRED') {
         subject = `Job Offer - ${jobTitle}`
         message = `
           <h2>Congratulations! Job Offer</h2>
@@ -445,11 +474,11 @@ export class ApplicationService {
           <p>Congratulations on this achievement!</p>
         `
       } else {
-        return // Only send for INTERVIEWED and ACCEPTED statuses
+        return // Only send for INTERVIEW, OFFER, and HIRED stages
       }
 
       await sendEmail({
-        to: application.candidate.email,
+        to: candidateEmail,
         subject,
         html: `
           ${message}
@@ -468,7 +497,7 @@ export class ApplicationService {
    */
   static async getApplicationStats(jobId: string): Promise<{
     total: number
-    byStatus: Record<string, number>
+    byStage: Record<string, number>
     todayCount: number
     weekCount: number
   }> {
@@ -476,11 +505,11 @@ export class ApplicationService {
     const startOfDay = new Date(now.setHours(0, 0, 0, 0))
     const startOfWeek = new Date(now.setDate(now.getDate() - 7))
 
-    const [byStatus, todayCount, weekCount] = await Promise.all([
+    const [byStage, todayCount, weekCount] = await Promise.all([
       prisma.application.groupBy({
-        by: ['status'],
+        by: ['stage'],
         where: { jobId },
-        _count: { status: true },
+        _count: { stage: true },
       }),
       prisma.application.count({
         where: {
@@ -496,19 +525,19 @@ export class ApplicationService {
       }),
     ])
 
-    const statusCounts = byStatus.reduce((acc, item) => {
-      acc[item.status] = item._count.status
+    const stageCounts = byStage.reduce((acc, item) => {
+      acc[item.stage] = item._count.stage
       return acc
     }, {} as Record<string, number>)
 
-    const total = Object.values(statusCounts).reduce(
+    const total = Object.values(stageCounts).reduce(
       (sum, count) => sum + count,
       0
     )
 
     return {
       total,
-      byStatus: statusCounts,
+      byStage: stageCounts,
       todayCount,
       weekCount,
     }

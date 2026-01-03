@@ -45,7 +45,7 @@ export const services = {
   // Application methods
   createApplication: ApplicationServiceClass.createApplication,
   updateApplicationStatus: ApplicationServiceClass.updateApplicationStatus,
-  bulkUpdateStatus: ApplicationServiceClass.bulkUpdateStatus,
+  bulkUpdateStage: ApplicationServiceClass.bulkUpdateStage,
   searchApplications: ApplicationServiceClass.searchApplications,
   getApplicationById: ApplicationServiceClass.getApplicationById,
   deleteApplication: ApplicationServiceClass.deleteApplication,

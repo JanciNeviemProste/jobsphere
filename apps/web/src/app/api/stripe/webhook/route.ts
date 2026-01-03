@@ -108,10 +108,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     where: { orgId: organizationId },
     create: {
       orgId: organizationId,
-      stripeCustomerId: session.customer as string,
+      providerCustomerId: session.customer as string,
     },
     update: {
-      stripeCustomerId: session.customer as string,
+      providerCustomerId: session.customer as string,
     },
   })
 
@@ -126,7 +126,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
 
   // Find organization by customer ID
   const customer = await prisma.orgCustomer.findUnique({
-    where: { stripeCustomerId: customerId },
+    where: { providerCustomerId: customerId },
   })
 
   if (!customer) {
@@ -154,7 +154,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   // Get product ID from price lookup
   const price = await prisma.price.findFirst({
     where: {
-      stripeId: priceId,
+      providerPriceId: priceId,
     },
     include: {
       product: true,
@@ -198,6 +198,8 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     await prisma.subscription.create({
       data: {
         orgId: customer.orgId,
+        productId: price.productId,
+        providerSubId: subscription.id,
         ...subscriptionData,
       },
     })
@@ -221,7 +223,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string
 
   const customer = await prisma.orgCustomer.findUnique({
-    where: { stripeCustomerId: customerId },
+    where: { providerCustomerId: customerId },
   })
 
   if (!customer) return
@@ -258,13 +260,13 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
   try {
     // Get customer details
     const customer = await prisma.orgCustomer.findUnique({
-      where: { stripeCustomerId: invoice.customer as string },
+      where: { providerCustomerId: invoice.customer as string },
     })
 
     if (!customer) return
 
     // Get organization admin
-    const orgMember = await prisma.orgMember.findFirst({
+    const orgMember = await prisma.userOrgRole.findFirst({
       where: {
         orgId: customer.orgId,
         role: 'ORG_ADMIN',
@@ -314,13 +316,13 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
   try {
     // Get customer details
     const customer = await prisma.orgCustomer.findUnique({
-      where: { stripeCustomerId: invoice.customer as string },
+      where: { providerCustomerId: invoice.customer as string },
     })
 
     if (!customer) return
 
     // Get organization admin
-    const orgMember = await prisma.orgMember.findFirst({
+    const orgMember = await prisma.userOrgRole.findFirst({
       where: {
         orgId: customer.orgId,
         role: 'ORG_ADMIN',

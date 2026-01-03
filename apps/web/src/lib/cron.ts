@@ -24,28 +24,47 @@ export async function runAssessmentReminderJob() {
 
     try {
       // Find invites that need reminders
-      // Criteria: sent 2+ days ago, status is PENDING or STARTED, not expired
+      // Criteria: created 2+ days ago, not reminded yet or reminded 2+ days ago, status is PENDING or STARTED, not expired
       const twoDaysAgo = new Date()
       twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
 
       const invites = await prisma.assessmentInvite.findMany({
         where: {
-          sentAt: {
+          createdAt: {
             lte: twoDaysAgo
           },
           status: {
             in: ['PENDING', 'STARTED']
           },
           OR: [
-            { expiresAt: null },
-            { expiresAt: { gte: new Date() } }
+            { remindedAt: null },
+            { remindedAt: { lte: twoDaysAgo } }
+          ],
+          AND: [
+            {
+              OR: [
+                { expiresAt: null },
+                { expiresAt: { gte: new Date() } }
+              ]
+            }
           ]
         },
         select: {
           id: true,
-          email: true,
           status: true,
-          sentAt: true
+          createdAt: true,
+          remindedAt: true,
+          candidate: {
+            select: {
+              contacts: {
+                where: { isPrimary: true },
+                take: 1,
+                select: {
+                  email: true
+                }
+              }
+            }
+          }
         }
       })
 

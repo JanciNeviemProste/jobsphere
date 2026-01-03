@@ -35,6 +35,7 @@ export const POST = withRateLimit(
       const resetToken = await prisma.verificationToken.findFirst({
         where: {
           token: hashedToken,
+          type: 'PASSWORD_RESET',
           expires: {
             gt: new Date(), // Token must not be expired
           },
@@ -73,7 +74,10 @@ export const POST = withRateLimit(
 
       // Delete all reset tokens for this email
       await prisma.verificationToken.deleteMany({
-        where: { identifier: resetToken.identifier },
+        where: {
+          identifier: resetToken.identifier,
+          type: 'PASSWORD_RESET',
+        },
       })
 
       logger.info('Password reset successful', { userId: user.id })

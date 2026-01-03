@@ -50,16 +50,29 @@ export async function POST(request: NextRequest) {
 
     // 5. If user is logged in, save to database
     if (session?.user?.id) {
+      // Get user's organization membership to find orgId
+      const userOrg = await prisma.userOrgRole.findFirst({
+        where: { userId: session.user.id },
+        select: { orgId: true },
+      })
+
+      if (!userOrg) {
+        return NextResponse.json(
+          { error: 'User organization not found' },
+          { status: 404 }
+        )
+      }
+
       // Find or create Candidate record
       let candidate = await prisma.candidate.findFirst({
-        where: { userId: session.user.id },
+        where: { orgId: userOrg.orgId },
       })
 
       if (!candidate) {
         candidate = await prisma.candidate.create({
           data: {
-            userId: session.user.id,
-            locale,
+            orgId: userOrg.orgId,
+            source: 'MANUAL',
           },
         })
       }

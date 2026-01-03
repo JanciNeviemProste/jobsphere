@@ -1,0 +1,402 @@
+name: E2E Cross-Browser Tests
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  test:
+    name: E2E Tests - ${{ matrix.browser }} (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit, edge]
+        shard: [1/3, 2/3, 3/3]
+
+    services:
+      postgres:
+        image: ankane/pgvector:latest
+        env:
+          POSTGRES_DB: jobsphere_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: |
+          cd apps/web
+          npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Setup test database
+        run: |
+          cd apps/web
+          yarn db:push
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
+
+      - name: Build application
+        run: |
+          cd apps/web
+          yarn build
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
+          NEXTAUTH_SECRET: "test-secret-at-least-32-characters-long"
+          NEXTAUTH_URL: "http://localhost:3000"
+          REDIS_URL: "redis://localhost:6379"
+          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+          NEXT_PUBLIC_API_URL: "http://localhost:3000/api"
+          ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+          OPENROUTER_API_KEY: "test-key"
+          ANTHROPIC_API_KEY: "test-key"
+          OPENAI_API_KEY: "test-key"
+          SKIP_ENV_VALIDATION: "true"
+
+      - name: Run E2E tests
+        run: |
+          cd apps/web
+          npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
+          NEXTAUTH_SECRET: "test-secret-at-least-32-characters-long"
+          NEXTAUTH_URL: "http://localhost:3000"
+          REDIS_URL: "redis://localhost:6379"
+          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+          NEXT_PUBLIC_API_URL: "http://localhost:3000/api"
+          ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+          OPENROUTER_API_KEY: "test-key"
+          ANTHROPIC_API_KEY: "test-key"
+          OPENAI_API_KEY: "test-key"
+          CI: "true"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.browser }}-${{ strategy.job-index }}
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+      - name: Upload test videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-videos-${{ matrix.browser }}-${{ strategy.job-index }}
+          path: apps/web/test-results/**/video.webm
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ matrix.browser }}-${{ strategy.job-index }}
+          path: |
+            apps/web/screenshots/
+            apps/web/test-results/**/*.png
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: traces-${{ matrix.browser }}-${{ strategy.job-index }}
+          path: apps/web/test-results/**/trace.zip
+          retention-days: 7
+          if-no-files-found: ignore
+
+  mobile-test:
+    name: E2E Tests - Mobile (${{ matrix.device }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        device: ['iPhone 12', 'iPhone 13 Pro', 'Pixel 5', 'Galaxy S9+']
+
+    services:
+      postgres:
+        image: ankane/pgvector:latest
+        env:
+          POSTGRES_DB: jobsphere_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: |
+          cd apps/web
+          npx playwright install --with-deps webkit chromium
+
+      - name: Setup test database
+        run: |
+          cd apps/web
+          yarn db:push
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
+
+      - name: Build application
+        run: |
+          cd apps/web
+          yarn build
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
+          NEXTAUTH_SECRET: "test-secret-at-least-32-characters-long"
+          NEXTAUTH_URL: "http://localhost:3000"
+          REDIS_URL: "redis://localhost:6379"
+          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+          NEXT_PUBLIC_API_URL: "http://localhost:3000/api"
+          ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+          OPENROUTER_API_KEY: "test-key"
+          ANTHROPIC_API_KEY: "test-key"
+          OPENAI_API_KEY: "test-key"
+          SKIP_ENV_VALIDATION: "true"
+
+      - name: Run E2E tests on ${{ matrix.device }}
+        run: |
+          cd apps/web
+          npx playwright test --project="${{ matrix.device }}"
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
+          NEXTAUTH_SECRET: "test-secret-at-least-32-characters-long"
+          NEXTAUTH_URL: "http://localhost:3000"
+          REDIS_URL: "redis://localhost:6379"
+          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+          NEXT_PUBLIC_API_URL: "http://localhost:3000/api"
+          ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+          OPENROUTER_API_KEY: "test-key"
+          ANTHROPIC_API_KEY: "test-key"
+          OPENAI_API_KEY: "test-key"
+          CI: "true"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-mobile-${{ strategy.job-index }}
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+      - name: Upload test videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-videos-mobile-${{ strategy.job-index }}
+          path: apps/web/test-results/**/video.webm
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-mobile-${{ strategy.job-index }}
+          path: |
+            apps/web/screenshots/
+            apps/web/test-results/**/*.png
+          retention-days: 7
+          if-no-files-found: ignore
+
+  tablet-test:
+    name: E2E Tests - Tablet (${{ matrix.device }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        device: ['iPad Air', 'iPad Mini']
+
+    services:
+      postgres:
+        image: ankane/pgvector:latest
+        env:
+          POSTGRES_DB: jobsphere_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: |
+          cd apps/web
+          npx playwright install --with-deps webkit
+
+      - name: Setup test database
+        run: |
+          cd apps/web
+          yarn db:push
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
+
+      - name: Build application
+        run: |
+          cd apps/web
+          yarn build
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
+          NEXTAUTH_SECRET: "test-secret-at-least-32-characters-long"
+          NEXTAUTH_URL: "http://localhost:3000"
+          REDIS_URL: "redis://localhost:6379"
+          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+          NEXT_PUBLIC_API_URL: "http://localhost:3000/api"
+          ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+          OPENROUTER_API_KEY: "test-key"
+          ANTHROPIC_API_KEY: "test-key"
+          OPENAI_API_KEY: "test-key"
+          SKIP_ENV_VALIDATION: "true"
+
+      - name: Run E2E tests on ${{ matrix.device }}
+        run: |
+          cd apps/web
+          npx playwright test --project="${{ matrix.device }}"
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
+          NEXTAUTH_SECRET: "test-secret-at-least-32-characters-long"
+          NEXTAUTH_URL: "http://localhost:3000"
+          REDIS_URL: "redis://localhost:6379"
+          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+          NEXT_PUBLIC_API_URL: "http://localhost:3000/api"
+          ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+          OPENROUTER_API_KEY: "test-key"
+          ANTHROPIC_API_KEY: "test-key"
+          OPENAI_API_KEY: "test-key"
+          CI: "true"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-tablet-${{ strategy.job-index }}
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+      - name: Upload test videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-videos-tablet-${{ strategy.job-index }}
+          path: apps/web/test-results/**/video.webm
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-tablet-${{ strategy.job-index }}
+          path: |
+            apps/web/screenshots/
+            apps/web/test-results/**/*.png
+          retention-days: 7
+          if-no-files-found: ignore
+
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [test, mobile-test, tablet-test]
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          echo "Desktop browsers: ${{ needs.test.result }}"
+          echo "Mobile devices: ${{ needs.mobile-test.result }}"
+          echo "Tablet devices: ${{ needs.tablet-test.result }}"
+
+      - name: Fail if any tests failed
+        if: needs.test.result == 'failure' || needs.mobile-test.result == 'failure' || needs.tablet-test.result == 'failure'
+        run: exit 1

@@ -21,7 +21,7 @@ async function processAssessmentReminder(job: Job<AssessmentReminderJobData>) {
   logger.info('Processing assessment reminder', { inviteId, workerJobId: job.id })
 
   try {
-    // Fetch invite with assessment details
+    // Fetch invite with assessment and candidate details
     const invite = await prisma.assessmentInvite.findUnique({
       where: { id: inviteId },
       include: {
@@ -29,6 +29,14 @@ async function processAssessmentReminder(job: Job<AssessmentReminderJobData>) {
           select: {
             name: true,
             description: true
+          }
+        },
+        candidate: {
+          include: {
+            contacts: {
+              where: { isPrimary: true },
+              take: 1
+            }
           }
         }
       }
@@ -65,6 +73,12 @@ async function processAssessmentReminder(job: Job<AssessmentReminderJobData>) {
     }
 
     // Send reminder email (using Resend or configured email service)
+    const candidateEmail = invite.candidate.contacts?.[0]?.email
+    if (!candidateEmail) {
+      logger.warn('No email found for candidate', { inviteId, candidateId: invite.candidateId })
+      return { skipped: true, reason: 'No email' }
+    }
+
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const assessmentUrl = `${appUrl}/assessments/${invite.token}`
 
@@ -72,7 +86,7 @@ async function processAssessmentReminder(job: Job<AssessmentReminderJobData>) {
     // For now, just log the reminder
     logger.info('Sending assessment reminder email', {
       inviteId,
-      email: invite.email,
+      email: candidateEmail,
       assessmentUrl,
       assessmentName: invite.assessment.name,
       workerJobId: job.id
@@ -80,24 +94,29 @@ async function processAssessmentReminder(job: Job<AssessmentReminderJobData>) {
 
     // In production, this would be:
     // await sendEmail({
-    //   to: invite.email,
-    //   subject: `Reminder: Complete ${invite.assessment.title}`,
+    //   to: candidateEmail,
+    //   subject: `Reminder: Complete ${invite.assessment.name}`,
     //   html: getReminderEmailTemplate({
-    //     assessmentTitle: invite.assessment.title,
+    //     assessmentTitle: invite.assessment.name,
     //     assessmentUrl,
     //     expiresAt: invite.expiresAt
     //   })
     // })
 
-    // Note: Since schema doesn't have remindedAt field, we can't track this
-    // Consider adding to schema or using a separate ReminderLog table
+    // Update remindedAt if needed
+    if (invite.remindedAt === null) {
+      await prisma.assessmentInvite.update({
+        where: { id: inviteId },
+        data: { remindedAt: new Date() }
+      })
+    }
 
     logger.info('Assessment reminder sent successfully', {
       inviteId,
       workerJobId: job.id
     })
 
-    return { sent: true, email: invite.email }
+    return { sent: true, email: candidateEmail }
   } catch (error) {
     logger.error('Failed to send assessment reminder', {
       inviteId,

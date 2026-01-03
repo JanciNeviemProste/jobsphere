@@ -36,9 +36,9 @@ export const POST = withRateLimit(
       // Check if already saved
       const existingSave = await prisma.savedJob.findUnique({
         where: {
-          jobId_userId: {
-            jobId: params.id,
-            userId: session.user.id
+          userId_jobId: {
+            userId: session.user.id,
+            jobId: params.id
           }
         }
       })
@@ -91,9 +91,9 @@ export const GET = withRateLimit(
 
       const savedJob = await prisma.savedJob.findUnique({
         where: {
-          jobId_userId: {
-            jobId: params.id,
-            userId: session.user.id
+          userId_jobId: {
+            userId: session.user.id,
+            jobId: params.id
           }
         }
       })

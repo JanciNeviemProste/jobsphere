@@ -9,21 +9,21 @@ import { Plus, Briefcase, Users, Eye, CheckCircle, Clock, XCircle } from 'lucide
 
 async function getEmployerData(userId: string) {
   // Get user's organization
-  const orgMember = await prisma.orgMember.findFirst({
+  const userOrgRole = await prisma.userOrgRole.findFirst({
     where: { userId },
     include: {
       organization: true,
     },
   })
 
-  if (!orgMember) {
+  if (!userOrgRole) {
     return null
   }
 
   // Get jobs for this organization
   const jobs = await prisma.job.findMany({
     where: {
-      orgId: orgMember.orgId,
+      orgId: userOrgRole.orgId,
     },
     include: {
       applications: true,
@@ -38,7 +38,7 @@ async function getEmployerData(userId: string) {
   const recentApplications = await prisma.application.findMany({
     where: {
       job: {
-        orgId: orgMember.orgId,
+        orgId: userOrgRole.orgId,
       },
     },
     include: {
@@ -47,7 +47,16 @@ async function getEmployerData(userId: string) {
           title: true,
         },
       },
-      candidate: true,
+      candidate: {
+        include: {
+          contacts: {
+            where: {
+              isPrimary: true
+            },
+            take: 1
+          }
+        }
+      },
     },
     orderBy: {
       createdAt: 'desc',
@@ -56,7 +65,7 @@ async function getEmployerData(userId: string) {
   })
 
   return {
-    organization: orgMember.organization,
+    organization: userOrgRole.organization,
     jobs,
     recentApplications,
   }
@@ -103,9 +112,9 @@ export default async function EmployerDashboardPage({
 
   // Calculate stats
   const stats = {
-    activeJobs: jobs.filter((j: JobWithApplications) => j.status === 'ACTIVE').length,
+    activeJobs: jobs.filter((j: JobWithApplications) => j.status === 'PUBLISHED').length,
     totalApplicants: jobs.reduce((sum: number, job: JobWithApplications) => sum + job.applications.length, 0),
-    newApplicants: recentApplications.filter((a: ApplicationWithRelations) => a.status === 'PENDING').length,
+    newApplicants: recentApplications.filter((a: ApplicationWithRelations) => a.stage === 'NEW').length,
     totalJobs: jobs.length,
   }
 
@@ -233,6 +242,9 @@ export default async function EmployerDashboardPage({
                         <Button variant="outline" size="sm" asChild>
                           <Link href={`/${params.locale}/jobs/${job.id}`}>Zobraziť</Link>
                         </Button>
+                        <Button variant="default" size="sm" asChild>
+                          <Link href={`/${params.locale}/employer/jobs/${job.id}/edit`}>Upraviť</Link>
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -275,8 +287,8 @@ export default async function EmployerDashboardPage({
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold">{application.candidate.name || application.candidate.email}</h4>
-                          {getApplicantStatusBadge(application.status)}
+                          <h4 className="font-semibold">{application.candidate.contacts?.[0]?.fullName || application.candidate.contacts?.[0]?.email || 'Kandidát'}</h4>
+                          {getApplicantStatusBadge(application.stage)}
                         </div>
                         <p className="text-sm text-muted-foreground mb-1">{application.job.title}</p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">

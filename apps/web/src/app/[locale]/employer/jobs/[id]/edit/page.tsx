@@ -16,7 +16,7 @@ import { AlertCircle, ArrowLeft, Briefcase, MapPin, DollarSign, Loader2 } from '
 import { toast } from 'sonner'
 import Link from 'next/link'
 
-// Validation schema
+// Validation schema (same as create form)
 const jobSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(100),
   description: z.string().min(50, 'Description must be at least 50 characters').max(5000),
@@ -25,6 +25,7 @@ const jobSchema = z.object({
   location: z.string().min(2, 'Location is required'),
   salaryMin: z.number().min(0).optional().or(z.literal('')),
   salaryMax: z.number().min(0).optional().or(z.literal('')),
+  currency: z.string().default('EUR'),
   workMode: z.enum(['REMOTE', 'HYBRID', 'ONSITE']),
   type: z.enum(['FULL_TIME', 'PART_TIME', 'CONTRACT', 'FREELANCE', 'INTERNSHIP']),
   seniority: z.enum(['JUNIOR', 'MID', 'SENIOR', 'LEAD', 'EXECUTIVE']),
@@ -49,9 +50,15 @@ export default function EditJobPage({
     formState: { errors },
     setValue,
     reset,
+    watch,
   } = useForm<JobFormData>({
     resolver: zodResolver(jobSchema),
   })
+
+  const watchType = watch('type')
+  const watchSeniority = watch('seniority')
+  const watchWorkMode = watch('workMode')
+  const watchCurrency = watch('currency')
 
   // Load job data
   useEffect(() => {
@@ -64,17 +71,23 @@ export default function EditJobPage({
 
         const job = await response.json()
 
+        // Determine work mode from remote/hybrid flags
+        let workMode: 'REMOTE' | 'HYBRID' | 'ONSITE' = 'ONSITE'
+        if (job.remote) workMode = 'REMOTE'
+        else if (job.hybrid) workMode = 'HYBRID'
+
         // Reset form with job data
         reset({
           title: job.title,
           description: job.description || '',
           requirements: job.requirements || '',
           benefits: job.benefits || '',
-          location: job.location,
+          location: job.city || '',
           salaryMin: job.salaryMin || '',
           salaryMax: job.salaryMax || '',
-          workMode: job.workMode || 'ONSITE',
-          type: job.type || 'FULL_TIME',
+          currency: job.salaryCurrency || 'EUR',
+          workMode,
+          type: job.employmentType || 'FULL_TIME',
           seniority: job.seniority || 'MID',
         })
 
@@ -93,11 +106,20 @@ export default function EditJobPage({
     setIsSubmitting(true)
 
     try {
-      // Convert empty strings to undefined for optional numeric fields
+      // Convert form data to API format matching database schema
       const processedData = {
-        ...data,
-        salaryMin: data.salaryMin === '' ? undefined : Number(data.salaryMin),
-        salaryMax: data.salaryMax === '' ? undefined : Number(data.salaryMax),
+        title: data.title,
+        description: data.description,
+        requirements: data.requirements,
+        benefits: data.benefits || null,
+        city: data.location,
+        remote: data.workMode === 'REMOTE',
+        hybrid: data.workMode === 'HYBRID',
+        employmentType: data.type,
+        seniority: data.seniority,
+        salaryMin: data.salaryMin === '' ? null : Number(data.salaryMin),
+        salaryMax: data.salaryMax === '' ? null : Number(data.salaryMax),
+        salaryCurrency: data.currency,
       }
 
       const response = await fetch(`/api/jobs/${params.id}`, {
@@ -116,6 +138,7 @@ export default function EditJobPage({
 
       toast.success('Job updated successfully!')
       router.push(`/${params.locale}/employer`)
+      router.refresh()
     } catch (error) {
       console.error('Failed to update job:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to update job')
@@ -219,7 +242,7 @@ export default function EditJobPage({
                   <Label htmlFor="type">{t('employer.newJob.employmentType')} *</Label>
                   <Select
                     onValueChange={(value) => setValue('type', value as any)}
-                    defaultValue="FULL_TIME"
+                    value={watchType}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -238,7 +261,7 @@ export default function EditJobPage({
                   <Label htmlFor="seniority">{t('employer.newJob.seniorityLevel')} *</Label>
                   <Select
                     onValueChange={(value) => setValue('seniority', value as any)}
-                    defaultValue="MID"
+                    value={watchSeniority}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -285,7 +308,7 @@ export default function EditJobPage({
                 <Label htmlFor="workMode">{t('employer.newJob.workMode')} *</Label>
                 <Select
                   onValueChange={(value) => setValue('workMode', value as any)}
-                  defaultValue="ONSITE"
+                  value={watchWorkMode}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -361,7 +384,7 @@ export default function EditJobPage({
               <CardDescription>{t('employer.newJob.compensationDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="salaryMin">{t('employer.newJob.minSalary')}</Label>
                   <Input
@@ -380,6 +403,25 @@ export default function EditJobPage({
                     placeholder="5000"
                     {...register('salaryMax', { valueAsNumber: true })}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="currency">{t('employer.newJob.currency')}</Label>
+                  <Select
+                    onValueChange={(value) => setValue('currency', value)}
+                    value={watchCurrency}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="GBP">GBP</SelectItem>
+                      <SelectItem value="CZK">CZK</SelectItem>
+                      <SelectItem value="PLN">PLN</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardContent>

@@ -14,7 +14,7 @@ const WORKER_CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || '5')
 /**
  * Process email sequence step
  */
-async function processEmailStep(job: Job<EmailSequenceJobData>) {
+export async function processEmailStep(job: Job<EmailSequenceJobData>) {
   const { enrollmentId, stepId } = job.data
 
   logger.info('Processing email sequence step', { enrollmentId, stepId, jobId: job.id })
@@ -32,19 +32,22 @@ async function processEmailStep(job: Job<EmailSequenceJobData>) {
       throw new Error(`Enrollment ${enrollmentId} not found`)
     }
 
-    // Get candidate with user details
+    // Get candidate with contact details
     const candidate = await prisma.candidate.findUnique({
       where: { id: enrollment.candidateId },
       include: {
-        user: true
+        contacts: {
+          where: { isPrimary: true },
+          take: 1
+        }
       },
     })
 
-    if (!candidate || !candidate.user) {
-      throw new Error(`Candidate or user not found`)
+    if (!candidate || !candidate.contacts || candidate.contacts.length === 0) {
+      throw new Error(`Candidate or contact not found`)
     }
 
-    const user = candidate.user
+    const contact = candidate.contacts[0]
 
     if (enrollment.status !== 'ACTIVE') {
       logger.warn('Enrollment not active, skipping', { enrollmentId, status: enrollment.status })
@@ -67,7 +70,7 @@ async function processEmailStep(job: Job<EmailSequenceJobData>) {
     })
 
     // 4. Replace template variables
-    const candidateName = user.name || 'there'
+    const candidateName = contact.fullName || 'there'
     const companyName = organization?.name || 'JobSphere'
 
     let subject = step.subject
@@ -81,7 +84,7 @@ async function processEmailStep(job: Job<EmailSequenceJobData>) {
     bodyHtml = bodyHtml.replace(/{{companyName}}/g, companyName)
 
     // 5. Send email
-    const recipientEmail = user.email
+    const recipientEmail = contact.email
 
     if (!recipientEmail) {
       throw new Error('No recipient email found')
@@ -113,16 +116,16 @@ async function processEmailStep(job: Job<EmailSequenceJobData>) {
 
       if (nextStepCandidates.length > 1) {
         // Check if these are A/B test variants
-        const variants = nextStepCandidates.filter(s => s.abVariant)
+        const variants = nextStepCandidates.filter(s => s.abGroup)
 
         if (variants.length > 1) {
-          // Random selection with equal distribution (since abPercent doesn't exist in schema)
+          // Random selection with equal distribution
           const randomIndex = Math.floor(Math.random() * variants.length)
           selectedNextStep = variants[randomIndex]
 
           logger.info('A/B test variant selected', {
             enrollmentId,
-            selectedVariant: selectedNextStep.abVariant,
+            selectedGroup: selectedNextStep.abGroup,
             totalVariants: variants.length,
             variantId: selectedNextStep.id
           })
@@ -146,7 +149,7 @@ async function processEmailStep(job: Job<EmailSequenceJobData>) {
       logger.info('Scheduled next email step', {
         enrollmentId,
         nextStepId: selectedNextStep.id,
-        abVariant: selectedNextStep.abVariant || null,
+        abGroup: selectedNextStep.abGroup || null,
         delayMs,
       })
     } else {

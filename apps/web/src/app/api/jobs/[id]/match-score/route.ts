@@ -22,8 +22,8 @@ export const GET = withRateLimit(
       }
 
       // Get user's candidate and their first resume
-      const candidate = await prisma.candidate.findUnique({
-        where: { userId: session.user.id }
+      const candidate = await prisma.candidate.findFirst({
+        where: { orgId: session.user.id }
       })
 
       if (!candidate) {

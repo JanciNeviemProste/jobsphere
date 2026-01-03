@@ -109,8 +109,8 @@ export async function generateCVEmbeddings(resumeId: string): Promise<void> {
     }
 
     for (const section of sections) {
-      // ResumeSection doesn't have a text field, combine title and description
-      const sectionText = [section.title, section.description].filter(Boolean).join('\n')
+      // ResumeSection has title and text fields
+      const sectionText = [section.title, section.text].filter(Boolean).join('\n')
 
       if (!sectionText || sectionText.trim().length === 0) {
         continue
@@ -157,7 +157,7 @@ export async function generateJobEmbedding(jobId: string): Promise<void> {
       select: {
         title: true,
         description: true,
-        location: true,
+        city: true,
       }
     })
 
@@ -169,7 +169,7 @@ export async function generateJobEmbedding(jobId: string): Promise<void> {
     const jobText = [
       job.title,
       job.description,
-      job.location,
+      job.city,
     ].filter(Boolean).join('\n\n')
 
     if (jobText.trim().length === 0) {

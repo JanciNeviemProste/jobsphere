@@ -18,13 +18,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // TODO: Add ConsentRecord model to schema
     // Get user's consent records
-    const consents = await prisma.consentRecord.findMany({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: 'desc' },
-    })
+    // const consents = await prisma.consentRecord.findMany({
+    //   where: { userId: session.user.id },
+    //   orderBy: { createdAt: 'desc' },
+    // })
 
-    return NextResponse.json({ consents })
+    return NextResponse.json(
+      { error: 'Feature not implemented - ConsentRecord model not in schema' },
+      { status: 501 }
+    )
   } catch (error) {
     console.error('Get consent error:', error)
     return NextResponse.json(
@@ -68,18 +72,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // TODO: Add ConsentRecord model to schema
     // Create consent record
-    const consent = await prisma.consentRecord.create({
-      data: {
-        userId: session.user.id,
-        purpose,
-        granted,
-        ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
-        userAgent: request.headers.get('user-agent') || 'unknown',
-      },
-    })
+    // const consent = await prisma.consentRecord.create({
+    //   data: {
+    //     userId: session.user.id,
+    //     purpose,
+    //     granted,
+    //     ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+    //     userAgent: request.headers.get('user-agent') || 'unknown',
+    //   },
+    // })
 
-    return NextResponse.json({ consent })
+    return NextResponse.json(
+      { error: 'Feature not implemented - ConsentRecord model not in schema' },
+      { status: 501 }
+    )
   } catch (error) {
     console.error('Record consent error:', error)
     return NextResponse.json(

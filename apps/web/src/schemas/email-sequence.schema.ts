@@ -2,12 +2,13 @@ import { z } from 'zod'
 import { idSchema } from './common.schema'
 
 export const emailStepSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
   order: z.number().int().min(0).max(100),
   dayOffset: z.number().int().min(0).max(365),
   subject: z.string().min(1).max(200),
   bodyTemplate: z.string().min(1).max(50000),
   conditions: z.record(z.any()).optional(),
-  abVariant: z.enum(['A', 'B', 'C']).optional()
+  abGroup: z.string().max(50).optional()
 })
 
 export const createSequenceSchema = z.object({

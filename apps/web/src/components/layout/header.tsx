@@ -4,13 +4,22 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { useSession, signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { LanguageSwitcher } from './language-switcher'
 
 export function Header() {
   const t = useTranslations()
   const pathname = usePathname()
   const locale = pathname.split('/')[1] || 'en'
+  const { data: session, status } = useSession()
 
   const navItems = [
     { href: `/${locale}`, label: t('nav.home') },
@@ -62,12 +71,44 @@ export function Header() {
 
         <div className="flex items-center gap-4" role="navigation" aria-label="User actions">
           <LanguageSwitcher />
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={`/${locale}/login`} aria-label="Log in to your account">{t('nav.login')}</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link href={`/${locale}/signup`} aria-label="Create a new account">{t('nav.signup')}</Link>
-          </Button>
+          {status === 'loading' ? (
+            <Button variant="ghost" size="sm" disabled>
+              Loading...
+            </Button>
+          ) : session?.user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  {session.user.name || session.user.email || 'Account'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href={session.user.orgId ? `/${locale}/employer` : `/${locale}/dashboard`}>
+                    Dashboard
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={`/${locale}/dashboard/profile`}>
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => signOut({ callbackUrl: `/${locale}` })}>
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href={`/${locale}/login`} aria-label="Log in to your account">{t('nav.login')}</Link>
+              </Button>
+              <Button size="sm" asChild>
+                <Link href={`/${locale}/signup`} aria-label="Create a new account">{t('nav.signup')}</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </header>

@@ -74,7 +74,7 @@ providers.push(
           id: user.id,
           email: user.email,
           name: user.name,
-          image: user.image,
+          image: user.avatar,
         }
       },
     })
@@ -91,15 +91,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   providers,
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
+    async jwt({ token, user, trigger }) {
+      if (user?.id) {
         token.id = user.id
+
+        // Load user's organization and role
+        const userOrg = await prisma.userOrgRole.findFirst({
+          where: { userId: user.id },
+          include: { organization: true }
+        })
+
+        token.role = userOrg?.role || 'candidate'
+        token.orgId = userOrg?.orgId || null
+        token.orgName = userOrg?.organization?.name || null
       }
+
+      // Refresh role/org on session update
+      if (trigger === 'update' && token.id) {
+        const userOrg = await prisma.userOrgRole.findFirst({
+          where: { userId: token.id as string },
+          include: { organization: true }
+        })
+
+        token.role = userOrg?.role || 'candidate'
+        token.orgId = userOrg?.orgId || null
+        token.orgName = userOrg?.organization?.name || null
+      }
+
       return token
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string
+        session.user.role = token.role as string | undefined
+        session.user.orgId = token.orgId as string | undefined
+        session.user.orgName = token.orgName as string | undefined
       }
       return session
     },

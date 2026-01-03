@@ -1,0 +1,277 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
+import { CreditCard, Download, ExternalLink, Loader2, Receipt } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+
+interface SubscriptionData {
+  id: string
+  status: string
+  currentPeriodStart: string
+  currentPeriodEnd: string
+  product: {
+    name: string
+    description?: string
+  }
+}
+
+interface InvoiceData {
+  id: string
+  amount: number
+  currency: string
+  status: string
+  pdfUrl?: string | null
+  hostedUrl?: string | null
+  paidAt?: string | null
+  createdAt: string
+}
+
+const STATUS_COLORS = {
+  active: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+  trialing: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  past_due: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+  canceled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+  unpaid: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+}
+
+const INVOICE_STATUS_COLORS = {
+  paid: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+  open: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  draft: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
+  void: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+  uncollectible: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+}
+
+export function BillingTab() {
+  const { data: session } = useSession()
+  const [loading, setLoading] = useState(true)
+  const [subscription, setSubscription] = useState<SubscriptionData | null>(null)
+  const [invoices, setInvoices] = useState<InvoiceData[]>([])
+  const [loadingPortal, setLoadingPortal] = useState(false)
+
+  // Fetch billing data
+  useEffect(() => {
+    async function fetchBillingData() {
+      try {
+        const response = await fetch('/api/organizations/current/billing')
+        if (!response.ok) throw new Error('Failed to fetch billing data')
+
+        const data = await response.json()
+        setSubscription(data.subscription)
+        setInvoices(data.invoices || [])
+      } catch (error) {
+        toast.error('Failed to load billing information')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (session?.user) {
+      fetchBillingData()
+    }
+  }, [session, toast])
+
+  const handleManageBilling = async () => {
+    setLoadingPortal(true)
+    try {
+      const response = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) throw new Error('Failed to create portal session')
+
+      const data = await response.json()
+      window.location.href = data.url
+    } catch (error) {
+      toast.error('Failed to open billing portal')
+      setLoadingPortal(false)
+    }
+  }
+
+  const formatCurrency = (amount: number, currency: string) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency.toUpperCase()
+    }).format(amount / 100)
+  }
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Current Subscription */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Current Subscription
+          </CardTitle>
+          <CardDescription>Manage your subscription and billing details</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {subscription ? (
+            <>
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-semibold text-lg">{subscription.product.name} Plan</h3>
+                    <Badge className={STATUS_COLORS[subscription.status as keyof typeof STATUS_COLORS] || ''}>
+                      {subscription.status.replace('_', ' ').toUpperCase()}
+                    </Badge>
+                  </div>
+                  {subscription.product.description && (
+                    <p className="text-sm text-muted-foreground">{subscription.product.description}</p>
+                  )}
+                  <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                    <span>
+                      Current period: {new Date(subscription.currentPeriodStart).toLocaleDateString()} - {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={handleManageBilling} disabled={loadingPortal}>
+                    {loadingPortal ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        Manage Subscription
+                        <ExternalLink className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-3">
+                <h4 className="font-medium">Billing Information</h4>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleManageBilling}
+                  disabled={loadingPortal}
+                >
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Update Payment Method
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Manage your payment methods, billing address, and tax information through the Stripe portal
+                </p>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">You don't have an active subscription</p>
+              <Button asChild>
+                <a href="/pricing">View Plans</a>
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Invoices */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Receipt className="h-5 w-5" />
+            Billing History
+          </CardTitle>
+          <CardDescription>View and download your invoices</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {invoices.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No invoices found
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invoices.map((invoice) => (
+                    <TableRow key={invoice.id}>
+                      <TableCell>
+                        {new Date(invoice.paidAt || invoice.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {formatCurrency(invoice.amount, invoice.currency)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={INVOICE_STATUS_COLORS[invoice.status as keyof typeof INVOICE_STATUS_COLORS] || ''}>
+                          {invoice.status.toUpperCase()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {invoice.pdfUrl && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              asChild
+                            >
+                              <a href={invoice.pdfUrl} target="_blank" rel="noopener noreferrer">
+                                <Download className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          )}
+                          {invoice.hostedUrl && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              asChild
+                            >
+                              <a href={invoice.hostedUrl} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

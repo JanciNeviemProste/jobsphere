@@ -44,9 +44,9 @@ export const GET = withRateLimit(
         jobTitle: app.job.title,
         company: app.job.organization.name,
         companyLogo: app.job.organization.logo,
-        status: app.status,
+        status: app.stage,
         appliedAt: app.createdAt.toISOString(),
-        location: app.job.location,
+        location: app.job.city,
         jobId: app.job.id,
       }))
 

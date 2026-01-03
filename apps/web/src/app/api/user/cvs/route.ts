@@ -15,9 +15,19 @@ export const GET = withRateLimit(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
 
-      // Get candidate profile first
-      const candidate = await prisma.candidate.findUnique({
-        where: { userId: session.user.id }
+      // Get user's organization membership to find candidates
+      const userOrg = await prisma.userOrgRole.findFirst({
+        where: { userId: session.user.id },
+        select: { orgId: true },
+      })
+
+      if (!userOrg) {
+        return NextResponse.json({ cvs: [] })
+      }
+
+      // Get candidate profile for this organization
+      const candidate = await prisma.candidate.findFirst({
+        where: { orgId: userOrg.orgId }
       })
 
       if (!candidate) {
@@ -31,7 +41,7 @@ export const GET = withRateLimit(
         },
         select: {
           id: true,
-          title: true,
+          summary: true,
           createdAt: true,
         },
         orderBy: {
@@ -42,7 +52,7 @@ export const GET = withRateLimit(
       // Format for frontend
       const cvs = resumes.map((resume, index) => ({
         id: resume.id,
-        title: resume.title || 'Untitled CV',
+        title: resume.summary ? resume.summary.substring(0, 50) + '...' : 'Untitled CV',
         uploadedAt: resume.createdAt.toLocaleDateString(),
         isDefault: index === 0, // Mark first as default
       }))

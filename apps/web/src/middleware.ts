@@ -1,5 +1,6 @@
 import createMiddleware from 'next-intl/middleware'
 import { NextRequest, NextResponse } from 'next/server'
+import { getToken } from 'next-auth/jwt'
 import { locales } from './i18n'
 
 const intlMiddleware = createMiddleware({
@@ -86,14 +87,12 @@ export default async function middleware(request: NextRequest) {
   })
 
   if (isProtectedRoute) {
-    // In production, you would check for a valid session/token here
-    // For now, we'll allow access (auth will be handled by NextAuth)
-    // Example with NextAuth:
-    // const token = await getToken({ req: request })
-    // if (!token) {
-    //   const locale = pathname.split('/')[1]
-    //   return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
-    // }
+    // Check for valid session token
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
+    if (!token) {
+      const locale = pathname.split('/')[1] || 'en'
+      return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
+    }
   }
 
   // Apply internationalization middleware

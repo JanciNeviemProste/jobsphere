@@ -122,6 +122,20 @@ export async function parseCV(
   let confidence = 0.95
   const fileSize = metadata.fileSize || buffer.byteLength
 
+  // Pre-Stage: File size validation (max 10MB)
+  const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+  if (fileSize > MAX_FILE_SIZE) {
+    logger.warn('File size exceeds limit', {
+      traceId,
+      fileSize,
+      maxSize: MAX_FILE_SIZE,
+      filename: metadata.filename
+    })
+    throw new CVParseException(
+      CVErrors.fileTooLarge(fileSize, MAX_FILE_SIZE)
+    )
+  }
+
   // Stage 0: Security checks (macros)
   if (metadata.mimeType.includes('wordprocessing')) {
     const hasMacros = await checkForMacros(buffer)
@@ -151,10 +165,14 @@ export async function parseCV(
       })
     }
   } catch (error) {
-    if (error instanceof CVParseException) {
-      throw error
-    }
-    logger.warn('Node.js parser failed', { traceId, error })
+    // Don't re-throw CVParseException - allow fallback to OCR (Stage 2)
+    logger.warn('Node.js parser failed - will attempt OCR fallback', {
+      traceId,
+      error,
+      errorType: error instanceof CVParseException ? 'CVParseException' : 'Unknown',
+      errorMessage: error instanceof Error ? error.message : String(error)
+    })
+    // text remains empty, triggering OCR fallback at line 161
   }
 
   // Stage 2: OCR fallback if insufficient text
@@ -171,11 +189,13 @@ export async function parseCV(
       if (ocrResult.success && ocrResult.text) {
         text = ocrResult.text
         method = 'ocr_tesseract'
-        confidence = 0.7 // Lower confidence for OCR
+        // Use OCR's returned confidence, fallback to 0.7 if not provided
+        confidence = ocrResult.confidence ?? 0.7
 
         logger.info('OCR complete', {
           traceId,
           extractedLength: text.length,
+          confidence: ocrResult.confidence,
           duration: Date.now() - startTime
         })
       } else {

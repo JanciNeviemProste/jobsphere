@@ -13,7 +13,7 @@ const WORKER_CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || '3') // Lo
 /**
  * Process embedding generation
  */
-async function processEmbeddingGeneration(job: Job<EmbeddingJobData>) {
+export async function processEmbeddingGeneration(job: Job<EmbeddingJobData>) {
   const { resumeId, jobId } = job.data
 
   logger.info('Processing embedding generation', { resumeId, targetJobId: jobId, workerJobId: job.id })

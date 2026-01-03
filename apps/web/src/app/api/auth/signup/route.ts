@@ -9,6 +9,8 @@ const signupSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters long'),
+  role: z.enum(['candidate', 'employer']).optional().default('candidate'),
+  companyName: z.string().optional(),
 })
 
 export const POST = withRateLimit(
@@ -16,6 +18,14 @@ export const POST = withRateLimit(
     try {
       // Validate request body
       const data = await validateRequest(req, signupSchema)
+
+      // Validate employer-specific fields
+      if (data.role === 'employer' && !data.companyName?.trim()) {
+        return NextResponse.json(
+          { error: 'Company name is required for employers' },
+          { status: 400 }
+        )
+      }
 
       // Check if user already exists
       const existingUser = await prisma.user.findUnique({
@@ -41,12 +51,31 @@ export const POST = withRateLimit(
         },
       })
 
+      // If employer, create organization and link user
+      if (data.role === 'employer' && data.companyName) {
+        const organization = await prisma.organization.create({
+          data: {
+            name: data.companyName.trim(),
+            slug: data.companyName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+          },
+        })
+
+        await prisma.userOrgRole.create({
+          data: {
+            userId: user.id,
+            orgId: organization.id,
+            role: 'ORG_ADMIN',
+          },
+        })
+      }
+
       return NextResponse.json(
         {
           user: {
             id: user.id,
             name: user.name,
             email: user.email,
+            role: data.role,
           },
         },
         { status: 201 }

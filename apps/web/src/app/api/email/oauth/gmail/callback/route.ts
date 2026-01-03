@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     const email = user.email
 
     // Find organization
-    const orgMember = await prisma.orgMember.findFirst({
+    const orgMember = await prisma.userOrgRole.findFirst({
       where: { userId },
     })
 
@@ -107,13 +107,13 @@ export async function GET(request: NextRequest) {
         email,
         provider: 'GMAIL',
         orgId: orgMember.orgId,
-        displayName: user.name || email,
-        oauthTokens: encryptedTokens,
-        active: true,
+        name: user.name || email,
+        oauthJson: encryptedTokens,
+        isActive: true,
       },
       update: {
-        oauthTokens: encryptedTokens,
-        active: true,
+        oauthJson: encryptedTokens,
+        isActive: true,
         lastSyncAt: new Date(),
       },
     })

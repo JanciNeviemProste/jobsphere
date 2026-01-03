@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
 export default function SignupPage({ params }: { params: { locale: string } }) {
   const t = useTranslations('auth.signup')
@@ -19,6 +20,8 @@ export default function SignupPage({ params }: { params: { locale: string } }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [role, setRole] = useState<'candidate' | 'employer'>('candidate')
+  const [companyName, setCompanyName] = useState('')
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -42,6 +45,11 @@ export default function SignupPage({ params }: { params: { locale: string } }) {
       return
     }
 
+    if (role === 'employer' && !companyName.trim()) {
+      setError('Company name is required for employers')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -49,7 +57,7 @@ export default function SignupPage({ params }: { params: { locale: string } }) {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, role, companyName: role === 'employer' ? companyName : undefined }),
       })
 
       if (!response.ok) {
@@ -67,7 +75,15 @@ export default function SignupPage({ params }: { params: { locale: string } }) {
       if (result?.error) {
         setError('Account created but failed to sign in. Please try logging in.')
       } else {
-        router.push('/dashboard')
+        // Get session to determine redirect based on role
+        const session = await getSession()
+
+        // Redirect employers to employer dashboard, candidates to regular dashboard
+        if (session?.user?.orgId || role === 'employer') {
+          router.push(`/${locale}/employer`)
+        } else {
+          router.push(`/${locale}/dashboard`)
+        }
         router.refresh()
       }
     } catch (error: any) {
@@ -129,6 +145,26 @@ export default function SignupPage({ params }: { params: { locale: string } }) {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-3">
+              <Label>I am registering as</Label>
+              <RadioGroup value={role} onValueChange={(value: string) => setRole(value as 'candidate' | 'employer')} disabled={loading}>
+                <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50">
+                  <RadioGroupItem value="candidate" id="candidate" />
+                  <Label htmlFor="candidate" className="flex-1 cursor-pointer font-normal">
+                    <div className="font-semibold">Job Seeker / Candidate</div>
+                    <p className="text-xs text-muted-foreground">Looking for job opportunities</p>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50">
+                  <RadioGroupItem value="employer" id="employer" />
+                  <Label htmlFor="employer" className="flex-1 cursor-pointer font-normal">
+                    <div className="font-semibold">Employer / Company</div>
+                    <p className="text-xs text-muted-foreground">Post jobs and hire candidates</p>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="name">{t('name')}</Label>
               <Input
@@ -141,6 +177,21 @@ export default function SignupPage({ params }: { params: { locale: string } }) {
                 disabled={loading}
               />
             </div>
+
+            {role === 'employer' && (
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Company Name</Label>
+                <Input
+                  id="companyName"
+                  type="text"
+                  placeholder="Acme Inc."
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="email">{t('email')}</Label>
