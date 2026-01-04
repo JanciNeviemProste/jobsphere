@@ -18,8 +18,8 @@ async function main() {
   await prisma.session.deleteMany()
   await prisma.user.deleteMany()
 
-  // Create demo password (all users will have password: demo123)
-  const hashedPassword = await hash('demo123', 12)
+  // Create demo password (all users will have password: AdminkoFilip!123)
+  const hashedPassword = await hash('AdminkoFilip!123', 12)
 
   // ============================================================================
   // ORGANIZATIONS
@@ -29,11 +29,11 @@ async function main() {
 
   const techCorp = await prisma.organization.create({
     data: {
-      name: 'TechCorp SK',
-      slug: 'techcorp-sk',
-      description: 'Moderná IT spoločnosť zameraná na vývoj inovatívnych riešení.',
-      website: 'https://techcorp.sk',
-      industry: 'Technology',
+      name: 'JobSphere EU',
+      slug: 'jobsphere-eu',
+      description: 'Leading AI-powered applicant tracking system for modern recruitment.',
+      website: 'https://jobsphere.eu',
+      industry: 'HR Tech',
       size: '50-200',
     },
   })
@@ -71,8 +71,8 @@ async function main() {
   // Employers
   const employer1 = await prisma.user.create({
     data: {
-      email: 'admin@techcorp.sk',
-      name: 'Peter Novák',
+      email: 'admin@jobsphere.eu',
+      name: 'adminjobsphere',
       password: hashedPassword,
       phone: '+421 900 111 111',
     },
@@ -541,9 +541,9 @@ Peter Szabó`,
   console.log(`✅ ${3} Applications`)
   console.log(`✅ ${6} Application Activities`)
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-  console.log('\n🔐 Demo Credentials (password: demo123):')
+  console.log('\n🔐 Demo Credentials (password: AdminkoFilip!123):')
   console.log('\nEmployers:')
-  console.log('  • admin@techcorp.sk (TechCorp SK)')
+  console.log('  • admin@jobsphere.eu (JobSphere EU)')
   console.log('  • recruiter@startuphub.io (StartupHub)')
   console.log('  • hr@datasolutions.eu (DataSolutions)')
   console.log('\nCandidates (stored as Candidate records):')
