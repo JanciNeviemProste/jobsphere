@@ -65,7 +65,15 @@
       "Bash(yarn add:*)",
       "Bash(yarn playwright test:*)",
       "Bash(yarn docker:up)",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "Bash(openssl rand:*)",
+      "Bash(vercel --version:*)",
+      "Bash(vercel env pull:*)",
+      "Bash(vercel link:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(yarn prisma migrate deploy:*)",
+      "Bash(yarn prisma db push:*)",
+      "Bash(yarn prisma db seed:*)"
     ],
     "deny": [],
     "ask": []

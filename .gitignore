@@ -73,3 +73,5 @@ logs
 # Docker
 docker/data
 docker/volumes
+.vercel
+.env*.local
