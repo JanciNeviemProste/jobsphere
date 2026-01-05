@@ -16,6 +16,7 @@ export interface OCRResult {
   success: boolean
   lang?: string
   error?: string
+  confidence?: number
 }
 
 /**

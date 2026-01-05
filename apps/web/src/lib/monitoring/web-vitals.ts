@@ -3,7 +3,10 @@
  * Tracks Core Web Vitals metrics and reports to monitoring services
  */
 
-import { onCLS, onFCP, onFID, onINP, onLCP, onTTFB, type Metric } from 'web-vitals'
+// Temporarily disabled - web-vitals package not installed
+// import { onCLS, onFCP, onFID, onINP, onLCP, onTTFB, type Metric } from 'web-vitals'
+type Metric = any // Temporary placeholder
+
 import { captureMessage } from './sentry'
 
 /**
@@ -163,7 +166,10 @@ function handleMetric(metric: Metric): void {
  * Should be called once on page load
  */
 export function reportWebVitals(): void {
-  try {
+  // Temporarily disabled - web-vitals package not installed
+  return
+
+  /* try {
     // Core Web Vitals
     onCLS(handleMetric)
     onFID(handleMetric)
@@ -178,7 +184,7 @@ export function reportWebVitals(): void {
     if (process.env.NODE_ENV === 'development') {
       console.error('[Web Vitals] Failed to initialize:', error)
     }
-  }
+  } */
 }
 
 /**
