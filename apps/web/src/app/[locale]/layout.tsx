@@ -5,6 +5,7 @@ import { getMessages, getTranslations } from 'next-intl/server'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { TRPCProvider } from '@/lib/trpc/provider'
+import { SessionProvider } from '@/components/providers/session-provider'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { SkipNav } from '@/components/layout/skip-nav'
@@ -92,26 +93,28 @@ export default async function LocaleLayout({
         ))}
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <NextIntlClientProvider messages={messages}>
-            <TRPCProvider>
-              <SkipNav />
-              <div className="relative flex min-h-screen flex-col">
-                <Header />
-                <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
-                  {children}
-                </main>
-                <Footer />
-              </div>
-              <Toaster />
-            </TRPCProvider>
-          </NextIntlClientProvider>
-        </ThemeProvider>
+        <SessionProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <NextIntlClientProvider messages={messages}>
+              <TRPCProvider>
+                <SkipNav />
+                <div className="relative flex min-h-screen flex-col">
+                  <Header />
+                  <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
+                    {children}
+                  </main>
+                  <Footer />
+                </div>
+                <Toaster />
+              </TRPCProvider>
+            </NextIntlClientProvider>
+          </ThemeProvider>
+        </SessionProvider>
         <Analytics />
       </body>
     </html>
