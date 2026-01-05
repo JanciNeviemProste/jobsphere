@@ -47,34 +47,40 @@ providers.push(
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            return null
+          }
+
+          const user = await prisma.user.findUnique({
+            where: {
+              email: credentials.email as string,
+            },
+          })
+
+          if (!user || !user.password) {
+            return null
+          }
+
+          const isPasswordValid = await compare(
+            credentials.password as string,
+            user.password
+          )
+
+          if (!isPasswordValid) {
+            return null
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.avatar,
+          }
+        } catch (error) {
+          console.error('❌ Auth error:', error)
+          // Return null instead of throwing - NextAuth will show "invalid credentials"
           return null
-        }
-
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email as string,
-          },
-        })
-
-        if (!user || !user.password) {
-          return null
-        }
-
-        const isPasswordValid = await compare(
-          credentials.password as string,
-          user.password
-        )
-
-        if (!isPasswordValid) {
-          return null
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.avatar,
         }
       },
     })
@@ -87,7 +93,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   pages: {
     signIn: "/login",
-    error: "/auth/error",
+    // error: "/auth/error", // Removed - NextAuth v5 beta bug with custom error pages
   },
   providers,
   callbacks: {
