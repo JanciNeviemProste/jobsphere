@@ -130,6 +130,19 @@ model Session {
   @@index([expiresAt])
 }
 
+model VerificationToken {
+  id         String   @id @default(cuid())
+  identifier String   // Email address
+  token      String   @unique
+  type       String   // 'EMAIL_VERIFICATION' | 'PASSWORD_RESET'
+  expires    DateTime
+  createdAt  DateTime @default(now())
+
+  @@unique([identifier, token])
+  @@index([token])
+  @@index([identifier])
+}
+
 // ============ JOB MODELS ============
 
 model Job {
