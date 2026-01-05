@@ -286,9 +286,9 @@ export class UserService {
         },
         sessions: {
           where: {
-            expiresAt: { gt: new Date() },
+            expires: { gt: new Date() },
           },
-          orderBy: { expiresAt: 'desc' },
+          orderBy: { expires: 'desc' },
           take: 5,
         },
       },
