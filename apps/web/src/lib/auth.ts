@@ -1,10 +1,9 @@
-import NextAuth from "next-auth"
-// import { PrismaAdapter } from "@auth/prisma-adapter" // Temporarily removed - see NEXTAUTH_ADAPTER_CONFIG.md
+import NextAuth, { NextAuthOptions } from "next-auth"
+import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import CredentialsProvider from "next-auth/providers/credentials"
-// import GoogleProvider from "next-auth/providers/google" // Temporarily disabled to debug NextAuth crash
-// import type { Provider } from "next-auth/providers"
 import { prisma } from "./prisma"
 import { compare } from "bcryptjs"
+import { getServerSession } from "next-auth/next"
 
 export class UnauthorizedError extends Error {
   constructor(message = 'Unauthorized') {
@@ -13,39 +12,20 @@ export class UnauthorizedError extends Error {
   }
 }
 
-// Temporarily using only Credentials provider to isolate NextAuth v5 beta bug
-// Google OAuth provider is commented out to debug initialization issues
-// TODO: Re-enable GoogleProvider after fixing NextAuth initialization crash
-
-// Build providers array dynamically based on available credentials
-// const providers: Provider[] = []
-
-// Add Google OAuth provider only if credentials are configured
-// TEMPORARILY DISABLED to debug NextAuth initialization crash
-// const googleClientId = process.env.GOOGLE_CLIENT_ID
-// const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
-
-// if (googleClientId && googleClientSecret) {
-//   providers.push(
-//     GoogleProvider({
-//       clientId: googleClientId,
-//       clientSecret: googleClientSecret,
-//       authorization: {
-//         params: {
-//           prompt: "consent",
-//           access_type: "offline",
-//           response_type: "code"
-//         }
-//       }
-//     })
-//   )
-// } else {
-//   console.warn('⚠️ Google OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.local')
-// }
-
-// Simplified static provider array (NextAuth v5 beta prefers static arrays)
-const providers = [
-  CredentialsProvider({
+/**
+ * NextAuth v4 Configuration
+ * Downgraded from v5 beta.4 due to constructor bug on Vercel production
+ */
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
+  session: {
+    strategy: "jwt",
+  },
+  pages: {
+    signIn: "/login",
+  },
+  providers: [
+    CredentialsProvider({
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
@@ -65,7 +45,7 @@ const providers = [
           console.log('🔍 Auth: Looking up user:', credentials.email)
           const user = await prisma.user.findUnique({
             where: {
-              email: credentials.email as string,
+              email: credentials.email,
             },
           })
 
@@ -84,7 +64,7 @@ const providers = [
 
           console.log('🔐 Auth: Comparing passwords...')
           const isPasswordValid = await compare(
-            credentials.password as string,
+            credentials.password,
             user.password
           )
 
@@ -98,7 +78,7 @@ const providers = [
           console.log('✅ Auth: Authorization successful for:', user.email)
           return {
             id: user.id,
-            email: user.email,
+            email: user.email!,
             name: user.name,
             image: user.avatar,
           }
@@ -113,23 +93,12 @@ const providers = [
           return null
         }
       },
-    })
-]
-
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  // adapter: PrismaAdapter(prisma), // Temporarily removed - not needed for JWT-only auth. See NEXTAUTH_ADAPTER_CONFIG.md
-  session: {
-    strategy: "jwt",
-  },
-  pages: {
-    signIn: "/login",
-    // error: "/auth/error", // Removed - NextAuth v5 beta bug with custom error pages
-  },
-  providers,
+    }),
+  ],
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user }) {
       try {
-        console.log('🔑 JWT Callback: Trigger:', trigger, 'User ID:', user?.id, 'Token ID:', token.id)
+        console.log('🔑 JWT Callback: User ID:', user?.id, 'Token ID:', token.id)
 
         if (user?.id) {
           token.id = user.id
@@ -143,19 +112,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           })
 
           console.log('🔍 JWT: User org found:', !!userOrg, 'Role:', userOrg?.role)
-          token.role = userOrg?.role || 'candidate'
-          token.orgId = userOrg?.orgId || null
-          token.orgName = userOrg?.organization?.name || null
-        }
-
-        // Refresh role/org on session update
-        if (trigger === 'update' && token.id) {
-          console.log('🔄 JWT: Refreshing session for user:', token.id)
-          const userOrg = await prisma.userOrgRole.findFirst({
-            where: { userId: token.id as string },
-            include: { organization: true }
-          })
-
           token.role = userOrg?.role || 'candidate'
           token.orgId = userOrg?.orgId || null
           token.orgName = userOrg?.organization?.name || null
@@ -187,7 +143,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     },
   },
-})
+}
+
+// Export NextAuth handler (default export for API route)
+export default NextAuth(authOptions)
+
+/**
+ * Get session in server components
+ * Use this instead of the v5 auth() function
+ */
+export const auth = () => getServerSession(authOptions)
 
 /**
  * Require authentication - throws UnauthorizedError if not authenticated
