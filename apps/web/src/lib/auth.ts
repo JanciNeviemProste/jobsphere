@@ -1,8 +1,8 @@
 import NextAuth from "next-auth"
 // import { PrismaAdapter } from "@auth/prisma-adapter" // Temporarily removed - see NEXTAUTH_ADAPTER_CONFIG.md
 import CredentialsProvider from "next-auth/providers/credentials"
-import GoogleProvider from "next-auth/providers/google"
-import type { Provider } from "next-auth/providers"
+// import GoogleProvider from "next-auth/providers/google" // Temporarily disabled to debug NextAuth crash
+// import type { Provider } from "next-auth/providers"
 import { prisma } from "./prisma"
 import { compare } from "bcryptjs"
 
@@ -13,33 +13,38 @@ export class UnauthorizedError extends Error {
   }
 }
 
+// Temporarily using only Credentials provider to isolate NextAuth v5 beta bug
+// Google OAuth provider is commented out to debug initialization issues
+// TODO: Re-enable GoogleProvider after fixing NextAuth initialization crash
+
 // Build providers array dynamically based on available credentials
-const providers: Provider[] = []
+// const providers: Provider[] = []
 
 // Add Google OAuth provider only if credentials are configured
-const googleClientId = process.env.GOOGLE_CLIENT_ID
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
+// TEMPORARILY DISABLED to debug NextAuth initialization crash
+// const googleClientId = process.env.GOOGLE_CLIENT_ID
+// const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
 
-if (googleClientId && googleClientSecret) {
-  providers.push(
-    GoogleProvider({
-      clientId: googleClientId,
-      clientSecret: googleClientSecret,
-      authorization: {
-        params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code"
-        }
-      }
-    })
-  )
-} else {
-  console.warn('⚠️ Google OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.local')
-}
+// if (googleClientId && googleClientSecret) {
+//   providers.push(
+//     GoogleProvider({
+//       clientId: googleClientId,
+//       clientSecret: googleClientSecret,
+//       authorization: {
+//         params: {
+//           prompt: "consent",
+//           access_type: "offline",
+//           response_type: "code"
+//         }
+//       }
+//     })
+//   )
+// } else {
+//   console.warn('⚠️ Google OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.local')
+// }
 
-// Add Credentials provider (email/password login)
-providers.push(
+// Simplified static provider array (NextAuth v5 beta prefers static arrays)
+const providers = [
   CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -109,7 +114,7 @@ providers.push(
         }
       },
     })
-)
+]
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // adapter: PrismaAdapter(prisma), // Temporarily removed - not needed for JWT-only auth. See NEXTAUTH_ADAPTER_CONFIG.md
