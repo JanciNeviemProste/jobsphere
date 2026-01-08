@@ -1,5 +1,5 @@
 import NextAuth from "next-auth"
-// import { PrismaAdapter } from "@auth/prisma-adapter" // Temporarily removed - see NEXTAUTH_ADAPTER_CONFIG.md
+import { PrismaAdapter } from "@auth/prisma-adapter"
 import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
 import type { Provider } from "next-auth/providers"
@@ -112,7 +112,7 @@ providers.push(
 )
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  // adapter: PrismaAdapter(prisma), // Temporarily removed - not needed for JWT-only auth. See NEXTAUTH_ADAPTER_CONFIG.md
+  adapter: PrismaAdapter(prisma),
   session: {
     strategy: "jwt",
   },
