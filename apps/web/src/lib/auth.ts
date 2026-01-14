@@ -33,16 +33,10 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         try {
-          console.log('🔐 Auth: Starting authorization...')
-          console.log('🔐 Auth: Email provided:', credentials?.email ? 'YES' : 'NO')
-          console.log('🔐 Auth: Password provided:', credentials?.password ? 'YES' : 'NO')
-
           if (!credentials?.email || !credentials?.password) {
-            console.log('❌ Auth: Missing credentials')
             return null
           }
 
-          console.log('🔍 Auth: Looking up user:', credentials.email)
           const user = await prisma.user.findUnique({
             where: {
               email: credentials.email,
@@ -50,32 +44,22 @@ export const authOptions: NextAuthOptions = {
           })
 
           if (!user) {
-            console.log('❌ Auth: User not found:', credentials.email)
             return null
           }
-
-          console.log('✅ Auth: User found:', user.email, 'ID:', user.id)
-          console.log('🔐 Auth: User has password:', !!user.password)
 
           if (!user.password) {
-            console.log('❌ Auth: User has no password (OAuth-only account?)')
             return null
           }
 
-          console.log('🔐 Auth: Comparing passwords...')
           const isPasswordValid = await compare(
             credentials.password,
             user.password
           )
 
-          console.log('🔐 Auth: Password valid:', isPasswordValid)
-
           if (!isPasswordValid) {
-            console.log('❌ Auth: Invalid password for:', credentials.email)
             return null
           }
 
-          console.log('✅ Auth: Authorization successful for:', user.email)
           return {
             id: user.id,
             email: user.email!,
@@ -98,26 +82,20 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       try {
-        console.log('🔑 JWT Callback: User ID:', user?.id, 'Token ID:', token.id)
-
         if (user?.id) {
           token.id = user.id
-          console.log('🔑 JWT: Setting token.id:', user.id)
 
           // Load user's organization and role
-          console.log('🔍 JWT: Loading user organization...')
           const userOrg = await prisma.userOrgRole.findFirst({
             where: { userId: user.id },
             include: { organization: true }
           })
 
-          console.log('🔍 JWT: User org found:', !!userOrg, 'Role:', userOrg?.role)
           token.role = userOrg?.role || 'candidate'
           token.orgId = userOrg?.orgId || null
           token.orgName = userOrg?.organization?.name || null
         }
 
-        console.log('✅ JWT: Token updated successfully')
         return token
       } catch (error) {
         console.error('❌ JWT Callback error:', error)
@@ -127,13 +105,11 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       try {
-        console.log('👤 Session Callback: Token ID:', token.id)
         if (session.user) {
           session.user.id = token.id as string
           session.user.role = token.role as string | undefined
           session.user.orgId = token.orgId as string | undefined
           session.user.orgName = token.orgName as string | undefined
-          console.log('✅ Session: Updated session for user:', session.user.email)
         }
         return session
       } catch (error) {
