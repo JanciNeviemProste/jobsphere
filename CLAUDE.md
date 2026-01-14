@@ -9,7 +9,7 @@ JobSphere is an enterprise-grade Applicant Tracking System (ATS) powered by Anth
 **Key Technologies:**
 - Next.js 14 (App Router) with TypeScript
 - Prisma ORM with PostgreSQL (pgvector extension for semantic search)
-- NextAuth v5 for authentication
+- NextAuth v4.24.7 for authentication (downgraded from v5 beta due to production bug)
 - Turborepo for monorepo management
 - TailwindCSS + shadcn/ui for UI
 - BullMQ for background job processing
@@ -116,7 +116,7 @@ cd apps/web && yarn workers:dev
 
 ### Authentication & Authorization
 
-**NextAuth v5 Setup:**
+**NextAuth v4 Setup:**
 - Configuration: `apps/web/src/lib/auth.ts`
 - Supports Credentials (email/password) and Google OAuth
 - Session strategy: JWT
@@ -137,6 +137,59 @@ const membership = await prisma.userOrgRole.findFirst({
 })
 if (!membership) throw new Error('Not a member of this organization')
 ```
+
+### NextAuth Version History
+
+**Current Version: v4.24.7** (as of 2025-01)
+
+**Why v4 instead of v5?**
+- NextAuth v5 (beta.4) had a critical bug on Vercel production builds
+- Error: "aQ is not a constructor" when calling `/api/auth/providers`
+- Only occurred in production (worked in dev with `next dev`)
+- Root cause: Constructor export issue in minified build
+- Resolution: Downgraded to stable v4.24.7 (commit 0b5047b)
+
+**Migration Path:**
+- Stay on v4 until NextAuth v5 reaches stable release (not beta)
+- Monitor: https://github.com/nextauthjs/next-auth/releases
+- v5 offers benefits: Native Edge support, TypeScript improvements, better DX
+- Migrate when: v5.0.0 stable released AND bug verified fixed
+
+**v4 Configuration:**
+- File: `apps/web/src/lib/auth.ts`
+- Pattern: Export `authOptions` object, use `NextAuth(authOptions)`
+- Session strategy: JWT (required for Vercel deployment)
+- Adapter: PrismaAdapter from `@next-auth/prisma-adapter` v1.0.7
+
+**v4 API Route Pattern:**
+```typescript
+// apps/web/src/app/api/auth/[...nextauth]/route.ts
+import NextAuthHandler from "@/lib/auth"
+export { NextAuthHandler as GET, NextAuthHandler as POST }
+export const runtime = 'nodejs' // Required for bcryptjs and Prisma
+```
+
+**Getting Session in v4:**
+```typescript
+// Server Components
+import { auth } from '@/lib/auth'
+const session = await auth()
+
+// Client Components
+import { useSession } from 'next-auth/react'
+const { data: session } = useSession()
+```
+
+**Differences from v5:**
+- v5: `export const { auth, handlers } = NextAuth(config)`
+- v4: `export default NextAuth(authOptions)` and `export const auth = () => getServerSession(authOptions)`
+- v5: No `[...nextauth]` catch-all route needed
+- v4: Requires `[...nextauth]/route.ts` catch-all
+
+**Related Commits:**
+- 0b5047b - Downgrade to v4.24.7
+- 24b2d2c - Remove debug logging
+- e8b88d8 - Remove debug endpoints
 
 ### Server Actions vs API Routes
 
