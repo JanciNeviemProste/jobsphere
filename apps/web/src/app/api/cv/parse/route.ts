@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { extractCvFromText } from '@jobsphere/ai'
-import { generateCVEmbeddings } from '@/lib/embeddings'
+import { addEmbeddingJob } from '@/lib/queue'
 
 export async function POST(request: NextRequest) {
   try {
@@ -162,12 +162,13 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      // 7. Generate embeddings asynchronously (don't wait for completion)
+      // 7. Queue embedding generation job asynchronously
       if (sections.length > 0) {
-        generateCVEmbeddings(resume.id).catch((error) => {
-          console.error('Failed to generate embeddings:', error)
-          // Don't fail the request if embedding generation fails
+        addEmbeddingJob({ resumeId: resume.id }).catch((error) => {
+          console.error('Failed to queue embedding job:', error)
+          // Don't fail the request if job queueing fails
         })
+        console.log('✅ Queued embedding job for resume:', resume.id)
       }
 
       return NextResponse.json({
