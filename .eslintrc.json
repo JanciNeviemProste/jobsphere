@@ -1,25 +1,13 @@
 {
   "root": true,
-  "extends": [
-    "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
-    "plugin:react/recommended",
-    "plugin:react-hooks/recommended",
-    "plugin:@next/next/recommended",
-    "prettier"
-  ],
+  "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended", "plugin:react/recommended", "plugin:react-hooks/recommended", "plugin:@next/next/recommended", "prettier"],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "ecmaVersion": "latest",
     "sourceType": "module",
     "project": ["./tsconfig.json"]
   },
-  "plugins": [
-    "@typescript-eslint",
-    "react",
-    "react-hooks",
-    "security"
-  ],
+  "plugins": ["@typescript-eslint", "react", "react-hooks", "security"],
   "rules": {
     "react/react-in-jsx-scope": "off",
     "react/prop-types": "off",
@@ -34,13 +22,5 @@
       "version": "detect"
     }
   },
-  "ignorePatterns": [
-    "node_modules",
-    "dist",
-    "build",
-    ".next",
-    "coverage",
-    "*.config.js",
-    "*.config.ts"
-  ]
+  "ignorePatterns": ["node_modules", "dist", "build", ".next", "coverage", "*.config.js", "*.config.ts", "apps/**", "packages/**"]
 }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any, security/detect-object-injection */
 import { PrismaClient } from '@prisma/client'
 import { faker } from '@faker-js/faker'
 import * as bcrypt from 'bcryptjs'
@@ -9,7 +10,7 @@ const REGIONS = {
   BA: { name: 'Bratislava', cities: ['Bratislava', 'Pezinok', 'Malacky', 'Senec'] },
   ZA: { name: 'Žilina', cities: ['Žilina', 'Martin', 'Čadca', 'Dolný Kubín'] },
   KE: { name: 'Košice', cities: ['Košice', 'Prešov', 'Michalovce', 'Spišská Nová Ves'] },
-  REMOTE: { name: 'Remote', cities: ['Remote'] }
+  REMOTE: { name: 'Remote', cities: ['Remote'] },
 }
 
 async function seed() {
@@ -32,9 +33,9 @@ async function seed() {
       settings: {
         defaultLocale: 'sk',
         timeZone: 'Europe/Bratislava',
-        weekStartsOn: 1
-      }
-    }
+        weekStartsOn: 1,
+      },
+    },
   })
 
   // Create users
@@ -46,8 +47,8 @@ async function seed() {
       password: hashedPassword,
       name: 'Admin User',
       locale: 'sk',
-      emailVerified: new Date()
-    }
+      emailVerified: new Date(),
+    },
   })
 
   const recruiterUser = await prisma.user.create({
@@ -56,8 +57,8 @@ async function seed() {
       password: hashedPassword,
       name: 'Jana Nováková',
       locale: 'sk',
-      emailVerified: new Date()
-    }
+      emailVerified: new Date(),
+    },
   })
 
   const hiringManager = await prisma.user.create({
@@ -66,8 +67,8 @@ async function seed() {
       password: hashedPassword,
       name: 'Peter Kováč',
       locale: 'sk',
-      emailVerified: new Date()
-    }
+      emailVerified: new Date(),
+    },
   })
 
   const agencyUser = await prisma.user.create({
@@ -76,8 +77,8 @@ async function seed() {
       password: hashedPassword,
       name: 'Agency Partner',
       locale: 'sk',
-      emailVerified: new Date()
-    }
+      emailVerified: new Date(),
+    },
   })
 
   // Assign roles
@@ -86,8 +87,8 @@ async function seed() {
       { userId: adminUser.id, orgId: org.id, role: 'ORG_ADMIN' },
       { userId: recruiterUser.id, orgId: org.id, role: 'RECRUITER' },
       { userId: hiringManager.id, orgId: org.id, role: 'HIRING_MANAGER' },
-      { userId: agencyUser.id, orgId: org.id, role: 'AGENCY', assignedJobs: [] }
-    ]
+      { userId: agencyUser.id, orgId: org.id, role: 'AGENCY', assignedJobs: [] },
+    ],
   })
 
   // Create products and plans for billing
@@ -97,9 +98,19 @@ async function seed() {
       description: 'Perfect for small teams',
       prices: {
         create: [
-          { currency: 'EUR', amount: 4900, interval: 'MONTH', providerPriceId: 'price_starter_eur' },
-          { currency: 'USD', amount: 5900, interval: 'MONTH', providerPriceId: 'price_starter_usd' }
-        ]
+          {
+            currency: 'EUR',
+            amount: 4900,
+            interval: 'MONTH',
+            providerPriceId: 'price_starter_eur',
+          },
+          {
+            currency: 'USD',
+            amount: 5900,
+            interval: 'MONTH',
+            providerPriceId: 'price_starter_usd',
+          },
+        ],
       },
       plans: {
         create: {
@@ -111,12 +122,12 @@ async function seed() {
               { featureKey: 'job_slots', limitInt: 3 },
               { featureKey: 'seats', limitInt: 3 },
               { featureKey: 'assessments_per_month', limitInt: 1 },
-              { featureKey: 'email_sends_per_month', limitInt: 500 }
-            ]
-          }
-        }
-      }
-    }
+              { featureKey: 'email_sends_per_month', limitInt: 500 },
+            ],
+          },
+        },
+      },
+    },
   })
 
   const proProduct = await prisma.product.create({
@@ -126,8 +137,8 @@ async function seed() {
       prices: {
         create: [
           { currency: 'EUR', amount: 19900, interval: 'MONTH', providerPriceId: 'price_pro_eur' },
-          { currency: 'USD', amount: 24900, interval: 'MONTH', providerPriceId: 'price_pro_usd' }
-        ]
+          { currency: 'USD', amount: 24900, interval: 'MONTH', providerPriceId: 'price_pro_usd' },
+        ],
       },
       plans: {
         create: {
@@ -139,12 +150,12 @@ async function seed() {
               { featureKey: 'job_slots', limitInt: 15 },
               { featureKey: 'seats', limitInt: 10 },
               { featureKey: 'assessments_per_month', limitInt: 10 },
-              { featureKey: 'email_sends_per_month', limitInt: 5000 }
-            ]
-          }
-        }
-      }
-    }
+              { featureKey: 'email_sends_per_month', limitInt: 5000 },
+            ],
+          },
+        },
+      },
+    },
   })
 
   const enterpriseProduct = await prisma.product.create({
@@ -153,8 +164,13 @@ async function seed() {
       description: 'Custom solution for large organizations',
       prices: {
         create: [
-          { currency: 'EUR', amount: 99900, interval: 'MONTH', providerPriceId: 'price_enterprise_eur' }
-        ]
+          {
+            currency: 'EUR',
+            amount: 99900,
+            interval: 'MONTH',
+            providerPriceId: 'price_enterprise_eur',
+          },
+        ],
       },
       plans: {
         create: {
@@ -167,12 +183,12 @@ async function seed() {
               { featureKey: 'seats', limitInt: null },
               { featureKey: 'assessments_per_month', limitInt: null },
               { featureKey: 'email_sends_per_month', limitInt: null },
-              { featureKey: 'sso', limitBool: true }
-            ]
-          }
-        }
-      }
-    }
+              { featureKey: 'sso', limitBool: true },
+            ],
+          },
+        },
+      },
+    },
   })
 
   // Create subscription for demo org
@@ -183,8 +199,8 @@ async function seed() {
       providerSubId: 'sub_demo_' + faker.string.alphanumeric(16),
       status: 'active',
       currentPeriodStart: new Date(),
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-    }
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
   })
 
   // Create entitlements
@@ -193,8 +209,8 @@ async function seed() {
       { orgId: org.id, featureKey: 'job_slots', limitInt: 15, remainingInt: 12 },
       { orgId: org.id, featureKey: 'seats', limitInt: 10, remainingInt: 6 },
       { orgId: org.id, featureKey: 'assessments_per_month', limitInt: 10, remainingInt: 8 },
-      { orgId: org.id, featureKey: 'email_sends_per_month', limitInt: 5000, remainingInt: 4500 }
-    ]
+      { orgId: org.id, featureKey: 'email_sends_per_month', limitInt: 5000, remainingInt: 4500 },
+    ],
   })
 
   // Create jobs in different regions
@@ -211,7 +227,7 @@ async function seed() {
             'Product Manager',
             'UX Designer',
             'Data Scientist',
-            'QA Engineer'
+            'QA Engineer',
           ]),
           description: faker.lorem.paragraphs(3),
           requirements: faker.lorem.paragraphs(2),
@@ -231,8 +247,8 @@ async function seed() {
           status: faker.helpers.arrayElement(['PUBLISHED', 'PUBLISHED', 'DRAFT']),
           publishedAt: faker.date.recent({ days: 30 }),
           createdBy: recruiterUser.id,
-          slug: faker.helpers.slugify(faker.lorem.words(3))
-        }
+          slug: faker.helpers.slugify(faker.lorem.words(3)),
+        },
       })
       jobs.push(job)
     }
@@ -241,7 +257,7 @@ async function seed() {
   // Update agency user with assigned jobs
   await prisma.userOrgRole.update({
     where: { userId_orgId: { userId: agencyUser.id, orgId: org.id } },
-    data: { assignedJobs: jobs.slice(0, 3).map(j => j.id) }
+    data: { assignedJobs: jobs.slice(0, 3).map((j) => j.id) },
   })
 
   // Create candidates with CVs
@@ -250,35 +266,53 @@ async function seed() {
       data: {
         orgId: org.id,
         source: faker.helpers.arrayElement(['WEBSITE', 'LINKEDIN', 'REFERRAL', 'IMPORT']),
-        tags: faker.helpers.arrayElements(['javascript', 'typescript', 'react', 'node', 'python', 'java'], 3),
+        tags: faker.helpers.arrayElements(
+          ['javascript', 'typescript', 'react', 'node', 'python', 'java'],
+          3,
+        ),
         contacts: {
           create: {
             fullName: faker.person.fullName(),
             email: faker.internet.email(),
             phone: faker.phone.number(),
-            location: faker.helpers.arrayElement(Object.values(REGIONS).flatMap(r => r.cities)),
+            location: faker.helpers.arrayElement(Object.values(REGIONS).flatMap((r) => r.cities)),
             primaryLocale: faker.helpers.arrayElement(['sk', 'en', 'cs']),
-            salaryExpectation: faker.number.int({ min: 2000, max: 6000 })
-          }
-        }
-      }
+            salaryExpectation: faker.number.int({ min: 2000, max: 6000 }),
+          },
+        },
+      },
     })
 
-    // Create resume
+    // Create resume with sections
+    const skills = faker.helpers.arrayElements(
+      [
+        'JavaScript',
+        'TypeScript',
+        'React',
+        'Node.js',
+        'Python',
+        'Java',
+        'Docker',
+        'Kubernetes',
+        'AWS',
+        'PostgreSQL',
+        'MongoDB',
+        'Redis',
+      ],
+      6,
+    )
+
     const resume = await prisma.resume.create({
       data: {
         candidateId: candidate.id,
         language: faker.helpers.arrayElement(['sk', 'en']),
         summary: faker.lorem.paragraph(),
         yearsOfExperience: faker.number.float({ min: 1, max: 15, multipleOf: 0.5 }),
-        skills: faker.helpers.arrayElements([
-          'JavaScript', 'TypeScript', 'React', 'Node.js', 'Python', 'Java',
-          'Docker', 'Kubernetes', 'AWS', 'PostgreSQL', 'MongoDB', 'Redis'
-        ], 6),
+        skills: skills,
         personalInfo: {
           firstName: faker.person.firstName(),
           lastName: faker.person.lastName(),
-          dateOfBirth: faker.date.birthdate({ min: 22, max: 55, mode: 'age' })
+          dateOfBirth: faker.date.birthdate({ min: 22, max: 55, mode: 'age' }),
         },
         experiences: Array.from({ length: faker.number.int({ min: 1, max: 4 }) }, () => ({
           title: faker.person.jobTitle(),
@@ -287,7 +321,7 @@ async function seed() {
           startDate: faker.date.past({ years: 10 }),
           endDate: faker.datatype.boolean() ? faker.date.recent() : null,
           current: faker.datatype.boolean(),
-          description: faker.lorem.paragraph()
+          description: faker.lorem.paragraph(),
         })),
         education: Array.from({ length: faker.number.int({ min: 1, max: 2 }) }, () => ({
           degree: faker.helpers.arrayElement(['Bachelor', 'Master', 'PhD']),
@@ -295,9 +329,70 @@ async function seed() {
           school: faker.company.name() + ' University',
           location: faker.location.city(),
           startDate: faker.date.past({ years: 15 }),
-          endDate: faker.date.past({ years: 10 })
-        }))
-      }
+          endDate: faker.date.past({ years: 10 }),
+        })),
+      },
+    })
+
+    // Create ResumeSection entities for semantic search
+    // SUMMARY section
+    await prisma.resumeSection.create({
+      data: {
+        resumeId: resume.id,
+        kind: 'SUMMARY',
+        text: resume.summary || faker.lorem.paragraph(),
+        order: 0,
+      },
+    })
+
+    // EXPERIENCE sections
+    const experiences = resume.experiences as any[]
+    for (let expIdx = 0; expIdx < experiences.length; expIdx++) {
+      const exp = experiences[expIdx]
+      await prisma.resumeSection.create({
+        data: {
+          resumeId: resume.id,
+          kind: 'EXPERIENCE',
+          title: exp.title,
+          organization: exp.company,
+          location: exp.location,
+          startDate: new Date(exp.startDate),
+          endDate: exp.endDate ? new Date(exp.endDate) : null,
+          current: exp.current || false,
+          text: exp.description,
+          order: expIdx + 1,
+        },
+      })
+    }
+
+    // EDUCATION sections
+    const education = resume.education as any[]
+    for (let eduIdx = 0; eduIdx < education.length; eduIdx++) {
+      const edu = education[eduIdx]
+      await prisma.resumeSection.create({
+        data: {
+          resumeId: resume.id,
+          kind: 'EDUCATION',
+          title: `${edu.degree} in ${edu.field}`,
+          organization: edu.school,
+          location: edu.location,
+          startDate: new Date(edu.startDate),
+          endDate: new Date(edu.endDate),
+          order: experiences.length + eduIdx + 1,
+        },
+      })
+    }
+
+    // SKILLS section
+    await prisma.resumeSection.create({
+      data: {
+        resumeId: resume.id,
+        kind: 'SKILLS',
+        title: 'Technical Skills',
+        text: skills.join(', '),
+        json: { skills: skills },
+        order: experiences.length + education.length + 1,
+      },
     })
 
     // Create applications
@@ -310,13 +405,21 @@ async function seed() {
           candidateId: candidate.id,
           jobId: job.id,
           orgId: org.id,
-          stage: faker.helpers.arrayElement(['NEW', 'SCREENING', 'PHONE', 'TECHNICAL', 'ONSITE', 'OFFER', 'REJECTED']),
+          stage: faker.helpers.arrayElement([
+            'NEW',
+            'SCREENING',
+            'PHONE',
+            'TECHNICAL',
+            'ONSITE',
+            'OFFER',
+            'REJECTED',
+          ]),
           score: faker.number.float({ min: 0, max: 100, multipleOf: 0.1 }),
           assignedTo: faker.helpers.arrayElement([recruiterUser.id, hiringManager.id, null]),
           source: faker.helpers.arrayElement(['WEBSITE', 'LINKEDIN', 'REFERRAL']),
           lastContactAt: faker.date.recent({ days: 7 }),
-          tags: faker.helpers.arrayElements(['urgent', 'promising', 'follow-up', 'remote-only'], 2)
-        }
+          tags: faker.helpers.arrayElements(['urgent', 'promising', 'follow-up', 'remote-only'], 2),
+        },
       })
 
       // Create match score
@@ -333,20 +436,17 @@ async function seed() {
           evidence: {
             matchedSkills: faker.helpers.arrayElements(['JavaScript', 'React', 'Node.js'], 2),
             experienceMatch: faker.datatype.boolean(),
-            educationMatch: faker.datatype.boolean()
+            educationMatch: faker.datatype.boolean(),
           },
-          explanation: [
-            faker.lorem.sentence(),
-            faker.lorem.sentence()
-          ],
-          version: '1.0.0'
-        }
+          explanation: [faker.lorem.sentence(), faker.lorem.sentence()],
+          version: '1.0.0',
+        },
       })
     }
   }
 
-  // Create assessment
-  const assessment = await prisma.assessment.create({
+  // Create assessments
+  const jsAssessment = await prisma.assessment.create({
     data: {
       orgId: org.id,
       name: 'Full Stack Developer Assessment',
@@ -370,19 +470,19 @@ async function seed() {
                   correctIndexes: [2],
                   points: 5,
                   skillTag: 'javascript',
-                  order: 1
+                  order: 1,
                 },
                 {
-                  type: 'MULTI',
+                  type: 'MULTI_SELECT',
                   text: 'Which of the following are falsy values in JavaScript?',
                   choices: ['0', '""', 'null', '[]', 'false', '{}'],
                   correctIndexes: [0, 1, 2, 4],
                   points: 10,
                   skillTag: 'javascript',
-                  order: 2
-                }
-              ]
-            }
+                  order: 2,
+                },
+              ],
+            },
           },
           {
             title: 'React Knowledge',
@@ -390,31 +490,129 @@ async function seed() {
             questions: {
               create: [
                 {
-                  type: 'SHORT',
+                  type: 'SHORT_TEXT',
                   text: 'What is the purpose of useEffect hook in React?',
                   points: 10,
                   skillTag: 'react',
-                  order: 1
+                  order: 1,
                 },
                 {
                   type: 'CODE',
                   text: 'Write a React component that fetches and displays user data',
                   language: 'javascript',
-                  starterCode: '// Write your component here',
+                  code: '// Write your component here',
                   points: 20,
                   skillTag: 'react',
-                  order: 2
-                }
-              ]
-            }
-          }
-        ]
-      }
-    }
+                  order: 2,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
   })
 
-  // Create email sequence
-  const emailSequence = await prisma.emailSequence.create({
+  const pythonAssessment = await prisma.assessment.create({
+    data: {
+      orgId: org.id,
+      name: 'Python & SQL Developer Assessment',
+      description: 'Technical assessment for backend and data engineering roles',
+      locale: 'en',
+      durationMin: 90,
+      passingScore: 75,
+      isPublished: true,
+      createdBy: recruiterUser.id,
+      sections: {
+        create: [
+          {
+            title: 'Python Fundamentals',
+            order: 1,
+            questions: {
+              create: [
+                {
+                  type: 'MCQ',
+                  text: 'What is the difference between list and tuple in Python?',
+                  choices: [
+                    'Lists are mutable, tuples are immutable',
+                    'Tuples are faster than lists',
+                    'Lists use [], tuples use ()',
+                    'All of the above',
+                  ],
+                  correctIndexes: [3],
+                  points: 5,
+                  skillTag: 'python',
+                  order: 1,
+                },
+                {
+                  type: 'CODE',
+                  text: 'Write a Python function to find all prime numbers up to n using the Sieve of Eratosthenes',
+                  language: 'python',
+                  code: 'def sieve_of_eratosthenes(n):\n    # Your code here\n    pass',
+                  points: 15,
+                  skillTag: 'python',
+                  order: 2,
+                },
+              ],
+            },
+          },
+          {
+            title: 'SQL & Database Knowledge',
+            order: 2,
+            questions: {
+              create: [
+                {
+                  type: 'SHORT_TEXT',
+                  text: 'Explain the difference between INNER JOIN, LEFT JOIN, and RIGHT JOIN with examples.',
+                  points: 10,
+                  skillTag: 'sql',
+                  order: 1,
+                },
+                {
+                  type: 'CODE',
+                  text: 'Write a SQL query to find the top 5 customers by total order value, including their name, email, and total spent.',
+                  language: 'sql',
+                  code: '-- Assume tables: customers (id, name, email) and orders (id, customer_id, total)\nSELECT\n  -- Your query here',
+                  points: 15,
+                  skillTag: 'sql',
+                  order: 2,
+                },
+                {
+                  type: 'MULTI_SELECT',
+                  text: 'Which of the following are valid PostgreSQL data types?',
+                  choices: ['VARCHAR', 'JSONB', 'BIGSERIAL', 'DATETIME', 'UUID', 'BLOB'],
+                  correctIndexes: [0, 1, 2, 4],
+                  points: 10,
+                  skillTag: 'postgresql',
+                  order: 3,
+                },
+              ],
+            },
+          },
+          {
+            title: 'Data Processing',
+            order: 3,
+            questions: {
+              create: [
+                {
+                  type: 'CODE',
+                  text: 'Write a Python script using pandas to read a CSV file, filter rows where age > 25, group by city, and calculate average salary.',
+                  language: 'python',
+                  code: 'import pandas as pd\n\n# Your code here',
+                  points: 20,
+                  skillTag: 'pandas',
+                  order: 1,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  })
+
+  // Create email sequences
+  const followUpSequence = await prisma.emailSequence.create({
     data: {
       orgId: org.id,
       name: 'Candidate Follow-up Sequence',
@@ -424,7 +622,7 @@ async function seed() {
       settings: {
         quietHours: { start: 20, end: 8 },
         dailyLimit: 50,
-        timezone: 'Europe/Bratislava'
+        timezone: 'Europe/Bratislava',
       },
       steps: {
         create: [
@@ -433,28 +631,93 @@ async function seed() {
             dayOffset: 0,
             hourOffset: 9,
             subject: 'Welcome to {{company.name}}!',
-            bodyTemplate: 'Hi {{candidate.firstName}},\n\nThank you for applying to {{job.title}}...',
-            order: 1
+            bodyTemplate:
+              'Hi {{candidate.firstName}},\n\nThank you for applying to {{job.title}}...',
+            order: 1,
           },
           {
             name: 'Follow-up',
             dayOffset: 3,
             hourOffset: 10,
             subject: 'Next steps in your application',
-            bodyTemplate: 'Hi {{candidate.firstName}},\n\nWe wanted to update you on your application...',
-            order: 2
+            bodyTemplate:
+              'Hi {{candidate.firstName}},\n\nWe wanted to update you on your application...',
+            order: 2,
           },
           {
             name: 'Check-in',
             dayOffset: 7,
             hourOffset: 14,
             subject: 'Are you still interested in {{job.title}}?',
-            bodyTemplate: 'Hi {{candidate.firstName}},\n\nWe haven\'t heard from you...',
-            order: 3
-          }
-        ]
-      }
-    }
+            bodyTemplate: "Hi {{candidate.firstName}},\n\nWe haven't heard from you...",
+            order: 3,
+          },
+        ],
+      },
+    },
+  })
+
+  const interviewSequence = await prisma.emailSequence.create({
+    data: {
+      orgId: org.id,
+      name: 'Interview Invitation Sequence',
+      description: 'Automated sequence for scheduling interviews with qualified candidates',
+      active: true,
+      createdBy: recruiterUser.id,
+      settings: {
+        quietHours: { start: 19, end: 8 },
+        dailyLimit: 30,
+        timezone: 'Europe/Bratislava',
+      },
+      steps: {
+        create: [
+          {
+            name: 'Interview Invitation',
+            dayOffset: 0,
+            hourOffset: 10,
+            subject: 'Interview Invitation - {{job.title}} at {{company.name}}',
+            bodyTemplate: `Hi {{candidate.firstName}},
+
+Congratulations! We were impressed with your application for the {{job.title}} position.
+
+We would like to invite you for an interview to discuss your experience and learn more about your skills.
+
+Interview Details:
+- Position: {{job.title}}
+- Format: {{interview.format}}
+- Duration: {{interview.duration}} minutes
+
+Please use the link below to schedule a time that works best for you:
+{{scheduling.link}}
+
+We look forward to speaking with you!
+
+Best regards,
+{{recruiter.name}}
+{{company.name}} Recruitment Team`,
+            order: 1,
+          },
+          {
+            name: 'Interview Reminder',
+            dayOffset: 1,
+            hourOffset: 9,
+            subject: 'Reminder: Schedule your interview for {{job.title}}',
+            bodyTemplate: `Hi {{candidate.firstName}},
+
+This is a friendly reminder to schedule your interview for the {{job.title}} position.
+
+If you haven't already, please use the link below to pick a time:
+{{scheduling.link}}
+
+If you have any questions or need to reschedule, please don't hesitate to reach out.
+
+Best regards,
+{{recruiter.name}}`,
+            order: 2,
+          },
+        ],
+      },
+    },
   })
 
   // Create email account (mock)
@@ -469,13 +732,21 @@ async function seed() {
       smtpUser: 'hr@techcorp.sk',
       smtpPass: 'demo',
       signature: '<p>Best regards,<br/>TechCorp HR Team</p>',
-      isDefault: true
-    }
+      isDefault: true,
+    },
   })
 
   console.log('✅ Seed completed successfully!')
   console.log('')
-  console.log('Demo accounts:')
+  console.log('📊 Seeded Data Summary:')
+  console.log('  Organizations: 1')
+  console.log('  Users: 4 (Admin, Recruiter, Hiring Manager, Agency)')
+  console.log('  Jobs: 8 (across BA, ZA, KE, REMOTE regions)')
+  console.log('  Candidates: 20 (with resumes and sections)')
+  console.log('  Assessments: 2 (Full Stack JS/React, Python/SQL)')
+  console.log('  Email Sequences: 2 (Follow-up, Interview Invitation)')
+  console.log('')
+  console.log('👤 Demo accounts:')
   console.log('  Admin: admin@techcorp.sk / demo123')
   console.log('  Recruiter: recruiter@techcorp.sk / demo123')
   console.log('  Hiring Manager: hiring@techcorp.sk / demo123')
