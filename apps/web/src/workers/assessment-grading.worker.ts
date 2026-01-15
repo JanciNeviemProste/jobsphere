@@ -75,6 +75,18 @@ Return your evaluation in JSON format:
 }
 
 /**
+ * Map schema question types to internal worker types
+ */
+const questionTypeMap: Record<string, 'MULTIPLE_CHOICE' | 'CODING' | 'FREE_TEXT'> = {
+  MCQ: 'MULTIPLE_CHOICE',
+  MULTI: 'MULTIPLE_CHOICE',
+  CODE: 'CODING',
+  SHORT: 'FREE_TEXT',
+  LONG: 'FREE_TEXT',
+  FILE: 'FREE_TEXT',
+}
+
+/**
  * Process assessment grading
  */
 export async function processAssessmentGrading(job: Job<AssessmentJobData>) {
@@ -90,7 +102,7 @@ export async function processAssessmentGrading(job: Job<AssessmentJobData>) {
         invite: {
           include: {
             assessment: {
-              select: { id: true, name: true, orgId: true },
+              select: { id: true, name: true, orgId: true, passingScore: true },
             },
           },
         },
@@ -131,7 +143,10 @@ export async function processAssessmentGrading(job: Job<AssessmentJobData>) {
         ? (response.response as any).answer || (response.response as any).value || JSON.stringify(response.response)
         : String(response.response)
 
-      switch (question.type) {
+      // Map schema type to worker type
+      const mappedType = questionTypeMap[question.type] || 'FREE_TEXT'
+
+      switch (mappedType) {
         case 'MULTIPLE_CHOICE':
           // Simple comparison - check if answer matches correct choice
           const correctChoice = question.choices[question.correctIndexes[0]]
@@ -190,7 +205,8 @@ export async function processAssessmentGrading(job: Job<AssessmentJobData>) {
 
     // 3. Calculate final score
     const percentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0
-    const passed = percentage >= 70 // 70% passing threshold
+    const passingThreshold = attempt.invite.assessment.passingScore ?? 70
+    const passed = percentage >= passingThreshold
 
     // 4. Update attempt
     // Note: passed field doesn't exist on Attempt model, store in detail JSON field instead
@@ -252,7 +268,7 @@ export async function processAssessmentGrading(job: Job<AssessmentJobData>) {
           ${
             passed
               ? '<p>Congratulations! You have successfully passed this assessment.</p>'
-              : '<p>Unfortunately, you did not meet the passing threshold of 70%. You may be able to retake this assessment.</p>'
+              : `<p>Unfortunately, you did not meet the passing threshold of ${passingThreshold}%. You may be able to retake this assessment.</p>`
           }
 
           <hr />
