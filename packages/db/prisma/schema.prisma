@@ -426,6 +426,10 @@ model Application {
   referredBy    String?
   coverLetter   String?
 
+  // Candidate preferences
+  expectedSalary Int?      // Annual salary expectation
+  availableFrom  DateTime? // Earliest start date
+
   // Communication tracking
   lastContactAt DateTime?
   lastContactType String?
