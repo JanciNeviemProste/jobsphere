@@ -1,0 +1,549 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { POST } from '@/app/api/candidates/search/route'
+import {
+  createTestRequest,
+  createRecruiterSession,
+  createCandidateSession,
+  parseResponse,
+} from '../../helpers/api-client'
+import { prisma, TEST_IDS } from '../../helpers/test-db'
+
+/**
+ * Integration tests for POST /api/candidates/search
+ * Tests semantic candidate search for job matching
+ */
+
+// Mock NextAuth
+const { mockAuthFn } = vi.hoisted(() => ({
+  mockAuthFn: vi.fn(),
+}))
+
+vi.mock('@/lib/auth', () => ({
+  auth: mockAuthFn,
+}))
+
+// Mock semantic search function
+const { mockSearchCandidates } = vi.hoisted(() => ({
+  mockSearchCandidates: vi.fn(),
+}))
+
+vi.mock('@/lib/semantic-search', () => ({
+  searchCandidates: mockSearchCandidates,
+}))
+
+describe('POST /api/candidates/search', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    // Default: return empty matches
+    mockSearchCandidates.mockResolvedValue([])
+  })
+
+  describe('Authentication', () => {
+    it('should reject unauthenticated requests', async () => {
+      // Arrange
+      mockAuthFn.mockResolvedValue(null)
+
+      const request = createTestRequest('POST', {
+        jobId: TEST_IDS.job,
+      })
+
+      // Act
+      const response = await POST(request)
+
+      // Assert
+      expect(response.status).toBe(401)
+      const data = await parseResponse(response)
+      expect(data.error).toContain('Unauthorized')
+
+      // Verify search was not performed
+      expect(mockSearchCandidates).not.toHaveBeenCalled()
+    })
+
+    it('should reject candidate users without organization', async () => {
+      // Arrange
+      mockAuthFn.mockResolvedValue(createCandidateSession())
+
+      const request = createTestRequest('POST', {
+        jobId: TEST_IDS.job,
+      })
+
+      // Act
+      const response = await POST(request)
+
+      // Assert
+      expect(response.status).toBe(403)
+      const data = await parseResponse(response)
+      expect(data.error).toContain('organization')
+    })
+  })
+
+  describe('Validation', () => {
+    beforeEach(() => {
+      mockAuthFn.mockResolvedValue(createRecruiterSession())
+    })
+
+    it('should reject missing jobId', async () => {
+      // Arrange
+      const request = createTestRequest('POST', {
+        // jobId is missing
+        limit: 10,
+      })
+
+      // Act
+      const response = await POST(request)
+
+      // Assert
+      expect(response.status).toBe(400)
+      const data = await parseResponse(response)
+      expect(data.error).toContain('Invalid request')
+    })
+
+    it('should reject invalid limit (> 100)', async () => {
+      // Arrange
+      const request = createTestRequest('POST', {
+        jobId: TEST_IDS.job,
+        limit: 150, // Exceeds max
+      })
+
+      // Act
+      const response = await POST(request)
+
+      // Assert
+      expect(response.status).toBe(400)
+      const data = await parseResponse(response)
+      expect(data.error).toContain('Invalid request')
+    })
+
+    it('should reject invalid minSimilarity (> 1)', async () => {
+      // Arrange
+      const request = createTestRequest('POST', {
+        jobId: TEST_IDS.job,
+        minSimilarity: 1.5, // > 1
+      })
+
+      // Act
+      const response = await POST(request)
+
+      // Assert
+      expect(response.status).toBe(400)
+      const data = await parseResponse(response)
+      expect(data.error).toContain('Invalid request')
+    })
+
+    it('should reject invalid minSimilarity (< 0)', async () => {
+      // Arrange
+      const request = createTestRequest('POST', {
+        jobId: TEST_IDS.job,
+        minSimilarity: -0.5, // < 0
+      })
+
+      // Act
+      const response = await POST(request)
+
+      // Assert
+      expect(response.status).toBe(400)
+      const data = await parseResponse(response)
+      expect(data.error).toContain('Invalid request')
+    })
+  })
+
+  describe('Authorization', () => {
+    it('should reject access to job from different organization', async () => {
+      // Arrange - user from different org
+      mockAuthFn.mockResolvedValue(
+        createRecruiterSession({
+          orgId: 'different-org-id',
+          orgName: 'Different Organization',
+        }),
+      )
+
+      const request = createTestRequest('POST', {
+        jobId: TEST_IDS.job, // Job belongs to TEST_IDS.org
+      })
+
+      // Act
+      const response = await POST(request)
+
+      // Assert
+      expect(response.status).toBe(403)
+      const data = await parseResponse(response)
+      expect(data.error).toContain('Forbidden')
+    })
+
+    it('should allow recruiter from same organization', async () => {
+      // Arrange
+      mockAuthFn.mockResolvedValue(createRecruiterSession())
+
+      mockSearchCandidates.mockResolvedValue([
+        {
+          candidateId: 'candidate-1',
+          resumeId: 'resume-1',
+          resumeTitle: 'Software Engineer',
+          similarity: 0.85,
+        },
+      ])
+
+      const request = createTestRequest('POST', {
+        jobId: TEST_IDS.job,
+      })
+
+      // Act
+      const response = await POST(request)
+
+      // Assert
+      expect(response.status).toBe(200)
+      const data = await parseResponse(response)
+      expect(data.success).toBe(true)
+      expect(data.jobId).toBe(TEST_IDS.job)
+    })
+  })
+
+  describe('Job Existence', () => {
+    beforeEach(() => {
+      mockAuthFn.mockResolvedValue(createRecruiterSession())
+    })
+
+    it('should return 404 for non-existent job', async () => {
+      // Arrange
+      const request = createTestRequest('POST', {
+        jobId: 'non-existent-job-id',
+      })
+
+      // Act
+      const response = await POST(request)
+
+      // Assert
+      expect(response.status).toBe(404)
+      const data = await parseResponse(response)
+      expect(data.error).toContain('not found')
+    })
+  })
+
+  describe('Candidate Search', () => {
+    beforeEach(() => {
+      mockAuthFn.mockResolvedValue(createRecruiterSession())
+    })
+
+    it('should search candidates with default parameters', async () => {
+      // Arrange
+      mockSearchCandidates.mockResolvedValue([
+        {
+          candidateId: 'candidate-1',
+          resumeId: 'resume-1',
+          resumeTitle: 'Senior React Developer',
+          similarity: 0.92,
+          matchedSection: {
+            type: 'EXPERIENCE',
+            content: '5 years of React development...',
+          },
+        },
+      ])
+
+      const request = createTestRequest('POST', {
+        jobId: TEST_IDS.job,
+      })
+
+      // Act
+      const response = await POST(request)
+      const data = await parseResponse(response)
+
+      // Assert
+      expect(response.status).toBe(200)
+      expect(data.success).toBe(true)
+      expect(data.totalMatches).toBe(1)
+      expect(data.matches).toHaveLength(1)
+      expect(data.matches[0].similarity).toBe(0.92)
+
+      // Verify search was called with correct parameters
+      expect(mockSearchCandidates).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: TEST_IDS.org,
+          limit: 10, // Default
+          minSimilarity: 0.5, // Default
+          includeDetails: true, // Default
+        }),
+      )
+    })
+
+    it('should search candidates with custom parameters', async () => {
+      // Arrange
+      mockSearchCandidates.mockResolvedValue([])
+
+      const request = createTestRequest('POST', {
+        jobId: TEST_IDS.job,
+        limit: 5,
+        minSimilarity: 0.8,
+        includeDetails: false,
+      })
+
+      // Act
+      const response = await POST(request)
+      const data = await parseResponse(response)
+
+      // Assert
+      expect(response.status).toBe(200)
+
+      // Verify search was called with custom parameters
+      expect(mockSearchCandidates).toHaveBeenCalledWith(
+        expect.objectContaining({
+          limit: 5,
+          minSimilarity: 0.8,
+          includeDetails: false,
+        }),
+      )
+    })
+
+    it('should return multiple matching candidates', async () => {
+      // Arrange
+      mockSearchCandidates.mockResolvedValue([
+        {
+          candidateId: 'candidate-1',
+          resumeId: 'resume-1',
+          resumeTitle: 'Senior Developer',
+          similarity: 0.95,
+        },
+        {
+          candidateId: 'candidate-2',
+          resumeId: 'resume-2',
+          resumeTitle: 'Full Stack Engineer',
+          similarity: 0.88,
+        },
+        {
+          candidateId: 'candidate-3',
+          resumeId: 'resume-3',
+          resumeTitle: 'React Specialist',
+          similarity: 0.82,
+        },
+      ])
+
+      const request = createTestRequest('POST', {
+        jobId: TEST_IDS.job,
+        limit: 10,
+      })
+
+      // Act
+      const response = await POST(request)
+      const data = await parseResponse(response)
+
+      // Assert
+      expect(response.status).toBe(200)
+      expect(data.totalMatches).toBe(3)
+      expect(data.matches).toHaveLength(3)
+
+      // Verify candidates are in order
+      expect(data.matches[0].similarity).toBeGreaterThan(data.matches[1].similarity)
+      expect(data.matches[1].similarity).toBeGreaterThan(data.matches[2].similarity)
+    })
+
+    it('should return empty array when no candidates match', async () => {
+      // Arrange
+      mockSearchCandidates.mockResolvedValue([])
+
+      const request = createTestRequest('POST', {
+        jobId: TEST_IDS.job,
+        minSimilarity: 0.99, // Very high threshold
+      })
+
+      // Act
+      const response = await POST(request)
+      const data = await parseResponse(response)
+
+      // Assert
+      expect(response.status).toBe(200)
+      expect(data.success).toBe(true)
+      expect(data.totalMatches).toBe(0)
+      expect(data.matches).toHaveLength(0)
+    })
+
+    it('should filter out candidates who already applied', async () => {
+      // Arrange
+      mockSearchCandidates.mockResolvedValue([
+        {
+          candidateId: 'candidate-1',
+          resumeId: 'resume-1',
+          resumeTitle: 'Developer',
+          similarity: 0.9,
+        },
+        {
+          candidateId: 'candidate-applied', // This one already applied
+          resumeId: 'resume-applied',
+          resumeTitle: 'Developer',
+          similarity: 0.85,
+        },
+        {
+          candidateId: 'candidate-2',
+          resumeId: 'resume-2',
+          resumeTitle: 'Developer',
+          similarity: 0.8,
+        },
+      ])
+
+      // Create an application for candidate-applied
+      await prisma.application.create({
+        data: {
+          jobId: TEST_IDS.job,
+          candidateId: 'candidate-applied',
+          status: 'APPLIED',
+          appliedAt: new Date(),
+        },
+      })
+
+      const request = createTestRequest('POST', {
+        jobId: TEST_IDS.job,
+      })
+
+      // Act
+      const response = await POST(request)
+      const data = await parseResponse(response)
+
+      // Assert
+      expect(response.status).toBe(200)
+      expect(data.totalMatches).toBe(2) // candidate-applied is filtered out
+      expect(data.matches).toHaveLength(2)
+      expect(data.matches.find((m: any) => m.candidateId === 'candidate-applied')).toBeUndefined()
+    })
+
+    it('should include contact information when available', async () => {
+      // Arrange
+      const candidateId = 'candidate-with-contact'
+
+      // Create candidate contact
+      await prisma.candidateContact.create({
+        data: {
+          candidateId,
+          fullName: 'John Doe',
+          email: 'john@example.com',
+          location: 'San Francisco, CA',
+          availableFrom: new Date('2024-01-01'),
+          isPrimary: true,
+        },
+      })
+
+      mockSearchCandidates.mockResolvedValue([
+        {
+          candidateId,
+          resumeId: 'resume-1',
+          resumeTitle: 'Developer',
+          similarity: 0.9,
+        },
+      ])
+
+      const request = createTestRequest('POST', {
+        jobId: TEST_IDS.job,
+      })
+
+      // Act
+      const response = await POST(request)
+      const data = await parseResponse(response)
+
+      // Assert
+      expect(response.status).toBe(200)
+      expect(data.matches).toHaveLength(1)
+      expect(data.matches[0].contact).toBeDefined()
+      expect(data.matches[0].contact.fullName).toBe('John Doe')
+      expect(data.matches[0].contact.email).toBe('john@example.com')
+      expect(data.matches[0].contact.location).toBe('San Francisco, CA')
+    })
+
+    it('should handle candidates without contact information', async () => {
+      // Arrange
+      mockSearchCandidates.mockResolvedValue([
+        {
+          candidateId: 'candidate-no-contact',
+          resumeId: 'resume-1',
+          resumeTitle: 'Developer',
+          similarity: 0.9,
+        },
+      ])
+
+      const request = createTestRequest('POST', {
+        jobId: TEST_IDS.job,
+      })
+
+      // Act
+      const response = await POST(request)
+      const data = await parseResponse(response)
+
+      // Assert
+      expect(response.status).toBe(200)
+      expect(data.matches).toHaveLength(1)
+      expect(data.matches[0].contact).toBeUndefined()
+    })
+  })
+
+  describe('Response Format', () => {
+    beforeEach(() => {
+      mockAuthFn.mockResolvedValue(createRecruiterSession())
+    })
+
+    it('should return correct response structure', async () => {
+      // Arrange
+      mockSearchCandidates.mockResolvedValue([
+        {
+          candidateId: 'candidate-1',
+          resumeId: 'resume-1',
+          resumeTitle: 'Developer',
+          similarity: 0.9,
+          matchedSection: {
+            type: 'SKILLS',
+            content: 'React, TypeScript, Node.js',
+          },
+        },
+      ])
+
+      const request = createTestRequest('POST', {
+        jobId: TEST_IDS.job,
+      })
+
+      // Act
+      const response = await POST(request)
+      const data = await parseResponse(response)
+
+      // Assert
+      expect(data).toMatchObject({
+        success: true,
+        jobId: expect.any(String),
+        jobTitle: expect.any(String),
+        totalMatches: expect.any(Number),
+        matches: expect.arrayContaining([
+          expect.objectContaining({
+            candidateId: expect.any(String),
+            resumeId: expect.any(String),
+            resumeTitle: expect.any(String),
+            similarity: expect.any(Number),
+          }),
+        ]),
+      })
+    })
+
+    it('should include matched section when available', async () => {
+      // Arrange
+      mockSearchCandidates.mockResolvedValue([
+        {
+          candidateId: 'candidate-1',
+          resumeId: 'resume-1',
+          resumeTitle: 'Developer',
+          similarity: 0.9,
+          matchedSection: {
+            type: 'EXPERIENCE',
+            content: 'Senior React Developer at Tech Corp',
+          },
+        },
+      ])
+
+      const request = createTestRequest('POST', {
+        jobId: TEST_IDS.job,
+      })
+
+      // Act
+      const response = await POST(request)
+      const data = await parseResponse(response)
+
+      // Assert
+      expect(data.matches[0].matchedSection).toBeDefined()
+      expect(data.matches[0].matchedSection.type).toBe('EXPERIENCE')
+      expect(data.matches[0].matchedSection.content).toContain('React Developer')
+    })
+  })
+})
