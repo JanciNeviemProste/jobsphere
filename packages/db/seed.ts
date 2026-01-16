@@ -16,8 +16,8 @@ const REGIONS = {
 async function seed() {
   console.log('🌱 Starting seed...')
 
-  // Clear existing data
-  await prisma.$executeRaw`TRUNCATE TABLE organizations CASCADE`
+  // Clear existing data (truncate all main tables)
+  await prisma.$executeRaw`TRUNCATE TABLE "User", "Organization", "Candidate", "Job", "Application", "Assessment", "EmailSequence", "Product" CASCADE`
 
   // Create demo organization
   const org = await prisma.organization.create({
@@ -500,7 +500,7 @@ async function seed() {
                   type: 'CODE',
                   text: 'Write a React component that fetches and displays user data',
                   language: 'javascript',
-                  code: '// Write your component here',
+                  starterCode: '// Write your component here',
                   points: 20,
                   skillTag: 'react',
                   order: 2,
@@ -548,7 +548,7 @@ async function seed() {
                   type: 'CODE',
                   text: 'Write a Python function to find all prime numbers up to n using the Sieve of Eratosthenes',
                   language: 'python',
-                  code: 'def sieve_of_eratosthenes(n):\n    # Your code here\n    pass',
+                  starterCode: 'def sieve_of_eratosthenes(n):\n    # Your code here\n    pass',
                   points: 15,
                   skillTag: 'python',
                   order: 2,
@@ -572,7 +572,8 @@ async function seed() {
                   type: 'CODE',
                   text: 'Write a SQL query to find the top 5 customers by total order value, including their name, email, and total spent.',
                   language: 'sql',
-                  code: '-- Assume tables: customers (id, name, email) and orders (id, customer_id, total)\nSELECT\n  -- Your query here',
+                  starterCode:
+                    '-- Assume tables: customers (id, name, email) and orders (id, customer_id, total)\nSELECT\n  -- Your query here',
                   points: 15,
                   skillTag: 'sql',
                   order: 2,
@@ -598,7 +599,7 @@ async function seed() {
                   type: 'CODE',
                   text: 'Write a Python script using pandas to read a CSV file, filter rows where age > 25, group by city, and calculate average salary.',
                   language: 'python',
-                  code: 'import pandas as pd\n\n# Your code here',
+                  starterCode: 'import pandas as pd\n\n# Your code here',
                   points: 20,
                   skillTag: 'pandas',
                   order: 1,
