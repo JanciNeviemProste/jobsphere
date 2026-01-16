@@ -1,21 +1,23 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Briefcase,
-  Sparkles,
-  Eye,
-  Send,
-  Save
-} from 'lucide-react'
+import { Briefcase, Sparkles, Eye, Send, Save, Loader2 } from 'lucide-react'
+import { useToast } from '@/components/ui/use-toast'
 
 export default function PostJobPage() {
   const t = useTranslations('postJob')
+  const router = useRouter()
+  const { toast } = useToast()
+
+  // Loading & Error State
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Basic Info State
   const [basicInfo, setBasicInfo] = useState({
@@ -23,7 +25,7 @@ export default function PostJobPage() {
     company: '',
     location: '',
     remote: 'onsite',
-    type: 'fullTime'
+    type: 'fullTime',
   })
 
   // Description State
@@ -31,7 +33,7 @@ export default function PostJobPage() {
     description: '',
     responsibilities: '',
     requirements: '',
-    niceToHave: ''
+    niceToHave: '',
   })
 
   // Compensation State
@@ -39,33 +41,99 @@ export default function PostJobPage() {
     salaryMin: '',
     salaryMax: '',
     currency: 'EUR',
-    benefits: ''
+    benefits: '',
   })
 
   // Application Settings State
   const [applicationSettings, setApplicationSettings] = useState({
     email: '',
     deadline: '',
-    questions: ''
+    questions: '',
   })
+
+  // Map form values to API format
+  const mapWorkMode = (remote: string) => {
+    if (remote === 'remote') return 'REMOTE'
+    if (remote === 'hybrid') return 'HYBRID'
+    return 'ONSITE'
+  }
+
+  const mapEmploymentType = (type: string) => {
+    if (type === 'partTime') return 'PART_TIME'
+    if (type === 'contract') return 'CONTRACT'
+    if (type === 'internship') return 'CONTRACT' // Map internship to CONTRACT
+    return 'FULL_TIME'
+  }
+
+  // Form submission handler
+  const handlePublish = async () => {
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/jobs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: basicInfo.jobTitle,
+          description: description.description,
+          location: basicInfo.location,
+          workMode: mapWorkMode(basicInfo.remote),
+          type: mapEmploymentType(basicInfo.type),
+          salaryMin: compensation.salaryMin ? Number(compensation.salaryMin) : undefined,
+          salaryMax: compensation.salaryMax ? Number(compensation.salaryMax) : undefined,
+          seniority: 'MEDIOR', // Default seniority (can be made configurable later)
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create job')
+      }
+
+      const job = await response.json()
+
+      toast.success('Success!', {
+        description: 'Job posted successfully',
+      })
+
+      // Redirect to job detail page
+      router.push(`/jobs/${job.id}`)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to publish job'
+      setError(errorMessage)
+      toast.error('Error', {
+        description: errorMessage,
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Save draft handler (placeholder for now)
+  const handleSaveDraft = () => {
+    toast.success('Draft saved', {
+      description: 'Your job draft has been saved locally',
+    })
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <div className="container mx-auto px-4 py-12">
         {/* Hero Section */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center mb-4">
+        <div className="mb-12 text-center">
+          <div className="mb-4 flex items-center justify-center">
             <Briefcase className="h-12 w-12 text-primary" />
           </div>
-          <h1 className="text-4xl font-bold mb-4">{t('title')}</h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            {t('subtitle')}
-          </p>
+          <h1 className="mb-4 text-4xl font-bold">{t('title')}</h1>
+          <p className="mx-auto max-w-2xl text-xl text-muted-foreground">{t('subtitle')}</p>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-3">
           {/* Form Section */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6 lg:col-span-2">
             {/* Job Details */}
             <Card>
               <CardHeader>
@@ -77,17 +145,17 @@ export default function PostJobPage() {
                   <Input
                     id="jobTitle"
                     value={basicInfo.jobTitle}
-                    onChange={(e) => setBasicInfo({...basicInfo, jobTitle: e.target.value})}
+                    onChange={(e) => setBasicInfo({ ...basicInfo, jobTitle: e.target.value })}
                     placeholder={t('form.basics.jobTitle')}
                   />
                 </div>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <Label htmlFor="company">{t('form.basics.company')}</Label>
                     <Input
                       id="company"
                       value={basicInfo.company}
-                      onChange={(e) => setBasicInfo({...basicInfo, company: e.target.value})}
+                      onChange={(e) => setBasicInfo({ ...basicInfo, company: e.target.value })}
                       placeholder={t('form.basics.company')}
                     />
                   </div>
@@ -96,19 +164,19 @@ export default function PostJobPage() {
                     <Input
                       id="location"
                       value={basicInfo.location}
-                      onChange={(e) => setBasicInfo({...basicInfo, location: e.target.value})}
+                      onChange={(e) => setBasicInfo({ ...basicInfo, location: e.target.value })}
                       placeholder={t('form.basics.location')}
                     />
                   </div>
                 </div>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <Label htmlFor="remote">{t('form.basics.remote')}</Label>
                     <select
                       id="remote"
-                      className="w-full px-3 py-2 border rounded-md"
+                      className="w-full rounded-md border px-3 py-2"
                       value={basicInfo.remote}
-                      onChange={(e) => setBasicInfo({...basicInfo, remote: e.target.value})}
+                      onChange={(e) => setBasicInfo({ ...basicInfo, remote: e.target.value })}
                     >
                       <option value="onsite">{t('form.basics.remoteOptions.onsite')}</option>
                       <option value="hybrid">{t('form.basics.remoteOptions.hybrid')}</option>
@@ -119,9 +187,9 @@ export default function PostJobPage() {
                     <Label htmlFor="type">{t('form.basics.type')}</Label>
                     <select
                       id="type"
-                      className="w-full px-3 py-2 border rounded-md"
+                      className="w-full rounded-md border px-3 py-2"
                       value={basicInfo.type}
-                      onChange={(e) => setBasicInfo({...basicInfo, type: e.target.value})}
+                      onChange={(e) => setBasicInfo({ ...basicInfo, type: e.target.value })}
                     >
                       <option value="fullTime">{t('form.basics.typeOptions.fullTime')}</option>
                       <option value="partTime">{t('form.basics.typeOptions.partTime')}</option>
@@ -143,9 +211,11 @@ export default function PostJobPage() {
                   <Label htmlFor="description">{t('form.description.description')}</Label>
                   <textarea
                     id="description"
-                    className="w-full min-h-[120px] px-3 py-2 border rounded-md"
+                    className="min-h-[120px] w-full rounded-md border px-3 py-2"
                     value={description.description}
-                    onChange={(e) => setDescription({...description, description: e.target.value})}
+                    onChange={(e) =>
+                      setDescription({ ...description, description: e.target.value })
+                    }
                     placeholder={t('form.description.description')}
                   />
                 </div>
@@ -153,9 +223,11 @@ export default function PostJobPage() {
                   <Label htmlFor="responsibilities">{t('form.description.responsibilities')}</Label>
                   <textarea
                     id="responsibilities"
-                    className="w-full min-h-[120px] px-3 py-2 border rounded-md"
+                    className="min-h-[120px] w-full rounded-md border px-3 py-2"
                     value={description.responsibilities}
-                    onChange={(e) => setDescription({...description, responsibilities: e.target.value})}
+                    onChange={(e) =>
+                      setDescription({ ...description, responsibilities: e.target.value })
+                    }
                     placeholder={t('form.description.responsibilities')}
                   />
                 </div>
@@ -163,9 +235,11 @@ export default function PostJobPage() {
                   <Label htmlFor="requirements">{t('form.description.requirements')}</Label>
                   <textarea
                     id="requirements"
-                    className="w-full min-h-[120px] px-3 py-2 border rounded-md"
+                    className="min-h-[120px] w-full rounded-md border px-3 py-2"
                     value={description.requirements}
-                    onChange={(e) => setDescription({...description, requirements: e.target.value})}
+                    onChange={(e) =>
+                      setDescription({ ...description, requirements: e.target.value })
+                    }
                     placeholder={t('form.description.requirements')}
                   />
                 </div>
@@ -173,9 +247,9 @@ export default function PostJobPage() {
                   <Label htmlFor="niceToHave">{t('form.description.niceToHave')}</Label>
                   <textarea
                     id="niceToHave"
-                    className="w-full min-h-[100px] px-3 py-2 border rounded-md"
+                    className="min-h-[100px] w-full rounded-md border px-3 py-2"
                     value={description.niceToHave}
-                    onChange={(e) => setDescription({...description, niceToHave: e.target.value})}
+                    onChange={(e) => setDescription({ ...description, niceToHave: e.target.value })}
                     placeholder={t('form.description.niceToHave')}
                   />
                 </div>
@@ -195,7 +269,9 @@ export default function PostJobPage() {
                       <Input
                         type="number"
                         value={compensation.salaryMin}
-                        onChange={(e) => setCompensation({...compensation, salaryMin: e.target.value})}
+                        onChange={(e) =>
+                          setCompensation({ ...compensation, salaryMin: e.target.value })
+                        }
                         placeholder={t('form.compensation.salaryMin')}
                       />
                     </div>
@@ -203,15 +279,19 @@ export default function PostJobPage() {
                       <Input
                         type="number"
                         value={compensation.salaryMax}
-                        onChange={(e) => setCompensation({...compensation, salaryMax: e.target.value})}
+                        onChange={(e) =>
+                          setCompensation({ ...compensation, salaryMax: e.target.value })
+                        }
                         placeholder={t('form.compensation.salaryMax')}
                       />
                     </div>
                     <div>
                       <select
-                        className="w-full px-3 py-2 border rounded-md"
+                        className="w-full rounded-md border px-3 py-2"
                         value={compensation.currency}
-                        onChange={(e) => setCompensation({...compensation, currency: e.target.value})}
+                        onChange={(e) =>
+                          setCompensation({ ...compensation, currency: e.target.value })
+                        }
                       >
                         <option value="EUR">EUR</option>
                         <option value="USD">USD</option>
@@ -226,9 +306,9 @@ export default function PostJobPage() {
                   <Label htmlFor="benefits">{t('form.compensation.benefits')}</Label>
                   <textarea
                     id="benefits"
-                    className="w-full min-h-[100px] px-3 py-2 border rounded-md"
+                    className="min-h-[100px] w-full rounded-md border px-3 py-2"
                     value={compensation.benefits}
-                    onChange={(e) => setCompensation({...compensation, benefits: e.target.value})}
+                    onChange={(e) => setCompensation({ ...compensation, benefits: e.target.value })}
                     placeholder={t('form.compensation.benefits')}
                   />
                 </div>
@@ -241,14 +321,16 @@ export default function PostJobPage() {
                 <CardTitle>{t('form.application.title')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <Label htmlFor="email">{t('form.application.email')}</Label>
                     <Input
                       id="email"
                       type="email"
                       value={applicationSettings.email}
-                      onChange={(e) => setApplicationSettings({...applicationSettings, email: e.target.value})}
+                      onChange={(e) =>
+                        setApplicationSettings({ ...applicationSettings, email: e.target.value })
+                      }
                       placeholder={t('form.application.email')}
                     />
                   </div>
@@ -258,7 +340,9 @@ export default function PostJobPage() {
                       id="deadline"
                       type="date"
                       value={applicationSettings.deadline}
-                      onChange={(e) => setApplicationSettings({...applicationSettings, deadline: e.target.value})}
+                      onChange={(e) =>
+                        setApplicationSettings({ ...applicationSettings, deadline: e.target.value })
+                      }
                     />
                   </div>
                 </div>
@@ -266,9 +350,11 @@ export default function PostJobPage() {
                   <Label htmlFor="questions">{t('form.application.questions')}</Label>
                   <textarea
                     id="questions"
-                    className="w-full min-h-[100px] px-3 py-2 border rounded-md"
+                    className="min-h-[100px] w-full rounded-md border px-3 py-2"
                     value={applicationSettings.questions}
-                    onChange={(e) => setApplicationSettings({...applicationSettings, questions: e.target.value})}
+                    onChange={(e) =>
+                      setApplicationSettings({ ...applicationSettings, questions: e.target.value })
+                    }
                     placeholder={t('form.application.questions')}
                   />
                 </div>
@@ -286,22 +372,41 @@ export default function PostJobPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full" variant="outline">
-                  <Sparkles className="h-4 w-4 mr-2" />
+                <Button className="w-full" variant="outline" disabled={isSubmitting}>
+                  <Sparkles className="mr-2 h-4 w-4" />
                   {t('aiHelper.improve')}
                 </Button>
-                <Button className="w-full" variant="outline">
-                  <Eye className="h-4 w-4 mr-2" />
+                <Button className="w-full" variant="outline" disabled={isSubmitting}>
+                  <Eye className="mr-2 h-4 w-4" />
                   {t('actions.preview')}
                 </Button>
-                <Button className="w-full">
-                  <Send className="h-4 w-4 mr-2" />
-                  {t('actions.publish')}
+                <Button
+                  className="w-full"
+                  onClick={handlePublish}
+                  disabled={isSubmitting || !basicInfo.jobTitle || !description.description}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Publishing...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-4 w-4" />
+                      {t('actions.publish')}
+                    </>
+                  )}
                 </Button>
-                <Button className="w-full" variant="secondary">
-                  <Save className="h-4 w-4 mr-2" />
+                <Button
+                  className="w-full"
+                  variant="secondary"
+                  onClick={handleSaveDraft}
+                  disabled={isSubmitting}
+                >
+                  <Save className="mr-2 h-4 w-4" />
                   {t('actions.saveDraft')}
                 </Button>
+                {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
               </CardContent>
             </Card>
 
@@ -310,7 +415,7 @@ export default function PostJobPage() {
               <CardHeader>
                 <CardTitle className="text-sm">💡 Tips</CardTitle>
               </CardHeader>
-              <CardContent className="text-sm text-muted-foreground space-y-2">
+              <CardContent className="space-y-2 text-sm text-muted-foreground">
                 <p>• Be specific about requirements</p>
                 <p>• Include salary range for transparency</p>
                 <p>• Highlight company culture and benefits</p>
