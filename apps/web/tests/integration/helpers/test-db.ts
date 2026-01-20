@@ -1,16 +1,14 @@
-import { PrismaClient } from '@prisma/client'
 import { hash } from 'bcryptjs'
 import type { Job, User, Organization, Candidate, Application } from '@prisma/client'
+import { prisma as appPrisma } from '@/lib/prisma'
 
 /**
  * Database Helper for Integration Tests
  * Provides utilities for seeding and cleaning test data
  */
 
-// Use separate test database
-const prisma = new PrismaClient({
-  datasourceUrl: process.env.DATABASE_URL,
-})
+// Use application Prisma instance (includes XSS sanitization middleware)
+const prisma = appPrisma
 
 // Test IDs - all prefixed with 'test-' for easy cleanup
 export const TEST_IDS = {
@@ -424,7 +422,7 @@ export async function createTestCandidate(overrides?: Partial<Candidate>): Promi
  */
 export async function createTestCandidateWithContact(
   contactOverrides?: any,
-  candidateOverrides?: Partial<Candidate>
+  candidateOverrides?: Partial<Candidate>,
 ) {
   const candidate = await createTestCandidate(candidateOverrides)
 
@@ -449,7 +447,7 @@ export async function createTestCandidateWithContact(
 export async function createTestApplication(
   jobId: string,
   candidateId: string,
-  overrides?: Partial<Application>
+  overrides?: Partial<Application>,
 ): Promise<Application> {
   return await prisma.application.create({
     data: {
@@ -466,7 +464,11 @@ export async function createTestApplication(
 /**
  * Create a test user (for dynamic tests)
  */
-export async function createTestUser(email: string, name: string, password?: string): Promise<User> {
+export async function createTestUser(
+  email: string,
+  name: string,
+  password?: string,
+): Promise<User> {
   return await prisma.user.create({
     data: {
       email,

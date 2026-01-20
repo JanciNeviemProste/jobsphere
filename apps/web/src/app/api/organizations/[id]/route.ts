@@ -2,19 +2,17 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { sanitizeHtml, sanitizeUrl } from '@/lib/sanitize'
 
 const updateOrgSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   website: z.string().url().optional().or(z.literal('')),
   description: z.string().max(2000).optional().or(z.literal('')),
   industry: z.string().max(100).optional().or(z.literal('')),
-  size: z.string().max(50).optional().or(z.literal(''))
+  size: z.string().max(50).optional().or(z.literal('')),
 })
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
@@ -25,8 +23,8 @@ export async function GET(
     const membership = await prisma.userOrgRole.findFirst({
       where: {
         userId: session.user.id,
-        orgId: params.id
-      }
+        orgId: params.id,
+      },
     })
 
     if (!membership) {
@@ -43,8 +41,8 @@ export async function GET(
         description: true,
         industry: true,
         size: true,
-        slug: true
-      }
+        slug: true,
+      },
     })
 
     if (!organization) {
@@ -54,17 +52,11 @@ export async function GET(
     return NextResponse.json(organization)
   } catch (error) {
     console.error('Error fetching organization:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch organization' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch organization' }, { status: 500 })
   }
 }
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
@@ -76,28 +68,33 @@ export async function PATCH(
       where: {
         userId: session.user.id,
         orgId: params.id,
-        role: 'ORG_ADMIN'
-      }
+        role: 'ORG_ADMIN',
+      },
     })
 
     if (!membership) {
       return NextResponse.json(
         { error: 'Forbidden - Only organization admins can update organization settings' },
-        { status: 403 }
+        { status: 403 },
       )
     }
 
     const body = await request.json()
     const validatedData = updateOrgSchema.parse(body)
 
-    // Prepare update data (remove empty strings)
+    // Prepare update data (remove empty strings and sanitize)
     const updateData: any = {}
-    if (validatedData.name !== undefined) updateData.name = validatedData.name
+    if (validatedData.name !== undefined) {
+      // Sanitize name to prevent XSS via event handlers
+      updateData.name = sanitizeHtml(validatedData.name)
+    }
     if (validatedData.website !== undefined) {
-      updateData.website = validatedData.website === '' ? null : validatedData.website
+      // Sanitize URL to prevent javascript: protocol XSS
+      updateData.website = sanitizeUrl(validatedData.website)
     }
     if (validatedData.description !== undefined) {
-      updateData.description = validatedData.description === '' ? null : validatedData.description
+      // Sanitize HTML to prevent XSS via script tags and event handlers
+      updateData.description = sanitizeHtml(validatedData.description)
     }
     if (validatedData.industry !== undefined) {
       updateData.industry = validatedData.industry === '' ? null : validatedData.industry
@@ -117,8 +114,8 @@ export async function PATCH(
         description: true,
         industry: true,
         size: true,
-        slug: true
-      }
+        slug: true,
+      },
     })
 
     return NextResponse.json(updated)
@@ -126,14 +123,11 @@ export async function PATCH(
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.errors },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
     console.error('Error updating organization:', error)
-    return NextResponse.json(
-      { error: 'Failed to update organization' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to update organization' }, { status: 500 })
   }
 }

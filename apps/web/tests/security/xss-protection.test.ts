@@ -122,7 +122,7 @@ describe('XSS Protection Security Tests', () => {
 
       // Verify database storage is safe
       const job = await prisma.job.findUnique({
-        where: { id: data.id }
+        where: { id: data.id },
       })
       expect(job?.title).not.toContain('<script>')
       expect(job?.title).not.toMatch(/<script[^>]*>/i)
@@ -159,7 +159,7 @@ describe('XSS Protection Security Tests', () => {
 
       // Verify database
       const job = await prisma.job.findUnique({
-        where: { id: data.id }
+        where: { id: data.id },
       })
       expect(job?.description).not.toMatch(/<script[^>]*>/i)
     })
@@ -207,7 +207,7 @@ describe('XSS Protection Security Tests', () => {
 
       // Verify database
       const application = await prisma.application.findUnique({
-        where: { id: data.id }
+        where: { id: data.id },
       })
       expect(application?.coverLetter).not.toMatch(/<script[^>]*>/i)
     })
@@ -238,7 +238,7 @@ describe('XSS Protection Security Tests', () => {
 
       // Verify database
       const job = await prisma.job.findUnique({
-        where: { id: data.id }
+        where: { id: data.id },
       })
       expect(job?.title).not.toMatch(/onerror/i)
     })
@@ -282,7 +282,7 @@ describe('XSS Protection Security Tests', () => {
 
       // Verify database
       const job = await prisma.job.findUnique({
-        where: { id: data.id }
+        where: { id: data.id },
       })
       expect(job?.description).not.toMatch(/on\w+=/i) // No event handlers
     })
@@ -296,7 +296,7 @@ describe('XSS Protection Security Tests', () => {
         data: {
           name: 'Test Org',
           slug: `test-org-${Date.now()}`,
-        }
+        },
       })
 
       // Add admin membership
@@ -305,7 +305,7 @@ describe('XSS Protection Security Tests', () => {
           userId: TEST_IDS.admin,
           orgId: org.id,
           role: 'ORG_ADMIN',
-        }
+        },
       })
 
       const request = createTestRequest('PATCH', {
@@ -322,7 +322,7 @@ describe('XSS Protection Security Tests', () => {
 
       // Verify database
       const updated = await prisma.organization.findUnique({
-        where: { id: org.id }
+        where: { id: org.id },
       })
       expect(updated?.name).not.toMatch(/onerror/i)
 
@@ -356,7 +356,7 @@ describe('XSS Protection Security Tests', () => {
 
       // Special chars should be safely encoded or escaped
       const job = await prisma.job.findUnique({
-        where: { id: data.id }
+        where: { id: data.id },
       })
       expect(job?.title).toBeDefined()
 
@@ -389,7 +389,7 @@ describe('XSS Protection Security Tests', () => {
       expect(data.description).not.toContain('<script>')
 
       const job = await prisma.job.findUnique({
-        where: { id: data.id }
+        where: { id: data.id },
       })
       expect(job?.description).not.toMatch(/<script[^>]*>/i)
     })
@@ -402,7 +402,7 @@ describe('XSS Protection Security Tests', () => {
         data: {
           orgId: TEST_IDS.org,
           source: 'MANUAL',
-        }
+        },
       })
 
       const maliciousContact = await prisma.candidateContact.create({
@@ -411,22 +411,28 @@ describe('XSS Protection Security Tests', () => {
           fullName: 'Test Candidate',
           email: 'test@example.com',
           linkedIn: XSS_PAYLOADS.jsProtocol,
-        }
+        },
       })
 
       // Assert - verify storage doesn't contain javascript: protocol
       const stored = await prisma.candidateContact.findUnique({
-        where: { id: maliciousContact.id }
+        where: { id: maliciousContact.id },
       })
 
-      // Should either reject or sanitize javascript: URLs
+      // The middleware should have removed the dangerous linkedIn field
+      // So either the field is null/undefined, or it doesn't contain javascript:
       if (stored?.linkedIn) {
         expect(stored.linkedIn).not.toMatch(/javascript:/i)
         expect(stored.linkedIn).not.toContain('alert')
+      } else {
+        // Field was removed/nullified by middleware (expected behavior)
+        expect(stored?.linkedIn).toBeNull()
       }
 
-      // Cleanup
-      await prisma.candidateContact.delete({ where: { id: maliciousContact.id } })
+      // Cleanup - check if record exists before deleting
+      if (stored) {
+        await prisma.candidateContact.delete({ where: { id: maliciousContact.id } })
+      }
       await prisma.candidate.delete({ where: { id: candidate.id } })
     })
 
@@ -438,7 +444,7 @@ describe('XSS Protection Security Tests', () => {
         data: {
           name: 'Test Org',
           slug: `test-org-${Date.now()}`,
-        }
+        },
       })
 
       await prisma.userOrgRole.create({
@@ -446,7 +452,7 @@ describe('XSS Protection Security Tests', () => {
           userId: TEST_IDS.admin,
           orgId: org.id,
           role: 'ORG_ADMIN',
-        }
+        },
       })
 
       const request = createTestRequest('PATCH', {
@@ -641,7 +647,7 @@ describe('XSS Protection Security Tests', () => {
 
       // Verify database storage
       const dbJob = await prisma.job.findUnique({
-        where: { id: createData.id }
+        where: { id: createData.id },
       })
 
       expect(dbJob?.title).not.toMatch(/<script[^>]*>/i)
@@ -700,7 +706,7 @@ describe('XSS Protection Security Tests', () => {
 
       // Verify database storage
       const dbApplication = await prisma.application.findUnique({
-        where: { id: application.id }
+        where: { id: application.id },
       })
 
       expect(dbApplication?.coverLetter).not.toMatch(/<script[^>]*>/i)
@@ -741,7 +747,7 @@ describe('XSS Protection Security Tests', () => {
         expect(data.title).not.toMatch(/onerror/i)
 
         const job = await prisma.job.findUnique({
-          where: { id: data.id }
+          where: { id: data.id },
         })
         expect(job?.title).not.toMatch(/<script[^>]*>/i)
       }
@@ -771,7 +777,7 @@ describe('XSS Protection Security Tests', () => {
       expect(data.description).not.toContain('alert')
 
       const job = await prisma.job.findUnique({
-        where: { id: data.id }
+        where: { id: data.id },
       })
       expect(job?.description).not.toMatch(/javascript:/i)
       expect(job?.description).not.toMatch(/onerror/i)
@@ -811,7 +817,7 @@ describe('XSS Protection Security Tests', () => {
       }
 
       const job = await prisma.job.findUnique({
-        where: { id: data.id }
+        where: { id: data.id },
       })
 
       if (job?.description.includes('<svg')) {
@@ -844,7 +850,7 @@ describe('XSS Protection Security Tests', () => {
       expect(combined).not.toMatch(/<script[^>]*>.*<\/script>/i)
 
       const job = await prisma.job.findUnique({
-        where: { id: data.id }
+        where: { id: data.id },
       })
 
       const dbCombined = (job?.title || '') + (job?.description || '')
@@ -861,7 +867,7 @@ describe('XSS Protection Security Tests', () => {
         data: {
           name: 'Test Org',
           slug: `test-org-${Date.now()}`,
-        }
+        },
       })
 
       await prisma.userOrgRole.create({
@@ -869,7 +875,7 @@ describe('XSS Protection Security Tests', () => {
           userId: TEST_IDS.admin,
           orgId: org.id,
           role: 'ORG_ADMIN',
-        }
+        },
       })
 
       const maliciousDescription = `
@@ -894,7 +900,7 @@ describe('XSS Protection Security Tests', () => {
 
       // Verify database
       const updated = await prisma.organization.findUnique({
-        where: { id: org.id }
+        where: { id: org.id },
       })
       expect(updated?.description).not.toMatch(/<script[^>]*>/i)
 
@@ -911,7 +917,7 @@ describe('XSS Protection Security Tests', () => {
         data: {
           name: 'Test Org',
           slug: `test-org-${Date.now()}`,
-        }
+        },
       })
 
       await prisma.userOrgRole.create({
@@ -919,7 +925,7 @@ describe('XSS Protection Security Tests', () => {
           userId: TEST_IDS.admin,
           orgId: org.id,
           role: 'ORG_ADMIN',
-        }
+        },
       })
 
       const maliciousUrls = [
