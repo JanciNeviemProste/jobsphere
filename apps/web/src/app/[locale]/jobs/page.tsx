@@ -4,7 +4,14 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,6 +27,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { formatDistanceToNow } from 'date-fns'
 import { sk, cs, pl, de, enUS } from 'date-fns/locale'
+import { RecommendedJobsSection } from '@/components/jobs/RecommendedJobsSection'
 
 // Job type from database
 interface Job {
@@ -59,12 +67,17 @@ function useDebounce<T>(value: T, delay: number): T {
 
 // Get date locale based on current locale
 function getDateLocale(locale: string) {
-  switch(locale) {
-    case 'sk': return sk
-    case 'cs': return cs
-    case 'pl': return pl
-    case 'de': return de
-    default: return enUS
+  switch (locale) {
+    case 'sk':
+      return sk
+    case 'cs':
+      return cs
+    case 'pl':
+      return pl
+    case 'de':
+      return de
+    default:
+      return enUS
   }
 }
 
@@ -126,18 +139,14 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
       // If multiple filters selected, filter client-side
       let filteredData = data
       if (selectedWorkModes.length > 1) {
-        filteredData = filteredData.filter((job: Job) =>
-          selectedWorkModes.includes(job.workMode)
-        )
+        filteredData = filteredData.filter((job: Job) => selectedWorkModes.includes(job.workMode))
       }
       if (selectedJobTypes.length > 1) {
-        filteredData = filteredData.filter((job: Job) =>
-          selectedJobTypes.includes(job.type)
-        )
+        filteredData = filteredData.filter((job: Job) => selectedJobTypes.includes(job.type))
       }
       if (selectedSeniority.length > 1) {
-        filteredData = filteredData.filter((job: Job) =>
-          job.seniority && selectedSeniority.includes(job.seniority)
+        filteredData = filteredData.filter(
+          (job: Job) => job.seniority && selectedSeniority.includes(job.seniority),
         )
       }
 
@@ -165,19 +174,27 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
 
   const getWorkModeLabel = (mode: string) => {
     switch (mode) {
-      case 'REMOTE': return t('jobs.remote')
-      case 'HYBRID': return t('jobs.hybrid')
-      case 'ONSITE': return t('jobs.onsite')
-      default: return mode
+      case 'REMOTE':
+        return t('jobs.remote')
+      case 'HYBRID':
+        return t('jobs.hybrid')
+      case 'ONSITE':
+        return t('jobs.onsite')
+      default:
+        return mode
     }
   }
 
   const getJobTypeLabel = (type: string) => {
     switch (type) {
-      case 'FULL_TIME': return t('jobs.fullTime')
-      case 'PART_TIME': return t('jobs.partTime')
-      case 'CONTRACT': return t('jobs.contract')
-      default: return type
+      case 'FULL_TIME':
+        return t('jobs.fullTime')
+      case 'PART_TIME':
+        return t('jobs.partTime')
+      case 'CONTRACT':
+        return t('jobs.contract')
+      default:
+        return type
     }
   }
 
@@ -186,7 +203,7 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
       <div className="container mx-auto px-4 py-12">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">{t('jobs.title')}</h1>
+          <h1 className="mb-2 text-4xl font-bold">{t('jobs.title')}</h1>
           <p className="text-muted-foreground">
             {loading ? (
               <span className="flex items-center gap-2">
@@ -195,11 +212,15 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
               </span>
             ) : (
               <>
-                {jobs.length} {jobs.length === 1 ? t('jobs.offer') : t('jobs.offers')} {t('jobs.found')}
+                {jobs.length} {jobs.length === 1 ? t('jobs.offer') : t('jobs.offers')}{' '}
+                {t('jobs.found')}
               </>
             )}
           </p>
         </div>
+
+        {/* Recommended Jobs Section */}
+        <RecommendedJobsSection locale={locale} />
 
         {/* Search and Filters */}
         <div className="mb-8 flex flex-col gap-4 md:flex-row">
@@ -234,7 +255,9 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
                   <DropdownMenuCheckboxItem
                     key={mode}
                     checked={selectedWorkModes.includes(mode)}
-                    onCheckedChange={() => toggleFilter(mode, selectedWorkModes, setSelectedWorkModes)}
+                    onCheckedChange={() =>
+                      toggleFilter(mode, selectedWorkModes, setSelectedWorkModes)
+                    }
                   >
                     {getWorkModeLabel(mode)}
                   </DropdownMenuCheckboxItem>
@@ -262,7 +285,9 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
                   <DropdownMenuCheckboxItem
                     key={type}
                     checked={selectedJobTypes.includes(type)}
-                    onCheckedChange={() => toggleFilter(type, selectedJobTypes, setSelectedJobTypes)}
+                    onCheckedChange={() =>
+                      toggleFilter(type, selectedJobTypes, setSelectedJobTypes)
+                    }
                   >
                     {getJobTypeLabel(type)}
                   </DropdownMenuCheckboxItem>
@@ -290,7 +315,9 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
                   <DropdownMenuCheckboxItem
                     key={level}
                     checked={selectedSeniority.includes(level)}
-                    onCheckedChange={() => toggleFilter(level, selectedSeniority, setSelectedSeniority)}
+                    onCheckedChange={() =>
+                      toggleFilter(level, selectedSeniority, setSelectedSeniority)
+                    }
                   >
                     {level}
                   </DropdownMenuCheckboxItem>
@@ -302,8 +329,8 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
 
         {/* Jobs Grid */}
         {error ? (
-          <div className="text-center py-12">
-            <p className="text-destructive text-lg mb-4">{error}</p>
+          <div className="py-12 text-center">
+            <p className="mb-4 text-lg text-destructive">{error}</p>
             <Button variant="outline" onClick={() => fetchJobs()}>
               {t('jobs.retry')}
             </Button>
@@ -314,7 +341,7 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
               <Card key={index} className="flex flex-col">
                 <CardHeader>
                   <Skeleton className="h-6 w-3/4" />
-                  <Skeleton className="h-4 w-1/2 mt-2" />
+                  <Skeleton className="mt-2 h-4 w-1/2" />
                 </CardHeader>
                 <CardContent className="flex-1 space-y-3">
                   <Skeleton className="h-4 w-full" />
@@ -327,7 +354,7 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
                 </CardContent>
                 <CardFooter>
                   <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-9 w-24 ml-auto" />
+                  <Skeleton className="ml-auto h-9 w-24" />
                 </CardFooter>
               </Card>
             ))}
@@ -335,16 +362,14 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {jobs.map((job) => (
-              <Card key={job.id} className="flex flex-col hover:shadow-lg transition-shadow">
+              <Card key={job.id} className="flex flex-col transition-shadow hover:shadow-lg">
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
                       <CardTitle className="line-clamp-2">{job.title}</CardTitle>
                       <CardDescription className="mt-1">{job.organization.name}</CardDescription>
                     </div>
-                    {job.seniority && (
-                      <Badge variant="secondary">{job.seniority}</Badge>
-                    )}
+                    {job.seniority && <Badge variant="secondary">{job.seniority}</Badge>}
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1 space-y-3">
@@ -358,9 +383,9 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
                       {job.salaryMin && job.salaryMax
                         ? `${job.salaryMin.toLocaleString()} - ${job.salaryMax.toLocaleString()}`
                         : job.salaryMin
-                        ? `${job.salaryMin.toLocaleString()}+`
-                        : `až ${job.salaryMax?.toLocaleString()}`
-                      } € / {t('jobs.perMonth')}
+                          ? `${job.salaryMin.toLocaleString()}+`
+                          : `až ${job.salaryMax?.toLocaleString()}`}{' '}
+                      € / {t('jobs.perMonth')}
                     </div>
                   )}
                   <div className="flex flex-wrap gap-2">
@@ -368,14 +393,15 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
                     <Badge variant="outline">{getJobTypeLabel(job.type)}</Badge>
                   </div>
                   {job.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {job.description}
-                    </p>
+                    <p className="line-clamp-2 text-sm text-muted-foreground">{job.description}</p>
                   )}
                 </CardContent>
                 <CardFooter className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true, locale: dateLocale })}
+                    {formatDistanceToNow(new Date(job.createdAt), {
+                      addSuffix: true,
+                      locale: dateLocale,
+                    })}
                   </span>
                   <Button asChild size="sm">
                     <Link href={`/${locale}/jobs/${job.id}`}>{t('jobs.viewDetail')}</Link>
@@ -387,10 +413,8 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
         )}
 
         {!loading && !error && jobs.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground text-lg">
-              {t('jobs.noResults')}
-            </p>
+          <div className="py-12 text-center">
+            <p className="text-lg text-muted-foreground">{t('jobs.noResults')}</p>
             <Button
               variant="outline"
               className="mt-4"

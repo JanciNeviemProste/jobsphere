@@ -68,7 +68,16 @@
     "offers": "jobs",
     "found": "found",
     "noResults": "No jobs found matching your criteria",
-    "resetFilters": "Reset Filters"
+    "resetFilters": "Reset Filters",
+    "recommendedForYou": "Recommended For You",
+    "apply": "Apply",
+    "matchBreakdown": "Match Breakdown",
+    "skills": "Skills",
+    "experience": "Experience",
+    "matchedSkills": "Matched Skills",
+    "recommendationsInfo": "Based on your profile, we found {count} jobs that match your skills and preferences",
+    "allJobs": "All Jobs",
+    "browseAllPositions": "Browse all available positions"
   },
   "jobDetail": {
     "backToJobs": "Back to Jobs",
