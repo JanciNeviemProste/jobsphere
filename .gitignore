@@ -75,3 +75,4 @@ docker/data
 docker/volumes
 .vercel
 .env*.local
+.env.vercel
