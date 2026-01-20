@@ -18,10 +18,7 @@ export type Feature =
 /**
  * Check if organization has access to a feature
  */
-export async function hasFeature(
-  orgId: string,
-  feature: Feature
-): Promise<boolean> {
+export async function hasFeature(orgId: string, feature: Feature): Promise<boolean> {
   const entitlement = await prisma.entitlement.findUnique({
     where: {
       orgId_featureKey: {
@@ -38,10 +35,7 @@ export async function hasFeature(
 /**
  * Get feature limit for organization
  */
-export async function getFeatureLimit(
-  orgId: string,
-  feature: Feature
-): Promise<number | null> {
+export async function getFeatureLimit(orgId: string, feature: Feature): Promise<number | null> {
   const entitlement = await prisma.entitlement.findUnique({
     where: {
       orgId_featureKey: {
@@ -101,25 +95,47 @@ export async function canAddTeamMember(orgId: string): Promise<boolean> {
  * Get current plan for organization
  */
 export async function getCurrentPlan(
-  orgId: string
+  orgId: string,
 ): Promise<'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE' | null> {
-  const customer = await prisma.orgCustomer.findUnique({
-    where: { orgId },
-  })
-
-  if (!customer) return 'STARTER'
-
-  // Fetch active subscription separately (OrgCustomer doesn't have subscriptions relation)
   const subscription = await prisma.subscription.findFirst({
     where: {
       orgId,
-      status: 'active'
+      status: { in: ['active', 'trialing'] },
+    },
+    include: {
+      product: {
+        include: { plans: true },
+      },
     },
     orderBy: { currentPeriodEnd: 'desc' },
   })
 
-  // For now, return STARTER as default (planKey doesn't exist on Subscription model)
-  // TODO: Add plan identification logic based on subscription metadata or product
+  if (!subscription) return 'STARTER'
+
+  // Strategy 1: Check product relationship for plan
+  const plan = subscription.product.plans[0]
+  if (plan?.key) {
+    const planKey = plan.key.toUpperCase()
+    if (planKey === 'STARTER' || planKey === 'PROFESSIONAL' || planKey === 'ENTERPRISE') {
+      return planKey as 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE'
+    }
+  }
+
+  // Strategy 2: Check subscription metadata for planKey
+  const metadata = subscription.metadata as any
+  if (metadata?.planKey) {
+    const planKey = metadata.planKey.toUpperCase()
+    if (planKey === 'STARTER' || planKey === 'PROFESSIONAL' || planKey === 'ENTERPRISE') {
+      return planKey as 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE'
+    }
+  }
+
+  // Strategy 3: Parse product name
+  const productName = subscription.product.name.toLowerCase()
+  if (productName.includes('enterprise')) return 'ENTERPRISE'
+  if (productName.includes('professional') || productName.includes('pro')) return 'PROFESSIONAL'
+
+  // Default fallback
   return 'STARTER'
 }
 
@@ -140,13 +156,11 @@ export async function getEntitlements(orgId: string) {
         acc[e.featureKey] = {
           enabled: (e.limitInt ?? 0) > 0,
           limit: e.limitInt,
-          used: e.limitInt !== null && e.remainingInt !== null
-            ? e.limitInt - e.remainingInt
-            : 0,
+          used: e.limitInt !== null && e.remainingInt !== null ? e.limitInt - e.remainingInt : 0,
         }
         return acc
       },
-      {} as Record<string, { enabled: boolean; limit: number | null; used: number }>
+      {} as Record<string, { enabled: boolean; limit: number | null; used: number }>,
     ),
   }
 }
@@ -185,10 +199,7 @@ export async function incrementUsage(orgId: string, feature: Feature) {
  * Check if organization has entitlement capacity for a feature
  * Returns true if organization can use/create more of the feature
  */
-export async function checkEntitlement(
-  orgId: string,
-  feature: Feature
-): Promise<boolean> {
+export async function checkEntitlement(orgId: string, feature: Feature): Promise<boolean> {
   const entitlement = await prisma.entitlement.findUnique({
     where: {
       orgId_featureKey: {
@@ -227,7 +238,7 @@ export async function consumeEntitlement(
   orgId: string,
   feature: Feature,
   amount: number = 1,
-  tx?: typeof prisma
+  tx?: typeof prisma,
 ): Promise<void> {
   const client = tx ?? prisma
 

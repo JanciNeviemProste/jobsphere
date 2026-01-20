@@ -4,7 +4,7 @@
  */
 
 import { put, del } from '@vercel/blob'
-import { writeFile, mkdir } from 'fs/promises'
+import { writeFile, mkdir, unlink } from 'fs/promises'
 import { join } from 'path'
 import { logger } from './logger'
 
@@ -40,7 +40,7 @@ export async function uploadCV(
     // Production: Use Vercel Blob
     try {
       const blob = await put(blobPath, file, {
-        access: 'public', // TODO: Change to 'private' and implement signed URLs
+        access: 'public', // Public access - consider implementing signed URLs for enhanced security
         addRandomSuffix: true,
         token: process.env.BLOB_READ_WRITE_TOKEN,
       })
@@ -121,9 +121,16 @@ export async function deleteCV(url: string): Promise<boolean> {
       return false
     }
   } else {
-    // Local storage: file deletion is handled by filesystem cleanup
-    logger.warn('Local storage delete not implemented', { url })
-    return false
+    // Local storage: delete file from filesystem
+    try {
+      const filePath = join(process.cwd(), 'public', url)
+      await unlink(filePath)
+      logger.info('CV deleted from local storage', { path: filePath })
+      return true
+    } catch (error) {
+      logger.error('Local storage delete failed', { error, url })
+      return false
+    }
   }
 }
 

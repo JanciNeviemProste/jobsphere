@@ -3,9 +3,7 @@
  * Tracks Core Web Vitals metrics and reports to monitoring services
  */
 
-// Temporarily disabled - web-vitals package not installed
-// import { onCLS, onFCP, onFID, onINP, onLCP, onTTFB, type Metric } from 'web-vitals'
-type Metric = any // Temporary placeholder
+import { onCLS, onFCP, onINP, onLCP, onTTFB, type Metric } from 'web-vitals'
 
 import { captureMessage } from './sentry'
 
@@ -52,7 +50,13 @@ export interface WebVitalMetric {
   rating: WebVitalRating
   delta: number
   id: string
-  navigationType: 'navigate' | 'reload' | 'back-forward' | 'back-forward-cache' | 'prerender'
+  navigationType:
+    | 'navigate'
+    | 'reload'
+    | 'back-forward'
+    | 'back-forward-cache'
+    | 'prerender'
+    | 'restore'
   timestamp: number
 }
 
@@ -112,9 +116,10 @@ async function sendToAnalytics(metric: WebVitalMetric): Promise<void> {
 function logMetric(metric: WebVitalMetric): void {
   if (process.env.NODE_ENV !== 'development') return
 
-  const emoji = metric.rating === 'good' ? '✅' : metric.rating === 'needs-improvement' ? '⚠️' : '❌'
+  const emoji =
+    metric.rating === 'good' ? '✅' : metric.rating === 'needs-improvement' ? '⚠️' : '❌'
   console.log(
-    `[Web Vitals] ${emoji} ${metric.name}: ${metric.value.toFixed(2)}ms (${metric.rating})`
+    `[Web Vitals] ${emoji} ${metric.name}: ${metric.value.toFixed(2)}ms (${metric.rating})`,
   )
 }
 
@@ -166,14 +171,10 @@ function handleMetric(metric: Metric): void {
  * Should be called once on page load
  */
 export function reportWebVitals(): void {
-  // Temporarily disabled - web-vitals package not installed
-  return
-
-  /* try {
+  try {
     // Core Web Vitals
     onCLS(handleMetric)
-    onFID(handleMetric)
-    onINP(handleMetric)
+    onINP(handleMetric) // INP replaced FID as Core Web Vital
     onLCP(handleMetric)
 
     // Other important metrics
@@ -184,7 +185,7 @@ export function reportWebVitals(): void {
     if (process.env.NODE_ENV === 'development') {
       console.error('[Web Vitals] Failed to initialize:', error)
     }
-  } */
+  }
 }
 
 /**

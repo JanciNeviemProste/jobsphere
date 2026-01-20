@@ -5,6 +5,13 @@ interface EmailData {
   subject: string
   html: string
   text?: string
+  // Optional tracking metadata
+  metadata?: {
+    orgId?: string
+    accountId?: string
+    entityType?: 'APPLICATION' | 'CANDIDATE' | 'JOB'
+    entityId?: string
+  }
 }
 
 /**
@@ -29,6 +36,64 @@ export async function sendEmail(data: EmailData): Promise<void> {
   }
 
   throw new Error(`Unknown email service: ${emailService}`)
+}
+
+/**
+ * Track email in database (if metadata provided)
+ */
+async function trackEmail(
+  data: EmailData,
+  status: 'SENT' | 'FAILED',
+  providerId?: string,
+): Promise<void> {
+  // Only track if we have org/account context
+  if (!data.metadata?.orgId || !data.metadata?.accountId) {
+    return
+  }
+
+  try {
+    // Get or create email thread
+    let thread = await prisma.emailThread.findFirst({
+      where: {
+        orgId: data.metadata.orgId,
+        accountId: data.metadata.accountId,
+        entityType: data.metadata.entityType || null,
+        entityId: data.metadata.entityId || null,
+      },
+    })
+
+    if (!thread) {
+      thread = await prisma.emailThread.create({
+        data: {
+          orgId: data.metadata.orgId,
+          accountId: data.metadata.accountId,
+          entityType: data.metadata.entityType || null,
+          entityId: data.metadata.entityId || null,
+          subject: data.subject,
+          participants: [data.to],
+        },
+      })
+    }
+
+    // Create email message record
+    await prisma.emailMessage.create({
+      data: {
+        threadId: thread.id,
+        fromEmail: process.env.EMAIL_FROM || 'noreply@jobsphere.app',
+        toEmails: [data.to],
+        subject: data.subject,
+        bodyHtml: data.html,
+        bodyText: data.text,
+        direction: 'OUTBOUND',
+        status: status,
+        sentAt: status === 'SENT' ? new Date() : null,
+        providerId: providerId,
+      },
+    })
+  } catch (error) {
+    console.error('Failed to track email in database:', error)
+    // Don't throw - tracking failures shouldn't block email sending
+  }
 }
 
 async function sendResendEmail(data: EmailData): Promise<void> {
@@ -60,31 +125,14 @@ async function sendResendEmail(data: EmailData): Promise<void> {
       throw new Error(`Resend API error: ${error}`)
     }
 
-    // TODO: Add Email model to schema for email tracking
-    // Log email in database
-    // await prisma.email.create({
-    //   data: {
-    //     to: data.to,
-    //     subject: data.subject,
-    //     body: data.html,
-    //     status: 'SENT',
-    //     provider: 'resend',
-    //   },
-    // })
+    // Track email in database
+    const responseData = await response.json()
+    await trackEmail(data, 'SENT', responseData.id)
   } catch (error) {
     console.error('Error sending email via Resend:', error)
 
-    // TODO: Add Email model to schema for email tracking
-    // Log failed email
-    // await prisma.email.create({
-    //   data: {
-    //     to: data.to,
-    //     subject: data.subject,
-    //     body: data.html,
-    //     status: 'FAILED',
-    //     provider: 'resend',
-    //   },
-    // })
+    // Track failed email
+    await trackEmail(data, 'FAILED')
 
     throw error
   }
@@ -134,31 +182,14 @@ async function sendSendGridEmail(data: EmailData): Promise<void> {
       throw new Error(`SendGrid API error: ${error}`)
     }
 
-    // TODO: Add Email model to schema for email tracking
-    // Log email in database
-    // await prisma.email.create({
-    //   data: {
-    //     to: data.to,
-    //     subject: data.subject,
-    //     body: data.html,
-    //     status: 'SENT',
-    //     provider: 'sendgrid',
-    //   },
-    // })
+    // Track email in database
+    const responseHeaders = response.headers.get('x-message-id')
+    await trackEmail(data, 'SENT', responseHeaders || undefined)
   } catch (error) {
     console.error('Error sending email via SendGrid:', error)
 
-    // TODO: Add Email model to schema for email tracking
-    // Log failed email
-    // await prisma.email.create({
-    //   data: {
-    //     to: data.to,
-    //     subject: data.subject,
-    //     body: data.html,
-    //     status: 'FAILED',
-    //     provider: 'sendgrid',
-    //   },
-    // })
+    // Track failed email
+    await trackEmail(data, 'FAILED')
 
     throw error
   }
@@ -171,7 +202,7 @@ async function sendSendGridEmail(data: EmailData): Promise<void> {
 export function getApplicationReceivedEmail(
   candidateName: string,
   jobTitle: string,
-  companyName: string
+  companyName: string,
 ): string {
   return `
     <!DOCTYPE html>
@@ -214,7 +245,7 @@ export function getNewApplicationEmail(
   employerName: string,
   candidateName: string,
   jobTitle: string,
-  applicationId: string
+  applicationId: string,
 ): string {
   return `
     <!DOCTYPE html>
@@ -256,13 +287,14 @@ export function getApplicationStatusChangeEmail(
   candidateName: string,
   jobTitle: string,
   status: string,
-  applicationId: string
+  applicationId: string,
 ): string {
   const statusMessages: Record<string, string> = {
     REVIEWING: 'Your application is now being reviewed by our team.',
     INTERVIEWED: 'Congratulations! You have been selected for an interview.',
     ACCEPTED: 'Congratulations! Your application has been accepted.',
-    REJECTED: 'Unfortunately, we have decided not to move forward with your application at this time.',
+    REJECTED:
+      'Unfortunately, we have decided not to move forward with your application at this time.',
   }
 
   return `
@@ -306,7 +338,7 @@ export function getApplicationStatusChangeEmail(
  */
 export async function sendStatusChangeEmail(
   applicationId: string,
-  newStage: string
+  newStage: string,
 ): Promise<void> {
   try {
     // Get application with related data

@@ -7,6 +7,7 @@ import { Worker, Job } from 'bullmq'
 import { connection } from '@/lib/queue'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
+import { sendEmail } from '@/lib/email'
 
 export interface AssessmentReminderJobData {
   inviteId: string
@@ -28,18 +29,18 @@ async function processAssessmentReminder(job: Job<AssessmentReminderJobData>) {
         assessment: {
           select: {
             name: true,
-            description: true
-          }
+            description: true,
+          },
         },
         candidate: {
           include: {
             contacts: {
               where: { isPrimary: true },
-              take: 1
-            }
-          }
-        }
-      }
+              take: 1,
+            },
+          },
+        },
+      },
     })
 
     if (!invite) {
@@ -52,7 +53,7 @@ async function processAssessmentReminder(job: Job<AssessmentReminderJobData>) {
       logger.info('Assessment invite already completed or expired', {
         inviteId,
         status: invite.status,
-        workerJobId: job.id
+        workerJobId: job.id,
       })
       return { skipped: true, reason: `Status: ${invite.status}` }
     }
@@ -62,12 +63,12 @@ async function processAssessmentReminder(job: Job<AssessmentReminderJobData>) {
       logger.info('Assessment invite has expired', {
         inviteId,
         expiresAt: invite.expiresAt,
-        workerJobId: job.id
+        workerJobId: job.id,
       })
       // Update status to EXPIRED
       await prisma.assessmentInvite.update({
         where: { id: inviteId },
-        data: { status: 'EXPIRED' }
+        data: { status: 'EXPIRED' },
       })
       return { skipped: true, reason: 'Expired' }
     }
@@ -82,38 +83,67 @@ async function processAssessmentReminder(job: Job<AssessmentReminderJobData>) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const assessmentUrl = `${appUrl}/assessments/${invite.token}`
 
-    // TODO: Replace with actual email service call (Resend, SendGrid, etc.)
-    // For now, just log the reminder
+    // Send assessment reminder email
     logger.info('Sending assessment reminder email', {
       inviteId,
       email: candidateEmail,
       assessmentUrl,
       assessmentName: invite.assessment.name,
-      workerJobId: job.id
+      workerJobId: job.id,
     })
 
-    // In production, this would be:
-    // await sendEmail({
-    //   to: candidateEmail,
-    //   subject: `Reminder: Complete ${invite.assessment.name}`,
-    //   html: getReminderEmailTemplate({
-    //     assessmentTitle: invite.assessment.name,
-    //     assessmentUrl,
-    //     expiresAt: invite.expiresAt
-    //   })
-    // })
+    const expiryDate = invite.expiresAt ? new Date(invite.expiresAt).toLocaleDateString() : 'soon'
+
+    await sendEmail({
+      to: candidateEmail,
+      subject: `Reminder: Complete ${invite.assessment.name}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+              .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+              .footer { text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>⏰ Assessment Reminder</h1>
+              </div>
+              <div class="content">
+                <p>Hi there,</p>
+                <p>This is a friendly reminder that you have a pending assessment: <strong>${invite.assessment.name}</strong></p>
+                <p>Please complete it before it expires on <strong>${expiryDate}</strong>.</p>
+                <a href="${assessmentUrl}" class="button">Complete Assessment</a>
+                <p>Good luck!</p>
+                <p>Best regards,<br>The JobSphere Team</p>
+              </div>
+              <div class="footer">
+                <p>This is an automated email from JobSphere. Please do not reply.</p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `,
+    })
 
     // Update remindedAt if needed
     if (invite.remindedAt === null) {
       await prisma.assessmentInvite.update({
         where: { id: inviteId },
-        data: { remindedAt: new Date() }
+        data: { remindedAt: new Date() },
       })
     }
 
     logger.info('Assessment reminder sent successfully', {
       inviteId,
-      workerJobId: job.id
+      workerJobId: job.id,
     })
 
     return { sent: true, email: candidateEmail }
@@ -121,7 +151,7 @@ async function processAssessmentReminder(job: Job<AssessmentReminderJobData>) {
     logger.error('Failed to send assessment reminder', {
       inviteId,
       error,
-      workerJobId: job.id
+      workerJobId: job.id,
     })
     throw error
   }
@@ -135,8 +165,8 @@ export const assessmentReminderWorker = new Worker<AssessmentReminderJobData>(
   processAssessmentReminder,
   {
     connection,
-    concurrency: 5 // Can process multiple reminders in parallel
-  }
+    concurrency: 5, // Can process multiple reminders in parallel
+  },
 )
 
 // Worker event handlers
@@ -148,7 +178,7 @@ assessmentReminderWorker.on('failed', (job, error) => {
   logger.error('Assessment reminder job failed', {
     jobId: job?.id,
     error,
-    data: job?.data
+    data: job?.data,
   })
 })
 

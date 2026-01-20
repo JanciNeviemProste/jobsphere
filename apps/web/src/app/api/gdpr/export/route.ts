@@ -39,19 +39,15 @@ export async function GET(request: NextRequest) {
     // They're linked via applications, so we skip this for now
     const candidate = null
 
-    // TODO: Add ConsentRecord model to schema
     // Get consent records
-    // const consents = await prisma.consentRecord.findMany({
-    //   where: { userId: session.user.id },
-    // }).catch(() => [])
-    const consents: any[] = []
+    const consents = await prisma.consentRecord.findMany({
+      where: { userId: session.user.id },
+    })
 
-    // TODO: Add DSARRequest model to schema
     // Get DSAR requests (Data Subject Access Requests)
-    // const dsarRequests = await prisma.dSARRequest.findMany({
-    //   where: { userId: session.user.id },
-    // }).catch(() => [])
-    const dsarRequests: any[] = []
+    const dsarRequests = await prisma.dSARRequest.findMany({
+      where: { userId: session.user.id },
+    })
 
     // Get audit logs
     const auditLogs = await prisma.auditLog.findMany({
@@ -98,9 +94,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Data export error:', error)
-    return NextResponse.json(
-      { error: 'Failed to export data' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to export data' }, { status: 500 })
   }
 }

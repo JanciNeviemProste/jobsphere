@@ -18,23 +18,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // TODO: Add ConsentRecord model to schema
     // Get user's consent records
-    // const consents = await prisma.consentRecord.findMany({
-    //   where: { userId: session.user.id },
-    //   orderBy: { createdAt: 'desc' },
-    // })
+    const consents = await prisma.consentRecord.findMany({
+      where: { userId: session.user.id },
+      orderBy: { grantedAt: 'desc' },
+    })
 
-    return NextResponse.json(
-      { error: 'Feature not implemented - ConsentRecord model not in schema' },
-      { status: 501 }
-    )
+    return NextResponse.json({ consents })
   } catch (error) {
     console.error('Get consent error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch consent records' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch consent records' }, { status: 500 })
   }
 }
 
@@ -52,47 +45,32 @@ export async function POST(request: NextRequest) {
     const { purpose, granted } = await request.json()
 
     if (!purpose || typeof granted !== 'boolean') {
-      return NextResponse.json(
-        { error: 'Invalid consent data' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid consent data' }, { status: 400 })
     }
 
     // Valid consent purposes
-    const validPurposes = [
-      'MARKETING',
-      'ANALYTICS',
-      'COOKIES',
-    ]
+    const validPurposes = ['MARKETING', 'ANALYTICS', 'COOKIES']
 
     if (!validPurposes.includes(purpose)) {
-      return NextResponse.json(
-        { error: 'Invalid consent purpose' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid consent purpose' }, { status: 400 })
     }
 
-    // TODO: Add ConsentRecord model to schema
     // Create consent record
-    // const consent = await prisma.consentRecord.create({
-    //   data: {
-    //     userId: session.user.id,
-    //     purpose,
-    //     granted,
-    //     ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
-    //     userAgent: request.headers.get('user-agent') || 'unknown',
-    //   },
-    // })
+    const consent = await prisma.consentRecord.create({
+      data: {
+        userId: session.user.id,
+        consentType: purpose,
+        granted,
+        purpose,
+        legalBasis: 'CONSENT',
+        ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
+        userAgent: request.headers.get('user-agent') || 'unknown',
+      },
+    })
 
-    return NextResponse.json(
-      { error: 'Feature not implemented - ConsentRecord model not in schema' },
-      { status: 501 }
-    )
+    return NextResponse.json({ consent })
   } catch (error) {
     console.error('Record consent error:', error)
-    return NextResponse.json(
-      { error: 'Failed to record consent' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to record consent' }, { status: 500 })
   }
 }

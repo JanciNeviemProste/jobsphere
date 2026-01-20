@@ -5,6 +5,73 @@ interface EmailSequenceJobData {
   runId: string
 }
 
+/**
+ * Send email via configured provider
+ */
+async function sendEmail(data: { to: string; subject: string; html: string }): Promise<void> {
+  const emailService = process.env.EMAIL_SERVICE || 'resend'
+
+  if (emailService === 'log') {
+    console.log('📧 [DEV] Email would be sent:', data.subject, 'to:', data.to)
+    return
+  }
+
+  if (emailService === 'resend') {
+    const apiKey = process.env.RESEND_API_KEY
+    if (!apiKey) {
+      console.warn('RESEND_API_KEY not set, email not sent')
+      return
+    }
+
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        from: process.env.EMAIL_FROM || 'JobSphere <noreply@jobsphere.app>',
+        to: data.to,
+        subject: data.subject,
+        html: data.html,
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.text()
+      throw new Error(`Resend API error: ${error}`)
+    }
+  } else if (emailService === 'sendgrid') {
+    const apiKey = process.env.SENDGRID_API_KEY
+    if (!apiKey) {
+      console.warn('SENDGRID_API_KEY not set, email not sent')
+      return
+    }
+
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: data.to }] }],
+        from: {
+          email: process.env.EMAIL_FROM || 'noreply@jobsphere.app',
+          name: 'JobSphere',
+        },
+        subject: data.subject,
+        content: [{ type: 'text/html', value: data.html }],
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.text()
+      throw new Error(`SendGrid API error: ${error}`)
+    }
+  }
+}
+
 export async function emailSequencesWorker(job: Job<EmailSequenceJobData>) {
   const { runId } = job.data
 
@@ -102,9 +169,15 @@ export async function emailSequencesWorker(job: Job<EmailSequenceJobData>) {
       unsubscribeUrl: `${process.env.NEXT_PUBLIC_APP_URL}/unsubscribe/${runId}`,
     })
 
-    // TODO: Send email via email provider
+    // Send email via email provider
     console.log(`📤 Sending email to ${contact.email}`)
     console.log(`Subject: ${subject}`)
+
+    await sendEmail({
+      to: contact.email,
+      subject: subject,
+      html: body,
+    })
 
     // Record event
     await prisma.emailSequenceEvent.create({
@@ -131,12 +204,88 @@ export async function emailSequencesWorker(job: Job<EmailSequenceJobData>) {
 }
 
 async function evaluateConditions(conditions: any, candidate: any): Promise<boolean> {
-  // TODO: Implement condition evaluation
-  // Examples:
-  // - stage_changed: Skip if application stage changed
-  // - replied: Skip if candidate replied to previous email
-  // - opened: Only send if previous email was opened
-  return false
+  // Returns true if conditions indicate we should SKIP this email
+
+  if (!conditions || !Array.isArray(conditions)) {
+    return false
+  }
+
+  for (const condition of conditions) {
+    const conditionType = condition.type || condition.kind
+
+    switch (conditionType) {
+      case 'stage_changed': {
+        // Skip if application stage changed from expected stage
+        const application = await prisma.application.findFirst({
+          where: { candidateId: candidate.id },
+          orderBy: { updatedAt: 'desc' },
+        })
+
+        if (application && condition.expectedStage) {
+          if (application.stage !== condition.expectedStage) {
+            console.log(`⏭️  Skipping: Application stage changed to ${application.stage}`)
+            return true // Skip this step
+          }
+        }
+        break
+      }
+
+      case 'replied': {
+        // Skip if candidate replied to previous email
+        const sinceDate = condition.since
+          ? new Date(condition.since)
+          : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
+
+        const replies = await prisma.emailMessage.count({
+          where: {
+            thread: {
+              entityType: 'CANDIDATE',
+              entityId: candidate.id,
+            },
+            direction: 'INBOUND',
+            receivedAt: { gte: sinceDate },
+          },
+        })
+
+        if (replies > 0) {
+          console.log(`⏭️  Skipping: Candidate replied to previous email`)
+          return true // Skip this step
+        }
+        break
+      }
+
+      case 'opened': {
+        // Skip if previous email was NOT opened (when required)
+        const sinceDate = condition.since
+          ? new Date(condition.since)
+          : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
+        const opened = await prisma.emailEvent.count({
+          where: {
+            kind: 'OPENED',
+            message: {
+              thread: {
+                entityType: 'CANDIDATE',
+                entityId: candidate.id,
+              },
+            },
+            timestamp: { gte: sinceDate },
+          },
+        })
+
+        if (condition.required && opened === 0) {
+          console.log(`⏭️  Skipping: Previous email was not opened`)
+          return true // Skip this step
+        }
+        break
+      }
+
+      default:
+        console.warn(`Unknown condition type: ${conditionType}`)
+    }
+  }
+
+  return false // Don't skip - all conditions passed
 }
 
 function mergeTags(template: string, data: any): string {

@@ -8,6 +8,7 @@ import { User, Prisma } from '@prisma/client'
 import { hash, compare } from 'bcryptjs'
 import { createAuditLog } from '@/lib/audit-log'
 import { AppError } from '@/lib/errors'
+import crypto from 'crypto'
 
 export interface CreateUserInput {
   email: string
@@ -52,10 +53,7 @@ export class UserService {
 
     // Validate password strength
     if (input.password.length < 8) {
-      throw new AppError(
-        'Password must be at least 8 characters long',
-        400
-      )
+      throw new AppError('Password must be at least 8 characters long', 400)
     }
 
     // Hash password
@@ -106,10 +104,7 @@ export class UserService {
   /**
    * Update user profile
    */
-  static async updateUser(
-    userId: string,
-    input: UpdateUserInput
-  ): Promise<User> {
+  static async updateUser(userId: string, input: UpdateUserInput): Promise<User> {
     const existingUser = await prisma.user.findUnique({
       where: { id: userId },
     })
@@ -162,10 +157,7 @@ export class UserService {
   /**
    * Change user password
    */
-  static async changePassword(
-    userId: string,
-    input: ChangePasswordInput
-  ): Promise<void> {
+  static async changePassword(userId: string, input: ChangePasswordInput): Promise<void> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
     })
@@ -175,10 +167,7 @@ export class UserService {
     }
 
     // Verify current password
-    const isValidPassword = await compare(
-      input.currentPassword,
-      user.password!
-    )
+    const isValidPassword = await compare(input.currentPassword, user.password!)
 
     if (!isValidPassword) {
       throw new AppError('Current password is incorrect', 400)
@@ -186,10 +175,7 @@ export class UserService {
 
     // Validate new password
     if (input.newPassword.length < 8) {
-      throw new AppError(
-        'New password must be at least 8 characters long',
-        400
-      )
+      throw new AppError('New password must be at least 8 characters long', 400)
     }
 
     // Hash new password
@@ -215,19 +201,11 @@ export class UserService {
   /**
    * Search users
    */
-  static async searchUsers(
-    params: UserSearchParams
-  ): Promise<{
+  static async searchUsers(params: UserSearchParams): Promise<{
     users: User[]
     total: number
   }> {
-    const {
-      search,
-      orgId,
-      emailVerified,
-      limit = 50,
-      offset = 0,
-    } = params
+    const { search, orgId, emailVerified, limit = 50, offset = 0 } = params
 
     const where: Prisma.UserWhereInput = {
       ...(search && {
@@ -341,144 +319,124 @@ export class UserService {
 
   /**
    * Verify email with token
-   * TODO: Add VerificationToken model to schema for email verification
    */
   static async verifyEmail(token: string): Promise<User> {
-    // TODO: Uncomment after adding VerificationToken model to schema
-    throw new AppError('Email verification not implemented - VerificationToken model missing from schema', 501)
+    const verificationToken = await prisma.verificationToken.findUnique({
+      where: { token },
+    })
 
-    // const verificationToken = await prisma.verificationToken.findUnique({
-    //   where: { token },
-    // })
+    if (!verificationToken) {
+      throw new AppError('Invalid verification token', 400)
+    }
 
-    // if (!verificationToken) {
-    //   throw new AppError('Invalid verification token', 400)
-    // }
+    if (verificationToken.expires < new Date()) {
+      throw new AppError('Verification token has expired', 400)
+    }
 
-    // if (verificationToken.expires < new Date()) {
-    //   throw new AppError('Verification token has expired', 400)
-    // }
+    const user = await prisma.$transaction(async (tx) => {
+      // Update user
+      const updatedUser = await tx.user.update({
+        where: { email: verificationToken.identifier },
+        data: { emailVerified: new Date() },
+      })
 
-    // const user = await prisma.$transaction(async (tx) => {
-    //   // Update user
-    //   const updatedUser = await tx.user.update({
-    //     where: { email: verificationToken.identifier },
-    //     data: { emailVerified: new Date() },
-    //   })
+      // Delete token
+      await tx.verificationToken.delete({
+        where: { token },
+      })
 
-    //   // Delete token
-    //   await tx.verificationToken.delete({
-    //     where: { token },
-    //   })
+      return updatedUser
+    })
 
-    //   return updatedUser
-    // })
-
-    // const { password: _, ...userWithoutPassword } = user
-    // return userWithoutPassword as User
+    const { password: _, ...userWithoutPassword } = user
+    return userWithoutPassword as User
   }
 
   /**
    * Create password reset token
-   * TODO: Add VerificationToken model to schema for password reset
    */
-  static async createPasswordResetToken(
-    email: string
-  ): Promise<string> {
-    // TODO: Uncomment after adding VerificationToken model to schema
-    throw new AppError('Password reset not implemented - VerificationToken model missing from schema', 501)
+  static async createPasswordResetToken(email: string): Promise<string> {
+    const user = await prisma.user.findUnique({
+      where: { email },
+    })
 
-    // const user = await prisma.user.findUnique({
-    //   where: { email },
-    // })
+    if (!user) {
+      // Don't reveal if user exists
+      return 'TOKEN_SENT'
+    }
 
-    // if (!user) {
-    //   // Don't reveal if user exists
-    //   return 'TOKEN_SENT'
-    // }
+    // Generate secure token
+    const token = crypto.randomUUID()
+    const expires = new Date(Date.now() + 3600000) // 1 hour
 
-    // // Generate secure token
-    // const token = crypto.randomUUID()
-    // const expires = new Date(Date.now() + 3600000) // 1 hour
+    await prisma.verificationToken.create({
+      data: {
+        identifier: email,
+        token,
+        expires,
+      },
+    })
 
-    // await prisma.verificationToken.create({
-    //   data: {
-    //     identifier: email,
-    //     token,
-    //     expires,
-    //   },
-    // })
+    // Send password reset email
+    try {
+      const { sendEmail } = await import('@/lib/email')
+      const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`
 
-    // // Send password reset email
-    // try {
-    //   const { sendEmail } = await import('@/lib/email')
-    //   const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`
+      await sendEmail({
+        to: email,
+        subject: 'Reset Your Password - JobSphere',
+        html: `
+          <h2>Password Reset Request</h2>
+          <p>Hi ${user.name || 'there'},</p>
+          <p>We received a request to reset your password. Click the link below to create a new password:</p>
+          <p><a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background-color: #0070f3; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
+          <p>This link will expire in 1 hour.</p>
+          <p>If you didn't request this, please ignore this email.</p>
+          <hr />
+          <p style="color: #666; font-size: 12px;">JobSphere ATS - Modern recruitment platform</p>
+        `,
+      })
+    } catch (emailError) {
+      console.error('Failed to send password reset email:', emailError)
+      // Don't fail the request if email fails
+    }
 
-    //   await sendEmail({
-    //     to: email,
-    //     subject: 'Reset Your Password - JobSphere',
-    //     html: `
-    //       <h2>Password Reset Request</h2>
-    //       <p>Hi ${user.name || 'there'},</p>
-    //       <p>We received a request to reset your password. Click the link below to create a new password:</p>
-    //       <p><a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background-color: #0070f3; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
-    //       <p>This link will expire in 1 hour.</p>
-    //       <p>If you didn't request this, please ignore this email.</p>
-    //       <hr />
-    //       <p style="color: #666; font-size: 12px;">JobSphere ATS - Modern recruitment platform</p>
-    //     `,
-    //   })
-    // } catch (emailError) {
-    //   console.error('Failed to send password reset email:', emailError)
-    //   // Don't fail the request if email fails
-    // }
-
-    // return token
+    return token
   }
 
   /**
    * Reset password with token
-   * TODO: Add VerificationToken model to schema for password reset
    */
-  static async resetPassword(
-    token: string,
-    newPassword: string
-  ): Promise<void> {
-    // TODO: Uncomment after adding VerificationToken model to schema
-    throw new AppError('Password reset not implemented - VerificationToken model missing from schema', 501)
+  static async resetPassword(token: string, newPassword: string): Promise<void> {
+    const resetToken = await prisma.verificationToken.findUnique({
+      where: { token },
+    })
 
-    // const resetToken = await prisma.verificationToken.findUnique({
-    //   where: { token },
-    // })
+    if (!resetToken) {
+      throw new AppError('Invalid reset token', 400)
+    }
 
-    // if (!resetToken) {
-    //   throw new AppError('Invalid reset token', 400)
-    // }
+    if (resetToken.expires < new Date()) {
+      throw new AppError('Reset token has expired', 400)
+    }
 
-    // if (resetToken.expires < new Date()) {
-    //   throw new AppError('Reset token has expired', 400)
-    // }
+    if (newPassword.length < 8) {
+      throw new AppError('Password must be at least 8 characters long', 400)
+    }
 
-    // if (newPassword.length < 8) {
-    //   throw new AppError(
-    //     'Password must be at least 8 characters long',
-    //     400
-    //   )
-    // }
+    const hashedPassword = await hash(newPassword, 12)
 
-    // const hashedPassword = await hash(newPassword, 12)
+    await prisma.$transaction(async (tx) => {
+      // Update password
+      await tx.user.update({
+        where: { email: resetToken.identifier },
+        data: { password: hashedPassword },
+      })
 
-    // await prisma.$transaction(async (tx) => {
-    //   // Update password
-    //   await tx.user.update({
-    //     where: { email: resetToken.identifier },
-    //     data: { password: hashedPassword },
-    //   })
-
-    //   // Delete token
-    //   await tx.verificationToken.delete({
-    //     where: { token },
-    //   })
-    // })
+      // Delete token
+      await tx.verificationToken.delete({
+        where: { token },
+      })
+    })
   }
 }

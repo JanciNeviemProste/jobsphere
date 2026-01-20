@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import { prisma } from '@/lib/prisma'
 
 // Validation schema for Web Vitals metrics
 const webVitalSchema = z.object({
@@ -39,12 +40,7 @@ export async function POST(req: NextRequest) {
       ip: ip.split(',')[0].trim(), // Take first IP if multiple
     })
 
-    // TODO: Store in database for long-term analysis
-    // This could be done by creating a WebVitalsMetric model in Prisma
-    // and storing metrics for aggregation and trending
-
-    // Example database storage (uncomment when model is ready):
-    /*
+    // Store in database for long-term analysis
     await prisma.webVitalsMetric.create({
       data: {
         name: metric.name,
@@ -59,23 +55,16 @@ export async function POST(req: NextRequest) {
         ip: ip.split(',')[0].trim(),
       },
     })
-    */
 
     return NextResponse.json({ success: true }, { status: 200 })
   } catch (error) {
     // Don't log validation errors to avoid spam
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid metric data' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid metric data' }, { status: 400 })
     }
 
     logger.error('Failed to record Web Vital', { error })
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
