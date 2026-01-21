@@ -10,7 +10,11 @@
     "forEmployers": "Pro zaměstnavatele",
     "pricing": "Ceník",
     "login": "Přihlásit se",
-    "signup": "Registrovat se"
+    "signup": "Registrovat se",
+    "loading": "Načítání...",
+    "dashboard": "Nástěnka",
+    "profile": "Profil",
+    "logout": "Odhlásit se"
   },
   "hero": {
     "title": "Najděte svou vysněnou práci s AI",
@@ -68,7 +72,8 @@
       "noAccount": "Nemáte účet?",
       "signupLink": "Registrovat se",
       "orContinueWith": "Nebo pokračovat s",
-      "google": "Google"
+      "google": "Google",
+      "divider": "Nebo pokračovat s emailem"
     },
     "signup": {
       "title": "Vytvořit účet",
@@ -80,7 +85,10 @@
       "terms": "Souhlasím s Podmínkami a Zásadami ochrany osobních údajů",
       "submit": "Vytvořit účet",
       "hasAccount": "Už máte účet?",
-      "loginLink": "Přihlásit se"
+      "loginLink": "Přihlásit se",
+      "orContinueWith": "Nebo pokračovat s",
+      "google": "Google",
+      "divider": "Nebo pokračovat s emailem"
     }
   },
   "footer": {
@@ -160,6 +168,16 @@
     "finishProfile": "Dokončit profil",
     "match": "shoda"
   },
+  "applicant": {
+    "statusUpdated": "Stav přihlášky byl úspěšně aktualizován",
+    "statusUpdateFailed": "Nepodařilo se aktualizovat stav přihlášky",
+    "emailRequiredFields": "Předmět a text emailu jsou povinné",
+    "emailSent": "Email byl úspěšně odeslán",
+    "emailSendFailed": "Nepodařilo se odeslat email",
+    "noteRequired": "Poznámka nesmí být prázdná",
+    "noteAdded": "Poznámka byla úspěšně přidána",
+    "noteAddFailed": "Nepodařilo se přidat poznámku"
+  },
   "employer": {
     "dashboard": "ATS Dashboard",
     "manage": "Spravujte vaše pracovní nabídky a kandidáty",
@@ -205,6 +223,13 @@
       "closed": "Uzavřeno",
       "new": "Nový",
       "interviewed": "Interview"
+    },
+    "errors": {
+      "title": "Něco se pokazilo",
+      "description": "Došlo k neočekávané chybě při načítání této sekce.",
+      "retry": "Zkusit znovu",
+      "reload": "Obnovit stránku",
+      "inline": "Tuto sekci se nepodařilo načíst"
     }
   },
   "forEmployers": {

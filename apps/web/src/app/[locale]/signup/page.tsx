@@ -8,7 +8,14 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
@@ -40,8 +47,8 @@ export default function SignupPage({ params }: { params: { locale: string } }) {
       return
     }
 
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long')
+    if (password.length < 12) {
+      setError('Password must be at least 12 characters long')
       return
     }
 
@@ -57,7 +64,13 @@ export default function SignupPage({ params }: { params: { locale: string } }) {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, role, companyName: role === 'employer' ? companyName : undefined }),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          role,
+          companyName: role === 'employer' ? companyName : undefined,
+        }),
       })
 
       if (!response.ok) {
@@ -138,16 +151,18 @@ export default function SignupPage({ params }: { params: { locale: string } }) {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or continue with email
-              </span>
+              <span className="bg-background px-2 text-muted-foreground">{t('divider')}</span>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-3">
               <Label>I am registering as</Label>
-              <RadioGroup value={role} onValueChange={(value: string) => setRole(value as 'candidate' | 'employer')} disabled={loading}>
+              <RadioGroup
+                value={role}
+                onValueChange={(value: string) => setRole(value as 'candidate' | 'employer')}
+                disabled={loading}
+              >
                 <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50">
                   <RadioGroupItem value="candidate" id="candidate" />
                   <Label htmlFor="candidate" className="flex-1 cursor-pointer font-normal">
@@ -217,9 +232,7 @@ export default function SignupPage({ params }: { params: { locale: string } }) {
                 disabled={loading}
                 minLength={8}
               />
-              <p className="text-xs text-muted-foreground">
-                Must be at least 8 characters long
-              </p>
+              <p className="text-xs text-muted-foreground">Must be at least 8 characters long</p>
             </div>
 
             <div className="space-y-2">

@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import { withCsrfProtection } from '@/lib/csrf'
+import { withRateLimit } from '@/lib/rate-limit'
 
 export async function GET(req: Request) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { searchParams } = new URL(req.url)
@@ -42,147 +41,151 @@ export async function GET(req: Request) {
     return NextResponse.json(applications)
   } catch (error) {
     console.error('Error fetching applications:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch applications' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch applications' }, { status: 500 })
   }
 }
 
-export async function POST(req: Request) {
-  try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+export const POST = withCsrfProtection(
+  withRateLimit(
+    async (req: Request) => {
+      try {
+        const session = await auth()
+        if (!session?.user?.id) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
 
-    const body = await req.json()
-    const {
-      jobId,
-      coverLetter,
-      expectedSalary,
-      availableFrom,
-    } = body
+        const body = await req.json()
+        const { jobId, coverLetter, expectedSalary, availableFrom } = body
 
-    // Validation
-    if (!jobId || !coverLetter) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
-    }
+        // Validation
+        if (!jobId || !coverLetter) {
+          return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+        }
 
-    // Get job to fetch orgId
-    const job = await prisma.job.findUnique({
-      where: { id: jobId },
-      select: { orgId: true },
-    })
+        // Get job to fetch orgId and verify it's published
+        const job = await prisma.job.findUnique({
+          where: { id: jobId },
+          select: { orgId: true, status: true },
+        })
 
-    if (!job) {
-      return NextResponse.json(
-        { error: 'Job not found' },
-        { status: 404 }
-      )
-    }
+        if (!job) {
+          return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+        }
 
-    // Check if already applied
-    const existingApplication = await prisma.application.findFirst({
-      where: {
-        jobId,
-        candidateId: session.user.id,
-      },
-    })
+        // Only allow applications to published jobs
+        if (job.status !== 'PUBLISHED') {
+          return NextResponse.json(
+            { error: 'This job is not currently accepting applications' },
+            { status: 400 },
+          )
+        }
 
-    if (existingApplication) {
-      return NextResponse.json(
-        { error: 'You have already applied to this job' },
-        { status: 409 }
-      )
-    }
-
-    // Create application
-    const application = await prisma.application.create({
-      data: {
-        jobId,
-        candidateId: session.user.id,
-        orgId: job.orgId,
-        coverLetter,
-        // TODO: expectedSalary and availableFrom not in current schema
-        stage: 'NEW',
-      },
-      include: {
-        job: {
-          include: {
-            organization: true,
+        // Check if already applied
+        const existingApplication = await prisma.application.findFirst({
+          where: {
+            jobId,
+            candidateId: session.user.id,
           },
-        },
-      },
-    })
-
-    // Create application activity
-    await prisma.applicationActivity.create({
-      data: {
-        applicationId: application.id,
-        type: 'APPLIED',
-        description: 'Your application has been successfully submitted',
-        performedBy: session.user.id,
-      },
-    })
-
-    // Send email notifications
-    try {
-      const { sendEmail, getApplicationReceivedEmail, getNewApplicationEmail } = await import('@/lib/email')
-
-      // Email to candidate
-      if (session.user.email) {
-        await sendEmail({
-          to: session.user.email,
-          subject: `Application Received - ${application.job.title}`,
-          html: getApplicationReceivedEmail(
-            session.user.name || 'Candidate',
-            application.job.title,
-            application.job.organization.name
-          ),
         })
-      }
 
-      // Email to employer (get org admin email)
-      const orgAdmin = await prisma.userOrgRole.findFirst({
-        where: {
-          orgId: application.job.orgId,
-          role: 'ORG_ADMIN',
-        },
-        include: {
-          user: true,
-        },
-      })
+        if (existingApplication) {
+          return NextResponse.json(
+            { error: 'You have already applied to this job' },
+            { status: 409 },
+          )
+        }
 
-      if (orgAdmin?.user.email) {
-        await sendEmail({
-          to: orgAdmin.user.email,
-          subject: `New Application - ${application.job.title}`,
-          html: getNewApplicationEmail(
-            orgAdmin.user.name || 'Employer',
-            session.user.name || 'Unknown Candidate',
-            application.job.title,
-            application.id
-          ),
+        // Create application
+        const application = await prisma.application.create({
+          data: {
+            jobId,
+            candidateId: session.user.id,
+            orgId: job.orgId,
+            coverLetter,
+            // TODO: expectedSalary and availableFrom not in current schema
+            stage: 'NEW',
+          },
+          include: {
+            job: {
+              include: {
+                organization: true,
+              },
+            },
+          },
         })
-      }
-    } catch (emailError) {
-      console.error('Failed to send email notifications:', emailError)
-      // Don't fail the request if email fails
-    }
 
-    return NextResponse.json(application, { status: 201 })
-  } catch (error) {
-    console.error('Error creating application:', error)
-    return NextResponse.json(
-      { error: 'Failed to create application' },
-      { status: 500 }
-    )
-  }
-}
+        // Create application activity
+        await prisma.applicationActivity.create({
+          data: {
+            applicationId: application.id,
+            type: 'APPLIED',
+            description: 'Your application has been successfully submitted',
+            performedBy: session.user.id,
+          },
+        })
+
+        // Send email notifications
+        try {
+          const { sendEmail, getApplicationReceivedEmail, getNewApplicationEmail } = await import(
+            '@/lib/email'
+          )
+
+          // Email to candidate
+          if (session.user.email) {
+            await sendEmail({
+              to: session.user.email,
+              subject: `Application Received - ${application.job.title}`,
+              html: getApplicationReceivedEmail(
+                session.user.name || 'Candidate',
+                application.job.title,
+                application.job.organization.name,
+              ),
+            })
+          }
+
+          // Email to employer (get org admin email)
+          const orgAdmin = await prisma.userOrgRole.findFirst({
+            where: {
+              orgId: application.job.orgId,
+              role: 'ORG_ADMIN',
+            },
+            include: {
+              user: true,
+            },
+          })
+
+          if (orgAdmin?.user.email) {
+            await sendEmail({
+              to: orgAdmin.user.email,
+              subject: `New Application - ${application.job.title}`,
+              html: getNewApplicationEmail(
+                orgAdmin.user.name || 'Employer',
+                session.user.name || 'Unknown Candidate',
+                application.job.title,
+                application.id,
+              ),
+            })
+          }
+        } catch (emailError) {
+          console.error('Failed to send email notifications:', emailError)
+          // Don't fail the request if email fails
+        }
+
+        return NextResponse.json(application, { status: 201 })
+      } catch (error: any) {
+        console.error('Error creating application:', error)
+
+        // Handle unique constraint violation (race condition)
+        if (error.code === 'P2002') {
+          return NextResponse.json(
+            { error: 'You have already applied to this job' },
+            { status: 409 },
+          )
+        }
+
+        return NextResponse.json({ error: 'Failed to create application' }, { status: 500 })
+      }
+    },
+    { preset: 'api', byUser: true }, // 100 requests per minute
+  ),
+)

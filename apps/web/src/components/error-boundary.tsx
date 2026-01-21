@@ -9,6 +9,10 @@ interface Props {
   children: ReactNode
   fallback?: ReactNode
   onError?: (error: Error, errorInfo: any) => void
+  title?: string
+  description?: string
+  retryLabel?: string
+  reloadLabel?: string
 }
 
 interface State {
@@ -40,7 +44,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
     // Send to error tracking service (Sentry, etc.)
     if (typeof window !== 'undefined' && (window as any).Sentry) {
-      (window as any).Sentry.captureException(error, {
+      ;(window as any).Sentry.captureException(error, {
         extra: { errorInfo },
       })
     }
@@ -59,21 +63,22 @@ export class ErrorBoundary extends Component<Props, State> {
 
       // Default error UI
       return (
-        <div className="flex items-center justify-center min-h-[400px] p-4">
-          <Card className="max-w-md w-full">
+        <div className="flex min-h-[400px] items-center justify-center p-4">
+          <Card className="w-full max-w-md">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-6 w-6 text-destructive" />
-                <CardTitle>Niečo sa pokazilo</CardTitle>
+                <CardTitle>{this.props.title || 'Something went wrong'}</CardTitle>
               </div>
               <CardDescription>
-                Nastala neočakávaná chyba pri načítavaní tejto sekcie.
+                {this.props.description ||
+                  'An unexpected error occurred while loading this section.'}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {this.state.error && (
-                <div className="bg-muted p-3 rounded-md">
-                  <p className="text-sm font-mono text-muted-foreground">
+                <div className="rounded-md bg-muted p-3">
+                  <p className="font-mono text-sm text-muted-foreground">
                     {this.state.error.message}
                   </p>
                 </div>
@@ -81,13 +86,10 @@ export class ErrorBoundary extends Component<Props, State> {
             </CardContent>
             <CardFooter className="flex gap-2">
               <Button onClick={this.resetError} variant="default">
-                Skúsiť znova
+                {this.props.retryLabel || 'Try again'}
               </Button>
-              <Button
-                onClick={() => window.location.reload()}
-                variant="outline"
-              >
-                Obnoviť stránku
+              <Button onClick={() => window.location.reload()} variant="outline">
+                {this.props.reloadLabel || 'Reload page'}
               </Button>
             </CardFooter>
           </Card>
@@ -102,14 +104,20 @@ export class ErrorBoundary extends Component<Props, State> {
 /**
  * Simplified Error Boundary for inline use
  */
-export function InlineErrorBoundary({ children }: { children: ReactNode }) {
+export function InlineErrorBoundary({
+  children,
+  errorMessage = 'Failed to load this section',
+}: {
+  children: ReactNode
+  errorMessage?: string
+}) {
   return (
     <ErrorBoundary
       fallback={
-        <div className="border border-destructive/50 rounded-lg p-4 bg-destructive/10">
-          <p className="text-sm text-destructive flex items-center gap-2">
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+          <p className="flex items-center gap-2 text-sm text-destructive">
             <AlertCircle className="h-4 w-4" />
-            Táto sekcia sa nepodarilo načítať
+            {errorMessage}
           </p>
         </div>
       }

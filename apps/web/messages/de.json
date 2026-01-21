@@ -10,7 +10,11 @@
     "forEmployers": "Für Arbeitgeber",
     "pricing": "Preise",
     "login": "Anmelden",
-    "signup": "Registrieren"
+    "signup": "Registrieren",
+    "loading": "Lädt...",
+    "dashboard": "Dashboard",
+    "profile": "Profil",
+    "logout": "Abmelden"
   },
   "hero": {
     "title": "Finden Sie Ihren Traumjob mit AI",
@@ -68,7 +72,8 @@
       "noAccount": "Noch kein Konto?",
       "signupLink": "Registrieren",
       "orContinueWith": "Oder fortfahren mit",
-      "google": "Google"
+      "google": "Google",
+      "divider": "Oder mit E-Mail fortfahren"
     },
     "signup": {
       "title": "Konto erstellen",
@@ -80,7 +85,10 @@
       "terms": "Ich stimme den Nutzungsbedingungen und der Datenschutzerklärung zu",
       "submit": "Konto erstellen",
       "hasAccount": "Haben Sie bereits ein Konto?",
-      "loginLink": "Anmelden"
+      "loginLink": "Anmelden",
+      "orContinueWith": "Oder fortfahren mit",
+      "google": "Google",
+      "divider": "Oder mit E-Mail fortfahren"
     }
   },
   "footer": {
@@ -160,6 +168,16 @@
     "finishProfile": "Profil fertigstellen",
     "match": "Übereinstimmung"
   },
+  "applicant": {
+    "statusUpdated": "Bewerbungsstatus erfolgreich aktualisiert",
+    "statusUpdateFailed": "Bewerbungsstatus konnte nicht aktualisiert werden",
+    "emailRequiredFields": "Betreff und E-Mail-Text sind erforderlich",
+    "emailSent": "E-Mail erfolgreich gesendet",
+    "emailSendFailed": "E-Mail konnte nicht gesendet werden",
+    "noteRequired": "Notiz darf nicht leer sein",
+    "noteAdded": "Notiz erfolgreich hinzugefügt",
+    "noteAddFailed": "Notiz konnte nicht hinzugefügt werden"
+  },
   "employer": {
     "dashboard": "ATS Dashboard",
     "manage": "Verwalten Sie Ihre Stellenangebote und Kandidaten",
@@ -205,6 +223,13 @@
       "closed": "Geschlossen",
       "new": "Neu",
       "interviewed": "Interview"
+    },
+    "errors": {
+      "title": "Etwas ist schiefgelaufen",
+      "description": "Beim Laden dieses Abschnitts ist ein unerwarteter Fehler aufgetreten.",
+      "retry": "Erneut versuchen",
+      "reload": "Seite neu laden",
+      "inline": "Dieser Abschnitt konnte nicht geladen werden"
     }
   },
   "forEmployers": {

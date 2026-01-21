@@ -23,7 +23,7 @@ export const GET = withRateLimit(
 
       // Get user's candidate and their first resume
       const candidate = await prisma.candidate.findFirst({
-        where: { orgId: session.user.id }
+        where: { orgId: session.user.id },
       })
 
       if (!candidate) {
@@ -32,17 +32,17 @@ export const GET = withRateLimit(
 
       const resume = await prisma.resume.findFirst({
         where: {
-          candidateId: candidate.id
+          candidateId: candidate.id,
         },
         orderBy: {
-          createdAt: 'desc'
-        }
+          createdAt: 'desc',
+        },
       })
 
       if (!resume) {
         return NextResponse.json(
           { error: 'No default resume found. Please upload a CV first.' },
-          { status: 400 }
+          { status: 400 },
         )
       }
 
@@ -50,15 +50,12 @@ export const GET = withRateLimit(
       const job = await prisma.job.findUnique({
         where: {
           id: params.id,
-          status: 'ACTIVE'
-        }
+          status: 'PUBLISHED',
+        },
       })
 
       if (!job) {
-        return NextResponse.json(
-          { error: 'Job not found' },
-          { status: 404 }
-        )
+        return NextResponse.json({ error: 'Job not found' }, { status: 404 })
       }
 
       // Calculate match score
@@ -66,22 +63,19 @@ export const GET = withRateLimit(
 
       logger.info(`Match score calculated for job ${params.id}`, {
         userId: session.user.id,
-        score: matchScore.overall
+        score: matchScore.overall,
       })
 
       return NextResponse.json({
         jobId: params.id,
         resumeId: resume.id,
-        matchScore
+        matchScore,
       })
     } catch (error) {
       logger.apiError('GET', `/api/jobs/[id]/match-score`, error)
       const errorData = errorResponse(error)
-      return NextResponse.json(
-        { error: errorData.error },
-        { status: errorData.statusCode }
-      )
+      return NextResponse.json({ error: errorData.error }, { status: errorData.statusCode })
     }
   },
-  { preset: 'api', byUser: true }
+  { preset: 'api', byUser: true },
 )

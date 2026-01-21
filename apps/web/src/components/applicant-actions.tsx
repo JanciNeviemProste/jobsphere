@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
@@ -19,6 +20,7 @@ interface ApplicantActionsProps {
 
 export function ApplicantActions({ applicationId, currentStage, locale }: ApplicantActionsProps) {
   const router = useRouter()
+  const t = useTranslations('applicant')
   const [isLoading, setIsLoading] = useState(false)
   const [showEmailDialog, setShowEmailDialog] = useState(false)
   const [showNoteDialog, setShowNoteDialog] = useState(false)
@@ -41,11 +43,11 @@ export function ApplicantActions({ applicationId, currentStage, locale }: Applic
         throw new Error('Failed to update application')
       }
 
-      toast.success('Stav prihlášky bol úspešne aktualizovaný')
+      toast.success(t('statusUpdated'))
       router.refresh()
     } catch (error) {
       console.error('Error updating stage:', error)
-      toast.error('Nepodarilo sa aktualizovať stav prihlášky')
+      toast.error(t('statusUpdateFailed'))
     } finally {
       setIsLoading(false)
     }
@@ -53,7 +55,7 @@ export function ApplicantActions({ applicationId, currentStage, locale }: Applic
 
   const handleSendEmail = async () => {
     if (!emailSubject.trim() || !emailBody.trim()) {
-      toast.error('Predmet a text emailu sú povinné')
+      toast.error(t('emailRequiredFields'))
       return
     }
 
@@ -74,14 +76,14 @@ export function ApplicantActions({ applicationId, currentStage, locale }: Applic
         throw new Error('Failed to send email')
       }
 
-      toast.success('Email bol úspešne odoslaný')
+      toast.success(t('emailSent'))
       setShowEmailDialog(false)
       setEmailSubject('')
       setEmailBody('')
       router.refresh()
     } catch (error) {
       console.error('Error sending email:', error)
-      toast.error('Nepodarilo sa odoslať email')
+      toast.error(t('emailSendFailed'))
     } finally {
       setIsLoading(false)
     }
@@ -89,7 +91,7 @@ export function ApplicantActions({ applicationId, currentStage, locale }: Applic
 
   const handleAddNote = async () => {
     if (!note.trim()) {
-      toast.error('Poznámka nesmie byť prázdna')
+      toast.error(t('noteRequired'))
       return
     }
 
@@ -107,13 +109,13 @@ export function ApplicantActions({ applicationId, currentStage, locale }: Applic
         throw new Error('Failed to add note')
       }
 
-      toast.success('Poznámka bola úspešne pridaná')
+      toast.success(t('noteAdded'))
       setShowNoteDialog(false)
       setNote('')
       router.refresh()
     } catch (error) {
       console.error('Error adding note:', error)
-      toast.error('Nepodarilo sa pridať poznámku')
+      toast.error(t('noteAddFailed'))
     } finally {
       setIsLoading(false)
     }
@@ -192,7 +194,7 @@ export function ApplicantActions({ applicationId, currentStage, locale }: Applic
       {/* Email Dialog */}
       {showEmailDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <Card className="w-full max-w-2xl mx-4">
+          <Card className="mx-4 w-full max-w-2xl">
             <CardHeader>
               <CardTitle>Poslať email kandidátovi</CardTitle>
               <CardDescription>Napíšte email, ktorý chcete odoslať</CardDescription>
@@ -218,7 +220,7 @@ export function ApplicantActions({ applicationId, currentStage, locale }: Applic
                   className="font-mono text-sm"
                 />
               </div>
-              <div className="flex gap-2 justify-end">
+              <div className="flex justify-end gap-2">
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -243,7 +245,7 @@ export function ApplicantActions({ applicationId, currentStage, locale }: Applic
       {/* Note Dialog */}
       {showNoteDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <Card className="w-full max-w-lg mx-4">
+          <Card className="mx-4 w-full max-w-lg">
             <CardHeader>
               <CardTitle>Pridať poznámku</CardTitle>
               <CardDescription>Interná poznámka k tomuto kandidátovi</CardDescription>
@@ -259,7 +261,7 @@ export function ApplicantActions({ applicationId, currentStage, locale }: Applic
                   rows={6}
                 />
               </div>
-              <div className="flex gap-2 justify-end">
+              <div className="flex justify-end gap-2">
                 <Button
                   variant="outline"
                   onClick={() => {

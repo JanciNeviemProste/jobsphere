@@ -3,12 +3,12 @@ import { hash } from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { withRateLimit } from '@/lib/rate-limit'
 import { z } from 'zod'
-import { validateRequest } from '@/lib/validation'
+import { validateRequest, strongPasswordSchema } from '@/lib/validation'
 
 const signupSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters long'),
+  password: strongPasswordSchema,
   role: z.enum(['candidate', 'employer']).optional().default('candidate'),
   companyName: z.string().optional(),
 })
@@ -23,7 +23,7 @@ export const POST = withRateLimit(
       if (data.role === 'employer' && !data.companyName?.trim()) {
         return NextResponse.json(
           { error: 'Company name is required for employers' },
-          { status: 400 }
+          { status: 400 },
         )
       }
 
@@ -33,41 +33,57 @@ export const POST = withRateLimit(
       })
 
       if (existingUser) {
-        return NextResponse.json(
-          { error: 'User with this email already exists' },
-          { status: 400 }
-        )
+        return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 })
       }
 
       // Hash password
       const hashedPassword = await hash(data.password, 12)
 
-      // Create user
-      const user = await prisma.user.create({
-        data: {
-          name: data.name,
-          email: data.email,
-          password: hashedPassword,
-        },
+      // Create user and organization in a transaction
+      const user = await prisma.$transaction(async (tx) => {
+        // Create user
+        const newUser = await tx.user.create({
+          data: {
+            name: data.name,
+            email: data.email,
+            password: hashedPassword,
+          },
+        })
+
+        // If employer, create organization and link user
+        if (data.role === 'employer' && data.companyName) {
+          // Generate unique slug
+          const baseSlug = data.companyName
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '')
+          let slug = baseSlug
+          let counter = 1
+
+          // Check for slug uniqueness and add counter if needed
+          while (await tx.organization.findUnique({ where: { slug } })) {
+            slug = `${baseSlug}-${counter}`
+            counter++
+          }
+
+          const organization = await tx.organization.create({
+            data: {
+              name: data.companyName.trim(),
+              slug,
+            },
+          })
+
+          await tx.userOrgRole.create({
+            data: {
+              userId: newUser.id,
+              orgId: organization.id,
+              role: 'ORG_ADMIN',
+            },
+          })
+        }
+
+        return newUser
       })
-
-      // If employer, create organization and link user
-      if (data.role === 'employer' && data.companyName) {
-        const organization = await prisma.organization.create({
-          data: {
-            name: data.companyName.trim(),
-            slug: data.companyName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
-          },
-        })
-
-        await prisma.userOrgRole.create({
-          data: {
-            userId: user.id,
-            orgId: organization.id,
-            role: 'ORG_ADMIN',
-          },
-        })
-      }
 
       return NextResponse.json(
         {
@@ -78,22 +94,19 @@ export const POST = withRateLimit(
             role: data.role,
           },
         },
-        { status: 201 }
+        { status: 201 },
       )
     } catch (error) {
       if (error instanceof z.ZodError) {
         return NextResponse.json(
           { error: 'Validation failed', issues: error.issues },
-          { status: 400 }
+          { status: 400 },
         )
       }
 
       console.error('Signup error:', error)
-      return NextResponse.json(
-        { error: 'An error occurred during signup' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'An error occurred during signup' }, { status: 500 })
     }
   },
-  { preset: 'strict' } // 10 requests per 15 minutes
+  { preset: 'strict' }, // 10 requests per 15 minutes
 )

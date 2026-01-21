@@ -36,11 +36,7 @@ export function Header() {
     >
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link
-            href={`/${locale}`}
-            className="flex items-center"
-            aria-label="JobSphere home"
-          >
+          <Link href={`/${locale}`} className="flex items-center" aria-label="JobSphere home">
             <Image
               src="/images/jobsphere_logo.png"
               alt="JobSphere"
@@ -52,7 +48,7 @@ export function Header() {
           </Link>
 
           <nav
-            className="hidden md:flex items-center gap-6"
+            className="hidden items-center gap-6 md:flex"
             role="navigation"
             aria-label="Main navigation"
           >
@@ -73,7 +69,7 @@ export function Header() {
           <LanguageSwitcher />
           {status === 'loading' ? (
             <Button variant="ghost" size="sm" disabled>
-              Loading...
+              {t('nav.loading')}
             </Button>
           ) : session?.user ? (
             <DropdownMenu>
@@ -85,27 +81,29 @@ export function Header() {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
                   <Link href={session.user.orgId ? `/${locale}/employer` : `/${locale}/dashboard`}>
-                    Dashboard
+                    {t('nav.dashboard')}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href={`/${locale}/dashboard/profile`}>
-                    Profile
-                  </Link>
+                  <Link href={`/${locale}/dashboard/profile`}>{t('nav.profile')}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => signOut({ callbackUrl: `/${locale}` })}>
-                  Logout
+                  {t('nav.logout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <>
               <Button variant="ghost" size="sm" asChild>
-                <Link href={`/${locale}/login`} aria-label="Log in to your account">{t('nav.login')}</Link>
+                <Link href={`/${locale}/login`} aria-label="Log in to your account">
+                  {t('nav.login')}
+                </Link>
               </Button>
               <Button size="sm" asChild>
-                <Link href={`/${locale}/signup`} aria-label="Create a new account">{t('nav.signup')}</Link>
+                <Link href={`/${locale}/signup`} aria-label="Create a new account">
+                  {t('nav.signup')}
+                </Link>
               </Button>
             </>
           )}

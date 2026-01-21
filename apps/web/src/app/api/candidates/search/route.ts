@@ -21,10 +21,7 @@ export async function POST(request: NextRequest) {
     // 1. Verify authentication
     const session = await auth()
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // 2. Parse and validate request body
@@ -34,7 +31,7 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: 'Invalid request', details: validation.error.format() },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -43,28 +40,25 @@ export async function POST(request: NextRequest) {
     // 3. Get job with organization check
     const job = await prisma.job.findUnique({
       where: { id: jobId },
-      include: { organization: true }
+      include: { organization: true },
     })
 
     if (!job) {
-      return NextResponse.json(
-        { error: 'Job not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 })
     }
 
     // 4. Verify user has access to this organization
     const userOrg = await prisma.userOrgRole.findFirst({
       where: {
         userId: session.user.id,
-        orgId: job.orgId
-      }
+        orgId: job.orgId,
+      },
     })
 
     if (!userOrg) {
       return NextResponse.json(
         { error: 'Forbidden - not a member of this organization' },
-        { status: 403 }
+        { status: 403 },
       )
     }
 
@@ -74,56 +68,57 @@ export async function POST(request: NextRequest) {
       organizationId: job.orgId,
       limit,
       minSimilarity,
-      includeDetails
+      includeDetails,
     })
 
     // 6. Filter out candidates who already applied
     const applicantIds = await prisma.application.findMany({
       where: { jobId: job.id },
-      select: { candidateId: true }
+      select: { candidateId: true },
     })
-    const appliedCandidateIds = new Set(applicantIds.map(a => a.candidateId))
+    const appliedCandidateIds = new Set(applicantIds.map((a) => a.candidateId))
 
-    const filteredMatches = matches.filter(
-      match => !appliedCandidateIds.has(match.candidateId)
-    )
+    const filteredMatches = matches.filter((match) => !appliedCandidateIds.has(match.candidateId))
 
-    // 7. Get candidate contact info for top matches
-    const matchesWithContacts = await Promise.all(
-      filteredMatches.map(async (match) => {
-        const contact = await prisma.candidateContact.findFirst({
-          where: {
-            candidateId: match.candidateId,
-            isPrimary: true
-          },
-          select: {
-            fullName: true,
-            email: true,
-            location: true,
-            availableFrom: true
-          }
-        })
+    // 7. Get candidate contact info for top matches (single query to avoid N+1)
+    const contacts = await prisma.candidateContact.findMany({
+      where: {
+        candidateId: { in: filteredMatches.map((m) => m.candidateId) },
+        isPrimary: true,
+      },
+      select: {
+        candidateId: true,
+        fullName: true,
+        email: true,
+        location: true,
+        availableFrom: true,
+      },
+    })
 
-        return {
-          ...match,
-          contact: contact || undefined
-        }
-      })
-    )
+    // Create a map for O(1) lookup
+    const contactMap = new Map(contacts.map((c) => [c.candidateId, c]))
+
+    // Attach contacts to matches
+    const matchesWithContacts = filteredMatches.map((match) => ({
+      ...match,
+      contact: contactMap.get(match.candidateId) || undefined,
+    }))
 
     return NextResponse.json({
       success: true,
       jobId: job.id,
       jobTitle: job.title,
       totalMatches: matchesWithContacts.length,
-      matches: matchesWithContacts
+      matches: matchesWithContacts,
     })
-
   } catch (error) {
     console.error('Candidate search error:', error)
     return NextResponse.json(
-      { error: 'Failed to search candidates', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+      {
+        error: 'Failed to search candidates',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 },
     )
   }
 }

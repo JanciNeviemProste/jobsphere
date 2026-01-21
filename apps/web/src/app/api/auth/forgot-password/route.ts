@@ -26,7 +26,7 @@ export const POST = withRateLimit(
 
       // Always return success even if user doesn't exist (security best practice)
       if (!user) {
-        logger.info('Password reset requested for non-existent email', { email })
+        logger.info('Password reset requested for unknown email')
         return NextResponse.json({
           success: true,
           message: 'If an account exists with this email, a password reset link has been sent.',
@@ -38,10 +38,7 @@ export const POST = withRateLimit(
       const resetTokenExpiry = new Date(Date.now() + 3600000) // 1 hour from now
 
       // Hash the token before storing
-      const hashedToken = crypto
-        .createHash('sha256')
-        .update(resetToken)
-        .digest('hex')
+      const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex')
 
       // Store the hashed token in database using VerificationToken model
       // First, delete any existing tokens for this email
@@ -120,19 +117,13 @@ export const POST = withRateLimit(
       })
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return NextResponse.json(
-          { error: 'Invalid email address' },
-          { status: 400 }
-        )
+        return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
       }
 
       logger.apiError('POST', '/api/auth/forgot-password', error)
       const errorData = errorResponse(error)
-      return NextResponse.json(
-        { error: errorData.error },
-        { status: errorData.statusCode }
-      )
+      return NextResponse.json({ error: errorData.error }, { status: errorData.statusCode })
     }
   },
-  { preset: 'auth' } // More restrictive rate limiting for auth endpoints
+  { preset: 'auth' }, // More restrictive rate limiting for auth endpoints
 )

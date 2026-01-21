@@ -10,7 +10,11 @@
     "forEmployers": "Dla pracodawców",
     "pricing": "Cennik",
     "login": "Zaloguj się",
-    "signup": "Zarejestruj się"
+    "signup": "Zarejestruj się",
+    "loading": "Ładowanie...",
+    "dashboard": "Panel",
+    "profile": "Profil",
+    "logout": "Wyloguj się"
   },
   "hero": {
     "title": "Znajdź wymarzoną pracę z AI",
@@ -68,7 +72,8 @@
       "noAccount": "Nie masz konta?",
       "signupLink": "Zarejestruj się",
       "orContinueWith": "Lub kontynuuj z",
-      "google": "Google"
+      "google": "Google",
+      "divider": "Lub kontynuuj z e-mailem"
     },
     "signup": {
       "title": "Utwórz konto",
@@ -80,7 +85,10 @@
       "terms": "Zgadzam się z Warunkami i Polityką Prywatności",
       "submit": "Utwórz konto",
       "hasAccount": "Masz już konto?",
-      "loginLink": "Zaloguj się"
+      "loginLink": "Zaloguj się",
+      "orContinueWith": "Lub kontynuuj z",
+      "google": "Google",
+      "divider": "Lub kontynuuj z e-mailem"
     }
   },
   "footer": {
@@ -160,6 +168,16 @@
     "finishProfile": "Ukończ profil",
     "match": "dopasowanie"
   },
+  "applicant": {
+    "statusUpdated": "Status aplikacji został pomyślnie zaktualizowany",
+    "statusUpdateFailed": "Nie udało się zaktualizować statusu aplikacji",
+    "emailRequiredFields": "Temat i treść e-maila są wymagane",
+    "emailSent": "E-mail został pomyślnie wysłany",
+    "emailSendFailed": "Nie udało się wysłać e-maila",
+    "noteRequired": "Notatka nie może być pusta",
+    "noteAdded": "Notatka została pomyślnie dodana",
+    "noteAddFailed": "Nie udało się dodać notatki"
+  },
   "employer": {
     "dashboard": "Panel ATS",
     "manage": "Zarządzaj swoimi ofertami pracy i kandydatami",
@@ -205,6 +223,13 @@
       "closed": "Zamknięte",
       "new": "Nowe",
       "interviewed": "Po rozmowie"
+    },
+    "errors": {
+      "title": "Coś poszło nie tak",
+      "description": "Wystąpił nieoczekiwany błąd podczas ładowania tej sekcji.",
+      "retry": "Spróbuj ponownie",
+      "reload": "Odśwież stronę",
+      "inline": "Nie udało się załadować tej sekcji"
     }
   },
   "forEmployers": {

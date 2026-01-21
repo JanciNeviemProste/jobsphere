@@ -8,7 +8,14 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 
 export default function LoginPage({ params }: { params: { locale: string } }) {
@@ -99,9 +106,7 @@ export default function LoginPage({ params }: { params: { locale: string } }) {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or continue with email
-              </span>
+              <span className="bg-background px-2 text-muted-foreground">{t('divider')}</span>
             </div>
           </div>
 
@@ -122,10 +127,7 @@ export default function LoginPage({ params }: { params: { locale: string } }) {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">{t('password')}</Label>
-                <Link
-                  href="/forgot-password"
-                  className="text-sm text-primary hover:underline"
-                >
+                <Link href="/forgot-password" className="text-sm text-primary hover:underline">
                   {t('forgotPassword')}
                 </Link>
               </div>
@@ -160,7 +162,7 @@ export default function LoginPage({ params }: { params: { locale: string } }) {
             )}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? (t('signingIn') || 'Signing in...') : t('submit')}
+              {loading ? t('signingIn') || 'Signing in...' : t('submit')}
             </Button>
           </form>
         </CardContent>
