@@ -3,6 +3,8 @@
  * Uploads file to Vercel Blob & extracts text using multi-stage pipeline
  */
 
+export const runtime = 'nodejs' // Required for Node.js-only libraries (clamscan, file-type)
+
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { withRateLimit } from '@/lib/rate-limit'

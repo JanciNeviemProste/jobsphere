@@ -29,13 +29,11 @@ export async function GET(request: NextRequest) {
     }
 
     const clientId = process.env.GOOGLE_CLIENT_ID
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/email/oauth/gmail/callback`
+    const baseUrl = request.nextUrl.origin
+    const redirectUri = `${baseUrl}/api/email/oauth/gmail/callback`
 
     if (!clientId) {
-      return NextResponse.json(
-        { error: 'Google OAuth not configured' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Google OAuth not configured' }, { status: 500 })
     }
 
     // Generate state token
@@ -43,7 +41,7 @@ export async function GET(request: NextRequest) {
       JSON.stringify({
         userId: session.user.id,
         timestamp: Date.now(),
-      })
+      }),
     ).toString('base64')
 
     const authUrl = new URL(GOOGLE_AUTH_URL)
@@ -58,10 +56,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(authUrl.toString())
   } catch (error) {
     console.error('Gmail OAuth init error:', error)
-    return NextResponse.json(
-      { error: 'Failed to initialize OAuth' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to initialize OAuth' }, { status: 500 })
   }
 }
 
@@ -79,10 +74,7 @@ export async function POST(request: NextRequest) {
     const { accessToken, refreshToken, email } = await request.json()
 
     if (!accessToken || !email) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     const orgMember = await prisma.userOrgRole.findFirst({
@@ -90,10 +82,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!orgMember) {
-      return NextResponse.json(
-        { error: 'User not in organization' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'User not in organization' }, { status: 400 })
     }
 
     const emailAccount = await prisma.emailAccount.upsert({
@@ -134,9 +123,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Gmail OAuth save error:', error)
-    return NextResponse.json(
-      { error: 'Failed to save account' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to save account' }, { status: 500 })
   }
 }

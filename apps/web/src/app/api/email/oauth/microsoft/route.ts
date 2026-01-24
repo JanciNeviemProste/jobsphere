@@ -29,13 +29,11 @@ export async function GET(request: NextRequest) {
     }
 
     const clientId = process.env.MICROSOFT_CLIENT_ID
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/email/oauth/microsoft/callback`
+    const baseUrl = request.nextUrl.origin
+    const redirectUri = `${baseUrl}/api/email/oauth/microsoft/callback`
 
     if (!clientId) {
-      return NextResponse.json(
-        { error: 'Microsoft OAuth not configured' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Microsoft OAuth not configured' }, { status: 500 })
     }
 
     // Generate state token for CSRF protection
@@ -43,7 +41,7 @@ export async function GET(request: NextRequest) {
       JSON.stringify({
         userId: session.user.id,
         timestamp: Date.now(),
-      })
+      }),
     ).toString('base64')
 
     const authUrl = new URL(MICROSOFT_AUTH_URL)
@@ -57,10 +55,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(authUrl.toString())
   } catch (error) {
     console.error('Microsoft OAuth init error:', error)
-    return NextResponse.json(
-      { error: 'Failed to initialize OAuth' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to initialize OAuth' }, { status: 500 })
   }
 }
 
@@ -79,10 +74,7 @@ export async function POST(request: NextRequest) {
 
     // Validate tokens
     if (!accessToken || !email) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     // Find user's organization
@@ -91,10 +83,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!orgMember) {
-      return NextResponse.json(
-        { error: 'User not in organization' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'User not in organization' }, { status: 400 })
     }
 
     // Create or update email account
@@ -136,9 +125,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Microsoft OAuth save error:', error)
-    return NextResponse.json(
-      { error: 'Failed to save account' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to save account' }, { status: 500 })
   }
 }

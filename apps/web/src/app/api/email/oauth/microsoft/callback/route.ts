@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { encrypt } from '@/lib/encryption'
 
 const MICROSOFT_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
 const MICROSOFT_GRAPH_URL = 'https://graph.microsoft.com/v1.0'
@@ -80,6 +81,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${baseUrl}/employer/settings?error=no_org`)
     }
 
+    // Encrypt OAuth tokens for secure storage (parity with Gmail)
+    const encryptedTokens = encrypt(
+      JSON.stringify({
+        access_token,
+        refresh_token,
+        expires_in,
+        token_type: 'Bearer',
+      }),
+    )
+
     // Save email account
     await prisma.emailAccount.upsert({
       where: {
@@ -93,21 +104,11 @@ export async function GET(request: NextRequest) {
         provider: 'MICROSOFT',
         orgId: orgMember.orgId,
         name: user.displayName || email,
-        oauthJson: {
-          access_token,
-          refresh_token,
-          expires_in,
-          token_type: 'Bearer',
-        },
+        oauthJson: encryptedTokens,
         isActive: true,
       },
       update: {
-        oauthJson: {
-          access_token,
-          refresh_token,
-          expires_in,
-          token_type: 'Bearer',
-        },
+        oauthJson: encryptedTokens,
         isActive: true,
         lastSyncAt: new Date(),
       },
