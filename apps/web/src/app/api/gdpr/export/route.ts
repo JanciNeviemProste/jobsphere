@@ -18,14 +18,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Collect all user data
+    // Collect user data (select only safe fields - NEVER password or totpSecret)
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: {
-        sessions: true,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        emailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        // SECURITY: Explicitly exclude sensitive fields (password, totpSecret, sessions)
+        // password: false, // Never export
+        // totpSecret: false, // Never export (2FA bypass risk)
+        // sessions: false, // Never export (contains tokens)
         organizations: {
-          include: {
-            organization: true,
+          select: {
+            orgId: true,
+            role: true,
+            organization: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
       },

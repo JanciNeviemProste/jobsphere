@@ -4,8 +4,22 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+
+// Validation schema for GDPR consent
+const consentSchema = z.object({
+  purpose: z.enum(['MARKETING', 'ANALYTICS', 'COOKIES'], {
+    errorMap: () => ({
+      message: 'Invalid consent purpose. Must be MARKETING, ANALYTICS, or COOKIES.',
+    }),
+  }),
+  granted: z.boolean({
+    errorMap: () => ({ message: 'Granted must be a boolean value.' }),
+  }),
+  legalBasis: z.enum(['CONSENT', 'LEGITIMATE_INTEREST', 'CONTRACT']).optional(),
+})
 
 /**
  * GET /api/gdpr/consent
@@ -42,33 +56,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { purpose, granted } = await request.json()
+    const body = await request.json()
 
-    if (!purpose || typeof granted !== 'boolean') {
-      return NextResponse.json({ error: 'Invalid consent data' }, { status: 400 })
+    // Validate request body with Zod schema
+    const validationResult = consentSchema.safeParse(body)
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          error: 'Invalid consent data',
+          details: validationResult.error.flatten().fieldErrors,
+        },
+        { status: 400 },
+      )
     }
 
-    // Valid consent purposes
-    const validPurposes = ['MARKETING', 'ANALYTICS', 'COOKIES']
+    const { purpose, granted, legalBasis } = validationResult.data
 
-    if (!validPurposes.includes(purpose)) {
-      return NextResponse.json({ error: 'Invalid consent purpose' }, { status: 400 })
-    }
-
-    // Create consent record
+    // Create consent record with validated data
     const consent = await prisma.consentRecord.create({
       data: {
         userId: session.user.id,
         consentType: purpose,
         granted,
         purpose,
-        legalBasis: 'CONSENT',
+        legalBasis: legalBasis || 'CONSENT',
         ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
         userAgent: request.headers.get('user-agent') || 'unknown',
       },
     })
 
-    return NextResponse.json({ consent })
+    return NextResponse.json({ consent }, { status: 201 })
   } catch (error) {
     console.error('Record consent error:', error)
     return NextResponse.json({ error: 'Failed to record consent' }, { status: 500 })
