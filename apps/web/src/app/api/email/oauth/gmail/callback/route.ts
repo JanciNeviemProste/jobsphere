@@ -3,11 +3,19 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { encrypt } from '@/lib/encryption'
+import { logger } from '@/lib/logger'
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v2/userinfo'
+
+// OAuth state validation schema
+const oauthStateSchema = z.object({
+  userId: z.string().min(1, 'User ID is required'),
+  timestamp: z.number().positive('Timestamp must be positive'),
+})
 
 export async function GET(request: NextRequest) {
   const baseUrl = request.nextUrl.origin
@@ -26,8 +34,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${baseUrl}/employer/settings?error=invalid_callback`)
     }
 
-    // Verify state
-    const stateData = JSON.parse(Buffer.from(state, 'base64').toString())
+    // Verify and validate state
+    let stateData
+    try {
+      const rawState = JSON.parse(Buffer.from(state, 'base64').toString())
+      stateData = oauthStateSchema.parse(rawState)
+    } catch (error) {
+      return NextResponse.redirect(`${baseUrl}/employer/settings?error=invalid_state`)
+    }
+
     const { userId, timestamp } = stateData
 
     if (Date.now() - timestamp > 5 * 60 * 1000) {
@@ -48,7 +63,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!tokenResponse.ok) {
-      console.error('Token exchange failed')
+      logger.error('Gmail OAuth token exchange failed', { status: tokenResponse.status })
       return NextResponse.redirect(`${baseUrl}/employer/settings?error=token_failed`)
     }
 
@@ -114,7 +129,7 @@ export async function GET(request: NextRequest) {
       `${baseUrl}/employer/settings?success=email_connected&email=${encodeURIComponent(email)}`,
     )
   } catch (error) {
-    console.error('Gmail callback error:', error)
+    logger.error('Gmail OAuth callback error', { error })
     return NextResponse.redirect(`${baseUrl}/employer/settings?error=callback_failed`)
   }
 }

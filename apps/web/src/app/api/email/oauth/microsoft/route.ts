@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { logger } from '@/lib/logger'
 
 const MICROSOFT_AUTH_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
 const MICROSOFT_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(authUrl.toString())
   } catch (error) {
-    console.error('Microsoft OAuth init error:', error)
+    logger.error('Microsoft OAuth init error', { error })
     return NextResponse.json({ error: 'Failed to initialize OAuth' }, { status: 500 })
   }
 }
@@ -124,7 +125,7 @@ export async function POST(request: NextRequest) {
       email: emailAccount.email,
     })
   } catch (error) {
-    console.error('Microsoft OAuth save error:', error)
+    logger.error('Microsoft OAuth save error', { error })
     return NextResponse.json({ error: 'Failed to save account' }, { status: 500 })
   }
 }

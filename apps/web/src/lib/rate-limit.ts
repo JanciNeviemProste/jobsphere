@@ -4,6 +4,7 @@
  */
 
 import { Redis } from '@upstash/redis'
+import { logger } from './logger'
 
 let redis: Redis | null = null
 
@@ -50,7 +51,10 @@ function recordRedisFailure() {
   redisFailureCount++
   lastRedisFailure = Date.now()
   if (redisFailureCount === CIRCUIT_BREAKER_THRESHOLD) {
-    console.warn(`[Rate Limit] Circuit breaker OPEN - Redis failed ${redisFailureCount} times`)
+    logger.warn('Rate Limit Circuit breaker OPEN', {
+      redisFailureCount,
+      threshold: CIRCUIT_BREAKER_THRESHOLD,
+    })
   }
 }
 
@@ -115,7 +119,10 @@ if (typeof window === 'undefined' && process.env.NEXT_PHASE !== 'phase-productio
       }
     }
 
-    console.log(`[Rate Limit] In-memory store size: ${inMemoryStore.size} keys`)
+    logger.info('Rate Limit in-memory store cleanup', {
+      storeSize: inMemoryStore.size,
+      maxAge,
+    })
   }, 300000)
 }
 
@@ -171,7 +178,11 @@ export async function rateLimit(config: RateLimitConfig): Promise<RateLimitResul
 
   // Check circuit breaker - use in-memory if Redis is down
   if (isCircuitOpen()) {
-    console.warn('[Rate Limit] Circuit breaker OPEN - using in-memory fallback')
+    logger.warn('Rate Limit Circuit breaker OPEN - using in-memory fallback', {
+      identifier,
+      requestedLimit: limit,
+      conservativeLimit: Math.ceil(limit / 2),
+    })
     // Use more conservative limit (50% of requested limit)
     return rateLimitInMemory(identifier, Math.ceil(limit / 2), window)
   }
@@ -211,7 +222,12 @@ export async function rateLimit(config: RateLimitConfig): Promise<RateLimitResul
       reset,
     }
   } catch (error) {
-    console.error('[Rate Limit] Redis error, falling back to in-memory limiter:', error)
+    logger.error('Rate Limit Redis error - falling back to in-memory limiter', {
+      error,
+      identifier,
+      requestedLimit: limit,
+      conservativeLimit: Math.ceil(limit / 2),
+    })
 
     // Record Redis failure for circuit breaker
     recordRedisFailure()

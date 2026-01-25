@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { addEmbeddingJob, addMatchScoreCacheJob } from '@/lib/queue'
+import { logger } from '@/lib/logger'
 
 export async function createJob(formData: {
   title: string
@@ -54,13 +55,13 @@ export async function createJob(formData: {
 
   // Async embedding generation (non-blocking)
   addEmbeddingJob({ jobId: job.id }).catch((err) => {
-    console.error('Failed to queue job embedding:', err)
+    logger.error('Failed to queue job embedding', { error: err, jobId: job.id })
     // Don't throw - embedding is nice-to-have, not critical
   })
 
   // Async match score caching for popular jobs (non-blocking)
   addMatchScoreCacheJob({ jobId: job.id }).catch((err) => {
-    console.error('Failed to queue match score caching:', err)
+    logger.error('Failed to queue match score caching', { error: err, jobId: job.id })
     // Don't throw - caching is nice-to-have, not critical
   })
 

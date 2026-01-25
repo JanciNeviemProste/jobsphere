@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { logger } from '@/lib/logger'
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(authUrl.toString())
   } catch (error) {
-    console.error('Gmail OAuth init error:', error)
+    logger.error('Gmail OAuth init error', { error })
     return NextResponse.json({ error: 'Failed to initialize OAuth' }, { status: 500 })
   }
 }
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
       email: emailAccount.email,
     })
   } catch (error) {
-    console.error('Gmail OAuth save error:', error)
+    logger.error('Gmail OAuth save error', { error })
     return NextResponse.json({ error: 'Failed to save account' }, { status: 500 })
   }
 }

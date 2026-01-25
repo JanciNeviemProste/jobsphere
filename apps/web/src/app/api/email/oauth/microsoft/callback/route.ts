@@ -4,11 +4,19 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { encrypt } from '@/lib/encryption'
+import { logger } from '@/lib/logger'
 
 const MICROSOFT_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
 const MICROSOFT_GRAPH_URL = 'https://graph.microsoft.com/v1.0'
+
+// OAuth state validation schema
+const oauthStateSchema = z.object({
+  userId: z.string().min(1, 'User ID is required'),
+  timestamp: z.number().positive('Timestamp must be positive'),
+})
 
 export async function GET(request: NextRequest) {
   const baseUrl = request.nextUrl.origin
@@ -28,8 +36,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${baseUrl}/employer/settings?error=invalid_callback`)
     }
 
-    // Verify state
-    const stateData = JSON.parse(Buffer.from(state, 'base64').toString())
+    // Verify and validate state
+    let stateData
+    try {
+      const rawState = JSON.parse(Buffer.from(state, 'base64').toString())
+      stateData = oauthStateSchema.parse(rawState)
+    } catch (error) {
+      return NextResponse.redirect(`${baseUrl}/employer/settings?error=invalid_state`)
+    }
+
     const { userId, timestamp } = stateData
 
     // Check state freshness (5 minutes)
@@ -52,7 +67,10 @@ export async function GET(request: NextRequest) {
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.json()
-      console.error('Token exchange failed:', errorData)
+      logger.error('Microsoft OAuth token exchange failed', {
+        status: tokenResponse.status,
+        errorData,
+      })
       return NextResponse.redirect(`${baseUrl}/employer/settings?error=token_failed`)
     }
 
@@ -65,7 +83,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!userResponse.ok) {
-      console.error('Failed to get user info')
+      logger.error('Microsoft OAuth failed to get user info', { status: userResponse.status })
       return NextResponse.redirect(`${baseUrl}/employer/settings?error=user_info_failed`)
     }
 
@@ -119,7 +137,7 @@ export async function GET(request: NextRequest) {
       `${baseUrl}/employer/settings?success=email_connected&email=${encodeURIComponent(email)}`,
     )
   } catch (error) {
-    console.error('OAuth callback error:', error)
+    logger.error('Microsoft OAuth callback error', { error })
     return NextResponse.redirect(`${baseUrl}/employer/settings?error=callback_failed`)
   }
 }

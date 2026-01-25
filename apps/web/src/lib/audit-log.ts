@@ -5,6 +5,7 @@
 
 import { prisma } from './db'
 import { Prisma } from '@prisma/client'
+import { logger } from './logger'
 
 export type AuditAction =
   | 'USER_LOGIN'
@@ -81,7 +82,12 @@ export async function createAuditLog(entry: AuditLogEntry): Promise<void> {
     })
   } catch (error) {
     // Log error but don't fail the main operation
-    console.error('Failed to create audit log:', error)
+    logger.error('Failed to create audit log', {
+      error,
+      action: entry.action,
+      resource: entry.resource,
+      resourceId: entry.resourceId,
+    })
   }
 }
 
@@ -101,10 +107,7 @@ export function getRequestMetadata(request: Request): {
 /**
  * Log user authentication
  */
-export async function logUserLogin(
-  userId: string,
-  request: Request
-): Promise<void> {
+export async function logUserLogin(userId: string, request: Request): Promise<void> {
   const { ipAddress, userAgent } = getRequestMetadata(request)
 
   await createAuditLog({
@@ -125,7 +128,7 @@ export async function logDataAccess(
   orgId: string,
   resourceType: AuditResource,
   resourceId: string,
-  request: Request
+  request: Request,
 ): Promise<void> {
   const { ipAddress, userAgent } = getRequestMetadata(request)
 
@@ -147,7 +150,7 @@ export async function logDataExport(
   userId: string,
   orgId: string | undefined,
   exportType: string,
-  request: Request
+  request: Request,
 ): Promise<void> {
   const { ipAddress, userAgent } = getRequestMetadata(request)
 
@@ -172,7 +175,7 @@ export async function logSensitiveAction(
   resource: AuditResource,
   resourceId: string,
   request: Request,
-  metadata?: Prisma.InputJsonValue
+  metadata?: Prisma.InputJsonValue,
 ): Promise<void> {
   const { ipAddress, userAgent } = getRequestMetadata(request)
 

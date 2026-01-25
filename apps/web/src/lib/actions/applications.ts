@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { logger } from '@/lib/logger'
 
 export async function createApplication(formData: {
   jobId: string
@@ -35,7 +36,10 @@ export async function createApplication(formData: {
       candidateId: session.user.id,
       coverLetter: formData.coverLetter,
       stage: 'NEW',
-      orgId: (await prisma.job.findUnique({ where: { id: formData.jobId }, select: { orgId: true }}))!.orgId,
+      orgId: (await prisma.job.findUnique({
+        where: { id: formData.jobId },
+        select: { orgId: true },
+      }))!.orgId,
     },
   })
 
@@ -57,7 +61,7 @@ export async function createApplication(formData: {
 export async function updateApplicationStatus(
   applicationId: string,
   status: string,
-  notes?: string
+  notes?: string,
 ) {
   const session = await auth()
 
@@ -122,13 +126,13 @@ export async function updateApplicationStatus(
           where: {
             orgId: application.job.orgId,
             active: true,
-            name: { contains: status, mode: 'insensitive' }
+            name: { contains: status, mode: 'insensitive' },
           },
           include: {
             steps: {
-              orderBy: { order: 'asc' }
-            }
-          }
+              orderBy: { order: 'asc' },
+            },
+          },
         })
 
         if (sequence && sequence.steps.length > 0) {
@@ -137,8 +141,8 @@ export async function updateApplicationStatus(
             data: {
               sequenceId: sequence.id,
               candidateId: application.candidateId,
-              status: 'ACTIVE'
-            }
+              status: 'ACTIVE',
+            },
           })
 
           // A/B Testing: Select variant for first step if multiple exist
@@ -153,10 +157,10 @@ export async function updateApplicationStatus(
               const randomIndex = Math.floor(Math.random() * variants.length)
               selectedFirstStep = variants[randomIndex]
 
-              console.log('A/B test variant selected for auto-enrollment', {
+              logger.info('A/B test variant selected for auto-enrollment', {
                 runId: run.id,
                 selectedVariant: selectedFirstStep.abGroup,
-                totalVariants: variants.length
+                totalVariants: variants.length,
               })
             }
           }
@@ -165,13 +169,16 @@ export async function updateApplicationStatus(
           const { addEmailSequenceJob } = await import('@/lib/queue')
           await addEmailSequenceJob({
             enrollmentId: run.id,
-            stepId: selectedFirstStep.id
+            stepId: selectedFirstStep.id,
           })
 
-          console.log(`Auto-enrolled candidate ${application.candidateId} into sequence ${sequence.id}`)
+          logger.info('Auto-enrolled candidate into email sequence', {
+            candidateId: application.candidateId,
+            sequenceId: sequence.id,
+          })
         }
       } catch (error) {
-        console.error('Failed to auto-enroll candidate in email sequence:', error)
+        logger.error('Failed to auto-enroll candidate in email sequence', { error })
         // Don't throw - auto-enrollment is nice-to-have, not critical
       }
     }
