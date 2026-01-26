@@ -1,9 +1,10 @@
-import NextAuth, { NextAuthOptions } from "next-auth"
-import { PrismaAdapter } from "@next-auth/prisma-adapter"
-import CredentialsProvider from "next-auth/providers/credentials"
-import { prisma } from "./prisma"
-import { compare } from "bcryptjs"
-import { getServerSession } from "next-auth/next"
+import NextAuth, { NextAuthOptions } from 'next-auth'
+import { PrismaAdapter } from '@next-auth/prisma-adapter'
+import CredentialsProvider from 'next-auth/providers/credentials'
+import { prisma } from './prisma'
+import { compare } from 'bcryptjs'
+import { getServerSession } from 'next-auth/next'
+import { logger } from './logger'
 
 export class UnauthorizedError extends Error {
   constructor(message = 'Unauthorized') {
@@ -19,17 +20,17 @@ export class UnauthorizedError extends Error {
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
-    strategy: "jwt",
+    strategy: 'jwt',
   },
   pages: {
-    signIn: "/login",
+    signIn: '/login',
   },
   providers: [
     CredentialsProvider({
-      name: "credentials",
+      name: 'credentials',
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
         try {
@@ -47,18 +48,74 @@ export const authOptions: NextAuthOptions = {
             return null
           }
 
+          // SECURITY: Check if account is locked
+          if (user.lockedUntil && user.lockedUntil > new Date()) {
+            const minutesLeft = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000)
+            logger.warn(`🔒 Account locked for ${user.email}. Unlocks in ${minutesLeft} minutes`)
+            return null
+          }
+
+          // If lock expired, reset failedAttempts
+          if (user.lockedUntil && user.lockedUntil <= new Date()) {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: {
+                failedAttempts: 0,
+                lockedUntil: null,
+              },
+            })
+          }
+
           if (!user.password) {
             return null
           }
 
-          const isPasswordValid = await compare(
-            credentials.password,
-            user.password
-          )
+          const isPasswordValid = await compare(credentials.password, user.password)
 
           if (!isPasswordValid) {
+            // SECURITY: Increment failed attempts
+            const newFailedAttempts = user.failedAttempts + 1
+            const maxAttempts = 5
+            const lockoutMinutes = 15
+
+            if (newFailedAttempts >= maxAttempts) {
+              // Lock account for 15 minutes
+              const lockedUntil = new Date(Date.now() + lockoutMinutes * 60000)
+              await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                  failedAttempts: newFailedAttempts,
+                  lockedUntil,
+                },
+              })
+              logger.warn(
+                `🔒 Account locked for ${user.email} after ${maxAttempts} failed attempts. Locked until ${lockedUntil.toISOString()}`,
+              )
+            } else {
+              // Just increment counter
+              await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                  failedAttempts: newFailedAttempts,
+                },
+              })
+              logger.warn(
+                `⚠️  Failed login attempt ${newFailedAttempts}/${maxAttempts} for ${user.email}`,
+              )
+            }
+
             return null
           }
+
+          // SECURITY: Successful login - reset failed attempts and update lastLoginAt
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              failedAttempts: 0,
+              lockedUntil: null,
+              lastLoginAt: new Date(),
+            },
+          })
 
           return {
             id: user.id,
@@ -67,11 +124,12 @@ export const authOptions: NextAuthOptions = {
             image: user.avatar,
           }
         } catch (error) {
-          console.error('❌ Auth error:', error)
-          console.error('❌ Auth error stack:', error instanceof Error ? error.stack : 'No stack')
-          console.error('❌ Auth error details:', {
+          logger.error('❌ Auth error:', error)
+          logger.error('❌ Auth error stack:', error instanceof Error ? error.stack : 'No stack')
+          logger.error('❌ Auth error details:', {
             name: error instanceof Error ? error.name : 'Unknown',
-            message: error instanceof Error ? error.message : String(error)
+            message: error instanceof Error ? error.message : String(error),
+            credentials: credentials?.email, // Add email for debugging
           })
           // Return null instead of throwing - NextAuth will show "invalid credentials"
           return null
@@ -88,7 +146,7 @@ export const authOptions: NextAuthOptions = {
           // Load user's organization and role
           const userOrg = await prisma.userOrgRole.findFirst({
             where: { userId: user.id },
-            include: { organization: true }
+            include: { organization: true },
           })
 
           token.role = userOrg?.role || 'candidate'
@@ -98,8 +156,8 @@ export const authOptions: NextAuthOptions = {
 
         return token
       } catch (error) {
-        console.error('❌ JWT Callback error:', error)
-        console.error('❌ JWT error stack:', error instanceof Error ? error.stack : 'No stack')
+        logger.error('❌ JWT Callback error:', error)
+        logger.error('❌ JWT error stack:', error instanceof Error ? error.stack : 'No stack')
         throw error // Re-throw to let NextAuth handle it
       }
     },
@@ -113,8 +171,8 @@ export const authOptions: NextAuthOptions = {
         }
         return session
       } catch (error) {
-        console.error('❌ Session Callback error:', error)
-        console.error('❌ Session error stack:', error instanceof Error ? error.stack : 'No stack')
+        logger.error('❌ Session Callback error:', error)
+        logger.error('❌ Session error stack:', error instanceof Error ? error.stack : 'No stack')
         throw error // Re-throw to let NextAuth handle it
       }
     },

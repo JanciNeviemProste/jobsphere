@@ -1,4 +1,5 @@
 import { prisma } from './prisma'
+import { logger } from './logger'
 
 interface EmailData {
   to: string
@@ -91,7 +92,7 @@ async function trackEmail(
       },
     })
   } catch (error) {
-    console.error('Failed to track email in database:', error)
+    logger.error('Failed to track email in database:', error)
     // Don't throw - tracking failures shouldn't block email sending
   }
 }
@@ -100,7 +101,7 @@ async function sendResendEmail(data: EmailData): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY
 
   if (!apiKey) {
-    console.warn('RESEND_API_KEY not set, email not sent:', data.subject)
+    logger.warn('RESEND_API_KEY not set, email not sent', { subject: data.subject })
     return
   }
 
@@ -129,7 +130,7 @@ async function sendResendEmail(data: EmailData): Promise<void> {
     const responseData = await response.json()
     await trackEmail(data, 'SENT', responseData.id)
   } catch (error) {
-    console.error('Error sending email via Resend:', error)
+    logger.error('Error sending email via Resend:', error)
 
     // Track failed email
     await trackEmail(data, 'FAILED')
@@ -142,7 +143,7 @@ async function sendSendGridEmail(data: EmailData): Promise<void> {
   const apiKey = process.env.SENDGRID_API_KEY
 
   if (!apiKey) {
-    console.warn('SENDGRID_API_KEY not set, email not sent:', data.subject)
+    logger.warn('SENDGRID_API_KEY not set, email not sent', { subject: data.subject })
     return
   }
 
@@ -186,7 +187,7 @@ async function sendSendGridEmail(data: EmailData): Promise<void> {
     const responseHeaders = response.headers.get('x-message-id')
     await trackEmail(data, 'SENT', responseHeaders || undefined)
   } catch (error) {
-    console.error('Error sending email via SendGrid:', error)
+    logger.error('Error sending email via SendGrid:', error)
 
     // Track failed email
     await trackEmail(data, 'FAILED')
@@ -362,13 +363,13 @@ export async function sendStatusChangeEmail(
     })
 
     if (!application) {
-      console.warn('Application not found for email notification:', applicationId)
+      logger.warn('Application not found for email notification', { applicationId })
       return
     }
 
     const email = application.candidate?.contacts?.[0]?.email
     if (!email) {
-      console.warn('No email found for candidate:', application.candidateId)
+      logger.warn('No email found for candidate', { candidateId: application.candidateId })
       return
     }
 
@@ -456,7 +457,7 @@ export async function sendStatusChangeEmail(
 
     await sendEmail({ to: email, subject, html })
   } catch (error) {
-    console.error('Error sending status change email:', error)
+    logger.error('Error sending status change email:', error)
     // Don't throw - email failures shouldn't block the application status update
   }
 }

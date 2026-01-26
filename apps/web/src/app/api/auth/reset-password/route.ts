@@ -3,18 +3,14 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { errorResponse } from '@/lib/errors'
 import { withRateLimit } from '@/lib/rate-limit'
+import { strongPasswordSchema } from '@/lib/validation'
 import * as z from 'zod'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 
 const resetPasswordSchema = z.object({
   token: z.string(),
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-      'Password must contain uppercase, lowercase, number and special character'
-    ),
+  password: strongPasswordSchema,
 })
 
 export const POST = withRateLimit(
@@ -26,10 +22,7 @@ export const POST = withRateLimit(
       const { token, password } = resetPasswordSchema.parse(body)
 
       // Hash the token to compare with stored version
-      const hashedToken = crypto
-        .createHash('sha256')
-        .update(token)
-        .digest('hex')
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
 
       // Find valid reset token
       const resetToken = await prisma.verificationToken.findFirst({
@@ -43,10 +36,7 @@ export const POST = withRateLimit(
       })
 
       if (!resetToken) {
-        return NextResponse.json(
-          { error: 'Invalid or expired reset token' },
-          { status: 400 }
-        )
+        return NextResponse.json({ error: 'Invalid or expired reset token' }, { status: 400 })
       }
 
       // Find user by email from the token identifier
@@ -55,10 +45,7 @@ export const POST = withRateLimit(
       })
 
       if (!user) {
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
-        )
+        return NextResponse.json({ error: 'User not found' }, { status: 404 })
       }
 
       // Hash the new password
@@ -130,17 +117,14 @@ export const POST = withRateLimit(
       if (error instanceof z.ZodError) {
         return NextResponse.json(
           { error: 'Invalid password format', issues: error.issues },
-          { status: 400 }
+          { status: 400 },
         )
       }
 
       logger.apiError('POST', '/api/auth/reset-password', error)
       const errorData = errorResponse(error)
-      return NextResponse.json(
-        { error: errorData.error },
-        { status: errorData.statusCode }
-      )
+      return NextResponse.json({ error: errorData.error }, { status: errorData.statusCode })
     }
   },
-  { preset: 'auth' } // More restrictive rate limiting for auth endpoints
+  { preset: 'auth' }, // More restrictive rate limiting for auth endpoints
 )

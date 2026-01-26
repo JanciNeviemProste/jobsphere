@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { logger } from '@/lib/logger'
 
 /**
  * POST /api/gdpr/dsar
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
         })
       }
     } catch (emailError) {
-      console.error('Failed to send DSAR notification:', emailError)
+      logger.error('Failed to send DSAR notification', emailError)
       // Don't fail the request if email fails
     }
 
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
       message: 'Your request has been submitted and will be processed within 30 days.',
     })
   } catch (error) {
-    console.error('DSAR request error:', error)
+    logger.error('DSAR request error', error)
     return NextResponse.json({ error: 'Failed to submit request' }, { status: 500 })
   }
 }
@@ -113,7 +114,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ requests })
   } catch (error) {
-    console.error('Get DSAR error:', error)
+    logger.error('Get DSAR error', error)
     return NextResponse.json({ error: 'Failed to fetch requests' }, { status: 500 })
   }
 }

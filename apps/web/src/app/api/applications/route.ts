@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 export async function GET(req: Request) {
   try {
@@ -40,7 +41,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(applications)
   } catch (error) {
-    console.error('Error fetching applications:', error)
+    logger.error('Error fetching applications', error)
     return NextResponse.json({ error: 'Failed to fetch applications' }, { status: 500 })
   }
 }
@@ -167,13 +168,13 @@ export const POST = withCsrfProtection(
             })
           }
         } catch (emailError) {
-          console.error('Failed to send email notifications:', emailError)
+          logger.error('Failed to send email notifications', emailError)
           // Don't fail the request if email fails
         }
 
         return NextResponse.json(application, { status: 201 })
       } catch (error: any) {
-        console.error('Error creating application:', error)
+        logger.error('Error creating application', error)
 
         // Handle unique constraint violation (race condition)
         if (error.code === 'P2002') {

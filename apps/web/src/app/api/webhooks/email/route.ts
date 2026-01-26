@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: 'Unknown webhook format' }, { status: 400 })
   } catch (error) {
-    console.error('Email webhook error:', error)
+    logger.error('Email webhook error:', error)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }
@@ -30,7 +31,7 @@ async function handleResendWebhook(event: any) {
     'email.opened': 'OPENED',
     'email.clicked': 'CLICKED',
     'email.bounced': 'BOUNCED',
-    'email.complained': 'COMPLAINED'
+    'email.complained': 'COMPLAINED',
   }
 
   const kind = kindMap[type]
@@ -40,7 +41,7 @@ async function handleResendWebhook(event: any) {
 
   if (emailId) {
     const run = await prisma.emailSequenceRun.findFirst({
-      where: { id: emailId }
+      where: { id: emailId },
     })
 
     if (run) {
@@ -48,7 +49,7 @@ async function handleResendWebhook(event: any) {
       const events = await prisma.emailSequenceEvent.findMany({
         where: { runId: run.id },
         orderBy: { at: 'desc' },
-        take: 1
+        take: 1,
       })
 
       const lastEvent = events[0]
@@ -59,8 +60,8 @@ async function handleResendWebhook(event: any) {
             runId: run.id,
             stepId: lastEvent.stepId,
             kind,
-            metadata: data
-          }
+            metadata: data,
+          },
         })
       }
     }
@@ -76,7 +77,7 @@ async function handleSendGridWebhook(events: any[]) {
 
     if (emailId && kind) {
       const run = await prisma.emailSequenceRun.findFirst({
-        where: { id: emailId }
+        where: { id: emailId },
       })
 
       if (run) {
@@ -84,7 +85,7 @@ async function handleSendGridWebhook(events: any[]) {
         const events = await prisma.emailSequenceEvent.findMany({
           where: { runId: run.id },
           orderBy: { at: 'desc' },
-          take: 1
+          take: 1,
         })
 
         const lastEvent = events[0]
@@ -95,8 +96,8 @@ async function handleSendGridWebhook(events: any[]) {
               runId: run.id,
               stepId: lastEvent.stepId,
               kind,
-              metadata: event
-            }
+              metadata: event,
+            },
           })
         }
       }

@@ -86,7 +86,7 @@ describe('UserService', () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(existingUser)
 
       await expect(UserService.createUser(createInput)).rejects.toThrow(
-        'User with this email already exists'
+        'User with this email already exists',
       )
       await expect(UserService.createUser(createInput)).rejects.toThrow(AppError)
     })
@@ -100,7 +100,7 @@ describe('UserService', () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
       await expect(UserService.createUser(weakPasswordInput)).rejects.toThrow(
-        'Password must be at least 8 characters long'
+        'Password must be at least 12 characters long',
       )
     })
 
@@ -129,7 +129,7 @@ describe('UserService', () => {
           orgId: mockOrgId,
           action: 'CREATE',
           resource: 'USER',
-        })
+        }),
       )
     })
 
@@ -155,7 +155,7 @@ describe('UserService', () => {
             email: createInput.email,
             name: createInput.name,
           }),
-        })
+        }),
       )
     })
   })
@@ -182,9 +182,9 @@ describe('UserService', () => {
     it('should throw error when user not found', async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
-      await expect(
-        UserService.updateUser(mockUserId, { name: 'New Name' })
-      ).rejects.toThrow('User not found')
+      await expect(UserService.updateUser(mockUserId, { name: 'New Name' })).rejects.toThrow(
+        'User not found',
+      )
     })
 
     it('should throw error when new email already in use', async () => {
@@ -196,7 +196,7 @@ describe('UserService', () => {
         .mockResolvedValueOnce(emailTaken)
 
       await expect(
-        UserService.updateUser(mockUserId, { email: 'taken@example.com' })
+        UserService.updateUser(mockUserId, { email: 'taken@example.com' }),
       ).rejects.toThrow('Email already in use')
     })
 
@@ -255,7 +255,7 @@ describe('UserService', () => {
           userId: mockUserId,
           action: 'UPDATE',
           resource: 'USER',
-        })
+        }),
       )
     })
   })
@@ -287,9 +287,9 @@ describe('UserService', () => {
     it('should throw error when user not found', async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
-      await expect(
-        UserService.changePassword(mockUserId, changePasswordInput)
-      ).rejects.toThrow('User not found')
+      await expect(UserService.changePassword(mockUserId, changePasswordInput)).rejects.toThrow(
+        'User not found',
+      )
     })
 
     it('should throw error when current password is incorrect', async () => {
@@ -298,9 +298,9 @@ describe('UserService', () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser)
       vi.mocked(compare).mockResolvedValue(false)
 
-      await expect(
-        UserService.changePassword(mockUserId, changePasswordInput)
-      ).rejects.toThrow('Current password is incorrect')
+      await expect(UserService.changePassword(mockUserId, changePasswordInput)).rejects.toThrow(
+        'Current password is incorrect',
+      )
     })
 
     it('should throw error when new password is too short', async () => {
@@ -313,9 +313,9 @@ describe('UserService', () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser)
       vi.mocked(compare).mockResolvedValue(true)
 
-      await expect(
-        UserService.changePassword(mockUserId, weakPasswordInput)
-      ).rejects.toThrow('New password must be at least 8 characters long')
+      await expect(UserService.changePassword(mockUserId, weakPasswordInput)).rejects.toThrow(
+        'New password must be at least 8 characters long',
+      )
     })
 
     it('should create audit log for password change', async () => {
@@ -338,7 +338,7 @@ describe('UserService', () => {
           action: 'UPDATE',
           resource: 'USER',
           metadata: { password: 'CHANGED' },
-        })
+        }),
       )
     })
   })
@@ -368,7 +368,7 @@ describe('UserService', () => {
           where: expect.objectContaining({
             OR: expect.any(Array),
           }),
-        })
+        }),
       )
     })
 
@@ -387,7 +387,7 @@ describe('UserService', () => {
               some: { orgId: mockOrgId },
             },
           }),
-        })
+        }),
       )
     })
 
@@ -404,7 +404,7 @@ describe('UserService', () => {
           where: expect.objectContaining({
             emailVerified: { not: null },
           }),
-        })
+        }),
       )
     })
 
@@ -420,7 +420,7 @@ describe('UserService', () => {
         expect.objectContaining({
           skip: 20,
           take: 10,
-        })
+        }),
       )
     })
 
@@ -437,7 +437,7 @@ describe('UserService', () => {
           select: expect.not.objectContaining({
             password: true,
           }),
-        })
+        }),
       )
     })
   })
@@ -502,7 +502,7 @@ describe('UserService', () => {
           action: 'DELETE',
           resource: 'USER',
           metadata: { email: mockUser.email },
-        })
+        }),
       )
     })
 
@@ -543,7 +543,7 @@ describe('UserService', () => {
       vi.mocked(prisma.verificationToken.findUnique).mockResolvedValue(null)
 
       await expect(UserService.verifyEmail('invalid-token')).rejects.toThrow(
-        'Invalid verification token'
+        'Invalid verification token',
       )
     })
 
@@ -556,9 +556,7 @@ describe('UserService', () => {
 
       vi.mocked(prisma.verificationToken.findUnique).mockResolvedValue(expiredToken)
 
-      await expect(UserService.verifyEmail(token)).rejects.toThrow(
-        'Verification token has expired'
-      )
+      await expect(UserService.verifyEmail(token)).rejects.toThrow('Verification token has expired')
     })
   })
 
@@ -581,7 +579,7 @@ describe('UserService', () => {
             token: expect.any(String),
             expires: expect.any(Date),
           }),
-        })
+        }),
       )
     })
 
@@ -625,7 +623,7 @@ describe('UserService', () => {
       vi.mocked(prisma.verificationToken.findUnique).mockResolvedValue(null)
 
       await expect(UserService.resetPassword('invalid-token', newPassword)).rejects.toThrow(
-        'Invalid reset token'
+        'Invalid reset token',
       )
     })
 
@@ -639,7 +637,7 @@ describe('UserService', () => {
       vi.mocked(prisma.verificationToken.findUnique).mockResolvedValue(expiredToken)
 
       await expect(UserService.resetPassword(token, newPassword)).rejects.toThrow(
-        'Reset token has expired'
+        'Reset token has expired',
       )
     })
 
@@ -653,7 +651,7 @@ describe('UserService', () => {
       vi.mocked(prisma.verificationToken.findUnique).mockResolvedValue(mockToken)
 
       await expect(UserService.resetPassword(token, '1234567')).rejects.toThrow(
-        'Password must be at least 8 characters long'
+        'Password must be at least 12 characters long',
       )
     })
   })

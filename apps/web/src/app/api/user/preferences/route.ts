@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 const preferencesSchema = z.object({
   preferences: z.object({
@@ -11,16 +12,16 @@ const preferencesSchema = z.object({
       newTeamMember: z.boolean(),
       billingUpdates: z.boolean(),
       weeklyDigest: z.boolean(),
-      marketingEmails: z.boolean()
+      marketingEmails: z.boolean(),
     }),
     inAppNotifications: z.object({
       newApplication: z.boolean(),
       applicationStatusChange: z.boolean(),
       newTeamMember: z.boolean(),
-      mentions: z.boolean()
+      mentions: z.boolean(),
     }),
-    digestFrequency: z.enum(['immediate', 'daily', 'weekly'])
-  })
+    digestFrequency: z.enum(['immediate', 'daily', 'weekly']),
+  }),
 })
 
 export async function GET() {
@@ -36,10 +37,10 @@ export async function GET() {
       include: {
         organization: {
           select: {
-            settings: true
-          }
-        }
-      }
+            settings: true,
+          },
+        },
+      },
     })
 
     if (!userOrgRole) {
@@ -51,14 +52,11 @@ export async function GET() {
     const userPreferences = settings?.userPreferences?.[session.user.id] || null
 
     return NextResponse.json({
-      preferences: userPreferences
+      preferences: userPreferences,
     })
   } catch (error) {
-    console.error('Error fetching user preferences:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch user preferences' },
-      { status: 500 }
-    )
+    logger.error('Error fetching user preferences:', error)
+    return NextResponse.json({ error: 'Failed to fetch user preferences' }, { status: 500 })
   }
 }
 
@@ -71,7 +69,7 @@ export async function PATCH(request: Request) {
 
     // Get user's organization
     const userOrgRole = await prisma.userOrgRole.findFirst({
-      where: { userId: session.user.id }
+      where: { userId: session.user.id },
     })
 
     if (!userOrgRole) {
@@ -84,7 +82,7 @@ export async function PATCH(request: Request) {
     // Get current organization settings
     const organization = await prisma.organization.findUnique({
       where: { id: userOrgRole.orgId },
-      select: { settings: true }
+      select: { settings: true },
     })
 
     const currentSettings = (organization?.settings as any) || {}
@@ -98,27 +96,24 @@ export async function PATCH(request: Request) {
       data: {
         settings: {
           ...currentSettings,
-          userPreferences
-        }
-      }
+          userPreferences,
+        },
+      },
     })
 
     return NextResponse.json({
       preferences,
-      message: 'Preferences updated successfully'
+      message: 'Preferences updated successfully',
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.errors },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
-    console.error('Error updating user preferences:', error)
-    return NextResponse.json(
-      { error: 'Failed to update user preferences' },
-      { status: 500 }
-    )
+    logger.error('Error updating user preferences:', error)
+    return NextResponse.json({ error: 'Failed to update user preferences' }, { status: 500 })
   }
 }

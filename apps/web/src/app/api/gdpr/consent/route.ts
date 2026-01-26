@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { logger } from '@/lib/logger'
 
 // Validation schema for GDPR consent
 const consentSchema = z.object({
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ consents })
   } catch (error) {
-    console.error('Get consent error:', error)
+    logger.error('Get consent error:', error)
     return NextResponse.json({ error: 'Failed to fetch consent records' }, { status: 500 })
   }
 }
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ consent }, { status: 201 })
   } catch (error) {
-    console.error('Record consent error:', error)
+    logger.error('Record consent error:', error)
     return NextResponse.json({ error: 'Failed to record consent' }, { status: 500 })
   }
 }

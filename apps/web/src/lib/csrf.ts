@@ -11,7 +11,7 @@ import { logger } from './logger'
 if (process.env.NODE_ENV === 'production' && !process.env.CSRF_SECRET) {
   throw new Error(
     'CSRF_SECRET environment variable is required in production. ' +
-      "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
+      "Generate one with: node -e \"logger.info(require('crypto').randomBytes(32).toString('hex'))\"",
   )
 }
 

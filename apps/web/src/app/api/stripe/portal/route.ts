@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import Stripe from 'stripe'
+import { logger } from '@/lib/logger'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16',
@@ -34,10 +35,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!customer?.providerCustomerId) {
-      return NextResponse.json(
-        { error: 'No Stripe customer found' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'No Stripe customer found' }, { status: 400 })
     }
 
     // Create portal session
@@ -50,10 +48,7 @@ export async function POST(request: NextRequest) {
       url: portalSession.url,
     })
   } catch (error) {
-    console.error('Portal session error:', error)
-    return NextResponse.json(
-      { error: 'Failed to create portal session' },
-      { status: 500 }
-    )
+    logger.error('Portal session error:', error)
+    return NextResponse.json({ error: 'Failed to create portal session' }, { status: 500 })
   }
 }

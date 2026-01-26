@@ -6,11 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { logger } from '@/lib/logger'
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await auth()
 
@@ -46,10 +44,7 @@ export async function GET(
 
     return NextResponse.json(resume)
   } catch (error) {
-    console.error('Error fetching resume:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch resume' },
-      { status: 500 }
-    )
+    logger.error('Error fetching resume:', error)
+    return NextResponse.json({ error: 'Failed to fetch resume' }, { status: 500 })
   }
 }

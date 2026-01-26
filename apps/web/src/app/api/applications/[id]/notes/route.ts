@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
 import { sanitizeNote } from '@/lib/sanitize'
+import { logger } from '@/lib/logger'
 
 export const POST = withCsrfProtection(
   withRateLimit(
@@ -79,7 +80,7 @@ export const POST = withCsrfProtection(
 
         return NextResponse.json(activity)
       } catch (error) {
-        console.error('Error adding note:', error)
+        logger.error('Error adding note:', error)
         return NextResponse.json({ error: 'Failed to add note' }, { status: 500 })
       }
     },

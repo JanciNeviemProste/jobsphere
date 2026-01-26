@@ -4,6 +4,7 @@
  */
 
 import { onCLS, onFCP, onINP, onLCP, onTTFB, type Metric } from 'web-vitals'
+import { logger } from '../logger'
 
 import { captureMessage } from './sentry'
 
@@ -105,7 +106,7 @@ async function sendToAnalytics(metric: WebVitalMetric): Promise<void> {
   } catch (error) {
     // Silently fail
     if (process.env.NODE_ENV === 'development') {
-      console.error('[Web Vitals] Failed to send metric:', error)
+      logger.error('[Web Vitals] Failed to send metric:', error)
     }
   }
 }
@@ -118,7 +119,7 @@ function logMetric(metric: WebVitalMetric): void {
 
   const emoji =
     metric.rating === 'good' ? '✅' : metric.rating === 'needs-improvement' ? '⚠️' : '❌'
-  console.log(
+  logger.info(
     `[Web Vitals] ${emoji} ${metric.name}: ${metric.value.toFixed(2)}ms (${metric.rating})`,
   )
 }
@@ -183,7 +184,7 @@ export function reportWebVitals(): void {
   } catch (error) {
     // Silently fail if web-vitals is not available
     if (process.env.NODE_ENV === 'development') {
-      console.error('[Web Vitals] Failed to initialize:', error)
+      logger.error('[Web Vitals] Failed to initialize:', error)
     }
   }
 }
@@ -252,7 +253,7 @@ export function monitorResourceTiming(threshold: number = 1000): void {
   } catch (error) {
     // Silently fail
     if (process.env.NODE_ENV === 'development') {
-      console.error('[Web Vitals] Failed to monitor resource timing:', error)
+      logger.error('[Web Vitals] Failed to monitor resource timing:', error)
     }
   }
 }
@@ -290,7 +291,7 @@ export function monitorLongTasks(threshold: number = 50): void {
   } catch (error) {
     // Silently fail - longtask may not be supported in all browsers
     if (process.env.NODE_ENV === 'development') {
-      console.warn('[Web Vitals] Long task monitoring not supported:', error)
+      logger.error('[Web Vitals] Long task monitoring not supported', error)
     }
   }
 }

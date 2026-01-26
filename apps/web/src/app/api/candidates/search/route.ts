@@ -8,6 +8,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { searchCandidates } from '@/lib/semantic-search'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 const searchSchema = z.object({
   jobId: z.string().min(1, 'Job ID is required'),
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
       matches: matchesWithContacts,
     })
   } catch (error) {
-    console.error('Candidate search error:', error)
+    logger.error('Candidate search error:', error)
     return NextResponse.json(
       {
         error: 'Failed to search candidates',

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/gdpr/export
@@ -109,7 +110,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Data export error:', error)
+    logger.error('Data export error:', error)
     return NextResponse.json({ error: 'Failed to export data' }, { status: 500 })
   }
 }

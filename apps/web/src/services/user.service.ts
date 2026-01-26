@@ -9,6 +9,7 @@ import { hash, compare } from 'bcryptjs'
 import { createAuditLog } from '@/lib/audit-log'
 import { AppError } from '@/lib/errors'
 import crypto from 'crypto'
+import { logger } from '@/lib/logger'
 
 export interface CreateUserInput {
   email: string
@@ -52,8 +53,8 @@ export class UserService {
     }
 
     // Validate password strength
-    if (input.password.length < 8) {
-      throw new AppError('Password must be at least 8 characters long', 400)
+    if (input.password.length < 12) {
+      throw new AppError('Password must be at least 12 characters long', 400)
     }
 
     // Hash password
@@ -397,7 +398,7 @@ export class UserService {
         `,
       })
     } catch (emailError) {
-      console.error('Failed to send password reset email:', emailError)
+      logger.error('Failed to send password reset email:', emailError)
       // Don't fail the request if email fails
     }
 
@@ -420,8 +421,8 @@ export class UserService {
       throw new AppError('Reset token has expired', 400)
     }
 
-    if (newPassword.length < 8) {
-      throw new AppError('Password must be at least 8 characters long', 400)
+    if (newPassword.length < 12) {
+      throw new AppError('Password must be at least 12 characters long', 400)
     }
 
     const hashedPassword = await hash(newPassword, 12)

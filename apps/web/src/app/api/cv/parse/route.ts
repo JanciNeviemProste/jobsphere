@@ -8,6 +8,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { extractCvFromText } from '@jobsphere/ai'
 import { addEmbeddingJob } from '@/lib/queue'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,12 +20,14 @@ export async function POST(request: NextRequest) {
 
     if (!rawText || rawText.length < 20) {
       return NextResponse.json(
-        { error: `Invalid CV text - too short (${rawText?.length || 0} characters, minimum 20 required)` },
-        { status: 400 }
+        {
+          error: `Invalid CV text - too short (${rawText?.length || 0} characters, minimum 20 required)`,
+        },
+        { status: 400 },
       )
     }
 
-    console.log(`Parsing CV with ${rawText.length} characters`)
+    logger.info('Parsing CV', { textLength: rawText.length })
 
     // Get locale from accept-language header or default to 'en'
     const acceptLanguage = request.headers.get('accept-language')
@@ -35,10 +38,7 @@ export async function POST(request: NextRequest) {
     const anthropicKey = process.env.ANTHROPIC_API_KEY
 
     if (!openRouterKey && !anthropicKey) {
-      return NextResponse.json(
-        { error: 'AI service not configured' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'AI service not configured' }, { status: 500 })
     }
 
     const extractedCV = await extractCvFromText(rawText, {
@@ -57,10 +57,7 @@ export async function POST(request: NextRequest) {
       })
 
       if (!userOrg) {
-        return NextResponse.json(
-          { error: 'User organization not found' },
-          { status: 404 }
-        )
+        return NextResponse.json({ error: 'User organization not found' }, { status: 404 })
       }
 
       // Find or create Candidate record
@@ -165,10 +162,10 @@ export async function POST(request: NextRequest) {
       // 7. Queue embedding generation job asynchronously
       if (sections.length > 0) {
         addEmbeddingJob({ resumeId: resume.id }).catch((error) => {
-          console.error('Failed to queue embedding job:', error)
+          logger.error('Failed to queue embedding job', error)
           // Don't fail the request if job queueing fails
         })
-        console.log('✅ Queued embedding job for resume:', resume.id)
+        logger.info('Queued embedding job for resume', { resumeId: resume.id })
       }
 
       return NextResponse.json({
@@ -186,12 +183,8 @@ export async function POST(request: NextRequest) {
       parsed: extractedCV,
       anonymous: true,
     })
-
   } catch (error) {
-    console.error('CV parse error:', error)
-    return NextResponse.json(
-      { error: 'Failed to parse CV' },
-      { status: 500 }
-    )
+    logger.error('CV parse error', error)
+    return NextResponse.json({ error: 'Failed to parse CV' }, { status: 500 })
   }
 }

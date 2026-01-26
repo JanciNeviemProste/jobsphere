@@ -3,10 +3,11 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { hash } from 'bcryptjs'
+import { logger } from '@/lib/logger'
 
 const inviteMemberSchema = z.object({
   email: z.string().email(),
-  role: z.enum(['ORG_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'AGENCY'])
+  role: z.enum(['ORG_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'AGENCY']),
 })
 
 export async function GET() {
@@ -18,7 +19,7 @@ export async function GET() {
 
     // Get user's organization
     const userOrgRole = await prisma.userOrgRole.findFirst({
-      where: { userId: session.user.id }
+      where: { userId: session.user.id },
     })
 
     if (!userOrgRole) {
@@ -29,7 +30,7 @@ export async function GET() {
     const members = await prisma.userOrgRole.findMany({
       where: {
         orgId: userOrgRole.orgId,
-        deletedAt: null
+        deletedAt: null,
       },
       include: {
         user: {
@@ -37,25 +38,22 @@ export async function GET() {
             id: true,
             name: true,
             email: true,
-            avatar: true
-          }
-        }
+            avatar: true,
+          },
+        },
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: 'desc',
+      },
     })
 
     return NextResponse.json({
       members,
-      currentUserRole: userOrgRole.role
+      currentUserRole: userOrgRole.role,
     })
   } catch (error) {
-    console.error('Error fetching team members:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch team members' },
-      { status: 500 }
-    )
+    logger.error('Error fetching team members:', error)
+    return NextResponse.json({ error: 'Failed to fetch team members' }, { status: 500 })
   }
 }
 
@@ -70,14 +68,14 @@ export async function POST(request: Request) {
     const userOrgRole = await prisma.userOrgRole.findFirst({
       where: {
         userId: session.user.id,
-        role: 'ORG_ADMIN'
-      }
+        role: 'ORG_ADMIN',
+      },
     })
 
     if (!userOrgRole) {
       return NextResponse.json(
         { error: 'Forbidden - Only organization admins can invite members' },
-        { status: 403 }
+        { status: 403 },
       )
     }
 
@@ -86,13 +84,14 @@ export async function POST(request: Request) {
 
     // Check if user already exists
     let user = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
     })
 
     // If user doesn't exist, create a new user account
     if (!user) {
       // Generate a random temporary password
-      const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8)
+      const tempPassword =
+        Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8)
       const hashedPassword = await hash(tempPassword, 10)
 
       user = await prisma.user.create({
@@ -100,7 +99,7 @@ export async function POST(request: Request) {
           email,
           password: hashedPassword,
           name: email.split('@')[0], // Use email prefix as default name
-        }
+        },
       })
 
       // TODO: Send invitation email with temporary password or magic link
@@ -112,15 +111,15 @@ export async function POST(request: Request) {
       where: {
         userId_orgId: {
           userId: user.id,
-          orgId: userOrgRole.orgId
-        }
-      }
+          orgId: userOrgRole.orgId,
+        },
+      },
     })
 
     if (existingMember) {
       return NextResponse.json(
         { error: 'User is already a member of this organization' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
@@ -129,7 +128,7 @@ export async function POST(request: Request) {
       data: {
         userId: user.id,
         orgId: userOrgRole.orgId,
-        role
+        role,
       },
       include: {
         user: {
@@ -137,10 +136,10 @@ export async function POST(request: Request) {
             id: true,
             name: true,
             email: true,
-            avatar: true
-          }
-        }
-      }
+            avatar: true,
+          },
+        },
+      },
     })
 
     // TODO: Send notification email to the invited user
@@ -148,20 +147,17 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       member: newMember,
-      message: 'Member invited successfully'
+      message: 'Member invited successfully',
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.errors },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
-    console.error('Error inviting team member:', error)
-    return NextResponse.json(
-      { error: 'Failed to invite team member' },
-      { status: 500 }
-    )
+    logger.error('Error inviting team member:', error)
+    return NextResponse.json({ error: 'Failed to invite team member' }, { status: 500 })
   }
 }

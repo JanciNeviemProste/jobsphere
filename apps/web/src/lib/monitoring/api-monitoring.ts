@@ -29,7 +29,7 @@ export interface ApiErrorResponse {
 export function formatApiError(
   error: unknown,
   path?: string,
-  requestId?: string
+  requestId?: string,
 ): ApiErrorResponse {
   const timestamp = new Date().toISOString()
 
@@ -75,9 +75,8 @@ export function formatApiError(
   if (error instanceof Error) {
     return {
       error: error.name || 'InternalServerError',
-      message: process.env.NODE_ENV === 'production'
-        ? 'An unexpected error occurred'
-        : error.message,
+      message:
+        process.env.NODE_ENV === 'production' ? 'An unexpected error occurred' : error.message,
       statusCode: 500,
       timestamp,
       path,
@@ -137,7 +136,7 @@ export function withApiMonitoring<T extends (...args: unknown[]) => Promise<Resp
   options?: {
     name?: string
     trackPerformance?: boolean
-  }
+  },
 ): T {
   return (async (...args: Parameters<T>) => {
     const request = args[0] as Request
@@ -213,7 +212,7 @@ export function createApiResponse<T>(
     status?: number
     headers?: Record<string, string>
     requestId?: string
-  }
+  },
 ): Response {
   const headers = new Headers(options?.headers)
 
@@ -237,7 +236,7 @@ export function logApiMetrics(
   path: string,
   duration: number,
   status: number,
-  error?: Error
+  error?: Error,
 ): void {
   const metrics = {
     method,
@@ -250,7 +249,7 @@ export function logApiMetrics(
 
   // Log to console in development
   if (process.env.NODE_ENV === 'development') {
-    console.log('[API Metrics]', metrics)
+    logger.info('[API Metrics]', metrics)
   }
 
   // Send to monitoring service

@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { withCsrfProtection } from '@/lib/csrf'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 const updateRoleSchema = z.object({
   role: z.enum(['ORG_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'AGENCY']),
@@ -73,7 +74,7 @@ async function patchHandler(request: Request, context?: { params?: Record<string
       )
     }
 
-    console.error('Error updating member role:', error)
+    logger.error('Error updating member role:', error)
     return NextResponse.json({ error: 'Failed to update member role' }, { status: 500 })
   }
 }
@@ -142,7 +143,7 @@ async function deleteHandler(request: Request, context?: { params?: Record<strin
 
     return NextResponse.json({ message: 'Member removed successfully' })
   } catch (error) {
-    console.error('Error removing team member:', error)
+    logger.error('Error removing team member:', error)
     return NextResponse.json({ error: 'Failed to remove team member' }, { status: 500 })
   }
 }

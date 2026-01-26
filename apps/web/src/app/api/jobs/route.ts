@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { errorResponse } from '@/lib/errors'
 import { withRateLimit } from '@/lib/rate-limit'
+import { withCsrfProtection } from '@/lib/csrf'
 import { requireAuth } from '@/lib/auth'
 import { z } from 'zod'
 
@@ -16,6 +17,21 @@ const jobSearchSchema = z.object({
   workMode: WorkModeEnum.optional(),
   jobType: JobTypeEnum.optional(),
   seniority: SeniorityLevelEnum.optional(),
+})
+
+// Validation schema for POST /api/jobs
+const createJobSchema = z.object({
+  title: z.string().min(3, 'Title must be at least 3 characters').max(200),
+  description: z.string().min(50, 'Description must be at least 50 characters').max(10000),
+  location: z.string().min(2).max(100).optional(),
+  region: z.string().max(100).optional(),
+  workMode: z.enum(['REMOTE', 'HYBRID', 'ONSITE']),
+  type: z
+    .enum(['FULL_TIME', 'PART_TIME', 'CONTRACT', 'FREELANCE', 'INTERNSHIP'])
+    .default('FULL_TIME'),
+  seniority: z.enum(['JUNIOR', 'MEDIOR', 'SENIOR', 'LEAD', 'EXECUTIVE']).default('MEDIOR'),
+  salaryMin: z.number().int().min(0).optional(),
+  salaryMax: z.number().int().min(0).optional(),
 })
 
 export const GET = withRateLimit(
@@ -44,7 +60,12 @@ export const GET = withRateLimit(
               { organization: { name: { contains: params.search, mode: 'insensitive' } } },
             ],
           }),
-          ...(params.workMode && (params.workMode === 'REMOTE' ? { remote: true } : params.workMode === 'HYBRID' ? { hybrid: true } : { remote: false, hybrid: false })),
+          ...(params.workMode &&
+            (params.workMode === 'REMOTE'
+              ? { remote: true }
+              : params.workMode === 'HYBRID'
+                ? { hybrid: true }
+                : { remote: false, hybrid: false })),
           ...(params.jobType && { employmentType: params.jobType }),
           ...(params.seniority && { seniority: params.seniority }),
         },
@@ -70,101 +91,99 @@ export const GET = withRateLimit(
       if (error instanceof z.ZodError) {
         return NextResponse.json(
           { error: 'Invalid query parameters', issues: error.issues },
-          { status: 400 }
+          { status: 400 },
         )
       }
 
       logger.apiError('GET', '/api/jobs', error)
       const errorData = errorResponse(error)
-      return NextResponse.json(
-        { error: errorData.error },
-        { status: errorData.statusCode }
-      )
+      return NextResponse.json({ error: errorData.error }, { status: errorData.statusCode })
     }
   },
-  { preset: 'public' } // 200 requests per minute
+  { preset: 'public' }, // 200 requests per minute
 )
 
-export const POST = withRateLimit(
-  async (req: Request) => {
-    try {
-      logger.apiRequest('POST', '/api/jobs')
+export const POST = withCsrfProtection(
+  withRateLimit(
+    async (req: Request) => {
+      try {
+        logger.apiRequest('POST', '/api/jobs')
 
-      // Authenticate
-      const session = await requireAuth()
+        // Authenticate
+        const session = await requireAuth()
 
-      if (!session.user?.id) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-      }
-
-      const data = await req.json()
-
-      // Get user's organization
-      const userWithOrg = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        include: {
-          organizations: {
-            include: {
-              organization: true
-            }
-          }
+        if (!session.user?.id) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
-      })
 
-      if (!userWithOrg?.organizations?.[0]?.organization) {
-        return NextResponse.json(
-          { error: 'You must belong to an organization to create jobs' },
-          { status: 403 }
-        )
-      }
+        // Parse and validate request body with Zod
+        const rawData = await req.json()
+        const data = createJobSchema.parse(rawData)
 
-      const organizationId = userWithOrg.organizations[0].organization.id
+        // Get user's organization
+        const userWithOrg = await prisma.user.findUnique({
+          where: { id: session.user.id },
+          include: {
+            organizations: {
+              include: {
+                organization: true,
+              },
+            },
+          },
+        })
 
-      // Create the job
-      const job = await prisma.job.create({
-        data: {
-          title: data.title,
-          description: data.description,
-          city: data.location || null,
-          region: data.region || null,
-          remote: data.workMode === 'REMOTE',
-          hybrid: data.workMode === 'HYBRID',
-          salaryMin: data.salaryMin ? Number(data.salaryMin) : null,
-          salaryMax: data.salaryMax ? Number(data.salaryMax) : null,
-          employmentType: data.type || 'FULL_TIME',
-          seniority: data.seniority || 'MEDIOR',
-          status: 'PUBLISHED',
-          orgId: organizationId,
-          createdBy: session.user.id,
-        },
-        include: {
-          organization: {
-            select: {
-              name: true,
-              logo: true,
-            }
-          }
+        if (!userWithOrg?.organizations?.[0]?.organization) {
+          return NextResponse.json(
+            { error: 'You must belong to an organization to create jobs' },
+            { status: 403 },
+          )
         }
-      })
 
-      logger.info('Job created', { jobId: job.id, organizationId })
+        const organizationId = userWithOrg.organizations[0].organization.id
 
-      return NextResponse.json(job, { status: 201 })
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return NextResponse.json(
-          { error: 'Validation failed', issues: error.issues },
-          { status: 400 }
-        )
+        // Create the job
+        const job = await prisma.job.create({
+          data: {
+            title: data.title,
+            description: data.description,
+            city: data.location || null,
+            region: data.region || null,
+            remote: data.workMode === 'REMOTE',
+            hybrid: data.workMode === 'HYBRID',
+            salaryMin: data.salaryMin ? Number(data.salaryMin) : null,
+            salaryMax: data.salaryMax ? Number(data.salaryMax) : null,
+            employmentType: data.type || 'FULL_TIME',
+            seniority: data.seniority || 'MEDIOR',
+            status: 'PUBLISHED',
+            orgId: organizationId,
+            createdBy: session.user.id,
+          },
+          include: {
+            organization: {
+              select: {
+                name: true,
+                logo: true,
+              },
+            },
+          },
+        })
+
+        logger.info('Job created', { jobId: job.id, organizationId })
+
+        return NextResponse.json(job, { status: 201 })
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return NextResponse.json(
+            { error: 'Validation failed', issues: error.issues },
+            { status: 400 },
+          )
+        }
+
+        logger.apiError('POST', '/api/jobs', error)
+        const errorData = errorResponse(error)
+        return NextResponse.json(errorData, { status: errorData.statusCode })
       }
-
-      logger.apiError('POST', '/api/jobs', error)
-      const errorData = errorResponse(error)
-      return NextResponse.json(
-        errorData,
-        { status: errorData.statusCode }
-      )
-    }
-  },
-  { preset: 'api', byUser: true } // 100 requests per minute
+    },
+    { preset: 'api', byUser: true }, // 100 requests per minute
+  ),
 )

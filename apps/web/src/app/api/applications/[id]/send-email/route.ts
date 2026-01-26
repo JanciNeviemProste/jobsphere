@@ -2,27 +2,19 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { sendEmail } from '@/lib/email'
+import { logger } from '@/lib/logger'
 
-export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { subject, body } = await req.json()
 
     if (!subject || !body) {
-      return NextResponse.json(
-        { error: 'Subject and body are required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Subject and body are required' }, { status: 400 })
     }
 
     // Get application with candidate contact
@@ -46,10 +38,7 @@ export async function POST(
     })
 
     if (!application) {
-      return NextResponse.json(
-        { error: 'Application not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Application not found' }, { status: 404 })
     }
 
     // Verify user is member of organization
@@ -61,18 +50,12 @@ export async function POST(
     })
 
     if (!membership) {
-      return NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 }
-      )
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const candidateEmail = application.candidate.contacts?.[0]?.email
     if (!candidateEmail) {
-      return NextResponse.json(
-        { error: 'No email found for candidate' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'No email found for candidate' }, { status: 400 })
     }
 
     // Send email
@@ -108,10 +91,7 @@ export async function POST(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error sending email:', error)
-    return NextResponse.json(
-      { error: 'Failed to send email' },
-      { status: 500 }
-    )
+    logger.error('Error sending email:', error)
+    return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
   }
 }
