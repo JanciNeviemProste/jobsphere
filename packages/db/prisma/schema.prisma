@@ -218,6 +218,7 @@ model Job {
 
   @@unique([orgId, slug])
   @@index([orgId, status])
+  @@index([publishedAt, status]) // For public job listings sorted by date
   @@index([locale])
   @@index([deletedAt])
 }
@@ -1239,6 +1240,7 @@ model AuditLog {
   @@index([orgId])
   @@index([entityType, entityId])
   @@index([createdAt])
+  @@index([orgId, entityType, createdAt]) // For org audit logs filtered by type, sorted by date
 }
 
 model FeatureFlag {

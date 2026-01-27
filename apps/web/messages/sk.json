@@ -10,7 +10,11 @@
     "forEmployers": "Pre zamestnávateľov",
     "pricing": "Cenník",
     "login": "Prihlásiť sa",
-    "signup": "Registrovať sa"
+    "signup": "Registrovať sa",
+    "loading": "Načítavam...",
+    "dashboard": "Dashboard",
+    "profile": "Profil",
+    "logout": "Odhlásiť sa"
   },
   "hero": {
     "title": "Nájdite svoju vysnívanú prácu s AI",
@@ -104,7 +108,8 @@
       "noAccount": "Nemáte účet?",
       "signupLink": "Registrovať sa",
       "orContinueWith": "Alebo pokračovať s",
-      "google": "Google"
+      "google": "Google",
+      "divider": "Alebo pokračovať s emailom"
     },
     "signup": {
       "title": "Vytvorte si účet",
@@ -118,7 +123,8 @@
       "hasAccount": "Už máte účet?",
       "loginLink": "Prihlásiť sa",
       "orContinueWith": "Alebo pokračovať s",
-      "google": "Google"
+      "google": "Google",
+      "divider": "Alebo pokračovať s emailom"
     }
   },
   "footer": {
@@ -219,6 +225,16 @@
       "negotiable": "Dohodou"
     }
   },
+  "applicant": {
+    "statusUpdated": "Stav prihlášky bol úspešne aktualizovaný",
+    "statusUpdateFailed": "Nepodarilo sa aktualizovať stav prihlášky",
+    "emailRequiredFields": "Predmet a text emailu sú povinné",
+    "emailSent": "Email bol úspešne odoslaný",
+    "emailSendFailed": "Nepodarilo sa odoslať email",
+    "noteRequired": "Poznámka nesmie byť prázdna",
+    "noteAdded": "Poznámka bola úspešne pridaná",
+    "noteAddFailed": "Nepodarilo sa pridať poznámku"
+  },
   "employer": {
     "dashboard": "ATS Dashboard",
     "manage": "Spravujte vaše pracovné ponuky a kandidátov",
@@ -251,9 +267,60 @@
     "responseHelp": "Kandidáti oceňujú rýchlu spätnú väzbu po podaní prihlášky",
     "accessDenied": "Prístup odmietnutý",
     "noAccess": "Nemáte prístup k employer dashboardu. Vytvorte si organizáciu alebo sa pripojiť k existujúcej.",
-    "backToDashboard": "Späť na dashboard"
+    "backToDashboard": "Späť na dashboard",
+    "newJob": {
+      "title": "Vytvoriť novú pozíciu",
+      "subtitle": "Vyplňte detaily nižšie pre publikovanie pracovnej ponuky",
+      "basicInfo": "Základné informácie",
+      "basicInfoDesc": "Dôležité detaily o pozícii",
+      "jobTitle": "Názov pozície",
+      "jobTitlePlaceholder": "napr. Senior React Developer",
+      "employmentType": "Typ úväzku",
+      "fullTime": "Plný úväzok",
+      "partTime": "Čiastočný úväzok",
+      "contract": "Kontrakt",
+      "freelance": "Freelance",
+      "internship": "Stáž",
+      "seniorityLevel": "Úroveň seniority",
+      "junior": "Junior",
+      "mid": "Stredná úroveň",
+      "senior": "Senior",
+      "lead": "Lead",
+      "executive": "Executive",
+      "department": "Oddelenie",
+      "departmentPlaceholder": "napr. IT, Marketing",
+      "locationWorkMode": "Lokalita a pracovný režim",
+      "locationWorkModeDesc": "Kde sa bude práca vykonávať?",
+      "location": "Lokalita",
+      "locationPlaceholder": "napr. Bratislava, Slovensko",
+      "workMode": "Pracovný režim",
+      "onsite": "V kancelárii",
+      "hybrid": "Hybridný",
+      "remote": "Na diaľku",
+      "jobDescription": "Popis pozície",
+      "jobDescriptionDesc": "Detailné informácie o pozícii",
+      "description": "Popis",
+      "descriptionPlaceholder": "Popíšte pozíciu, zodpovednosti a čo robí túto príležitosť jedinečnou...",
+      "requirements": "Požiadavky",
+      "requirementsPlaceholder": "Uveďte požadované zručnosti, skúsenosti a kvalifikáciu...",
+      "benefits": "Benefity",
+      "benefitsPlaceholder": "Uveďte výhody a benefity (voliteľné)...",
+      "compensation": "Odmena",
+      "compensationDesc": "Platové informácie (voliteľné, ale odporúčané)",
+      "minSalary": "Min. plat",
+      "maxSalary": "Max. plat",
+      "currency": "Mena",
+      "keywords": "Kľúčové slová a SEO",
+      "keywordsDesc": "Pomôžte kandidátom nájsť túto pozíciu",
+      "keywordsLabel": "Kľúčové slová",
+      "keywordsPlaceholder": "napr. React, TypeScript, Remote",
+      "keywordsHint": "Oddeľte kľúčové slová čiarkami",
+      "publishing": "Publikuje sa...",
+      "publish": "Publikovať ponuku"
+    }
   },
   "common": {
+    "cancel": "Zrušiť",
     "status": {
       "pending": "Čaká sa",
       "reviewing": "Preveruje sa",
@@ -264,6 +331,13 @@
       "closed": "Uzavreté",
       "new": "Nový",
       "interviewed": "Interview"
+    },
+    "errors": {
+      "title": "Niečo sa pokazilo",
+      "description": "Nastala neočakávaná chyba pri načítavaní tejto sekcie.",
+      "retry": "Skúsiť znova",
+      "reload": "Obnoviť stránku",
+      "inline": "Túto sekciu sa nepodarilo načítať"
     }
   },
   "forEmployers": {

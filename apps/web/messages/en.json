@@ -10,7 +10,11 @@
     "forEmployers": "For Employers",
     "pricing": "Pricing",
     "login": "Log in",
-    "signup": "Sign up"
+    "signup": "Sign up",
+    "loading": "Loading...",
+    "dashboard": "Dashboard",
+    "profile": "Profile",
+    "logout": "Logout"
   },
   "hero": {
     "title": "Find Your Dream Job with AI",
@@ -158,6 +162,7 @@
       "signupLink": "Sign up",
       "orContinueWith": "Or continue with",
       "google": "Google",
+      "divider": "Or continue with email",
       "invalidCredentials": "Invalid email or password",
       "error": "An error occurred. Please try again.",
       "signingIn": "Signing in..."
@@ -172,7 +177,10 @@
       "terms": "I agree to the Terms and Privacy Policy",
       "submit": "Create account",
       "hasAccount": "Already have an account?",
-      "loginLink": "Sign in"
+      "loginLink": "Sign in",
+      "orContinueWith": "Or continue with",
+      "google": "Google",
+      "divider": "Or continue with email"
     }
   },
   "footer": {
@@ -273,6 +281,16 @@
       "negotiable": "Negotiable"
     }
   },
+  "applicant": {
+    "statusUpdated": "Application status successfully updated",
+    "statusUpdateFailed": "Failed to update application status",
+    "emailRequiredFields": "Subject and email body are required",
+    "emailSent": "Email sent successfully",
+    "emailSendFailed": "Failed to send email",
+    "noteRequired": "Note cannot be empty",
+    "noteAdded": "Note added successfully",
+    "noteAddFailed": "Failed to add note"
+  },
   "employer": {
     "dashboard": "ATS Dashboard",
     "manage": "Manage your job postings and candidates",
@@ -305,9 +323,60 @@
     "responseHelp": "Candidates appreciate fast feedback after applying",
     "accessDenied": "Access Denied",
     "noAccess": "You don't have access to employer dashboard. Create an organization or join an existing one.",
-    "backToDashboard": "Back to dashboard"
+    "backToDashboard": "Back to dashboard",
+    "newJob": {
+      "title": "Post New Job",
+      "subtitle": "Fill in the details below to publish your job posting",
+      "basicInfo": "Basic Information",
+      "basicInfoDesc": "Essential details about the position",
+      "jobTitle": "Job Title",
+      "jobTitlePlaceholder": "e.g. Senior React Developer",
+      "employmentType": "Employment Type",
+      "fullTime": "Full-time",
+      "partTime": "Part-time",
+      "contract": "Contract",
+      "freelance": "Freelance",
+      "internship": "Internship",
+      "seniorityLevel": "Seniority Level",
+      "junior": "Junior",
+      "mid": "Mid-level",
+      "senior": "Senior",
+      "lead": "Lead",
+      "executive": "Executive",
+      "department": "Department",
+      "departmentPlaceholder": "e.g. Engineering, Marketing",
+      "locationWorkMode": "Location & Work Mode",
+      "locationWorkModeDesc": "Where will the work take place?",
+      "location": "Location",
+      "locationPlaceholder": "e.g. Bratislava, Slovakia",
+      "workMode": "Work Mode",
+      "onsite": "On-site",
+      "hybrid": "Hybrid",
+      "remote": "Remote",
+      "jobDescription": "Job Description",
+      "jobDescriptionDesc": "Detailed information about the role",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe the role, responsibilities, and what makes this opportunity unique...",
+      "requirements": "Requirements",
+      "requirementsPlaceholder": "List the required skills, experience, and qualifications...",
+      "benefits": "Benefits",
+      "benefitsPlaceholder": "List perks and benefits (optional)...",
+      "compensation": "Compensation",
+      "compensationDesc": "Salary information (optional but recommended)",
+      "minSalary": "Min Salary",
+      "maxSalary": "Max Salary",
+      "currency": "Currency",
+      "keywords": "Keywords & SEO",
+      "keywordsDesc": "Help candidates find this position",
+      "keywordsLabel": "Keywords",
+      "keywordsPlaceholder": "e.g. React, TypeScript, Remote",
+      "keywordsHint": "Separate keywords with commas",
+      "publishing": "Publishing...",
+      "publish": "Publish Job"
+    }
   },
   "common": {
+    "cancel": "Cancel",
     "status": {
       "pending": "Pending",
       "reviewing": "Reviewing",
@@ -318,6 +387,13 @@
       "closed": "Closed",
       "new": "New",
       "interviewed": "Interviewed"
+    },
+    "errors": {
+      "title": "Something went wrong",
+      "description": "An unexpected error occurred while loading this section.",
+      "retry": "Try again",
+      "reload": "Reload page",
+      "inline": "Failed to load this section"
     }
   },
   "forEmployers": {

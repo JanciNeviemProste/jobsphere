@@ -10,22 +10,32 @@ import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from '@/components/ui/card'
 import { AlertCircle, ArrowLeft, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
-const resetPasswordSchema = z.object({
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-      'Password must contain uppercase, lowercase, number and special character'
-    ),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-})
+const resetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(12, 'Password must be at least 12 characters')
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+        'Password must contain uppercase, lowercase, number and special character',
+      ),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  })
 
 type ResetPasswordData = z.infer<typeof resetPasswordSchema>
 
@@ -98,16 +108,14 @@ export default function ResetPasswordPage({ params }: { params: { locale: string
 
   if (tokenError) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex items-center justify-center px-4">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 px-4">
         <Card className="w-full max-w-md">
-          <CardContent className="text-center py-8">
-            <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+          <CardContent className="py-8 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
               <AlertCircle className="h-8 w-8 text-red-600" />
             </div>
-            <h3 className="font-semibold text-lg mb-2">
-              {t('auth.resetPassword.invalidLink')}
-            </h3>
-            <p className="text-muted-foreground mb-6">
+            <h3 className="mb-2 text-lg font-semibold">{t('auth.resetPassword.invalidLink')}</h3>
+            <p className="mb-6 text-muted-foreground">
               {t('auth.resetPassword.invalidLinkMessage')}
             </p>
             <Button asChild variant="default" className="w-full">
@@ -123,22 +131,16 @@ export default function ResetPasswordPage({ params }: { params: { locale: string
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex items-center justify-center px-4">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 px-4">
         <Card className="w-full max-w-md">
-          <CardContent className="text-center py-8">
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+          <CardContent className="py-8 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
-            <h3 className="font-semibold text-lg mb-2">
-              {t('auth.resetPassword.successTitle')}
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              {t('auth.resetPassword.successMessage')}
-            </p>
+            <h3 className="mb-2 text-lg font-semibold">{t('auth.resetPassword.successTitle')}</h3>
+            <p className="mb-6 text-muted-foreground">{t('auth.resetPassword.successMessage')}</p>
             <Button asChild variant="default" className="w-full">
-              <Link href={`/${params.locale}/login`}>
-                {t('auth.goToLogin')}
-              </Link>
+              <Link href={`/${params.locale}/login`}>{t('auth.goToLogin')}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -147,29 +149,23 @@ export default function ResetPasswordPage({ params }: { params: { locale: string
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex items-center justify-center px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <Button variant="ghost" size="sm" asChild className="w-fit mb-2">
+          <Button variant="ghost" size="sm" asChild className="mb-2 w-fit">
             <Link href={`/${params.locale}/login`}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="mr-2 h-4 w-4" />
               {t('auth.backToLogin')}
             </Link>
           </Button>
-          <CardTitle className="text-2xl">
-            {t('auth.resetPassword.title')}
-          </CardTitle>
-          <CardDescription>
-            {t('auth.resetPassword.subtitle')}
-          </CardDescription>
+          <CardTitle className="text-2xl">{t('auth.resetPassword.title')}</CardTitle>
+          <CardDescription>{t('auth.resetPassword.subtitle')}</CardDescription>
         </CardHeader>
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">
-                {t('auth.newPassword')}
-              </Label>
+              <Label htmlFor="password">{t('auth.newPassword')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -184,25 +180,19 @@ export default function ResetPasswordPage({ params }: { params: { locale: string
                   className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-sm text-destructive flex items-start gap-1">
-                  <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                <p className="flex items-start gap-1 text-sm text-destructive">
+                  <AlertCircle className="mt-0.5 h-3 w-3 flex-shrink-0" />
                   <span>{errors.password.message}</span>
                 </p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">
-                {t('auth.confirmPassword')}
-              </Label>
+              <Label htmlFor="confirmPassword">{t('auth.confirmPassword')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -225,16 +215,16 @@ export default function ResetPasswordPage({ params }: { params: { locale: string
                 </button>
               </div>
               {errors.confirmPassword && (
-                <p className="text-sm text-destructive flex items-center gap-1">
+                <p className="flex items-center gap-1 text-sm text-destructive">
                   <AlertCircle className="h-3 w-3" />
                   {errors.confirmPassword.message}
                 </p>
               )}
             </div>
 
-            <div className="text-xs text-muted-foreground space-y-1">
+            <div className="space-y-1 text-xs text-muted-foreground">
               <p>{t('auth.passwordRequirements.title')}</p>
-              <ul className="list-disc list-inside space-y-0.5">
+              <ul className="list-inside list-disc space-y-0.5">
                 <li>{t('auth.passwordRequirements.length')}</li>
                 <li>{t('auth.passwordRequirements.uppercase')}</li>
                 <li>{t('auth.passwordRequirements.lowercase')}</li>
@@ -245,15 +235,10 @@ export default function ResetPasswordPage({ params }: { params: { locale: string
           </CardContent>
 
           <CardFooter>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isSubmitting}
-            >
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting
                 ? t('auth.resetPassword.resetting')
-                : t('auth.resetPassword.resetButton')
-              }
+                : t('auth.resetPassword.resetButton')}
             </Button>
           </CardFooter>
         </form>
