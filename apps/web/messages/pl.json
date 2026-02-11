@@ -692,5 +692,11 @@
     "tryAgain": "Spróbuj ponownie",
     "goHome": "Strona główna",
     "errorDetails": "Szczegóły błędu (widoczne tylko w trybie deweloperskim)"
+  },
+  "notFoundPage": {
+    "title": "404 - Strona nie znaleziona",
+    "description": "Strona, której szukasz, nie istnieje lub została przeniesiona.",
+    "goHome": "Strona główna",
+    "browseJobs": "Przeglądaj oferty"
   }
 }

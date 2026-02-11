@@ -1,11 +1,41 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
+import dynamic from 'next/dynamic'
+import { Skeleton } from '@/components/ui/skeleton'
 import { StatsOverview } from '@/components/analytics/StatsOverview'
-import { ApplicationsByStageChart } from '@/components/analytics/ApplicationsByStageChart'
-import { ConversionFunnel } from '@/components/analytics/ConversionFunnel'
-import { ApplicationsTrend } from '@/components/analytics/ApplicationsTrend'
 import { TopJobsTable } from '@/components/analytics/TopJobsTable'
+
+const ChartLoading = () => (
+  <div className="space-y-4 rounded-lg border p-6">
+    <Skeleton className="h-6 w-1/3" />
+    <Skeleton className="h-[300px] w-full" />
+  </div>
+)
+
+const ApplicationsByStageChart = dynamic(
+  () =>
+    import('@/components/analytics/ApplicationsByStageChart').then((m) => ({
+      default: m.ApplicationsByStageChart,
+    })),
+  { loading: ChartLoading },
+)
+
+const ConversionFunnel = dynamic(
+  () =>
+    import('@/components/analytics/ConversionFunnel').then((m) => ({
+      default: m.ConversionFunnel,
+    })),
+  { loading: ChartLoading },
+)
+
+const ApplicationsTrend = dynamic(
+  () =>
+    import('@/components/analytics/ApplicationsTrend').then((m) => ({
+      default: m.ApplicationsTrend,
+    })),
+  { loading: ChartLoading },
+)
 
 export default async function AnalyticsPage() {
   const session = await auth()

@@ -18,11 +18,7 @@ const inter = Inter({
   variable: '--font-sans',
 })
 
-export async function generateMetadata({
-  params: { locale }
-}: {
-  params: { locale: string }
-}) {
+export async function generateMetadata({ params: { locale } }: { params: { locale: string } }) {
   const t = await getTranslations({ locale, namespace: 'metadata' })
 
   return {
@@ -42,20 +38,11 @@ export async function generateMetadata({
       siteName: t('siteName'),
       title: t('siteName'),
       description: t('description'),
-      images: [
-        {
-          url: '/og-image.png',
-          width: 1200,
-          height: 630,
-          alt: t('siteName'),
-        },
-      ],
     },
     twitter: {
       card: 'summary_large_image',
       title: t('siteName'),
       description: t('description'),
-      images: ['/og-image.png'],
     },
     robots: {
       index: true,
@@ -73,7 +60,7 @@ export async function generateMetadata({
 
 export default async function LocaleLayout({
   children,
-  params: { locale }
+  params: { locale },
 }: {
   children: React.ReactNode
   params: { locale: string }

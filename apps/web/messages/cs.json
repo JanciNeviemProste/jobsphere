@@ -692,5 +692,11 @@
     "tryAgain": "Zkusit znovu",
     "goHome": "Domů",
     "errorDetails": "Detaily chyby (viditelné pouze ve vývoji)"
+  },
+  "notFoundPage": {
+    "title": "404 - Stránka nenalezena",
+    "description": "Stránka, kterou hledáte, neexistuje nebo byla přesunuta.",
+    "goHome": "Na úvodní stránku",
+    "browseJobs": "Procházet nabídky"
   }
 }
