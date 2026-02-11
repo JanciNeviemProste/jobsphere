@@ -11,10 +11,17 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { AlertCircle, ArrowLeft, Briefcase, MapPin, DollarSign, Clock, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { logger } from '@/lib/logger'
 
 // Validation schema
 const jobSchema = z.object({
@@ -53,7 +60,7 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
       type: 'FULL_TIME',
       seniority: 'MID',
       currency: 'EUR',
-    }
+    },
   })
 
   const onSubmit = async (data: JobFormData) => {
@@ -84,7 +91,7 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
       toast.success('Job posted successfully!')
       router.push(`/${params.locale}/employer`)
     } catch (error) {
-      console.error('Failed to create job:', error)
+      logger.error('Failed to create job', error)
       toast.error(error instanceof Error ? error.message : 'Failed to create job')
     } finally {
       setIsSubmitting(false)
@@ -93,16 +100,16 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto max-w-4xl px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <Button variant="ghost" size="sm" asChild className="mb-4">
             <Link href={`/${params.locale}/employer`}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="mr-2 h-4 w-4" />
               {t('employer.backToDashboard')}
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold mb-2">{t('employer.newJob.title')}</h1>
+          <h1 className="mb-2 text-3xl font-bold">{t('employer.newJob.title')}</h1>
           <p className="text-muted-foreground">{t('employer.newJob.subtitle')}</p>
         </div>
 
@@ -125,7 +132,7 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
                   {...register('title')}
                 />
                 {errors.title && (
-                  <p className="text-sm text-destructive flex items-center gap-1">
+                  <p className="flex items-center gap-1 text-sm text-destructive">
                     <AlertCircle className="h-3 w-3" />
                     {errors.title.message}
                   </p>
@@ -201,7 +208,7 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
                   {...register('location')}
                 />
                 {errors.location && (
-                  <p className="text-sm text-destructive flex items-center gap-1">
+                  <p className="flex items-center gap-1 text-sm text-destructive">
                     <AlertCircle className="h-3 w-3" />
                     {errors.location.message}
                   </p>
@@ -243,7 +250,7 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
                   {...register('description')}
                 />
                 {errors.description && (
-                  <p className="text-sm text-destructive flex items-center gap-1">
+                  <p className="flex items-center gap-1 text-sm text-destructive">
                     <AlertCircle className="h-3 w-3" />
                     {errors.description.message}
                   </p>
@@ -259,7 +266,7 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
                   {...register('requirements')}
                 />
                 {errors.requirements && (
-                  <p className="text-sm text-destructive flex items-center gap-1">
+                  <p className="flex items-center gap-1 text-sm text-destructive">
                     <AlertCircle className="h-3 w-3" />
                     {errors.requirements.message}
                   </p>
@@ -311,10 +318,7 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
 
                 <div className="space-y-2">
                   <Label htmlFor="currency">{t('employer.newJob.currency')}</Label>
-                  <Select
-                    onValueChange={(value) => setValue('currency', value)}
-                    defaultValue="EUR"
-                  >
+                  <Select onValueChange={(value) => setValue('currency', value)} defaultValue="EUR">
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -345,9 +349,7 @@ export default function NewJobPage({ params }: { params: { locale: string } }) {
                   placeholder={t('employer.newJob.keywordsPlaceholder')}
                   {...register('keywords')}
                 />
-                <p className="text-sm text-muted-foreground">
-                  {t('employer.newJob.keywordsHint')}
-                </p>
+                <p className="text-sm text-muted-foreground">{t('employer.newJob.keywordsHint')}</p>
               </div>
             </CardContent>
           </Card>

@@ -27,6 +27,7 @@ import { SaveJobButton } from '@/components/job/save-job-button'
 import { ShareJobButton } from '@/components/job/share-job-button'
 import { formatDistanceToNow } from 'date-fns'
 import { sk, cs, pl, de, enUS } from 'date-fns/locale'
+import { logger } from '@/lib/logger'
 
 export async function generateMetadata({
   params,
@@ -137,7 +138,7 @@ async function getJob(id: string) {
 
     return job
   } catch (error) {
-    console.error('Error fetching job:', error)
+    logger.error('Error fetching job', error)
     return null
   }
 }
@@ -173,7 +174,7 @@ async function getSimilarJobs(job: any, limit: number = 3) {
 
     return similarJobs
   } catch (error) {
-    console.error('Error fetching similar jobs:', error)
+    logger.error('Error fetching similar jobs', error)
     return []
   }
 }

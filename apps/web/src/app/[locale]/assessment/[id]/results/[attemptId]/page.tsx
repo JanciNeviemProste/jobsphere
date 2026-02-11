@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react'
 import { CheckCircle2, XCircle, Clock, Award, Loader2 } from 'lucide-react'
+import { logger } from '@/lib/logger'
 
 interface Question {
   id: string
@@ -62,16 +63,14 @@ export default function AssessmentResultsPage({
 
   async function loadResults() {
     try {
-      const response = await fetch(
-        `/api/assessments/${params.id}/results/${params.attemptId}`
-      )
+      const response = await fetch(`/api/assessments/${params.id}/results/${params.attemptId}`)
 
       if (response.ok) {
         const data = await response.json()
         setAttempt(data.attempt)
       }
     } catch (error) {
-      console.error('Failed to load results:', error)
+      logger.error('Failed to load results', error)
     } finally {
       setLoading(false)
     }
@@ -79,7 +78,7 @@ export default function AssessmentResultsPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
@@ -87,7 +86,7 @@ export default function AssessmentResultsPage({
 
   if (!attempt) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <p className="text-gray-600">Results not found</p>
       </div>
     )
@@ -96,41 +95,33 @@ export default function AssessmentResultsPage({
   const isGraded = attempt.gradedAt !== null
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gray-50 px-4 py-12">
+      <div className="mx-auto max-w-4xl">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-8 mb-6 text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {attempt.assessment.title}
-          </h1>
+        <div className="mb-6 rounded-lg bg-white p-8 text-center shadow-sm">
+          <h1 className="mb-2 text-3xl font-bold text-gray-900">{attempt.assessment.title}</h1>
           <p className="text-gray-600">Assessment Results</p>
 
           {!isGraded ? (
-            <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
-              <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-              <p className="text-lg font-medium text-blue-900">
-                Grading in progress...
-              </p>
-              <p className="text-sm text-blue-700 mt-1">
+            <div className="mt-8 rounded-lg border border-blue-200 bg-blue-50 p-6">
+              <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-blue-600" />
+              <p className="text-lg font-medium text-blue-900">Grading in progress...</p>
+              <p className="mt-1 text-sm text-blue-700">
                 Our AI is evaluating your answers. This usually takes 1-2 minutes.
               </p>
             </div>
           ) : (
             <>
               {/* Score Circle */}
-              <div className="mt-8 mb-6">
+              <div className="mb-6 mt-8">
                 <div
-                  className={`w-40 h-40 rounded-full mx-auto flex items-center justify-center border-8 ${
-                    attempt.isPassed
-                      ? 'border-green-500 bg-green-50'
-                      : 'border-red-500 bg-red-50'
+                  className={`mx-auto flex h-40 w-40 items-center justify-center rounded-full border-8 ${
+                    attempt.isPassed ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'
                   }`}
                 >
                   <div className="text-center">
-                    <p className="text-5xl font-bold text-gray-900">
-                      {attempt.scorePercent}%
-                    </p>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-5xl font-bold text-gray-900">{attempt.scorePercent}%</p>
+                    <p className="mt-1 text-sm text-gray-600">
                       {attempt.score}/{attempt.maxScore} points
                     </p>
                   </div>
@@ -139,7 +130,7 @@ export default function AssessmentResultsPage({
 
               {/* Pass/Fail Status */}
               {attempt.isPassed ? (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center justify-center gap-3">
+                <div className="flex items-center justify-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4">
                   <CheckCircle2 className="h-6 w-6 text-green-600" />
                   <div className="text-left">
                     <p className="font-semibold text-green-900">Congratulations!</p>
@@ -149,7 +140,7 @@ export default function AssessmentResultsPage({
                   </div>
                 </div>
               ) : (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-center gap-3">
+                <div className="flex items-center justify-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
                   <XCircle className="h-6 w-6 text-red-600" />
                   <div className="text-left">
                     <p className="font-semibold text-red-900">Not Passed</p>
@@ -167,35 +158,28 @@ export default function AssessmentResultsPage({
         {isGraded && (
           <div className="space-y-4">
             {attempt.assessment.questions.map((question, idx) => {
-              const answer = attempt.answers.find(
-                (a) => a.questionId === question.id
-              )
+              const answer = attempt.answers.find((a) => a.questionId === question.id)
 
               if (!answer) return null
 
-              const scorePercent = question.points > 0
-                ? ((answer.score || 0) / question.points) * 100
-                : 0
+              const scorePercent =
+                question.points > 0 ? ((answer.score || 0) / question.points) * 100 : 0
 
               return (
                 <div
                   key={question.id}
-                  className="bg-white rounded-lg shadow-sm p-6 border-l-4"
+                  className="rounded-lg border-l-4 bg-white p-6 shadow-sm"
                   style={{
                     borderLeftColor:
-                      scorePercent >= 70
-                        ? '#10b981'
-                        : scorePercent >= 40
-                        ? '#f59e0b'
-                        : '#ef4444',
+                      scorePercent >= 70 ? '#10b981' : scorePercent >= 40 ? '#f59e0b' : '#ef4444',
                   }}
                 >
-                  <div className="flex items-start justify-between mb-4">
+                  <div className="mb-4 flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900">
                         Question {idx + 1}: {question.title}
                       </h3>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="mt-1 text-sm text-gray-600">
                         Type: {question.type.replace('_', ' ')}
                       </p>
                     </div>
@@ -209,30 +193,24 @@ export default function AssessmentResultsPage({
 
                   {/* Your Answer */}
                   <div className="mb-4">
-                    <p className="text-sm font-medium text-gray-700 mb-2">
-                      Your Answer:
-                    </p>
-                    <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="mb-2 text-sm font-medium text-gray-700">Your Answer:</p>
+                    <div className="rounded-lg bg-gray-50 p-4">
                       {question.type === 'MULTIPLE_CHOICE' ? (
                         <p className="text-gray-900">Option {answer.answer + 1}</p>
                       ) : question.type === 'CODE' ? (
-                        <pre className="text-sm font-mono text-gray-900 overflow-x-auto">
+                        <pre className="overflow-x-auto font-mono text-sm text-gray-900">
                           {answer.answer}
                         </pre>
                       ) : (
-                        <p className="text-gray-900 whitespace-pre-wrap">
-                          {answer.answer}
-                        </p>
+                        <p className="whitespace-pre-wrap text-gray-900">{answer.answer}</p>
                       )}
                     </div>
                   </div>
 
                   {/* Feedback */}
                   {answer.feedback && (
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm font-medium text-blue-900 mb-1">
-                        Feedback:
-                      </p>
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                      <p className="mb-1 text-sm font-medium text-blue-900">Feedback:</p>
                       <p className="text-sm text-blue-800">{answer.feedback}</p>
                     </div>
                   )}
@@ -244,8 +222,8 @@ export default function AssessmentResultsPage({
 
         {/* Metadata */}
         {isGraded && (
-          <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Details</h3>
+          <div className="mt-6 rounded-lg bg-white p-6 shadow-sm">
+            <h3 className="mb-4 font-semibold text-gray-900">Details</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-gray-600">Submitted</p>

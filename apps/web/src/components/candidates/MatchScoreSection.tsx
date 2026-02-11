@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { TrendingUp, Briefcase, AlertCircle, MapPin, Euro } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
+import { logger } from '@/lib/logger'
 
 interface MatchScore {
   jobId: string
@@ -55,7 +56,7 @@ export function MatchScoreSection({ candidateId, locale }: MatchScoreSectionProp
         const data = await response.json()
         setScores(data.scores || [])
       } catch (err) {
-        console.error('Error fetching match scores:', err)
+        logger.error('Error fetching match scores', err)
         setError(err instanceof Error ? err.message : 'Failed to load match scores')
       } finally {
         setLoading(false)

@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Clock, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react'
+import { logger } from '@/lib/logger'
 
 interface Question {
   id: string
@@ -33,11 +34,7 @@ interface Answer {
   answer: any
 }
 
-export default function TakeAssessmentPage({
-  params,
-}: {
-  params: { id: string }
-}) {
+export default function TakeAssessmentPage({ params }: { params: { id: string } }) {
   const [assessment, setAssessment] = useState<Assessment | null>(null)
   const [answers, setAnswers] = useState<Map<string, any>>(new Map())
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
@@ -82,7 +79,7 @@ export default function TakeAssessmentPage({
         alert('Failed to load assessment')
       }
     } catch (error) {
-      console.error('Load error:', error)
+      logger.error('Load error', error)
       alert('Failed to load assessment')
     } finally {
       setLoading(false)
@@ -102,12 +99,10 @@ export default function TakeAssessmentPage({
       if (timerRef.current) clearInterval(timerRef.current)
 
       // Convert Map to array
-      const answerArray = Array.from(answers.entries()).map(
-        ([questionId, answer]) => ({
-          questionId,
-          answer,
-        })
-      )
+      const answerArray = Array.from(answers.entries()).map(([questionId, answer]) => ({
+        questionId,
+        answer,
+      }))
 
       const response = await fetch(`/api/assessments/${params.id}/submit`, {
         method: 'POST',
@@ -123,7 +118,7 @@ export default function TakeAssessmentPage({
         alert('Failed to submit assessment')
       }
     } catch (error) {
-      console.error('Submit error:', error)
+      logger.error('Submit error', error)
       alert('Failed to submit assessment')
     } finally {
       setSubmitting(false)
@@ -132,7 +127,7 @@ export default function TakeAssessmentPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <p className="text-gray-600">Loading assessment...</p>
       </div>
     )
@@ -140,7 +135,7 @@ export default function TakeAssessmentPage({
 
   if (!assessment) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <p className="text-gray-600">Assessment not found</p>
       </div>
     )
@@ -158,13 +153,11 @@ export default function TakeAssessmentPage({
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b shadow-sm sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-6 py-4">
+      <div className="sticky top-0 z-10 border-b bg-white shadow-sm">
+        <div className="mx-auto max-w-5xl px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-gray-900">
-                {assessment.title}
-              </h1>
+              <h1 className="text-xl font-bold text-gray-900">{assessment.title}</h1>
               <p className="text-sm text-gray-600">
                 Question {currentQuestionIndex + 1} of {assessment.questions.length}
               </p>
@@ -172,10 +165,8 @@ export default function TakeAssessmentPage({
 
             {/* Timer */}
             <div
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-mono font-bold ${
-                timeRemaining < 300
-                  ? 'bg-red-100 text-red-800'
-                  : 'bg-gray-100 text-gray-900'
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 font-mono font-bold ${
+                timeRemaining < 300 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-900'
               }`}
             >
               <Clock className="h-5 w-5" />
@@ -184,9 +175,9 @@ export default function TakeAssessmentPage({
           </div>
 
           {/* Progress Bar */}
-          <div className="mt-4 w-full bg-gray-200 rounded-full h-2">
+          <div className="mt-4 h-2 w-full rounded-full bg-gray-200">
             <div
-              className="bg-primary h-2 rounded-full transition-all"
+              className="h-2 rounded-full bg-primary transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -194,18 +185,14 @@ export default function TakeAssessmentPage({
       </div>
 
       {/* Question */}
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        <div className="bg-white rounded-lg shadow-sm p-8 mb-6">
+      <div className="mx-auto max-w-5xl px-6 py-8">
+        <div className="mb-6 rounded-lg bg-white p-8 shadow-sm">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {currentQuestion.title}
-            </h2>
+            <h2 className="mb-2 text-2xl font-bold text-gray-900">{currentQuestion.title}</h2>
             {currentQuestion.description && (
               <p className="text-gray-600">{currentQuestion.description}</p>
             )}
-            <p className="text-sm text-gray-500 mt-2">
-              {currentQuestion.points} points
-            </p>
+            <p className="mt-2 text-sm text-gray-500">{currentQuestion.points} points</p>
           </div>
 
           {/* Answer Input */}
@@ -214,14 +201,14 @@ export default function TakeAssessmentPage({
               {currentQuestion.options?.map((option, idx) => (
                 <label
                   key={idx}
-                  className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-primary cursor-pointer transition-colors"
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-gray-200 p-4 transition-colors hover:border-primary"
                 >
                   <input
                     type="radio"
                     name={`question-${currentQuestion.id}`}
                     checked={answers.get(currentQuestion.id) === idx}
                     onChange={() => updateAnswer(currentQuestion.id, idx)}
-                    className="w-5 h-5 text-primary"
+                    className="h-5 w-5 text-primary"
                   />
                   <span className="text-gray-900">{option}</span>
                 </label>
@@ -232,14 +219,12 @@ export default function TakeAssessmentPage({
           {currentQuestion.type === 'CODE' && (
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm text-gray-600">
-                  Language: {currentQuestion.language}
-                </span>
+                <span className="text-sm text-gray-600">Language: {currentQuestion.language}</span>
               </div>
               <textarea
                 value={answers.get(currentQuestion.id) || currentQuestion.starterCode || ''}
                 onChange={(e) => updateAnswer(currentQuestion.id, e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 font-mono text-sm"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 font-mono text-sm"
                 rows={20}
                 placeholder="Write your code here..."
               />
@@ -251,12 +236,12 @@ export default function TakeAssessmentPage({
               <textarea
                 value={answers.get(currentQuestion.id) || ''}
                 onChange={(e) => updateAnswer(currentQuestion.id, e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-4 py-3"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3"
                 rows={12}
                 placeholder="Type your answer here..."
               />
               {currentQuestion.maxWords && (
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="mt-2 text-sm text-gray-500">
                   Max {currentQuestion.maxWords} words (current:{' '}
                   {(answers.get(currentQuestion.id) || '').split(/\s+/).filter(Boolean).length})
                 </p>
@@ -270,7 +255,7 @@ export default function TakeAssessmentPage({
           <button
             onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
             disabled={currentQuestionIndex === 0}
-            className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 rounded-lg border border-gray-300 px-6 py-3 font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <ChevronLeft className="h-4 w-4" />
             Previous
@@ -280,7 +265,7 @@ export default function TakeAssessmentPage({
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="px-8 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-300"
+              className="rounded-lg bg-green-600 px-8 py-3 font-medium text-white hover:bg-green-700 disabled:bg-gray-300"
             >
               {submitting ? 'Submitting...' : 'Submit Assessment'}
             </button>
@@ -288,10 +273,10 @@ export default function TakeAssessmentPage({
             <button
               onClick={() =>
                 setCurrentQuestionIndex(
-                  Math.min(assessment.questions.length - 1, currentQuestionIndex + 1)
+                  Math.min(assessment.questions.length - 1, currentQuestionIndex + 1),
                 )
               }
-              className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90"
+              className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-medium text-white hover:bg-primary/90"
             >
               Next
               <ChevronRight className="h-4 w-4" />
@@ -301,8 +286,8 @@ export default function TakeAssessmentPage({
 
         {/* Warning */}
         {timeRemaining < 300 && (
-          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+          <div className="mt-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
+            <AlertCircle className="mt-0.5 h-5 w-5 text-red-600" />
             <div>
               <p className="font-medium text-red-800">Time is running out!</p>
               <p className="text-sm text-red-700">

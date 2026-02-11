@@ -11,10 +11,17 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { AlertCircle, ArrowLeft, Briefcase, MapPin, DollarSign, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { logger } from '@/lib/logger'
 
 // Validation schema (same as create form)
 const jobSchema = z.object({
@@ -33,11 +40,7 @@ const jobSchema = z.object({
 
 type JobFormData = z.infer<typeof jobSchema>
 
-export default function EditJobPage({
-  params
-}: {
-  params: { locale: string; id: string }
-}) {
+export default function EditJobPage({ params }: { params: { locale: string; id: string } }) {
   const router = useRouter()
   const t = useTranslations()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -93,7 +96,7 @@ export default function EditJobPage({
 
         setIsLoading(false)
       } catch (error) {
-        console.error('Failed to load job:', error)
+        logger.error('Failed to load job', error)
         toast.error('Failed to load job')
         router.push(`/${params.locale}/employer`)
       }
@@ -140,7 +143,7 @@ export default function EditJobPage({
       router.push(`/${params.locale}/employer`)
       router.refresh()
     } catch (error) {
-      console.error('Failed to update job:', error)
+      logger.error('Failed to update job', error)
       toast.error(error instanceof Error ? error.message : 'Failed to update job')
     } finally {
       setIsSubmitting(false)
@@ -148,7 +151,9 @@ export default function EditJobPage({
   }
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to close this job posting? This action cannot be undone.')) {
+    if (
+      !confirm('Are you sure you want to close this job posting? This action cannot be undone.')
+    ) {
       return
     }
 
@@ -167,7 +172,7 @@ export default function EditJobPage({
       toast.success('Job closed successfully!')
       router.push(`/${params.locale}/employer`)
     } catch (error) {
-      console.error('Failed to close job:', error)
+      logger.error('Failed to close job', error)
       toast.error(error instanceof Error ? error.message : 'Failed to close job')
     } finally {
       setIsDeleting(false)
@@ -176,7 +181,7 @@ export default function EditJobPage({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30">
         <div className="flex items-center gap-2">
           <Loader2 className="h-6 w-6 animate-spin" />
           <span>Loading job details...</span>
@@ -187,25 +192,21 @@ export default function EditJobPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto max-w-4xl px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <Button variant="ghost" size="sm" asChild className="mb-4">
             <Link href={`/${params.locale}/employer`}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="mr-2 h-4 w-4" />
               {t('employer.backToDashboard')}
             </Link>
           </Button>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">{t('employer.editJob.title')}</h1>
+              <h1 className="mb-2 text-3xl font-bold">{t('employer.editJob.title')}</h1>
               <p className="text-muted-foreground">{t('employer.editJob.subtitle')}</p>
             </div>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
               {isDeleting ? 'Closing...' : 'Close Job'}
             </Button>
           </div>
@@ -230,7 +231,7 @@ export default function EditJobPage({
                   {...register('title')}
                 />
                 {errors.title && (
-                  <p className="text-sm text-destructive flex items-center gap-1">
+                  <p className="flex items-center gap-1 text-sm text-destructive">
                     <AlertCircle className="h-3 w-3" />
                     {errors.title.message}
                   </p>
@@ -297,7 +298,7 @@ export default function EditJobPage({
                   {...register('location')}
                 />
                 {errors.location && (
-                  <p className="text-sm text-destructive flex items-center gap-1">
+                  <p className="flex items-center gap-1 text-sm text-destructive">
                     <AlertCircle className="h-3 w-3" />
                     {errors.location.message}
                   </p>
@@ -339,7 +340,7 @@ export default function EditJobPage({
                   {...register('description')}
                 />
                 {errors.description && (
-                  <p className="text-sm text-destructive flex items-center gap-1">
+                  <p className="flex items-center gap-1 text-sm text-destructive">
                     <AlertCircle className="h-3 w-3" />
                     {errors.description.message}
                   </p>
@@ -355,7 +356,7 @@ export default function EditJobPage({
                   {...register('requirements')}
                 />
                 {errors.requirements && (
-                  <p className="text-sm text-destructive flex items-center gap-1">
+                  <p className="flex items-center gap-1 text-sm text-destructive">
                     <AlertCircle className="h-3 w-3" />
                     {errors.requirements.message}
                   </p>

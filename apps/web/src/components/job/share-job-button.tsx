@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Share2, Copy, Mail, MessageCircle, Linkedin, Check } from 'lucide-react'
 import { showToast } from '@/components/ui/use-toast'
+import { logger } from '@/lib/logger'
 
 interface ShareJobButtonProps {
   jobId: string
@@ -26,13 +27,11 @@ export function ShareJobButton({
   companyName,
   variant = 'outline',
   size = 'lg',
-  className
+  className,
 }: ShareJobButtonProps) {
   const [copied, setCopied] = useState(false)
 
-  const jobUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/jobs/${jobId}`
-    : ''
+  const jobUrl = typeof window !== 'undefined' ? `${window.location.origin}/jobs/${jobId}` : ''
 
   const shareText = `${jobTitle} at ${companyName}`
 
@@ -42,14 +41,14 @@ export function ShareJobButton({
       setCopied(true)
       showToast({
         title: 'Odkaz skopírovaný',
-        description: 'Odkaz na prácu bol skopírovaný do schránky.'
+        description: 'Odkaz na prácu bol skopírovaný do schránky.',
       })
       setTimeout(() => setCopied(false), 2000)
     } catch (error) {
       showToast({
         title: 'Chyba',
         description: 'Nepodarilo sa skopírovať odkaz.',
-        variant: 'destructive'
+        variant: 'destructive',
       })
     }
   }
@@ -60,12 +59,12 @@ export function ShareJobButton({
         await navigator.share({
           title: shareText,
           text: `Pozri si túto pracovnú ponuku: ${shareText}`,
-          url: jobUrl
+          url: jobUrl,
         })
       } catch (error) {
         // User cancelled or error - ignore
         if ((error as Error).name !== 'AbortError') {
-          console.warn('Share failed:', error)
+          logger.warn('Share failed', { error: String(error) })
         }
       }
     }
@@ -79,7 +78,11 @@ export function ShareJobButton({
 
   const shareViaLinkedIn = () => {
     const url = encodeURIComponent(jobUrl)
-    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'width=600,height=400')
+    window.open(
+      `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
+      '_blank',
+      'width=600,height=400',
+    )
   }
 
   const shareViaWhatsApp = () => {
@@ -107,12 +110,7 @@ export function ShareJobButton({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant={variant}
-          size={size}
-          className={className}
-          aria-label="Zdieľať prácu"
-        >
+        <Button variant={variant} size={size} className={className} aria-label="Zdieľať prácu">
           <Share2 className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>

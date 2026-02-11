@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/card'
 import { AlertCircle, ArrowLeft, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import { logger } from '@/lib/logger'
 
 const resetPasswordSchema = z
   .object({
@@ -99,7 +100,7 @@ export default function ResetPasswordPage({ params }: { params: { locale: string
         router.push(`/${params.locale}/login`)
       }, 3000)
     } catch (error) {
-      console.error('Password reset error:', error)
+      logger.error('Password reset error', error)
       toast.error(error instanceof Error ? error.message : 'Failed to reset password')
     } finally {
       setIsSubmitting(false)

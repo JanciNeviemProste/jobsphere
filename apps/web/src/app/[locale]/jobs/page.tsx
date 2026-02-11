@@ -28,6 +28,7 @@ import {
 import { formatDistanceToNow } from 'date-fns'
 import { sk, cs, pl, de, enUS } from 'date-fns/locale'
 import { RecommendedJobsSection } from '@/components/jobs/RecommendedJobsSection'
+import { logger } from '@/lib/logger'
 
 // Job type from database
 interface Job {
@@ -152,7 +153,7 @@ export default function JobsPage({ params }: { params: { locale: string } }) {
 
       setJobs(filteredData)
     } catch (err) {
-      console.error('Error fetching jobs:', err)
+      logger.error('Error fetching jobs', err)
       setError(err instanceof Error ? err.message : 'Failed to load jobs')
     } finally {
       setLoading(false)

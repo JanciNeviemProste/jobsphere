@@ -23,7 +23,7 @@ import {
   Code2,
   Globe,
   Award,
-  FolderOpen
+  FolderOpen,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,6 +39,7 @@ import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { toast } from '@/components/ui/use-toast'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { logger } from '@/lib/logger'
 import { Switch } from '@/components/ui/switch'
 
 interface ResumeSection {
@@ -65,11 +66,7 @@ interface ResumeData {
   updatedAt: string
 }
 
-export default function CVEditPage({
-  params
-}: {
-  params: { id: string; locale: string }
-}) {
+export default function CVEditPage({ params }: { params: { id: string; locale: string } }) {
   const router = useRouter()
   const { data: session, status } = useSession()
   const t = useTranslations()
@@ -82,7 +79,9 @@ export default function CVEditPage({
   // Check authentication
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push(`/${params.locale}/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`)
+      router.push(
+        `/${params.locale}/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`,
+      )
     }
   }, [status, router, params.locale])
 
@@ -96,7 +95,7 @@ export default function CVEditPage({
         const data = await response.json()
         setResumeData(data)
       } catch (error) {
-        console.error('Load CV error:', error)
+        logger.error('Load CV error', error)
         toast.error(t('cvEdit.error'), {
           description: t('cvEdit.loadError'),
         })
@@ -131,7 +130,7 @@ export default function CVEditPage({
       })
       setTimeout(() => setSaved(false), 3000)
     } catch (error) {
-      console.error('Save CV error:', error)
+      logger.error('Save CV error', error)
       toast.error(t('cvEdit.error'), {
         description: t('cvEdit.saveError'),
       })
@@ -146,7 +145,7 @@ export default function CVEditPage({
 
     const newSection: ResumeSection = {
       kind,
-      order: resumeData.sections.filter(s => s.kind === kind).length,
+      order: resumeData.sections.filter((s) => s.kind === kind).length,
       title: '',
       organization: '',
       location: '',
@@ -186,7 +185,7 @@ export default function CVEditPage({
 
   // Get sections by kind
   const getSectionsByKind = (kind: string) => {
-    return resumeData?.sections.filter(s => s.kind === kind) || []
+    return resumeData?.sections.filter((s) => s.kind === kind) || []
   }
 
   // Get personal info section
@@ -204,7 +203,7 @@ export default function CVEditPage({
   const updatePersonalInfo = (field: string, value: string) => {
     if (!resumeData) return
 
-    const personalIndex = resumeData.sections.findIndex(s => s.kind === 'PERSONAL')
+    const personalIndex = resumeData.sections.findIndex((s) => s.kind === 'PERSONAL')
     if (personalIndex === -1) {
       // Create new personal section
       const newPersonal: ResumeSection = {
@@ -233,7 +232,7 @@ export default function CVEditPage({
 
   if (loading || status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
@@ -241,11 +240,11 @@ export default function CVEditPage({
 
   if (!resumeData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="pt-6">
             <p className="text-center text-muted-foreground">{t('cvEdit.notFound')}</p>
-            <Button asChild className="w-full mt-4">
+            <Button asChild className="mt-4 w-full">
               <Link href={`/${params.locale}/dashboard`}>{t('cvEdit.backToDashboard')}</Link>
             </Button>
           </CardContent>
@@ -264,12 +263,12 @@ export default function CVEditPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="container mx-auto max-w-6xl px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <Button variant="ghost" size="sm" asChild className="mb-4">
             <Link href={`/${params.locale}/dashboard`}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="mr-2 h-4 w-4" />
               {t('cvEdit.backToDashboard')}
             </Link>
           </Button>
@@ -277,22 +276,16 @@ export default function CVEditPage({
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">{t('cvEdit.title')}</h1>
-              <p className="text-muted-foreground mt-1">
-                {t('cvEdit.description')}
-              </p>
+              <p className="mt-1 text-muted-foreground">{t('cvEdit.description')}</p>
             </div>
-            <div className="flex gap-3 items-center">
+            <div className="flex items-center gap-3">
               {saved && (
                 <div className="flex items-center gap-2 text-green-600">
                   <CheckCircle2 className="h-5 w-5" />
                   <span className="text-sm font-medium">{t('cvEdit.saved')}</span>
                 </div>
               )}
-              <Button
-                onClick={handleSave}
-                disabled={saving}
-                className="gap-2"
-              >
+              <Button onClick={handleSave} disabled={saving} className="gap-2">
                 {saving ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -325,7 +318,7 @@ export default function CVEditPage({
 
         {/* Tabs for different sections */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-7 w-full mb-6">
+          <TabsList className="mb-6 grid w-full grid-cols-7">
             <TabsTrigger value="personal" className="gap-2">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">{t('cvEdit.personal')}</span>
@@ -427,14 +420,14 @@ export default function CVEditPage({
                     <CardDescription>{t('cvEdit.workExperienceDescription')}</CardDescription>
                   </div>
                   <Button onClick={() => addSection('EXPERIENCE')} size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="mr-2 h-4 w-4" />
                     {t('cvEdit.addExperience')}
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 {experiences.map((exp, idx) => (
-                  <div key={idx} className="border rounded-lg p-4 space-y-4">
+                  <div key={idx} className="space-y-4 rounded-lg border p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 space-y-4">
                         <div className="grid grid-cols-2 gap-4">
@@ -443,9 +436,7 @@ export default function CVEditPage({
                             <Input
                               value={exp.title || ''}
                               onChange={(e) => {
-                                const sectionIndex = resumeData.sections.findIndex(
-                                  s => s === exp
-                                )
+                                const sectionIndex = resumeData.sections.findIndex((s) => s === exp)
                                 updateSection(sectionIndex, { title: e.target.value })
                               }}
                               placeholder={t('cvEdit.jobTitlePlaceholder')}
@@ -456,9 +447,7 @@ export default function CVEditPage({
                             <Input
                               value={exp.organization || ''}
                               onChange={(e) => {
-                                const sectionIndex = resumeData.sections.findIndex(
-                                  s => s === exp
-                                )
+                                const sectionIndex = resumeData.sections.findIndex((s) => s === exp)
                                 updateSection(sectionIndex, { organization: e.target.value })
                               }}
                               placeholder={t('cvEdit.companyPlaceholder')}
@@ -472,9 +461,7 @@ export default function CVEditPage({
                             <Input
                               value={exp.location || ''}
                               onChange={(e) => {
-                                const sectionIndex = resumeData.sections.findIndex(
-                                  s => s === exp
-                                )
+                                const sectionIndex = resumeData.sections.findIndex((s) => s === exp)
                                 updateSection(sectionIndex, { location: e.target.value })
                               }}
                               placeholder={t('cvEdit.locationPlaceholder')}
@@ -486,9 +473,7 @@ export default function CVEditPage({
                               type="month"
                               value={exp.startDate?.substring(0, 7) || ''}
                               onChange={(e) => {
-                                const sectionIndex = resumeData.sections.findIndex(
-                                  s => s === exp
-                                )
+                                const sectionIndex = resumeData.sections.findIndex((s) => s === exp)
                                 updateSection(sectionIndex, { startDate: e.target.value })
                               }}
                             />
@@ -501,7 +486,7 @@ export default function CVEditPage({
                                 value={exp.endDate?.substring(0, 7) || ''}
                                 onChange={(e) => {
                                   const sectionIndex = resumeData.sections.findIndex(
-                                    s => s === exp
+                                    (s) => s === exp,
                                   )
                                   updateSection(sectionIndex, { endDate: e.target.value })
                                 }}
@@ -512,11 +497,11 @@ export default function CVEditPage({
                                   checked={exp.current || false}
                                   onCheckedChange={(checked) => {
                                     const sectionIndex = resumeData.sections.findIndex(
-                                      s => s === exp
+                                      (s) => s === exp,
                                     )
                                     updateSection(sectionIndex, {
                                       current: checked,
-                                      endDate: checked ? null : exp.endDate
+                                      endDate: checked ? null : exp.endDate,
                                     })
                                   }}
                                 />
@@ -531,9 +516,7 @@ export default function CVEditPage({
                           <Textarea
                             value={exp.description || ''}
                             onChange={(e) => {
-                              const sectionIndex = resumeData.sections.findIndex(
-                                s => s === exp
-                              )
+                              const sectionIndex = resumeData.sections.findIndex((s) => s === exp)
                               updateSection(sectionIndex, { description: e.target.value })
                             }}
                             rows={3}
@@ -547,7 +530,7 @@ export default function CVEditPage({
                         variant="ghost"
                         size="icon"
                         onClick={() => {
-                          const sectionIndex = resumeData.sections.findIndex(s => s === exp)
+                          const sectionIndex = resumeData.sections.findIndex((s) => s === exp)
                           removeSection(sectionIndex)
                         }}
                       >
@@ -558,7 +541,7 @@ export default function CVEditPage({
                 ))}
 
                 {experiences.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="py-8 text-center text-muted-foreground">
                     {t('cvEdit.noExperience')}
                   </div>
                 )}
@@ -576,14 +559,14 @@ export default function CVEditPage({
                     <CardDescription>{t('cvEdit.educationDescription')}</CardDescription>
                   </div>
                   <Button onClick={() => addSection('EDUCATION')} size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="mr-2 h-4 w-4" />
                     {t('cvEdit.addEducation')}
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 {education.map((edu, idx) => (
-                  <div key={idx} className="border rounded-lg p-4 space-y-4">
+                  <div key={idx} className="space-y-4 rounded-lg border p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 space-y-4">
                         <div className="grid grid-cols-2 gap-4">
@@ -592,9 +575,7 @@ export default function CVEditPage({
                             <Input
                               value={edu.title || ''}
                               onChange={(e) => {
-                                const sectionIndex = resumeData.sections.findIndex(
-                                  s => s === edu
-                                )
+                                const sectionIndex = resumeData.sections.findIndex((s) => s === edu)
                                 updateSection(sectionIndex, { title: e.target.value })
                               }}
                               placeholder={t('cvEdit.degreePlaceholder')}
@@ -605,9 +586,7 @@ export default function CVEditPage({
                             <Input
                               value={edu.organization || ''}
                               onChange={(e) => {
-                                const sectionIndex = resumeData.sections.findIndex(
-                                  s => s === edu
-                                )
+                                const sectionIndex = resumeData.sections.findIndex((s) => s === edu)
                                 updateSection(sectionIndex, { organization: e.target.value })
                               }}
                               placeholder={t('cvEdit.institutionPlaceholder')}
@@ -621,9 +600,7 @@ export default function CVEditPage({
                             <Input
                               value={edu.location || ''}
                               onChange={(e) => {
-                                const sectionIndex = resumeData.sections.findIndex(
-                                  s => s === edu
-                                )
+                                const sectionIndex = resumeData.sections.findIndex((s) => s === edu)
                                 updateSection(sectionIndex, { location: e.target.value })
                               }}
                               placeholder={t('cvEdit.locationPlaceholder')}
@@ -635,9 +612,7 @@ export default function CVEditPage({
                               type="month"
                               value={edu.startDate?.substring(0, 7) || ''}
                               onChange={(e) => {
-                                const sectionIndex = resumeData.sections.findIndex(
-                                  s => s === edu
-                                )
+                                const sectionIndex = resumeData.sections.findIndex((s) => s === edu)
                                 updateSection(sectionIndex, { startDate: e.target.value })
                               }}
                             />
@@ -648,9 +623,7 @@ export default function CVEditPage({
                               type="month"
                               value={edu.endDate?.substring(0, 7) || ''}
                               onChange={(e) => {
-                                const sectionIndex = resumeData.sections.findIndex(
-                                  s => s === edu
-                                )
+                                const sectionIndex = resumeData.sections.findIndex((s) => s === edu)
                                 updateSection(sectionIndex, { endDate: e.target.value })
                               }}
                             />
@@ -662,9 +635,7 @@ export default function CVEditPage({
                           <Textarea
                             value={edu.description || ''}
                             onChange={(e) => {
-                              const sectionIndex = resumeData.sections.findIndex(
-                                s => s === edu
-                              )
+                              const sectionIndex = resumeData.sections.findIndex((s) => s === edu)
                               updateSection(sectionIndex, { description: e.target.value })
                             }}
                             rows={2}
@@ -678,7 +649,7 @@ export default function CVEditPage({
                         variant="ghost"
                         size="icon"
                         onClick={() => {
-                          const sectionIndex = resumeData.sections.findIndex(s => s === edu)
+                          const sectionIndex = resumeData.sections.findIndex((s) => s === edu)
                           removeSection(sectionIndex)
                         }}
                       >
@@ -689,7 +660,7 @@ export default function CVEditPage({
                 ))}
 
                 {education.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="py-8 text-center text-muted-foreground">
                     {t('cvEdit.noEducation')}
                   </div>
                 )}
@@ -711,8 +682,13 @@ export default function CVEditPage({
                     <Textarea
                       value={skills[0]?.skills?.join(', ') || ''}
                       onChange={(e) => {
-                        const skillsArray = e.target.value.split(',').map(s => s.trim()).filter(s => s)
-                        const skillsIndex = resumeData.sections.findIndex(s => s.kind === 'SKILLS')
+                        const skillsArray = e.target.value
+                          .split(',')
+                          .map((s) => s.trim())
+                          .filter((s) => s)
+                        const skillsIndex = resumeData.sections.findIndex(
+                          (s) => s.kind === 'SKILLS',
+                        )
                         if (skillsIndex === -1) {
                           // Create new skills section
                           const newSkills: ResumeSection = {
@@ -732,15 +708,13 @@ export default function CVEditPage({
                       placeholder={t('cvEdit.skillsPlaceholder')}
                       className="mt-2"
                     />
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {t('cvEdit.skillsHelp')}
-                    </p>
+                    <p className="mt-2 text-sm text-muted-foreground">{t('cvEdit.skillsHelp')}</p>
                   </div>
 
                   {skills[0]?.skills && skills[0].skills.length > 0 && (
                     <div>
                       <Label>{t('cvEdit.skillsPreview')}</Label>
-                      <div className="flex flex-wrap gap-2 mt-2">
+                      <div className="mt-2 flex flex-wrap gap-2">
                         {skills[0].skills.map((skill, idx) => (
                           <Badge key={idx} variant="secondary">
                             {skill}
@@ -768,7 +742,9 @@ export default function CVEditPage({
                     <Textarea
                       value={languages[0]?.description || ''}
                       onChange={(e) => {
-                        const langIndex = resumeData.sections.findIndex(s => s.kind === 'LANGUAGES')
+                        const langIndex = resumeData.sections.findIndex(
+                          (s) => s.kind === 'LANGUAGES',
+                        )
                         if (langIndex === -1) {
                           const newLang: ResumeSection = {
                             kind: 'LANGUAGES',
@@ -804,14 +780,14 @@ export default function CVEditPage({
                     <CardDescription>{t('cvEdit.certificationsDescription')}</CardDescription>
                   </div>
                   <Button onClick={() => addSection('CERTIFICATIONS')} size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="mr-2 h-4 w-4" />
                     {t('cvEdit.addCertification')}
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 {certifications.map((cert, idx) => (
-                  <div key={idx} className="border rounded-lg p-4 space-y-4">
+                  <div key={idx} className="space-y-4 rounded-lg border p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 space-y-4">
                         <div className="grid grid-cols-2 gap-4">
@@ -821,7 +797,7 @@ export default function CVEditPage({
                               value={cert.title || ''}
                               onChange={(e) => {
                                 const sectionIndex = resumeData.sections.findIndex(
-                                  s => s === cert
+                                  (s) => s === cert,
                                 )
                                 updateSection(sectionIndex, { title: e.target.value })
                               }}
@@ -834,7 +810,7 @@ export default function CVEditPage({
                               value={cert.organization || ''}
                               onChange={(e) => {
                                 const sectionIndex = resumeData.sections.findIndex(
-                                  s => s === cert
+                                  (s) => s === cert,
                                 )
                                 updateSection(sectionIndex, { organization: e.target.value })
                               }}
@@ -851,7 +827,7 @@ export default function CVEditPage({
                               value={cert.startDate?.substring(0, 7) || ''}
                               onChange={(e) => {
                                 const sectionIndex = resumeData.sections.findIndex(
-                                  s => s === cert
+                                  (s) => s === cert,
                                 )
                                 updateSection(sectionIndex, { startDate: e.target.value })
                               }}
@@ -864,7 +840,7 @@ export default function CVEditPage({
                               value={cert.endDate?.substring(0, 7) || ''}
                               onChange={(e) => {
                                 const sectionIndex = resumeData.sections.findIndex(
-                                  s => s === cert
+                                  (s) => s === cert,
                                 )
                                 updateSection(sectionIndex, { endDate: e.target.value })
                               }}
@@ -877,7 +853,7 @@ export default function CVEditPage({
                         variant="ghost"
                         size="icon"
                         onClick={() => {
-                          const sectionIndex = resumeData.sections.findIndex(s => s === cert)
+                          const sectionIndex = resumeData.sections.findIndex((s) => s === cert)
                           removeSection(sectionIndex)
                         }}
                       >
@@ -888,7 +864,7 @@ export default function CVEditPage({
                 ))}
 
                 {certifications.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="py-8 text-center text-muted-foreground">
                     {t('cvEdit.noCertifications')}
                   </div>
                 )}
@@ -906,14 +882,14 @@ export default function CVEditPage({
                     <CardDescription>{t('cvEdit.projectsDescription')}</CardDescription>
                   </div>
                   <Button onClick={() => addSection('PROJECTS')} size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="mr-2 h-4 w-4" />
                     {t('cvEdit.addProject')}
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 {projects.map((project, idx) => (
-                  <div key={idx} className="border rounded-lg p-4 space-y-4">
+                  <div key={idx} className="space-y-4 rounded-lg border p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 space-y-4">
                         <div className="grid grid-cols-2 gap-4">
@@ -923,7 +899,7 @@ export default function CVEditPage({
                               value={project.title || ''}
                               onChange={(e) => {
                                 const sectionIndex = resumeData.sections.findIndex(
-                                  s => s === project
+                                  (s) => s === project,
                                 )
                                 updateSection(sectionIndex, { title: e.target.value })
                               }}
@@ -936,7 +912,7 @@ export default function CVEditPage({
                               value={project.organization || ''}
                               onChange={(e) => {
                                 const sectionIndex = resumeData.sections.findIndex(
-                                  s => s === project
+                                  (s) => s === project,
                                 )
                                 updateSection(sectionIndex, { organization: e.target.value })
                               }}
@@ -951,7 +927,7 @@ export default function CVEditPage({
                             value={project.description || ''}
                             onChange={(e) => {
                               const sectionIndex = resumeData.sections.findIndex(
-                                s => s === project
+                                (s) => s === project,
                               )
                               updateSection(sectionIndex, { description: e.target.value })
                             }}
@@ -966,9 +942,12 @@ export default function CVEditPage({
                           <Input
                             value={project.skills?.join(', ') || ''}
                             onChange={(e) => {
-                              const techArray = e.target.value.split(',').map(s => s.trim()).filter(s => s)
+                              const techArray = e.target.value
+                                .split(',')
+                                .map((s) => s.trim())
+                                .filter((s) => s)
                               const sectionIndex = resumeData.sections.findIndex(
-                                s => s === project
+                                (s) => s === project,
                               )
                               updateSection(sectionIndex, { skills: techArray })
                             }}
@@ -981,7 +960,7 @@ export default function CVEditPage({
                         variant="ghost"
                         size="icon"
                         onClick={() => {
-                          const sectionIndex = resumeData.sections.findIndex(s => s === project)
+                          const sectionIndex = resumeData.sections.findIndex((s) => s === project)
                           removeSection(sectionIndex)
                         }}
                       >
@@ -992,7 +971,7 @@ export default function CVEditPage({
                 ))}
 
                 {projects.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="py-8 text-center text-muted-foreground">
                     {t('cvEdit.noProjects')}
                   </div>
                 )}

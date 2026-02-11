@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Sparkles, AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { logger } from '@/lib/logger'
 
 interface JobRecommendation {
   id: string
@@ -63,7 +64,7 @@ export function RecommendedJobsSection({ locale }: RecommendedJobsSectionProps) 
         const data = await response.json()
         setRecommendations(data)
       } catch (err) {
-        console.error('Error fetching recommendations:', err)
+        logger.error('Error fetching recommendations', err)
         setError(err instanceof Error ? err.message : 'Failed to load recommendations')
       } finally {
         setLoading(false)

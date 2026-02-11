@@ -76,3 +76,11 @@ docker/volumes
 .vercel
 .env*.local
 .env.vercel
+
+# Windows artifacts
+nul
+
+# Backup files
+*.backup
+*.bak
+*.orig

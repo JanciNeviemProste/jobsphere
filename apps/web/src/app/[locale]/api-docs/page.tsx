@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import SwaggerUI from 'swagger-ui-react'
 import 'swagger-ui-react/swagger-ui.css'
+import { logger } from '@/lib/logger'
 
 export default function ApiDocsPage() {
   const [spec, setSpec] = useState<string | null>(null)
@@ -12,7 +13,7 @@ export default function ApiDocsPage() {
     fetch('/docs/api/openapi.yaml')
       .then((res) => res.text())
       .then((text) => setSpec(text))
-      .catch((err) => console.error('Failed to load OpenAPI spec:', err))
+      .catch((err) => logger.error('Failed to load OpenAPI spec', err))
   }, [])
 
   if (!spec) {

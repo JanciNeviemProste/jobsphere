@@ -25,11 +25,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Calendar } from '@/components/ui/calendar'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -39,14 +35,18 @@ import {
 } from '@/components/ui/select'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from '@/components/ui/use-toast'
+import { logger } from '@/lib/logger'
 
 // Form schema
 const applicationSchema = z.object({
-  coverLetter: z.string().min(50, {
-    message: 'Cover letter must be at least 50 characters.',
-  }).max(2000, {
-    message: 'Cover letter must not exceed 2000 characters.',
-  }),
+  coverLetter: z
+    .string()
+    .min(50, {
+      message: 'Cover letter must be at least 50 characters.',
+    })
+    .max(2000, {
+      message: 'Cover letter must not exceed 2000 characters.',
+    }),
   cvSource: z.enum(['existing', 'upload', 'profile']),
   cvId: z.string().optional(),
   cvFile: z.any().optional(),
@@ -111,7 +111,7 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
           salaryMax: data.salaryMax,
         })
       } catch (error) {
-        console.error('Error fetching job:', error)
+        logger.error('Error fetching job', error)
         toast.error(t('apply.error'), {
           description: t('apply.jobNotFound'),
         })
@@ -138,7 +138,7 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
           }
         }
       } catch (error) {
-        console.error('Error fetching CVs:', error)
+        logger.error('Error fetching CVs', error)
       } finally {
         setLoading(false)
       }
@@ -150,7 +150,9 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
   // Redirect if not authenticated
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push(`/${params.locale}/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`)
+      router.push(
+        `/${params.locale}/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`,
+      )
     }
   }, [status, router, params.locale])
 
@@ -203,7 +205,7 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
         description: t('apply.fieldsAutoFilled'),
       })
     } catch (error) {
-      console.error('Error parsing CV:', error)
+      logger.error('Error parsing CV', error)
       toast.error(t('apply.parseError'), {
         description: error instanceof Error ? error.message : t('apply.parseErrorDescription'),
       })
@@ -235,7 +237,7 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
         }
       }
     } catch (error) {
-      console.error('Error loading CV details:', error)
+      logger.error('Error loading CV details', error)
       // Don't show error toast, it's optional enhancement
     }
   }
@@ -291,7 +293,7 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
         router.push(`/${params.locale}/dashboard`)
       }, 3000)
     } catch (error) {
-      console.error('Error submitting application:', error)
+      logger.error('Error submitting application', error)
       toast.error(t('apply.error'), {
         description: error instanceof Error ? error.message : t('apply.submitError'),
       })
@@ -302,7 +304,7 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
 
   if (loading || status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     )
@@ -312,15 +314,15 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
         <div className="container mx-auto px-4 py-12">
-          <Card className="max-w-2xl mx-auto">
-            <CardContent className="pt-12 pb-12 text-center">
+          <Card className="mx-auto max-w-2xl">
+            <CardContent className="pb-12 pt-12 text-center">
               <div className="mb-6 flex justify-center">
-                <div className="h-20 w-20 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
                   <CheckCircle className="h-12 w-12 text-green-600 dark:text-green-400" />
                 </div>
               </div>
-              <h2 className="text-2xl font-bold mb-4">{t('apply.successTitle')}</h2>
-              <p className="text-muted-foreground mb-8">{t('apply.successMessage')}</p>
+              <h2 className="mb-4 text-2xl font-bold">{t('apply.successTitle')}</h2>
+              <p className="mb-8 text-muted-foreground">{t('apply.successMessage')}</p>
               <Button asChild>
                 <Link href={`/${params.locale}/dashboard`}>{t('apply.goToDashboard')}</Link>
               </Button>
@@ -338,7 +340,7 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
         <div className="mb-6">
           <Button variant="ghost" size="sm" asChild>
             <Link href={`/${params.locale}/jobs/${params.id}`}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="mr-2 h-4 w-4" />
               {t('apply.backToJob')}
             </Link>
           </Button>
@@ -462,16 +464,14 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
                                   {...field}
                                 />
                                 {parsingCV ? (
-                                  <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
+                                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                                 ) : (
                                   <Upload className="h-5 w-5 text-muted-foreground" />
                                 )}
                               </div>
                             </FormControl>
                             <FormDescription>
-                              {parsingCV
-                                ? t('apply.parsingCV')
-                                : t('apply.uploadCVDescription')}
+                              {parsingCV ? t('apply.parsingCV') : t('apply.uploadCVDescription')}
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -489,7 +489,11 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
                           <FormControl>
                             <Input
                               type="number"
-                              placeholder={job?.salaryMin ? `${job.salaryMin} - ${job.salaryMax}` : t('apply.salaryPlaceholder')}
+                              placeholder={
+                                job?.salaryMin
+                                  ? `${job.salaryMin} - ${job.salaryMax}`
+                                  : t('apply.salaryPlaceholder')
+                              }
                               {...field}
                             />
                           </FormControl>
@@ -513,7 +517,7 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
                                   variant="outline"
                                   className={cn(
                                     'w-full pl-3 text-left font-normal',
-                                    !field.value && 'text-muted-foreground'
+                                    !field.value && 'text-muted-foreground',
                                   )}
                                 >
                                   {field.value ? (
@@ -530,9 +534,7 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
                                 mode="single"
                                 selected={field.value}
                                 onSelect={field.onChange}
-                                disabled={(date) =>
-                                  date < new Date()
-                                }
+                                disabled={(date) => date < new Date()}
                                 initialFocus
                               />
                             </PopoverContent>
@@ -551,11 +553,7 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
                         <FormItem>
                           <FormLabel>{t('apply.phoneNumber')}</FormLabel>
                           <FormControl>
-                            <Input
-                              type="tel"
-                              placeholder="+421 900 123 456"
-                              {...field}
-                            />
+                            <Input type="tel" placeholder="+421 900 123 456" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -618,7 +616,7 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
                 {job ? (
                   <div className="space-y-4">
                     <div>
-                      <h3 className="font-semibold text-lg">{job.title}</h3>
+                      <h3 className="text-lg font-semibold">{job.title}</h3>
                       <p className="text-muted-foreground">{job.company}</p>
                     </div>
                     <div className="space-y-2 text-sm">
@@ -638,8 +636,8 @@ export default function ApplyPage({ params }: { params: { id: string; locale: st
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <div className="h-4 bg-muted rounded animate-pulse" />
-                    <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
+                    <div className="h-4 animate-pulse rounded bg-muted" />
+                    <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
                   </div>
                 )}
               </CardContent>

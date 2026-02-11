@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Check, Loader2 } from 'lucide-react'
+import { logger } from '@/lib/logger'
 
 export default function PricingPage({ params }: { params: { locale: string } }) {
   const t = useTranslations('pricing')
@@ -47,7 +48,7 @@ export default function PricingPage({ params }: { params: { locale: string } }) 
         }
       }
     } catch (error) {
-      console.error('Checkout error:', error)
+      logger.error('Checkout error', error)
       alert('Failed to start checkout')
     } finally {
       setLoading(null)
@@ -113,20 +114,18 @@ export default function PricingPage({ params }: { params: { locale: string } }) 
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <div className="container mx-auto px-4 py-12">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">{t('title')}</h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            {t('subtitle')}
-          </p>
+        <div className="mb-12 text-center">
+          <h1 className="mb-4 text-4xl font-bold">{t('title')}</h1>
+          <p className="mx-auto max-w-2xl text-xl text-muted-foreground">{t('subtitle')}</p>
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto mb-16">
+        <div className="mx-auto mb-16 grid max-w-6xl gap-8 md:grid-cols-3">
           {plans.map((plan) => (
             <Card
               key={plan.name}
               className={`relative flex flex-col ${
-                plan.popular ? 'border-primary shadow-lg scale-105' : ''
+                plan.popular ? 'scale-105 border-primary shadow-lg' : ''
               }`}
             >
               {plan.popular && (
@@ -141,16 +140,14 @@ export default function PricingPage({ params }: { params: { locale: string } }) 
                   <span className="text-4xl font-bold">
                     {plan.price === 'Custom' ? plan.price : `€${plan.price}`}
                   </span>
-                  {plan.period && (
-                    <span className="text-muted-foreground"> / {plan.period}</span>
-                  )}
+                  {plan.period && <span className="text-muted-foreground"> / {plan.period}</span>}
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 flex flex-col">
-                <ul className="space-y-3 mb-6 flex-1">
+              <CardContent className="flex flex-1 flex-col">
+                <ul className="mb-6 flex-1 space-y-3">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2">
-                      <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <Check className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                       <span className="text-sm">{feature}</span>
                     </li>
                   ))}
@@ -158,12 +155,16 @@ export default function PricingPage({ params }: { params: { locale: string } }) 
                 <Button
                   className="w-full"
                   variant={plan.popular ? 'default' : 'outline'}
-                  onClick={() => handleSubscribe(plan.name.toUpperCase() as 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE')}
+                  onClick={() =>
+                    handleSubscribe(
+                      plan.name.toUpperCase() as 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE',
+                    )
+                  }
                   disabled={loading === plan.name.toUpperCase()}
                 >
                   {loading === plan.name.toUpperCase() ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       {t('loading')}
                     </>
                   ) : (
@@ -176,21 +177,19 @@ export default function PricingPage({ params }: { params: { locale: string } }) 
         </div>
 
         {/* Features Comparison */}
-        <div className="max-w-4xl mx-auto">
+        <div className="mx-auto max-w-4xl">
           <Card>
             <CardHeader>
               <CardTitle>{t('comparison.title')}</CardTitle>
-              <CardDescription>
-                {t('comparison.subtitle')}
-              </CardDescription>
+              <CardDescription>{t('comparison.subtitle')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="font-medium">{t('comparison.featureColumn')}</div>
-                  <div className="font-medium text-right">{t('comparison.allPlansColumn')}</div>
+                  <div className="text-right font-medium">{t('comparison.allPlansColumn')}</div>
                 </div>
-                <div className="border-t pt-4 space-y-3">
+                <div className="space-y-3 border-t pt-4">
                   {[
                     t('comparison.features.multilingual'),
                     t('comparison.features.mobileApp'),
@@ -202,7 +201,7 @@ export default function PricingPage({ params }: { params: { locale: string } }) 
                     <div key={feature} className="grid grid-cols-2 gap-4 text-sm">
                       <div className="text-muted-foreground">{feature}</div>
                       <div className="text-right">
-                        <Check className="h-5 w-5 text-primary inline" />
+                        <Check className="inline h-5 w-5 text-primary" />
                       </div>
                     </div>
                   ))}
@@ -213,8 +212,8 @@ export default function PricingPage({ params }: { params: { locale: string } }) 
         </div>
 
         {/* FAQ */}
-        <div className="max-w-4xl mx-auto mt-16">
-          <h2 className="text-3xl font-bold text-center mb-8">{t('faq.title')}</h2>
+        <div className="mx-auto mt-16 max-w-4xl">
+          <h2 className="mb-8 text-center text-3xl font-bold">{t('faq.title')}</h2>
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
@@ -252,12 +251,10 @@ export default function PricingPage({ params }: { params: { locale: string } }) 
         </div>
 
         {/* CTA */}
-        <div className="text-center mt-16">
-          <h2 className="text-3xl font-bold mb-4">{t('cta.title')}</h2>
-          <p className="text-muted-foreground mb-8">
-            {t('cta.subtitle')}
-          </p>
-          <div className="flex gap-4 justify-center">
+        <div className="mt-16 text-center">
+          <h2 className="mb-4 text-3xl font-bold">{t('cta.title')}</h2>
+          <p className="mb-8 text-muted-foreground">{t('cta.subtitle')}</p>
+          <div className="flex justify-center gap-4">
             <Button size="lg" asChild>
               <Link href={`/${locale}/signup`}>{t('cta.startFree')}</Link>
             </Button>

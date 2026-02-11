@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
+import { logger } from '@/lib/logger'
 
 interface ApplicantActionsProps {
   applicationId: string
@@ -46,7 +47,7 @@ export function ApplicantActions({ applicationId, currentStage, locale }: Applic
       toast.success(t('statusUpdated'))
       router.refresh()
     } catch (error) {
-      console.error('Error updating stage:', error)
+      logger.error('Error updating stage', error)
       toast.error(t('statusUpdateFailed'))
     } finally {
       setIsLoading(false)
@@ -82,7 +83,7 @@ export function ApplicantActions({ applicationId, currentStage, locale }: Applic
       setEmailBody('')
       router.refresh()
     } catch (error) {
-      console.error('Error sending email:', error)
+      logger.error('Error sending email', error)
       toast.error(t('emailSendFailed'))
     } finally {
       setIsLoading(false)
@@ -114,7 +115,7 @@ export function ApplicantActions({ applicationId, currentStage, locale }: Applic
       setNote('')
       router.refresh()
     } catch (error) {
-      console.error('Error adding note:', error)
+      logger.error('Error adding note', error)
       toast.error(t('noteAddFailed'))
     } finally {
       setIsLoading(false)
