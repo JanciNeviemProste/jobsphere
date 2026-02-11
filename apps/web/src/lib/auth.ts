@@ -44,14 +44,21 @@ export const authOptions: NextAuthOptions = {
             },
           })
 
-          if (!user) {
+          // SECURITY: Prevent timing attacks — always perform bcrypt comparison
+          // even when user doesn't exist, to maintain constant response time
+          // and prevent email enumeration via response time analysis
+          if (!user || !user.password) {
+            await compare(
+              credentials.password,
+              '$2a$12$UGzP4Z0tFYfNO8YM6g3HE.lN0jC.ueAnEglJpgP.its5zuuMhc7Vm',
+            )
             return null
           }
 
           // SECURITY: Check if account is locked
           if (user.lockedUntil && user.lockedUntil > new Date()) {
             const minutesLeft = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000)
-            logger.warn(`🔒 Account locked for ${user.email}. Unlocks in ${minutesLeft} minutes`)
+            logger.warn(`Account locked. Unlocks in ${minutesLeft} minutes`)
             return null
           }
 
@@ -64,10 +71,6 @@ export const authOptions: NextAuthOptions = {
                 lockedUntil: null,
               },
             })
-          }
-
-          if (!user.password) {
-            return null
           }
 
           const isPasswordValid = await compare(credentials.password, user.password)

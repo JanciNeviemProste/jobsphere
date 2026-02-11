@@ -167,7 +167,7 @@ export async function rateLimit(config: RateLimitConfig): Promise<RateLimitResul
   const windowStart = now - window * 1000
 
   // Skip rate limiting in test environment
-  if (process.env.NODE_ENV === 'test' || process.env.DISABLE_RATE_LIMIT === 'true') {
+  if (process.env.NODE_ENV === 'test') {
     return {
       success: true,
       limit,

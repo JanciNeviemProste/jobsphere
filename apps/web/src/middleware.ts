@@ -9,85 +9,17 @@ const intlMiddleware = createMiddleware({
   localeDetection: true,
 })
 
-// CSRF token generation and validation using cryptographically secure random
-function generateCSRFToken(): string {
-  // Use Web Crypto API (available in Edge Runtime) for secure random generation
-  const array = new Uint8Array(32)
-  crypto.getRandomValues(array)
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
-}
-
-function validateCSRFToken(request: NextRequest): boolean {
-  const token = request.headers.get('x-csrf-token')
-  const cookieToken = request.cookies.get('csrf-token')?.value
-  return token === cookieToken
-}
-
-// Rate limiting with sliding window
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
-
-function rateLimit(ip: string, limit: number = 100, windowMs: number = 60000): boolean {
-  const now = Date.now()
-  const record = rateLimitMap.get(ip)
-
-  if (!record || record.resetTime < now) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + windowMs })
-    return true
-  }
-
-  if (record.count >= limit) {
-    return false
-  }
-
-  record.count++
-  return true
-}
-
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Skip middleware for static files
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api/') ||
-    pathname.includes('/favicon') ||
-    pathname.includes('.') // static files
-  ) {
-    return NextResponse.next()
-  }
-
-  // Apply rate limiting
-  const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown'
-  if (!rateLimit(ip)) {
-    return new NextResponse('Too Many Requests', { status: 429 })
-  }
-
-  // CSRF protection for mutations
-  if (request.method !== 'GET' && request.method !== 'HEAD') {
-    if (!validateCSRFToken(request)) {
-      // Generate new CSRF token for GET requests
-      const response = NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 })
-      response.cookies.set('csrf-token', generateCSRFToken(), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-      })
-      return response
-    }
-  }
-
   // Protected routes that require authentication
   const protectedRoutes = ['/dashboard', '/employer', '/profile']
-
-  // Check if the current path (after locale) is protected
-  const isProtectedRoute = protectedRoutes.some(route => {
-    // Extract path after locale
+  const isProtectedRoute = protectedRoutes.some((route) => {
     const pathWithoutLocale = pathname.replace(/^\/(en|de|cs|sk|pl)/, '')
     return pathWithoutLocale.startsWith(route)
   })
 
   if (isProtectedRoute) {
-    // Check for valid session token
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
     if (!token) {
       const locale = pathname.split('/')[1] || 'en'
@@ -98,51 +30,41 @@ export default async function middleware(request: NextRequest) {
   // Apply internationalization middleware
   const response = intlMiddleware(request)
 
-  // Add comprehensive security headers
+  // Security headers
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('X-XSS-Protection', '1; mode=block')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
 
-  // Strict Transport Security (HSTS)
   if (process.env.NODE_ENV === 'production') {
     response.headers.set(
       'Strict-Transport-Security',
-      'max-age=31536000; includeSubDomains; preload'
+      'max-age=31536000; includeSubDomains; preload',
     )
   }
 
-  // Content Security Policy
+  // Content Security Policy (unified with next.config.js, no unsafe-eval)
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://accounts.google.com",
+    "script-src 'self' 'unsafe-inline' https://js.stripe.com https://accounts.google.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: https: blob:",
-    "connect-src 'self' https://api.anthropic.com https://api.stripe.com https://api.openai.com https://api.voyageai.com https://graph.microsoft.com https://login.microsoftonline.com",
-    "frame-src 'self' https://js.stripe.com https://accounts.google.com",
+    "connect-src 'self' https://api.anthropic.com https://api.stripe.com https://api.openai.com https://api.voyageai.com https://graph.microsoft.com https://login.microsoftonline.com https://*.sentry.io https://*.ingest.sentry.io https://vitals.vercel-insights.com",
+    "frame-src 'self' https://js.stripe.com https://accounts.google.com https://hooks.stripe.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    "upgrade-insecure-requests",
+    "frame-ancestors 'none'",
+    'upgrade-insecure-requests',
   ].join('; ')
 
   response.headers.set('Content-Security-Policy', csp)
-
-  // Set CSRF token cookie for GET requests
-  if (request.method === 'GET') {
-    const csrfToken = request.cookies.get('csrf-token')?.value || generateCSRFToken()
-    response.cookies.set('csrf-token', csrfToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-    })
-  }
 
   return response
 }
 
 export const config = {
-  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)']
+  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
 }
