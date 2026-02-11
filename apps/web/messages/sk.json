@@ -664,5 +664,12 @@
       "improve": "Vylepšiť popis",
       "generating": "Generujem..."
     }
+  },
+  "errorPage": {
+    "title": "Ups! Niečo sa pokazilo",
+    "description": "Pri spracovaní vašej požiadavky došlo k chybe. Skúste to prosím znova.",
+    "tryAgain": "Skúsiť znova",
+    "goHome": "Domov",
+    "errorDetails": "Detaily chyby (viditeľné len vo vývoji)"
   }
 }

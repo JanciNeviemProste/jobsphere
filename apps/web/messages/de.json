@@ -685,5 +685,12 @@
     "tip1": "Passen Sie Ihr Anschreiben auf die spezifische Rolle an",
     "tip2": "Heben Sie relevante Erfahrungen und Fähigkeiten hervor",
     "tip3": "Überprüfen Sie auf Rechtschreib- und Grammatikfehler"
+  },
+  "errorPage": {
+    "title": "Hoppla! Etwas ist schiefgelaufen",
+    "description": "Bei der Verarbeitung Ihrer Anfrage ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
+    "tryAgain": "Erneut versuchen",
+    "goHome": "Startseite",
+    "errorDetails": "Fehlerdetails (nur in der Entwicklung sichtbar)"
   }
 }

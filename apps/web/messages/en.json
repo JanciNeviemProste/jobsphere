@@ -697,5 +697,12 @@
       "improve": "Improve Description",
       "generating": "Generating..."
     }
+  },
+  "errorPage": {
+    "title": "Oops! Something went wrong",
+    "description": "An error occurred while processing your request. Please try again.",
+    "tryAgain": "Try again",
+    "goHome": "Home",
+    "errorDetails": "Error details (visible only in development)"
   }
 }

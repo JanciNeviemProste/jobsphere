@@ -685,5 +685,12 @@
     "tip1": "Dostosuj list motywacyjny do konkretnej roli",
     "tip2": "Podkreśl istotne doświadczenie i umiejętności",
     "tip3": "Sprawdź poprawność pisowni i gramatyki"
+  },
+  "errorPage": {
+    "title": "Ups! Coś poszło nie tak",
+    "description": "Wystąpił błąd podczas przetwarzania Twojego żądania. Spróbuj ponownie.",
+    "tryAgain": "Spróbuj ponownie",
+    "goHome": "Strona główna",
+    "errorDetails": "Szczegóły błędu (widoczne tylko w trybie deweloperskim)"
   }
 }

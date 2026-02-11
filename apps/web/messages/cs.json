@@ -685,5 +685,12 @@
     "tip1": "Přizpůsobte motivační dopis konkrétní roli",
     "tip2": "Zvýrazněte relevantní zkušenosti a dovednosti",
     "tip3": "Zkontrolujte pravopis a gramatiku"
+  },
+  "errorPage": {
+    "title": "Jejda! Něco se pokazilo",
+    "description": "Při zpracování vašeho požadavku došlo k chybě. Zkuste to prosím znovu.",
+    "tryAgain": "Zkusit znovu",
+    "goHome": "Domů",
+    "errorDetails": "Detaily chyby (viditelné pouze ve vývoji)"
   }
 }
