@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { logger } from '@/lib/logger'
+import type { Application, ApplicationActivity } from '@prisma/client'
 
 export async function createApplication(formData: {
   jobId: string
@@ -11,7 +12,7 @@ export async function createApplication(formData: {
   cvUrl?: string
   expectedSalary?: string
   availableFrom?: string
-}) {
+}): Promise<Application> {
   const session = await auth()
 
   if (!session?.user?.id) {
@@ -62,7 +63,7 @@ export async function updateApplicationStatus(
   applicationId: string,
   status: string,
   notes?: string,
-) {
+): Promise<Application> {
   const session = await auth()
 
   if (!session?.user?.id) {
@@ -191,7 +192,7 @@ export async function updateApplicationStatus(
   return updatedApplication
 }
 
-export async function deleteApplication(applicationId: string) {
+export async function deleteApplication(applicationId: string): Promise<{ success: true }> {
   const session = await auth()
 
   if (!session?.user?.id) {
@@ -220,7 +221,10 @@ export async function deleteApplication(applicationId: string) {
   return { success: true }
 }
 
-export async function addApplicationNote(applicationId: string, note: string) {
+export async function addApplicationNote(
+  applicationId: string,
+  note: string,
+): Promise<ApplicationActivity> {
   const session = await auth()
 
   if (!session?.user?.id) {

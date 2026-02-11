@@ -179,6 +179,72 @@ async function getSimilarJobs(job: any, limit: number = 3) {
   }
 }
 
+// Generate JSON-LD structured data for Google for Jobs
+function generateJobPostingJsonLd(job: any, locale: string) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jobsphere.com'
+
+  const employmentTypeMap: Record<string, string> = {
+    FULL_TIME: 'FULL_TIME',
+    PART_TIME: 'PART_TIME',
+    CONTRACT: 'CONTRACTOR',
+    INTERNSHIP: 'INTERN',
+    TEMPORARY: 'TEMPORARY',
+  }
+
+  const jsonLd: Record<string, any> = {
+    '@context': 'https://schema.org/',
+    '@type': 'JobPosting',
+    title: job.title,
+    description: job.description || '',
+    datePosted: new Date(job.createdAt).toISOString().split('T')[0],
+    employmentType: employmentTypeMap[job.employmentType] || job.employmentType,
+    hiringOrganization: {
+      '@type': 'Organization',
+      name: job.organization.name,
+      ...(job.organization.logo && { logo: job.organization.logo }),
+      ...(job.organization.website && { sameAs: job.organization.website }),
+    },
+    jobLocation: {
+      '@type': 'Place',
+      address: {
+        '@type': 'PostalAddress',
+        ...(job.city && { addressLocality: job.city }),
+        ...(job.region && { addressRegion: job.region }),
+        addressCountry: 'SK',
+      },
+    },
+    directApply: true,
+    url: `${appUrl}/${locale}/jobs/${job.id}`,
+  }
+
+  if (job.remote) {
+    jsonLd.jobLocationType = 'TELECOMMUTE'
+  }
+
+  if (job.closedAt) {
+    jsonLd.validThrough = new Date(job.closedAt).toISOString().split('T')[0]
+  }
+
+  if (job.salaryMin || job.salaryMax) {
+    const unitText = job.salaryPeriod === 'MONTH' ? 'MONTH' : 'YEAR'
+    jsonLd.baseSalary = {
+      '@type': 'MonetaryAmount',
+      currency: job.salaryCurrency || 'EUR',
+      value: {
+        '@type': 'QuantitativeValue',
+        unitText,
+        ...(job.salaryMin && job.salaryMax
+          ? { minValue: job.salaryMin, maxValue: job.salaryMax }
+          : job.salaryMin
+            ? { value: job.salaryMin }
+            : { maxValue: job.salaryMax }),
+      },
+    }
+  }
+
+  return jsonLd
+}
+
 export default async function JobDetailPage({
   params,
 }: {
@@ -193,6 +259,7 @@ export default async function JobDetailPage({
   }
 
   const similarJobs = await getSimilarJobs(job)
+  const jobPostingJsonLd = generateJobPostingJsonLd(job, params.locale)
 
   // Format work mode based on remote/hybrid boolean flags
   const getWorkModeLabel = () => {
@@ -263,6 +330,12 @@ export default async function JobDetailPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+      {/* JSON-LD structured data for Google for Jobs */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd) }}
+      />
+
       {/* Track job view */}
       <ViewTracker jobId={job.id} />
 

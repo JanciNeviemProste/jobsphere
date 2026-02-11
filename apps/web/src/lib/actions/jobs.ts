@@ -5,6 +5,7 @@ import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { addEmbeddingJob, addMatchScoreCacheJob } from '@/lib/queue'
 import { logger } from '@/lib/logger'
+import type { Job } from '@prisma/client'
 
 export async function createJob(formData: {
   title: string
@@ -16,7 +17,7 @@ export async function createJob(formData: {
   seniority: string
   description: string
   orgId: string
-}) {
+}): Promise<Job> {
   const session = await auth()
 
   if (!session?.user?.id) {
@@ -71,7 +72,7 @@ export async function createJob(formData: {
   return job
 }
 
-export async function updateJobStatus(jobId: string, status: string) {
+export async function updateJobStatus(jobId: string, status: string): Promise<Job> {
   const session = await auth()
 
   if (!session?.user?.id) {
@@ -109,7 +110,7 @@ export async function updateJobStatus(jobId: string, status: string) {
   return updatedJob
 }
 
-export async function deleteJob(jobId: string) {
+export async function deleteJob(jobId: string): Promise<{ success: true }> {
   const session = await auth()
 
   if (!session?.user?.id) {

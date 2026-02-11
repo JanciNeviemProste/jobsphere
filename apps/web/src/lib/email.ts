@@ -28,7 +28,7 @@ export async function sendEmail(data: EmailData): Promise<void> {
     return sendSendGridEmail(data)
   } else if (emailService === 'log') {
     // Development mode - just log emails
-    console.log('📧 Email would be sent:', {
+    logger.debug('Email would be sent (dev mode)', {
       to: data.to,
       subject: data.subject,
       preview: data.text || data.html.substring(0, 100),
