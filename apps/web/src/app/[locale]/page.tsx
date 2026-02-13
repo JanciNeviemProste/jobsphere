@@ -1,4 +1,6 @@
 import { useTranslations } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
@@ -13,8 +15,17 @@ import {
   BarChart3,
   MapPin,
   Briefcase,
-  Clock
+  Clock,
 } from 'lucide-react'
+
+export async function generateMetadata({
+  params: { locale },
+}: {
+  params: { locale: string }
+}): Promise<Metadata> {
+  const t = await getTranslations({ locale, namespace: 'pageMetadata' })
+  return { title: t('home.title'), description: t('home.description') }
+}
 
 export default function HomePage({ params }: { params: { locale: string } }) {
   const t = useTranslations()
@@ -86,7 +97,7 @@ export default function HomePage({ params }: { params: { locale: string } }) {
   return (
     <div className="flex min-h-screen flex-col bg-white">
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-24 sm:py-32 min-h-[600px] flex items-center">
+      <section className="relative flex min-h-[600px] items-center overflow-hidden py-24 sm:py-32">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <Image
@@ -102,17 +113,22 @@ export default function HomePage({ params }: { params: { locale: string } }) {
 
         <div className="container relative z-10">
           <div className="mx-auto max-w-5xl text-center">
-            <h1 className="text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl text-white leading-tight">
+            <h1 className="text-5xl font-bold leading-tight tracking-tight text-white sm:text-6xl lg:text-7xl">
               {t('hero.title')}
             </h1>
-            <p className="mt-8 text-xl leading-relaxed text-white/90 sm:text-2xl max-w-3xl mx-auto">
+            <p className="mx-auto mt-8 max-w-3xl text-xl leading-relaxed text-white/90 sm:text-2xl">
               {t('hero.subtitle')}
             </p>
-            <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button size="lg" className="px-8 py-6 text-lg font-medium" asChild>
                 <Link href={`/${locale}/jobs`}>{t('hero.ctaPrimary')}</Link>
               </Button>
-              <Button size="lg" variant="outline" className="px-8 py-6 text-lg font-medium border-2 border-white text-white bg-white/10 hover:bg-white hover:text-primary transition-all" asChild>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-2 border-white bg-white/10 px-8 py-6 text-lg font-medium text-white transition-all hover:bg-white hover:text-primary"
+                asChild
+              >
                 <Link href={`/${locale}/for-employers`}>{t('hero.ctaSecondary')}</Link>
               </Button>
             </div>
@@ -121,20 +137,23 @@ export default function HomePage({ params }: { params: { locale: string } }) {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 sm:py-32 bg-white">
+      <section className="bg-white py-24 sm:py-32">
         <div className="container">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-4xl font-bold tracking-tight sm:text-5xl text-foreground">
+            <h2 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
               {t('features.title')}
             </h2>
-            <p className="mt-6 text-xl text-muted-foreground leading-relaxed">
+            <p className="mt-6 text-xl leading-relaxed text-muted-foreground">
               {t('features.subtitle')}
             </p>
           </div>
 
           <div className="mx-auto mt-20 grid max-w-6xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, index) => (
-              <Card key={index} className="border-2 transition-all hover:border-primary/50 hover:shadow-xl bg-white">
+              <Card
+                key={index}
+                className="border-2 bg-white transition-all hover:border-primary/50 hover:shadow-xl"
+              >
                 <CardHeader>
                   <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10">
                     <feature.icon className="h-7 w-7 text-primary" />
@@ -157,9 +176,7 @@ export default function HomePage({ params }: { params: { locale: string } }) {
         <div className="container">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                {t('jobs.title')}
-              </h2>
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">{t('jobs.title')}</h2>
             </div>
             <Button variant="outline" asChild>
               <Link href={`/${locale}/jobs`}>{t('jobs.viewAll')}</Link>
@@ -173,13 +190,9 @@ export default function HomePage({ params }: { params: { locale: string } }) {
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle className="text-xl">{job.title}</CardTitle>
-                      <CardDescription className="mt-1 text-base">
-                        {job.company}
-                      </CardDescription>
+                      <CardDescription className="mt-1 text-base">{job.company}</CardDescription>
                     </div>
-                    {job.remote && (
-                      <Badge variant="secondary">{t('jobs.remote')}</Badge>
-                    )}
+                    {job.remote && <Badge variant="secondary">{t('jobs.remote')}</Badge>}
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -196,7 +209,7 @@ export default function HomePage({ params }: { params: { locale: string } }) {
                       <Clock className="h-4 w-4" />
                       {job.salary}
                     </div>
-                    <Button className="w-full mt-4" variant="outline" asChild>
+                    <Button className="mt-4 w-full" variant="outline" asChild>
                       <Link href={`/${locale}/jobs/${job.id}`}>{t('jobs.viewDetails')}</Link>
                     </Button>
                   </div>
@@ -208,20 +221,25 @@ export default function HomePage({ params }: { params: { locale: string } }) {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 sm:py-32 bg-gradient-to-br from-primary/5 to-white">
+      <section className="bg-gradient-to-br from-primary/5 to-white py-24 sm:py-32">
         <div className="container">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-4xl font-bold tracking-tight sm:text-5xl text-foreground">
+            <h2 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
               {t('page.cta.title')}
             </h2>
-            <p className="mt-6 text-xl text-muted-foreground leading-relaxed">
+            <p className="mt-6 text-xl leading-relaxed text-muted-foreground">
               {t('page.cta.subtitle')}
             </p>
-            <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button size="lg" className="px-8 py-6 text-lg font-medium" asChild>
                 <Link href={`/${locale}/signup`}>{t('nav.signup')}</Link>
               </Button>
-              <Button size="lg" variant="outline" className="px-8 py-6 text-lg font-medium border-2" asChild>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-2 px-8 py-6 text-lg font-medium"
+                asChild
+              >
                 <Link href={`/${locale}/pricing`}>{t('nav.pricing')}</Link>
               </Button>
             </div>

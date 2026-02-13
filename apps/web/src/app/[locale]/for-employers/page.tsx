@@ -1,17 +1,19 @@
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
+import type { Metadata } from 'next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import {
-  Users,
-  Target,
-  Zap,
-  BarChart3,
-  Clock,
-  Shield,
-  CheckCircle,
-  ArrowRight
-} from 'lucide-react'
+import { Users, Target, Zap, BarChart3, Clock, Shield, CheckCircle, ArrowRight } from 'lucide-react'
+
+export async function generateMetadata({
+  params: { locale },
+}: {
+  params: { locale: string }
+}): Promise<Metadata> {
+  const t = await getTranslations({ locale, namespace: 'pageMetadata' })
+  return { title: t('forEmployers.title'), description: t('forEmployers.description') }
+}
 
 export default function ForEmployersPage({ params }: { params: { locale: string } }) {
   const t = useTranslations('forEmployers')
@@ -19,33 +21,33 @@ export default function ForEmployersPage({ params }: { params: { locale: string 
     {
       icon: Users,
       title: t('features.findCandidates.title'),
-      description: t('features.findCandidates.description')
+      description: t('features.findCandidates.description'),
     },
     {
       icon: Target,
       title: t('features.aiMatching.title'),
-      description: t('features.aiMatching.description')
+      description: t('features.aiMatching.description'),
     },
     {
       icon: Zap,
       title: t('features.fastRecruitment.title'),
-      description: t('features.fastRecruitment.description')
+      description: t('features.fastRecruitment.description'),
     },
     {
       icon: BarChart3,
       title: t('features.analytics.title'),
-      description: t('features.analytics.description')
+      description: t('features.analytics.description'),
     },
     {
       icon: Clock,
       title: t('features.saveTime.title'),
-      description: t('features.saveTime.description')
+      description: t('features.saveTime.description'),
     },
     {
       icon: Shield,
       title: t('features.secure.title'),
-      description: t('features.secure.description')
-    }
+      description: t('features.secure.description'),
+    },
   ]
 
   const benefits = [
@@ -56,41 +58,39 @@ export default function ForEmployersPage({ params }: { params: { locale: string 
     t('benefits.list.collaboration'),
     t('benefits.list.analytics'),
     t('benefits.list.integrations'),
-    t('benefits.list.support')
+    t('benefits.list.support'),
   ]
 
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary/10 via-white to-white py-20 px-4">
+      <section className="bg-gradient-to-br from-primary/10 via-white to-white px-4 py-20">
         <div className="container mx-auto max-w-6xl">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
-              <h1 className="text-5xl font-bold mb-6 text-foreground leading-tight">
+              <h1 className="mb-6 text-5xl font-bold leading-tight text-foreground">
                 {t('hero.title')}
               </h1>
-              <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
+              <p className="mb-8 text-xl leading-relaxed text-muted-foreground">
                 {t('hero.subtitle')}
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" className="text-lg px-8" asChild>
+              <div className="flex flex-col gap-4 sm:flex-row">
+                <Button size="lg" className="px-8 text-lg" asChild>
                   <Link href={`/${params.locale}/signup`}>
                     {t('hero.cta.start')}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
-                <Button size="lg" variant="outline" className="text-lg px-8" asChild>
-                  <Link href={`/${params.locale}/pricing`}>
-                    {t('hero.cta.pricing')}
-                  </Link>
+                <Button size="lg" variant="outline" className="px-8 text-lg" asChild>
+                  <Link href={`/${params.locale}/pricing`}>{t('hero.cta.pricing')}</Link>
                 </Button>
               </div>
             </div>
             <div className="hidden lg:block">
-              <div className="bg-white rounded-2xl shadow-2xl p-8 border">
+              <div className="rounded-2xl border bg-white p-8 shadow-2xl">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
                       <Users className="h-6 w-6 text-primary" />
                     </div>
                     <div>
@@ -99,7 +99,7 @@ export default function ForEmployersPage({ params }: { params: { locale: string 
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
                       <Target className="h-6 w-6 text-primary" />
                     </div>
                     <div>
@@ -108,7 +108,7 @@ export default function ForEmployersPage({ params }: { params: { locale: string 
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
                       <Zap className="h-6 w-6 text-primary" />
                     </div>
                     <div>
@@ -124,23 +124,24 @@ export default function ForEmployersPage({ params }: { params: { locale: string 
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4">
+      <section className="px-4 py-20">
         <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">{t('whyUs.title')}</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              {t('whyUs.subtitle')}
-            </p>
+          <div className="mb-16 text-center">
+            <h2 className="mb-4 text-4xl font-bold">{t('whyUs.title')}</h2>
+            <p className="mx-auto max-w-2xl text-xl text-muted-foreground">{t('whyUs.subtitle')}</p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, index) => (
-              <Card key={index} className="border-2 hover:border-primary/50 transition-all hover:shadow-lg">
+              <Card
+                key={index}
+                className="border-2 transition-all hover:border-primary/50 hover:shadow-lg"
+              >
                 <CardContent className="pt-6">
-                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                     <feature.icon className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+                  <h3 className="mb-2 text-xl font-semibold">{feature.title}</h3>
                   <p className="text-muted-foreground">{feature.description}</p>
                 </CardContent>
               </Card>
@@ -150,14 +151,12 @@ export default function ForEmployersPage({ params }: { params: { locale: string 
       </section>
 
       {/* Benefits Section */}
-      <section className="py-20 px-4 bg-muted/30">
+      <section className="bg-muted/30 px-4 py-20">
         <div className="container mx-auto max-w-6xl">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
-              <h2 className="text-4xl font-bold mb-6">{t('benefits.title')}</h2>
-              <p className="text-lg text-muted-foreground mb-8">
-                {t('benefits.subtitle')}
-              </p>
+              <h2 className="mb-6 text-4xl font-bold">{t('benefits.title')}</h2>
+              <p className="mb-8 text-lg text-muted-foreground">{t('benefits.subtitle')}</p>
               <div className="space-y-3">
                 {benefits.map((benefit, index) => (
                   <div key={index} className="flex items-center gap-3">
@@ -172,9 +171,9 @@ export default function ForEmployersPage({ params }: { params: { locale: string 
             <div className="space-y-6">
               <Card className="border-2">
                 <CardContent className="p-6">
-                  <h3 className="text-2xl font-bold mb-2">{t('plans.starter.name')}</h3>
-                  <p className="text-muted-foreground mb-4">{t('plans.starter.description')}</p>
-                  <p className="text-4xl font-bold mb-4">{t('plans.starter.price')}</p>
+                  <h3 className="mb-2 text-2xl font-bold">{t('plans.starter.name')}</h3>
+                  <p className="mb-4 text-muted-foreground">{t('plans.starter.description')}</p>
+                  <p className="mb-4 text-4xl font-bold">{t('plans.starter.price')}</p>
                   <Button className="w-full" variant="outline" asChild>
                     <Link href={`/${params.locale}/signup`}>{t('plans.starter.cta')}</Link>
                   </Button>
@@ -182,12 +181,15 @@ export default function ForEmployersPage({ params }: { params: { locale: string 
               </Card>
               <Card className="border-2 border-primary shadow-lg">
                 <CardContent className="p-6">
-                  <div className="bg-primary text-primary-foreground text-sm font-semibold px-3 py-1 rounded-full inline-block mb-2">
+                  <div className="mb-2 inline-block rounded-full bg-primary px-3 py-1 text-sm font-semibold text-primary-foreground">
                     {t('plans.pro.popular')}
                   </div>
-                  <h3 className="text-2xl font-bold mb-2">{t('plans.pro.name')}</h3>
-                  <p className="text-muted-foreground mb-4">{t('plans.pro.description')}</p>
-                  <p className="text-4xl font-bold mb-4">{t('plans.pro.price')}<span className="text-lg text-muted-foreground">{t('plans.pro.period')}</span></p>
+                  <h3 className="mb-2 text-2xl font-bold">{t('plans.pro.name')}</h3>
+                  <p className="mb-4 text-muted-foreground">{t('plans.pro.description')}</p>
+                  <p className="mb-4 text-4xl font-bold">
+                    {t('plans.pro.price')}
+                    <span className="text-lg text-muted-foreground">{t('plans.pro.period')}</span>
+                  </p>
                   <Button className="w-full" asChild>
                     <Link href={`/${params.locale}/signup`}>{t('plans.pro.cta')}</Link>
                   </Button>
@@ -199,23 +201,21 @@ export default function ForEmployersPage({ params }: { params: { locale: string 
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4">
+      <section className="px-4 py-20">
         <div className="container mx-auto max-w-4xl text-center">
-          <h2 className="text-4xl font-bold mb-6">{t('cta.title')}</h2>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+          <h2 className="mb-6 text-4xl font-bold">{t('cta.title')}</h2>
+          <p className="mx-auto mb-8 max-w-2xl text-xl text-muted-foreground">
             {t('cta.subtitle')}
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="text-lg px-8" asChild>
+          <div className="flex flex-col justify-center gap-4 sm:flex-row">
+            <Button size="lg" className="px-8 text-lg" asChild>
               <Link href={`/${params.locale}/signup`}>
                 {t('cta.create')}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button size="lg" variant="outline" className="text-lg px-8" asChild>
-              <Link href={`/${params.locale}/login`}>
-                {t('cta.login')}
-              </Link>
+            <Button size="lg" variant="outline" className="px-8 text-lg" asChild>
+              <Link href={`/${params.locale}/login`}>{t('cta.login')}</Link>
             </Button>
           </div>
         </div>

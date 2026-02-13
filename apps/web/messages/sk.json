@@ -677,5 +677,16 @@
     "description": "Stránka, ktorú hľadáte, neexistuje alebo bola presunutá.",
     "goHome": "Na domovskú stránku",
     "browseJobs": "Prehľadávať ponuky"
+  },
+  "pageMetadata": {
+    "home": { "title": "Nájdite svoju vysnívanú prácu s AI", "description": "AI job board a ATS platforma. Prehliadajte tisíce pracovných ponúk v celej Európe." },
+    "jobs": { "title": "Pracovné ponuky", "description": "Prehliadajte a vyhľadávajte pracovné príležitosti v celej Európe. Filtrujte podľa lokality, platu a ďalších kritérií." },
+    "login": { "title": "Prihlásenie", "description": "Prihláste sa do svojho JobSphere účtu." },
+    "signup": { "title": "Vytvorenie účtu", "description": "Zaregistrujte sa na JobSphere a začnite hľadať svoju vysnívanú prácu." },
+    "pricing": { "title": "Cenník", "description": "Vyberte si správny plán pre vaše náborové potreby." },
+    "forEmployers": { "title": "Pre zamestnávateľov", "description": "AI ATS systém na rýchlejšie nájdenie a prijatie najlepších kandidátov." },
+    "dashboard": { "title": "Dashboard", "description": "Spravujte svoje žiadosti o prácu a profil." },
+    "employer": { "title": "Dashboard zamestnávateľa", "description": "Spravujte pracovné pozície, kandidátov a nábor." },
+    "academy": { "title": "Kariérna akadémia", "description": "Kariérne tipy, príprava na pohovory a zručnosti hľadania práce." }
   }
 }

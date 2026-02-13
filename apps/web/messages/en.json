@@ -710,5 +710,16 @@
     "description": "The page you are looking for does not exist or has been moved.",
     "goHome": "Go to homepage",
     "browseJobs": "Browse jobs"
+  },
+  "pageMetadata": {
+    "home": { "title": "Find Your Dream Job with AI", "description": "AI-powered job board and ATS platform. Browse thousands of jobs across Europe." },
+    "jobs": { "title": "Job Listings", "description": "Browse and search job opportunities across Europe. Filter by location, salary, and more." },
+    "login": { "title": "Log In", "description": "Sign in to your JobSphere account." },
+    "signup": { "title": "Create Account", "description": "Sign up for JobSphere and start finding your dream job." },
+    "pricing": { "title": "Pricing Plans", "description": "Choose the right plan for your recruitment needs." },
+    "forEmployers": { "title": "For Employers", "description": "AI-powered ATS to find and hire the best candidates faster." },
+    "dashboard": { "title": "Dashboard", "description": "Manage your job applications and profile." },
+    "employer": { "title": "Employer Dashboard", "description": "Manage job postings, candidates, and recruitment." },
+    "academy": { "title": "Career Academy", "description": "Career tips, interview preparation, and job search skills." }
   }
 }
