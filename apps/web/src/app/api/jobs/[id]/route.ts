@@ -4,6 +4,23 @@ import { logger } from '@/lib/logger'
 import { errorResponse } from '@/lib/errors'
 import { withRateLimit } from '@/lib/rate-limit'
 import { requireAuth } from '@/lib/auth'
+import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
+
+const updateJobSchema = z.object({
+  title: z.string().min(3).max(200).optional(),
+  description: z.string().min(50).max(10000).optional(),
+  requirements: z.string().max(10000).optional().nullable(),
+  benefits: z.string().max(10000).optional().nullable(),
+  city: z.string().max(100).optional().nullable(),
+  salaryMin: z.number().int().min(0).optional().nullable(),
+  salaryMax: z.number().int().min(0).optional().nullable(),
+  salaryCurrency: z.string().max(10).optional(),
+  remote: z.boolean().optional(),
+  hybrid: z.boolean().optional(),
+  employmentType: z.string().optional(),
+  seniority: z.string().optional(),
+})
 
 export const GET = withRateLimit(
   async (req: Request, context?: { params?: Record<string, string> }) => {
@@ -20,7 +37,7 @@ export const GET = withRateLimit(
       const job = await prisma.job.findUnique({
         where: {
           id: params.id,
-          status: 'ACTIVE'
+          status: 'ACTIVE',
         },
         include: {
           organization: {
@@ -29,22 +46,19 @@ export const GET = withRateLimit(
               name: true,
               logo: true,
               description: true,
-              website: true
-            }
+              website: true,
+            },
           },
           _count: {
             select: {
-              applications: true
-            }
-          }
-        }
+              applications: true,
+            },
+          },
+        },
       })
 
       if (!job) {
-        return NextResponse.json(
-          { error: 'Job not found' },
-          { status: 404 }
-        )
+        return NextResponse.json({ error: 'Job not found' }, { status: 404 })
       }
 
       const duration = Date.now() - startTime
@@ -54,13 +68,10 @@ export const GET = withRateLimit(
     } catch (error) {
       logger.apiError('GET', `/api/jobs/[id]`, error)
       const errorData = errorResponse(error)
-      return NextResponse.json(
-        { error: errorData.error },
-        { status: errorData.statusCode }
-      )
+      return NextResponse.json({ error: errorData.error }, { status: errorData.statusCode })
     }
   },
-  { preset: 'public' } // 200 requests per minute
+  { preset: 'public' }, // 200 requests per minute
 )
 
 // Update job (for employers)
@@ -87,35 +98,23 @@ export const PUT = withRateLimit(
           organization: {
             include: {
               users: {
-                where: { userId: session.user.id }
-              }
-            }
-          }
-        }
+                where: { userId: session.user.id },
+              },
+            },
+          },
+        },
       })
 
       if (!job || job.organization.users.length === 0) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
 
-      // Update job
-      const data = await req.json()
+      // Validate and update job
+      const rawData = await req.json()
+      const data = updateJobSchema.parse(rawData)
       const updated = await prisma.job.update({
         where: { id: params.id },
-        data: {
-          title: data.title,
-          description: data.description,
-          requirements: data.requirements,
-          benefits: data.benefits,
-          city: data.city,
-          salaryMin: data.salaryMin,
-          salaryMax: data.salaryMax,
-          salaryCurrency: data.salaryCurrency,
-          remote: data.remote,
-          hybrid: data.hybrid,
-          employmentType: data.employmentType,
-          seniority: data.seniority,
-        }
+        data,
       })
 
       // Re-generate embedding if description changed
@@ -129,14 +128,24 @@ export const PUT = withRateLimit(
 
       logger.info('Job updated', { jobId: updated.id })
 
+      revalidatePath('/jobs')
+      revalidatePath('/employer')
+
       return NextResponse.json(updated)
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return NextResponse.json(
+          { error: 'Validation failed', issues: error.issues },
+          { status: 400 },
+        )
+      }
+
       logger.apiError('PUT', `/api/jobs/[id]`, error)
       const errorData = errorResponse(error)
       return NextResponse.json(errorData, { status: errorData.statusCode })
     }
   },
-  { preset: 'api', byUser: true }
+  { preset: 'api', byUser: true },
 )
 
 // PATCH is an alias for PUT (both allow updates)
@@ -166,11 +175,11 @@ export const DELETE = withRateLimit(
           organization: {
             include: {
               users: {
-                where: { userId: session.user.id }
-              }
-            }
-          }
-        }
+                where: { userId: session.user.id },
+              },
+            },
+          },
+        },
       })
 
       if (!job || job.organization.users.length === 0) {
@@ -181,11 +190,14 @@ export const DELETE = withRateLimit(
       const updated = await prisma.job.update({
         where: { id: params.id },
         data: {
-          status: 'CLOSED'
-        }
+          status: 'CLOSED',
+        },
       })
 
       logger.info('Job closed', { jobId: updated.id })
+
+      revalidatePath('/jobs')
+      revalidatePath('/employer')
 
       return NextResponse.json({ success: true })
     } catch (error) {
@@ -194,5 +206,5 @@ export const DELETE = withRateLimit(
       return NextResponse.json(errorData, { status: errorData.statusCode })
     }
   },
-  { preset: 'api', byUser: true }
+  { preset: 'api', byUser: true },
 )

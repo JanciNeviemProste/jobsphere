@@ -5,6 +5,7 @@ import { errorResponse } from '@/lib/errors'
 import { withRateLimit } from '@/lib/rate-limit'
 import { withCsrfProtection } from '@/lib/csrf'
 import { requireAuth } from '@/lib/auth'
+import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 // Define enums for job fields (as strings in database)
@@ -169,6 +170,9 @@ export const POST = withCsrfProtection(
         })
 
         logger.info('Job created', { jobId: job.id, organizationId })
+
+        revalidatePath('/jobs')
+        revalidatePath('/employer')
 
         return NextResponse.json(job, { status: 201 })
       } catch (error) {
