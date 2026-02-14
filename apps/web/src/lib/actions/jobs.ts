@@ -45,8 +45,8 @@ export async function createJob(formData: {
       hybrid: formData.workMode === 'HYBRID',
       salaryMin: formData.minSalary ? parseInt(formData.minSalary) : null,
       salaryMax: formData.maxSalary ? parseInt(formData.maxSalary) : null,
-      employmentType: formData.type as any,
-      seniority: formData.seniority as any,
+      employmentType: formData.type,
+      seniority: formData.seniority,
       description: formData.description,
       orgId: formData.orgId,
       status: 'PUBLISHED',
@@ -101,7 +101,7 @@ export async function updateJobStatus(jobId: string, status: string): Promise<Jo
 
   const updatedJob = await prisma.job.update({
     where: { id: jobId },
-    data: { status: status as any },
+    data: { status },
   })
 
   revalidatePath('/employer')

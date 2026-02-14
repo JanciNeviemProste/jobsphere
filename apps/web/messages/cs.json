@@ -105,7 +105,24 @@
       "loginLink": "Přihlásit se",
       "orContinueWith": "Nebo pokračovat s",
       "google": "Google",
-      "divider": "Nebo pokračovat s emailem"
+      "divider": "Nebo pokračovat s emailem",
+      "registerAs": "Registruji se jako",
+      "roleCandidate": "Uchazeč o práci",
+      "roleCandidateDesc": "Hledám pracovní příležitosti",
+      "roleEmployer": "Zaměstnavatel / Firma",
+      "roleEmployerDesc": "Zveřejňuji pracovní pozice a hledám kandidáty",
+      "companyName": "Název společnosti",
+      "passwordHint": "Musí mít alespoň 12 znaků",
+      "creating": "Vytváření účtu...",
+      "errors": {
+        "passwordMismatch": "Hesla se neshodují",
+        "acceptTerms": "Musíte souhlasit s podmínkami používání",
+        "passwordLength": "Heslo musí mít alespoň 12 znaků",
+        "companyRequired": "Název společnosti je povinný pro zaměstnavatele",
+        "createFailed": "Nepodařilo se vytvořit účet",
+        "signInFailed": "Účet byl vytvořen, ale přihlášení selhalo. Zkuste se přihlásit.",
+        "generic": "Došlo k chybě. Zkuste to znovu."
+      }
     }
   },
   "footer": {

@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { logger } from '@/lib/logger'
-import type { Application, ApplicationActivity } from '@prisma/client'
+import type { Application, ApplicationActivity, EmailStep } from '@prisma/client'
 
 export async function createApplication(formData: {
   jobId: string
@@ -94,7 +94,7 @@ export async function updateApplicationStatus(
   const updatedApplication = await prisma.application.update({
     where: { id: applicationId },
     data: {
-      stage: status as any,
+      stage: status,
       ...(notes && { notes: notes }),
     },
   })
@@ -147,11 +147,11 @@ export async function updateApplicationStatus(
           })
 
           // A/B Testing: Select variant for first step if multiple exist
-          const firstStepCandidates = sequence.steps.filter((s: any) => s.order === 1)
+          const firstStepCandidates = sequence.steps.filter((s: EmailStep) => s.order === 1)
           let selectedFirstStep = firstStepCandidates[0]
 
           if (firstStepCandidates.length > 1) {
-            const variants = firstStepCandidates.filter((s: any) => s.abGroup)
+            const variants = firstStepCandidates.filter((s: EmailStep) => s.abGroup)
 
             if (variants.length > 1) {
               // Random selection with equal distribution

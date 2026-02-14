@@ -105,7 +105,24 @@
       "loginLink": "Zaloguj się",
       "orContinueWith": "Lub kontynuuj z",
       "google": "Google",
-      "divider": "Lub kontynuuj z e-mailem"
+      "divider": "Lub kontynuuj z e-mailem",
+      "registerAs": "Rejestruję się jako",
+      "roleCandidate": "Kandydat / Osoba szukająca pracy",
+      "roleCandidateDesc": "Szukam możliwości zatrudnienia",
+      "roleEmployer": "Pracodawca / Firma",
+      "roleEmployerDesc": "Publikuję oferty pracy i szukam kandydatów",
+      "companyName": "Nazwa firmy",
+      "passwordHint": "Musi mieć co najmniej 12 znaków",
+      "creating": "Tworzenie konta...",
+      "errors": {
+        "passwordMismatch": "Hasła nie są zgodne",
+        "acceptTerms": "Musisz zaakceptować regulamin",
+        "passwordLength": "Hasło musi mieć co najmniej 12 znaków",
+        "companyRequired": "Nazwa firmy jest wymagana dla pracodawców",
+        "createFailed": "Nie udało się utworzyć konta",
+        "signInFailed": "Konto zostało utworzone, ale logowanie nie powiodło się. Spróbuj się zalogować.",
+        "generic": "Wystąpił błąd. Spróbuj ponownie."
+      }
     }
   },
   "footer": {

@@ -105,7 +105,24 @@
       "loginLink": "Anmelden",
       "orContinueWith": "Oder fortfahren mit",
       "google": "Google",
-      "divider": "Oder mit E-Mail fortfahren"
+      "divider": "Oder mit E-Mail fortfahren",
+      "registerAs": "Ich registriere mich als",
+      "roleCandidate": "Arbeitssuchender / Kandidat",
+      "roleCandidateDesc": "Auf der Suche nach Jobmöglichkeiten",
+      "roleEmployer": "Arbeitgeber / Unternehmen",
+      "roleEmployerDesc": "Stellen ausschreiben und Kandidaten einstellen",
+      "companyName": "Firmenname",
+      "passwordHint": "Muss mindestens 12 Zeichen lang sein",
+      "creating": "Konto wird erstellt...",
+      "errors": {
+        "passwordMismatch": "Passwörter stimmen nicht überein",
+        "acceptTerms": "Sie müssen die Nutzungsbedingungen akzeptieren",
+        "passwordLength": "Das Passwort muss mindestens 12 Zeichen lang sein",
+        "companyRequired": "Firmenname ist für Arbeitgeber erforderlich",
+        "createFailed": "Konto konnte nicht erstellt werden",
+        "signInFailed": "Konto erstellt, aber Anmeldung fehlgeschlagen. Bitte versuchen Sie sich anzumelden.",
+        "generic": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut."
+      }
     }
   },
   "footer": {

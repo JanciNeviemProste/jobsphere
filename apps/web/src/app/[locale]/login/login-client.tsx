@@ -5,6 +5,7 @@ import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,6 +18,11 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+})
 
 export default function LoginClient({ params }: { params: { locale: string } }) {
   const t = useTranslations('auth.login')
@@ -31,6 +37,13 @@ export default function LoginClient({ params }: { params: { locale: string } }) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    const result = loginSchema.safeParse({ email, password })
+    if (!result.success) {
+      setError(t('invalidCredentials'))
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -41,7 +54,7 @@ export default function LoginClient({ params }: { params: { locale: string } }) 
       })
 
       if (result?.error) {
-        setError(t('invalidCredentials') || 'Invalid email or password')
+        setError(t('invalidCredentials'))
       } else {
         // Get session to determine redirect based on role
         const session = await getSession()
@@ -55,7 +68,7 @@ export default function LoginClient({ params }: { params: { locale: string } }) 
         router.refresh()
       }
     } catch (error) {
-      setError(t('error') || 'An error occurred. Please try again.')
+      setError(t('error'))
     } finally {
       setLoading(false)
     }
@@ -162,7 +175,7 @@ export default function LoginClient({ params }: { params: { locale: string } }) 
             )}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? t('signingIn') || 'Signing in...' : t('submit')}
+              {loading ? t('signingIn') : t('submit')}
             </Button>
           </form>
         </CardContent>

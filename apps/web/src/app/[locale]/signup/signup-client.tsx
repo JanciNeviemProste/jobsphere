@@ -5,6 +5,7 @@ import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -18,6 +19,23 @@ import {
 } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+
+const signupSchema = z
+  .object({
+    name: z.string().min(1),
+    email: z.string().email(),
+    password: z.string().min(12),
+    confirmPassword: z.string(),
+    role: z.enum(['candidate', 'employer']),
+    companyName: z.string().optional(),
+    acceptTerms: z.literal(true),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ['confirmPassword'],
+  })
+  .refine((data) => data.role !== 'employer' || (data.companyName && data.companyName.length > 0), {
+    path: ['companyName'],
+  })
 
 export default function SignupClient({ params }: { params: { locale: string } }) {
   const t = useTranslations('auth.signup')
@@ -37,23 +55,37 @@ export default function SignupClient({ params }: { params: { locale: string } })
     e.preventDefault()
     setError('')
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match')
-      return
-    }
+    const result = signupSchema.safeParse({
+      name,
+      email,
+      password,
+      confirmPassword,
+      role,
+      companyName: role === 'employer' ? companyName : undefined,
+      acceptTerms,
+    })
 
-    if (!acceptTerms) {
-      setError('You must accept the terms and conditions')
-      return
-    }
+    if (!result.success) {
+      const fieldErrors = result.error.flatten().fieldErrors
+      const formErrors = result.error.flatten().formErrors
 
-    if (password.length < 12) {
-      setError('Password must be at least 12 characters long')
-      return
-    }
-
-    if (role === 'employer' && !companyName.trim()) {
-      setError('Company name is required for employers')
+      if (fieldErrors.acceptTerms) {
+        setError(t('errors.acceptTerms'))
+        return
+      }
+      if (fieldErrors.password) {
+        setError(t('errors.passwordLength'))
+        return
+      }
+      if (fieldErrors.confirmPassword || formErrors.length > 0) {
+        setError(t('errors.passwordMismatch'))
+        return
+      }
+      if (fieldErrors.companyName) {
+        setError(t('errors.companyRequired'))
+        return
+      }
+      setError(t('errors.generic'))
       return
     }
 
@@ -75,18 +107,18 @@ export default function SignupClient({ params }: { params: { locale: string } })
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Failed to create account')
+        throw new Error(data.error || t('errors.createFailed'))
       }
 
       // Auto sign in after successful registration
-      const result = await signIn('credentials', {
+      const signInResult = await signIn('credentials', {
         email,
         password,
         redirect: false,
       })
 
-      if (result?.error) {
-        setError('Account created but failed to sign in. Please try logging in.')
+      if (signInResult?.error) {
+        setError(t('errors.signInFailed'))
       } else {
         // Get session to determine redirect based on role
         const session = await getSession()
@@ -99,8 +131,12 @@ export default function SignupClient({ params }: { params: { locale: string } })
         }
         router.refresh()
       }
-    } catch (error: any) {
-      setError(error.message || 'An error occurred. Please try again.')
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message || t('errors.generic'))
+      } else {
+        setError(t('errors.generic'))
+      }
     } finally {
       setLoading(false)
     }
@@ -157,7 +193,7 @@ export default function SignupClient({ params }: { params: { locale: string } })
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-3">
-              <Label>I am registering as</Label>
+              <Label>{t('registerAs')}</Label>
               <RadioGroup
                 value={role}
                 onValueChange={(value: string) => setRole(value as 'candidate' | 'employer')}
@@ -166,15 +202,15 @@ export default function SignupClient({ params }: { params: { locale: string } })
                 <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50">
                   <RadioGroupItem value="candidate" id="candidate" />
                   <Label htmlFor="candidate" className="flex-1 cursor-pointer font-normal">
-                    <div className="font-semibold">Job Seeker / Candidate</div>
-                    <p className="text-xs text-muted-foreground">Looking for job opportunities</p>
+                    <div className="font-semibold">{t('roleCandidate')}</div>
+                    <p className="text-xs text-muted-foreground">{t('roleCandidateDesc')}</p>
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50">
                   <RadioGroupItem value="employer" id="employer" />
                   <Label htmlFor="employer" className="flex-1 cursor-pointer font-normal">
-                    <div className="font-semibold">Employer / Company</div>
-                    <p className="text-xs text-muted-foreground">Post jobs and hire candidates</p>
+                    <div className="font-semibold">{t('roleEmployer')}</div>
+                    <p className="text-xs text-muted-foreground">{t('roleEmployerDesc')}</p>
                   </Label>
                 </div>
               </RadioGroup>
@@ -195,7 +231,7 @@ export default function SignupClient({ params }: { params: { locale: string } })
 
             {role === 'employer' && (
               <div className="space-y-2">
-                <Label htmlFor="companyName">Company Name</Label>
+                <Label htmlFor="companyName">{t('companyName')}</Label>
                 <Input
                   id="companyName"
                   type="text"
@@ -230,9 +266,9 @@ export default function SignupClient({ params }: { params: { locale: string } })
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
-                minLength={8}
+                minLength={12}
               />
-              <p className="text-xs text-muted-foreground">Must be at least 8 characters long</p>
+              <p className="text-xs text-muted-foreground">{t('passwordHint')}</p>
             </div>
 
             <div className="space-y-2">
@@ -268,7 +304,7 @@ export default function SignupClient({ params }: { params: { locale: string } })
             )}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating account...' : t('submit')}
+              {loading ? t('creating') : t('submit')}
             </Button>
           </form>
         </CardContent>

@@ -180,7 +180,24 @@
       "loginLink": "Sign in",
       "orContinueWith": "Or continue with",
       "google": "Google",
-      "divider": "Or continue with email"
+      "divider": "Or continue with email",
+      "registerAs": "I am registering as",
+      "roleCandidate": "Job Seeker / Candidate",
+      "roleCandidateDesc": "Looking for job opportunities",
+      "roleEmployer": "Employer / Company",
+      "roleEmployerDesc": "Post jobs and hire candidates",
+      "companyName": "Company Name",
+      "passwordHint": "Must be at least 12 characters long",
+      "creating": "Creating account...",
+      "errors": {
+        "passwordMismatch": "Passwords do not match",
+        "acceptTerms": "You must accept the terms and conditions",
+        "passwordLength": "Password must be at least 12 characters long",
+        "companyRequired": "Company name is required for employers",
+        "createFailed": "Failed to create account",
+        "signInFailed": "Account created but failed to sign in. Please try logging in.",
+        "generic": "An error occurred. Please try again."
+      }
     }
   },
   "footer": {
