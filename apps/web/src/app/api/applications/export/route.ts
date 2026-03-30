@@ -5,6 +5,8 @@ import { logger } from '@/lib/logger'
 import { errorResponse } from '@/lib/errors'
 import { withRateLimit } from '@/lib/rate-limit'
 
+export const runtime = 'nodejs'
+
 export const GET = withRateLimit(
   async (req: Request) => {
     try {
@@ -12,10 +14,7 @@ export const GET = withRateLimit(
 
       const session = await auth()
       if (!session?.user?.id) {
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        )
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
 
       // Get user's organization
@@ -25,10 +24,7 @@ export const GET = withRateLimit(
       })
 
       if (!membership) {
-        return NextResponse.json(
-          { error: 'No organization found' },
-          { status: 403 }
-        )
+        return NextResponse.json({ error: 'No organization found' }, { status: 403 })
       }
 
       // Get all applications for organization
@@ -95,10 +91,7 @@ export const GET = withRateLimit(
         })
       })
 
-      const csv = [
-        csvHeaders.join(','),
-        ...csvRows.map((row) => row.join(',')),
-      ].join('\n')
+      const csv = [csvHeaders.join(','), ...csvRows.map((row) => row.join(','))].join('\n')
 
       logger.info('CSV export generated', {
         userId: session.user.id,
@@ -117,11 +110,8 @@ export const GET = withRateLimit(
     } catch (error) {
       logger.apiError('GET', '/api/applications/export', error)
       const errorData = errorResponse(error)
-      return NextResponse.json(
-        { error: errorData.error },
-        { status: errorData.statusCode }
-      )
+      return NextResponse.json({ error: errorData.error }, { status: errorData.statusCode })
     }
   },
-  { preset: 'api', byUser: true }
+  { preset: 'api', byUser: true },
 )

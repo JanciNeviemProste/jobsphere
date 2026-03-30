@@ -4,12 +4,12 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748)](https://www.prisma.io/)
 [![Claude AI](https://img.shields.io/badge/Claude-Opus%204-orange)](https://www.anthropic.com/)
-[![Security](https://img.shields.io/badge/Security-A+-green)](docs/SECURITY_IMPLEMENTATION.md)
-[![Test Coverage](https://img.shields.io/badge/Coverage-80%25-brightgreen)](apps/web/coverage)
+[![Security](https://img.shields.io/badge/Security-B+-yellow)](docs/SECURITY_IMPLEMENTATION.md)
+[![Test Coverage](https://img.shields.io/badge/Coverage-improving-yellow)](apps/web/coverage)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 **Live Demo:** [https://jobsphere-khaki.vercel.app](https://jobsphere-khaki.vercel.app)
-**Security Rating:** 8.5/10 | **Production Ready** ✅
+**Security Rating:** 7.5/10 | **Beta** 🚧
 
 ## 🚀 Overview
 

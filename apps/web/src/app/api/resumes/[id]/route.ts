@@ -5,9 +5,11 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { withRateLimit } from '@/lib/rate-limit'
+
+export const runtime = 'nodejs'
 
 export const GET = withRateLimit(
   async (req: Request, context?: { params?: Record<string, string> }) => {

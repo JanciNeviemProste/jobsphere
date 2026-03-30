@@ -6,6 +6,8 @@ import { z } from 'zod'
 import { validateRequest, strongPasswordSchema } from '@/lib/validation'
 import { logger } from '@/lib/logger'
 
+export const runtime = 'nodejs'
+
 const signupSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),

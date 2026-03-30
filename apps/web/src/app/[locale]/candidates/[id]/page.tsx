@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
@@ -8,6 +9,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: 'Candidate Profile | JobSphere',
+    description: 'View candidate profile, resume, and match scores.',
+  }
+}
 
 export default async function CandidateProfilePage({
   params,

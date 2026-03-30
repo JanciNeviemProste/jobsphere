@@ -8,6 +8,8 @@ import * as z from 'zod'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 
+export const runtime = 'nodejs'
+
 const resetPasswordSchema = z.object({
   token: z.string(),
   password: strongPasswordSchema,
@@ -82,7 +84,7 @@ export const POST = withRateLimit(
               <p>Your password has been successfully changed.</p>
               <p>If you didn't make this change, please contact our support team immediately.</p>
               <p style="margin: 30px 0;">
-                <a href="${process.env.NEXT_PUBLIC_URL}/login" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                   Sign In
                 </a>
               </p>
@@ -101,7 +103,7 @@ export const POST = withRateLimit(
 
             If you didn't make this change, please contact our support team immediately.
 
-            Sign in at: ${process.env.NEXT_PUBLIC_URL}/login
+            Sign in at: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login
           `,
         })
       } catch (emailError) {
@@ -126,5 +128,5 @@ export const POST = withRateLimit(
       return NextResponse.json({ error: errorData.error }, { status: errorData.statusCode })
     }
   },
-  { preset: 'auth' }, // More restrictive rate limiting for auth endpoints
+  { preset: 'strict' }, // Strict rate limiting for sensitive password reset
 )

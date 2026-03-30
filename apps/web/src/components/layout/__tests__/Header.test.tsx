@@ -35,6 +35,13 @@ vi.mock('next/link', () => ({
   ),
 }))
 
+// Mock next-auth/react
+vi.mock('next-auth/react', () => ({
+  useSession: () => ({ data: null, status: 'unauthenticated' }),
+  signIn: vi.fn(),
+  signOut: vi.fn(),
+}))
+
 // Mock LanguageSwitcher
 vi.mock('../language-switcher', () => ({
   LanguageSwitcher: () => <div data-testid="language-switcher">Language Switcher</div>,
@@ -58,10 +65,8 @@ describe('Header', () => {
   it('should render header with logo', () => {
     render(<Header />)
 
-    const job = screen.getByText('Job')
-    const sphere = screen.getByText('Sphere')
-    expect(job).toBeInTheDocument()
-    expect(sphere).toBeInTheDocument()
+    const logoLink = screen.getByRole('link', { name: /JobSphere home/i })
+    expect(logoLink).toBeInTheDocument()
   })
 
   it('should have proper ARIA attributes', () => {

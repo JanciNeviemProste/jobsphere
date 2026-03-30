@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getTranslations } from 'next-intl/server'
+import type { Metadata } from 'next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,28 +20,35 @@ async function getSavedJobs(userId: string) {
             select: {
               id: true,
               name: true,
-              logo: true
-            }
+              logo: true,
+            },
           },
           _count: {
             select: {
-              applications: true
-            }
-          }
-        }
-      }
+              applications: true,
+            },
+          },
+        },
+      },
     },
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: 'desc' },
   })
 
   return savedJobs
 }
 
-export default async function SavedJobsPage({
-  params
+export async function generateMetadata({
+  params: { locale },
 }: {
   params: { locale: string }
-}) {
+}): Promise<Metadata> {
+  return {
+    title: 'Saved Jobs | JobSphere',
+    description: 'View and manage your saved job listings.',
+  }
+}
+
+export default async function SavedJobsPage({ params }: { params: { locale: string } }) {
   const session = await auth()
 
   if (!session?.user?.id) {
@@ -50,7 +58,7 @@ export default async function SavedJobsPage({
   const t = await getTranslations()
   const savedJobs = await getSavedJobs(session.user.id)
 
-  const getWorkModeLabel = (job: typeof savedJobs[number]['job']) => {
+  const getWorkModeLabel = (job: (typeof savedJobs)[number]['job']) => {
     if (job.remote) return 'Remote'
     if (job.hybrid) return 'Hybrid'
     return 'On-site'
@@ -58,12 +66,18 @@ export default async function SavedJobsPage({
 
   const getJobTypeLabel = (type: string) => {
     switch (type) {
-      case 'FULL_TIME': return 'Full-time'
-      case 'PART_TIME': return 'Part-time'
-      case 'CONTRACT': return 'Contract'
-      case 'TEMPORARY': return 'Temporary'
-      case 'INTERNSHIP': return 'Internship'
-      default: return type
+      case 'FULL_TIME':
+        return 'Full-time'
+      case 'PART_TIME':
+        return 'Part-time'
+      case 'CONTRACT':
+        return 'Contract'
+      case 'TEMPORARY':
+        return 'Temporary'
+      case 'INTERNSHIP':
+        return 'Internship'
+      default:
+        return type
     }
   }
 
@@ -81,12 +95,17 @@ export default async function SavedJobsPage({
 
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <Heart className="h-6 w-6 text-primary fill-primary" />
+              <Heart className="h-6 w-6 fill-primary text-primary" />
             </div>
             <div>
               <h1 className="text-3xl font-bold">Uložené práce</h1>
               <p className="text-muted-foreground">
-                {savedJobs.length} {savedJobs.length === 1 ? 'práca uložená' : savedJobs.length < 5 ? 'práce uložené' : 'prác uložených'}
+                {savedJobs.length}{' '}
+                {savedJobs.length === 1
+                  ? 'práca uložená'
+                  : savedJobs.length < 5
+                    ? 'práce uložené'
+                    : 'prác uložených'}
               </p>
             </div>
           </div>
@@ -96,10 +115,11 @@ export default async function SavedJobsPage({
         {savedJobs.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
-              <Heart className="h-16 w-16 text-muted-foreground/30 mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Žiadne uložené práce</h3>
-              <p className="text-muted-foreground text-center max-w-md mb-6">
-                Keď nájdete zaujímavú prácu, kliknite na srdce a uložte si ju sem pre neskoršie prehliadanie.
+              <Heart className="mb-4 h-16 w-16 text-muted-foreground/30" />
+              <h3 className="mb-2 text-xl font-semibold">Žiadne uložené práce</h3>
+              <p className="mb-6 max-w-md text-center text-muted-foreground">
+                Keď nájdete zaujímavú prácu, kliknite na srdce a uložte si ju sem pre neskoršie
+                prehliadanie.
               </p>
               <Button asChild>
                 <Link href={`/${params.locale}/jobs`}>
@@ -112,7 +132,7 @@ export default async function SavedJobsPage({
         ) : (
           <div className="grid gap-4">
             {savedJobs.map(({ job, createdAt }) => (
-              <Card key={job.id} className="hover:shadow-md transition-shadow">
+              <Card key={job.id} className="transition-shadow hover:shadow-md">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-4">
                     {/* Company Logo */}
@@ -123,13 +143,13 @@ export default async function SavedJobsPage({
                         className="h-14 w-14 rounded-lg object-cover"
                       />
                     ) : (
-                      <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-muted">
                         <Building2 className="h-7 w-7 text-muted-foreground" />
                       </div>
                     )}
 
                     {/* Job Info */}
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <Link
@@ -151,7 +171,7 @@ export default async function SavedJobsPage({
                       </div>
 
                       {/* Job Details */}
-                      <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-muted-foreground">
+                      <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <MapPin className="h-4 w-4" />
                           <span>{job.city || 'Remote'}</span>
@@ -163,8 +183,8 @@ export default async function SavedJobsPage({
                               {job.salaryMin && job.salaryMax
                                 ? `€${job.salaryMin.toLocaleString()} - €${job.salaryMax.toLocaleString()}`
                                 : job.salaryMin
-                                ? `€${job.salaryMin.toLocaleString()}+`
-                                : `Do €${job.salaryMax?.toLocaleString()}`}
+                                  ? `€${job.salaryMin.toLocaleString()}+`
+                                  : `Do €${job.salaryMax?.toLocaleString()}`}
                             </span>
                           </div>
                         )}
@@ -173,7 +193,7 @@ export default async function SavedJobsPage({
                       </div>
 
                       {/* Badges */}
-                      <div className="flex flex-wrap gap-2 mt-3">
+                      <div className="mt-3 flex flex-wrap gap-2">
                         {job.seniority && <Badge variant="secondary">{job.seniority}</Badge>}
                         <Badge variant="outline">{getWorkModeLabel(job)}</Badge>
                         <Badge variant="outline">{getJobTypeLabel(job.employmentType)}</Badge>
@@ -185,16 +205,12 @@ export default async function SavedJobsPage({
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-3 mt-4 pt-4 border-t">
+                  <div className="mt-4 flex gap-3 border-t pt-4">
                     <Button asChild className="flex-1">
-                      <Link href={`/${params.locale}/jobs/${job.id}/apply`}>
-                        Prihlásiť sa
-                      </Link>
+                      <Link href={`/${params.locale}/jobs/${job.id}/apply`}>Prihlásiť sa</Link>
                     </Button>
                     <Button variant="outline" asChild className="flex-1">
-                      <Link href={`/${params.locale}/jobs/${job.id}`}>
-                        Zobraziť detail
-                      </Link>
+                      <Link href={`/${params.locale}/jobs/${job.id}`}>Zobraziť detail</Link>
                     </Button>
                   </div>
                 </CardContent>

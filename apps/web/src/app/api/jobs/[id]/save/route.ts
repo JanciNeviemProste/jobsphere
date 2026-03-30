@@ -5,6 +5,8 @@ import { errorResponse } from '@/lib/errors'
 import { withRateLimit } from '@/lib/rate-limit'
 import { auth } from '@/lib/auth'
 
+export const runtime = 'nodejs'
+
 // Save or unsave a job (toggle)
 export const POST = withRateLimit(
   async (req: Request, context?: { params?: Record<string, string> }) => {
@@ -25,8 +27,8 @@ export const POST = withRateLimit(
       const job = await prisma.job.findUnique({
         where: {
           id: params.id,
-          status: 'ACTIVE'
-        }
+          status: 'PUBLISHED',
+        },
       })
 
       if (!job) {
@@ -38,15 +40,15 @@ export const POST = withRateLimit(
         where: {
           userId_jobId: {
             userId: session.user.id,
-            jobId: params.id
-          }
-        }
+            jobId: params.id,
+          },
+        },
       })
 
       if (existingSave) {
         // Unsave the job
         await prisma.savedJob.delete({
-          where: { id: existingSave.id }
+          where: { id: existingSave.id },
         })
 
         logger.info('Job unsaved', { jobId: params.id, userId: session.user.id })
@@ -56,8 +58,8 @@ export const POST = withRateLimit(
         await prisma.savedJob.create({
           data: {
             jobId: params.id,
-            userId: session.user.id
-          }
+            userId: session.user.id,
+          },
         })
 
         logger.info('Job saved', { jobId: params.id, userId: session.user.id })
@@ -66,13 +68,10 @@ export const POST = withRateLimit(
     } catch (error) {
       logger.apiError('POST', `/api/jobs/[id]/save`, error)
       const errorData = errorResponse(error)
-      return NextResponse.json(
-        { error: errorData.error },
-        { status: errorData.statusCode }
-      )
+      return NextResponse.json({ error: errorData.error }, { status: errorData.statusCode })
     }
   },
-  { preset: 'api', byUser: true }
+  { preset: 'api', byUser: true },
 )
 
 // Check if job is saved
@@ -93,9 +92,9 @@ export const GET = withRateLimit(
         where: {
           userId_jobId: {
             userId: session.user.id,
-            jobId: params.id
-          }
-        }
+            jobId: params.id,
+          },
+        },
       })
 
       return NextResponse.json({ saved: !!savedJob })
@@ -104,5 +103,5 @@ export const GET = withRateLimit(
       return NextResponse.json({ saved: false })
     }
   },
-  { preset: 'public' }
+  { preset: 'public' },
 )

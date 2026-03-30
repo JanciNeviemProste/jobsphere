@@ -6,6 +6,7 @@ import { Heart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { showToast } from '@/components/ui/use-toast'
 import { logger } from '@/lib/logger'
+import { useTranslations } from 'next-intl'
 
 interface SaveJobButtonProps {
   jobId: string
@@ -22,6 +23,7 @@ export function SaveJobButton({
   showLabel = false,
   className,
 }: SaveJobButtonProps) {
+  const t = useTranslations('jobs')
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
   const [initialLoad, setInitialLoad] = useState(true)
@@ -54,8 +56,8 @@ export function SaveJobButton({
 
       if (response.status === 401) {
         showToast({
-          title: 'Prihlásenie vyžadované',
-          description: 'Pre uloženie práce sa musíte prihlásiť.',
+          title: t('loginRequired'),
+          description: t('loginRequiredDescription'),
           variant: 'destructive',
         })
         return
@@ -65,15 +67,13 @@ export function SaveJobButton({
       setSaved(data.saved)
 
       showToast({
-        title: data.saved ? 'Práca uložená' : 'Práca odstránená',
-        description: data.saved
-          ? 'Práca bola pridaná do obľúbených.'
-          : 'Práca bola odstránená z obľúbených.',
+        title: data.saved ? t('saved') : t('removed'),
+        description: data.saved ? t('savedDescription') : t('removedDescription'),
       })
     } catch (error) {
       showToast({
-        title: 'Chyba',
-        description: 'Nepodarilo sa uložiť prácu. Skúste to znova.',
+        title: t('error'),
+        description: t('saveError'),
         variant: 'destructive',
       })
     } finally {
@@ -88,10 +88,10 @@ export function SaveJobButton({
       onClick={handleToggleSave}
       disabled={loading || initialLoad}
       className={cn(className)}
-      aria-label={saved ? 'Odstrániť z obľúbených' : 'Pridať do obľúbených'}
+      aria-label={saved ? t('removeFromSaved') : t('addToSaved')}
     >
       <Heart className={cn('h-4 w-4', showLabel && 'mr-2', saved && 'fill-red-500 text-red-500')} />
-      {showLabel && (saved ? 'Uložené' : 'Uložiť')}
+      {showLabel && (saved ? t('saved') : t('save'))}
     </Button>
   )
 }

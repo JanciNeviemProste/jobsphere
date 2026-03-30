@@ -45,6 +45,7 @@ export interface ApplicationSearchParams {
   jobId?: string
   candidateId?: string
   stage?: ApplicationStage
+  status?: ApplicationStage // alias for stage
   search?: string
   limit?: number
   offset?: number
@@ -158,6 +159,7 @@ export class ApplicationService {
         data: {
           ...(input.stage && { stage: input.stage }),
           ...(input.tags && { tags: input.tags }),
+          ...(input.notes !== undefined && { notes: input.notes }),
         },
         include: {
           candidate: {
@@ -193,6 +195,10 @@ export class ApplicationService {
   /**
    * Bulk update application statuses
    */
+  static async bulkUpdateStatus(applicationIds: string[], stage: ApplicationStage, userId: string) {
+    return ApplicationService.bulkUpdateStage(applicationIds, stage, userId)
+  }
+
   static async bulkUpdateStage(
     applicationIds: string[],
     stage: ApplicationStage,
@@ -241,12 +247,13 @@ export class ApplicationService {
    * Search applications
    */
   static async searchApplications(params: ApplicationSearchParams) {
-    const { jobId, candidateId, stage, search, limit = 50, offset = 0 } = params
+    const { jobId, candidateId, stage, status, search, limit = 50, offset = 0 } = params
+    const effectiveStage = stage || status
 
     const where: Prisma.ApplicationWhereInput = {
       ...(jobId && { jobId }),
       ...(candidateId && { candidateId }),
-      ...(stage && { stage }),
+      ...(effectiveStage && { stage: effectiveStage }),
       ...(search && {
         OR: [
           {

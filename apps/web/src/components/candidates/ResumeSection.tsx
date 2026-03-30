@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { FileText, Briefcase, GraduationCap, Code, User } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 interface ResumeSection {
   id: string
@@ -24,13 +25,15 @@ interface ResumeSectionProps {
 }
 
 export function ResumeSection({ resume }: ResumeSectionProps) {
+  const t = useTranslations('resume')
+
   if (!resume) {
     return (
       <Card>
         <CardContent className="p-6">
           <div className="text-center text-muted-foreground">
             <FileText className="mx-auto mb-3 h-12 w-12 opacity-50" />
-            <p>No resume available</p>
+            <p>{t('noResume')}</p>
           </div>
         </CardContent>
       </Card>
@@ -58,23 +61,23 @@ export function ResumeSection({ resume }: ResumeSectionProps) {
   const getSectionTitle = (kind: string) => {
     switch (kind.toUpperCase()) {
       case 'SUMMARY':
-        return 'Professional Summary'
+        return t('professionalSummary')
       case 'OBJECTIVE':
-        return 'Career Objective'
+        return t('careerObjective')
       case 'EXPERIENCE':
       case 'WORK_EXPERIENCE':
-        return 'Work Experience'
+        return t('workExperience')
       case 'EDUCATION':
-        return 'Education'
+        return t('education')
       case 'SKILLS':
       case 'TECHNICAL_SKILLS':
-        return 'Skills'
+        return t('skills')
       case 'CERTIFICATIONS':
-        return 'Certifications'
+        return t('certifications')
       case 'PROJECTS':
-        return 'Projects'
+        return t('projects')
       case 'AWARDS':
-        return 'Awards & Achievements'
+        return t('awards')
       default:
         return kind.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
     }
@@ -88,7 +91,7 @@ export function ResumeSection({ resume }: ResumeSectionProps) {
       <div className="flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-2xl font-bold">
           <FileText className="h-6 w-6 text-primary" />
-          Resume Details
+          {t('details')}
         </h2>
       </div>
 
@@ -98,7 +101,7 @@ export function ResumeSection({ resume }: ResumeSectionProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Code className="h-5 w-5 text-primary" />
-              Skills
+              {t('skills')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -129,10 +132,9 @@ export function ResumeSection({ resume }: ResumeSectionProps) {
                 <p className="mb-2 text-sm text-muted-foreground">{section.organization}</p>
               )}
               {section.text && (
-                <div
-                  className="prose prose-sm dark:prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{ __html: section.text }}
-                />
+                <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
+                  {section.text}
+                </div>
               )}
             </CardContent>
           </Card>
@@ -140,7 +142,7 @@ export function ResumeSection({ resume }: ResumeSectionProps) {
       ) : (
         <Card>
           <CardContent className="p-6 text-center text-muted-foreground">
-            <p>No resume sections parsed</p>
+            <p>{t('noSections')}</p>
           </CardContent>
         </Card>
       )}

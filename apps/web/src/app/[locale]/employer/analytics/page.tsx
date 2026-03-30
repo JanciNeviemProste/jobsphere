@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
@@ -36,6 +37,13 @@ const ApplicationsTrend = dynamic(
     })),
   { loading: ChartLoading },
 )
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: 'Analytics Dashboard | JobSphere',
+    description: 'View recruitment analytics, application trends, and hiring metrics.',
+  }
+}
 
 export default async function AnalyticsPage() {
   const session = await auth()

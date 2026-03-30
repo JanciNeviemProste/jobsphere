@@ -5,9 +5,11 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { encrypt } from '@/lib/encryption'
 import { logger } from '@/lib/logger'
+
+export const runtime = 'nodejs'
 
 const MICROSOFT_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
 const MICROSOFT_GRAPH_URL = 'https://graph.microsoft.com/v1.0'

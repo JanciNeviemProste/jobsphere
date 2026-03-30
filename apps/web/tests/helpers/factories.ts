@@ -80,7 +80,7 @@ export const createMockJob = (overrides = {}) => ({
   workMode: 'HYBRID' as const,
   type: 'FULL_TIME' as const,
   seniority: 'MEDIOR' as const,
-  status: 'ACTIVE' as const,
+  status: 'PUBLISHED' as const,
   orgId: faker.string.uuid(),
   createdAt: new Date(),
   updatedAt: new Date(),

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
@@ -6,6 +7,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: 'Assessment Results | JobSphere',
+    description: 'View and analyze candidate assessment results and scores.',
+  }
+}
 
 export default async function AssessmentResultsPage({ params }: { params: { id: string } }) {
   const session = await auth()

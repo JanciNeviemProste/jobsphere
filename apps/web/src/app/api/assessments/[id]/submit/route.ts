@@ -5,11 +5,13 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { addAssessmentGradingJob } from '@/lib/queue'
 import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
+
+export const runtime = 'nodejs'
 
 export const POST = withCsrfProtection<NextRequest>(
   withRateLimit<NextRequest>(
@@ -44,10 +46,11 @@ export const POST = withCsrfProtection<NextRequest>(
           return NextResponse.json({ error: 'Assessment not found' }, { status: 404 })
         }
 
-        // Find assessment invite for this assessment
+        // Find assessment invite for this assessment linked to the authenticated user
         const invite = await prisma.assessmentInvite.findFirst({
           where: {
             assessmentId: params.id,
+            candidateId: session.user.id,
           },
           select: {
             id: true,

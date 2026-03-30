@@ -5,6 +5,8 @@ import { withCsrfProtection } from '@/lib/csrf'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 
+export const runtime = 'nodejs'
+
 const updateRoleSchema = z.object({
   role: z.enum(['ORG_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'AGENCY']),
 })

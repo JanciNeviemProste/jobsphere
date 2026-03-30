@@ -7,6 +7,8 @@ import * as z from 'zod'
 import crypto from 'crypto'
 import { sendEmail } from '@/lib/email'
 
+export const runtime = 'nodejs'
+
 const forgotPasswordSchema = z.object({
   email: z.string().email(),
 })
@@ -59,11 +61,9 @@ export const POST = withRateLimit(
         },
       })
 
-      // Get the app URL from environment or request
-      const { headers } = req
-      const host = headers.get('host') || 'localhost:3000'
-      const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
-      const resetUrl = `${protocol}://${host}/en/reset-password?token=${resetToken}`
+      // Use NEXT_PUBLIC_APP_URL to prevent Host header injection attacks
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      const resetUrl = `${appUrl}/en/reset-password?token=${resetToken}`
 
       // Send email with reset link
       try {
@@ -125,5 +125,5 @@ export const POST = withRateLimit(
       return NextResponse.json({ error: errorData.error }, { status: errorData.statusCode })
     }
   },
-  { preset: 'auth' }, // More restrictive rate limiting for auth endpoints
+  { preset: 'strict' }, // 10 requests per 15 minutes - prevents email spam abuse
 )

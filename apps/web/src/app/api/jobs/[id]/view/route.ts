@@ -4,6 +4,8 @@ import { logger } from '@/lib/logger'
 import { errorResponse } from '@/lib/errors'
 import { withRateLimit } from '@/lib/rate-limit'
 
+export const runtime = 'nodejs'
+
 // Increment job view count
 export const POST = withRateLimit(
   async (req: Request, context?: { params?: Record<string, string> }) => {
@@ -19,11 +21,11 @@ export const POST = withRateLimit(
       const job = await prisma.job.findUnique({
         where: {
           id: params.id,
-          status: 'ACTIVE'
+          status: 'PUBLISHED',
         },
         select: {
-          id: true
-        }
+          id: true,
+        },
       })
 
       if (!job) {
@@ -41,11 +43,8 @@ export const POST = withRateLimit(
 
       logger.apiError('POST', `/api/jobs/[id]/view`, error)
       const errorData = errorResponse(error)
-      return NextResponse.json(
-        { error: errorData.error },
-        { status: errorData.statusCode }
-      )
+      return NextResponse.json({ error: errorData.error }, { status: errorData.statusCode })
     }
   },
-  { preset: 'public' } // Allow public access for view tracking
+  { preset: 'public' }, // Allow public access for view tracking
 )

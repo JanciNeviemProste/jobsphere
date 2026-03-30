@@ -60,7 +60,7 @@ function recordRedisFailure() {
 
 function recordRedisSuccess() {
   if (redisFailureCount > 0) {
-    redisFailureCount = Math.max(0, redisFailureCount - 1)
+    redisFailureCount = 0
   }
 }
 
@@ -68,7 +68,12 @@ function recordRedisSuccess() {
  * In-memory rate limiter with sliding window
  * More conservative limits than Redis version (fail-closed)
  */
-function rateLimitInMemory(identifier: string, limit: number, window: number): RateLimitResult {
+function rateLimitInMemory(
+  identifier: string,
+  limit: number,
+  window: number,
+  reportedLimit?: number,
+): RateLimitResult {
   const now = Date.now()
   const windowStart = now - window * 1000
 
@@ -101,7 +106,7 @@ function rateLimitInMemory(identifier: string, limit: number, window: number): R
 
   return {
     success,
-    limit,
+    limit: reportedLimit ?? limit,
     remaining,
     reset,
   }
@@ -166,8 +171,8 @@ export async function rateLimit(config: RateLimitConfig): Promise<RateLimitResul
   const now = Date.now()
   const windowStart = now - window * 1000
 
-  // Skip rate limiting in test environment
-  if (process.env.NODE_ENV === 'test') {
+  // Skip rate limiting when explicitly disabled
+  if (process.env.DISABLE_RATE_LIMIT === 'true') {
     return {
       success: true,
       limit,
@@ -176,16 +181,7 @@ export async function rateLimit(config: RateLimitConfig): Promise<RateLimitResul
     }
   }
 
-  // Check circuit breaker - use in-memory if Redis is down
-  if (isCircuitOpen()) {
-    logger.warn('Rate Limit Circuit breaker OPEN - using in-memory fallback', {
-      identifier,
-      requestedLimit: limit,
-      conservativeLimit: Math.ceil(limit / 2),
-    })
-    // Use more conservative limit (50% of requested limit)
-    return rateLimitInMemory(identifier, Math.ceil(limit / 2), window)
-  }
+  const circuitOpen = isCircuitOpen()
 
   try {
     // Use Redis pipeline for atomic operations
@@ -222,11 +218,13 @@ export async function rateLimit(config: RateLimitConfig): Promise<RateLimitResul
       reset,
     }
   } catch (error) {
+    const conservativeLimit = Math.ceil(limit / 2)
+
     logger.error('Rate Limit Redis error - falling back to in-memory limiter', {
       error,
       identifier,
       requestedLimit: limit,
-      conservativeLimit: Math.ceil(limit / 2),
+      conservativeLimit,
     })
 
     // Record Redis failure for circuit breaker
@@ -234,8 +232,7 @@ export async function rateLimit(config: RateLimitConfig): Promise<RateLimitResul
 
     // SECURITY: Fail-closed with in-memory fallback (more conservative limit)
     // Use 50% of requested limit to be extra cautious
-    const conservativeLimit = Math.ceil(limit / 2)
-    return rateLimitInMemory(identifier, conservativeLimit, window)
+    return rateLimitInMemory(identifier, conservativeLimit, window, limit)
   }
 }
 
@@ -383,28 +380,34 @@ export function withRateLimit<T extends Request = Request>(
             prefix: options.byUser ? 'ratelimit:user' : 'ratelimit:ip',
           })
 
-      // Add rate limit headers to response
-      const response = await handler(request, context)
-
-      return new Response(response.body, {
-        ...response,
-        headers: {
-          ...response.headers,
-          'X-RateLimit-Limit': String(result.limit),
-          'X-RateLimit-Remaining': String(result.remaining),
-          'X-RateLimit-Reset': String(result.reset),
-        },
-      })
-    } catch (error) {
-      // If handler throws, check if it's rate limit exceeded
-      if (!error) {
+      // Return 429 if rate limit exceeded
+      if (!result.success) {
         return new Response('Too Many Requests', {
           status: 429,
           headers: {
-            'Retry-After': String(options.window || 60),
+            'X-RateLimit-Limit': String(result.limit),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': String(result.reset),
+            'Retry-After': String(config.window),
           },
         })
       }
+
+      // Only call handler if rate limit not exceeded
+      const response = await handler(request, context)
+
+      // Add rate limit headers to response
+      const newHeaders = new Headers(response.headers)
+      newHeaders.set('X-RateLimit-Limit', String(result.limit))
+      newHeaders.set('X-RateLimit-Remaining', String(result.remaining))
+      newHeaders.set('X-RateLimit-Reset', String(result.reset))
+
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: newHeaders,
+      })
+    } catch (error) {
       throw error
     }
   }

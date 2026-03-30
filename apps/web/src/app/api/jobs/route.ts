@@ -8,6 +8,8 @@ import { requireAuth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
+export const runtime = 'nodejs'
+
 // Define enums for job fields (as strings in database)
 const WorkModeEnum = z.enum(['REMOTE', 'HYBRID', 'ONSITE'])
 const JobTypeEnum = z.enum(['FULL_TIME', 'PART_TIME', 'CONTRACT'])
@@ -18,6 +20,8 @@ const jobSearchSchema = z.object({
   workMode: WorkModeEnum.optional(),
   jobType: JobTypeEnum.optional(),
   seniority: SeniorityLevelEnum.optional(),
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(20),
 })
 
 // Validation schema for POST /api/jobs
@@ -49,45 +53,65 @@ export const GET = withRateLimit(
         workMode: searchParams.get('workMode') || undefined,
         jobType: searchParams.get('jobType') || undefined,
         seniority: searchParams.get('seniority') || undefined,
+        page: searchParams.get('page'),
+        limit: searchParams.get('limit'),
       })
 
-      const jobs = await prisma.job.findMany({
-        where: {
-          status: 'PUBLISHED',
-          ...(params.search && {
-            OR: [
-              { title: { contains: params.search, mode: 'insensitive' } },
-              { description: { contains: params.search, mode: 'insensitive' } },
-              { organization: { name: { contains: params.search, mode: 'insensitive' } } },
-            ],
-          }),
-          ...(params.workMode &&
-            (params.workMode === 'REMOTE'
-              ? { remote: true }
-              : params.workMode === 'HYBRID'
-                ? { hybrid: true }
-                : { remote: false, hybrid: false })),
-          ...(params.jobType && { employmentType: params.jobType }),
-          ...(params.seniority && { seniority: params.seniority }),
-        },
-        include: {
-          organization: {
-            select: {
-              name: true,
-              logo: true,
+      const where = {
+        status: 'PUBLISHED' as const,
+        ...(params.search && {
+          OR: [
+            { title: { contains: params.search, mode: 'insensitive' as const } },
+            { description: { contains: params.search, mode: 'insensitive' as const } },
+            { organization: { name: { contains: params.search, mode: 'insensitive' as const } } },
+          ],
+        }),
+        ...(params.workMode &&
+          (params.workMode === 'REMOTE'
+            ? { remote: true }
+            : params.workMode === 'HYBRID'
+              ? { hybrid: true }
+              : { remote: false, hybrid: false })),
+        ...(params.jobType && { employmentType: params.jobType }),
+        ...(params.seniority && { seniority: params.seniority }),
+      }
+
+      const [jobs, total] = await Promise.all([
+        prisma.job.findMany({
+          where,
+          include: {
+            organization: {
+              select: {
+                name: true,
+                logo: true,
+              },
             },
           },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: 50,
-      })
+          orderBy: { createdAt: 'desc' },
+          skip: (params.page - 1) * params.limit,
+          take: params.limit,
+        }),
+        prisma.job.count({ where }),
+      ])
+
+      // Transform to match client interface (workMode, type, location)
+      const transformedJobs = jobs.map((job) => ({
+        ...job,
+        workMode: job.remote ? 'REMOTE' : job.hybrid ? 'HYBRID' : 'ONSITE',
+        type: job.employmentType,
+        location: job.city,
+      }))
 
       const duration = Date.now() - startTime
       logger.info(`Fetched ${jobs.length} jobs`, { duration })
 
-      return NextResponse.json(jobs)
+      return NextResponse.json({
+        data: transformedJobs,
+        total,
+        page: params.page,
+        pageSize: params.limit,
+        hasMore: params.page * params.limit < total,
+      })
     } catch (error) {
       if (error instanceof z.ZodError) {
         return NextResponse.json(

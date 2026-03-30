@@ -4,9 +4,11 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { encrypt } from '@/lib/encryption'
 import { logger } from '@/lib/logger'
+
+export const runtime = 'nodejs'
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v2/userinfo'

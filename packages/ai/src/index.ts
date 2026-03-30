@@ -4,20 +4,10 @@
  */
 
 // CV Parsing
-export {
-  extractCvFromText,
-  summarizeCv,
-  anonymizeCv,
-  generateJobDescription,
-} from './cv-parser'
+export { extractCvFromText, summarizeCv, anonymizeCv, generateJobDescription } from './cv-parser'
 
 // CV Errors
-export {
-  CVParseErrorCode,
-  CVParseException,
-  CVErrors,
-  type CVParseError,
-} from './cv-errors'
+export { CVParseErrorCode, CVParseException, CVErrors, type CVParseError } from './cv-errors'
 
 // Embeddings
 export {
@@ -30,11 +20,13 @@ export {
 } from './embeddings'
 
 // Match Score
-export {
-  calculateMatchScore,
-  matchCandidatesToJob,
-  type JobRequirements,
-} from './match-score'
+export { calculateMatchScore, matchCandidatesToJob, type JobRequirements } from './match-score'
+
+// Assessment Grading
+export { gradeAssessmentAnswer } from './assessment'
+
+// Match Explanation
+export { explainMatch } from './explain-match'
 
 // Types
 export type {

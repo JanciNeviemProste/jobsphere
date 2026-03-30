@@ -3,188 +3,194 @@
  * Parses raw text with Claude & saves to database
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { extractCvFromText } from '@jobsphere/ai'
 import { addEmbeddingJob } from '@/lib/queue'
 import { logger } from '@/lib/logger'
+import { withRateLimit } from '@/lib/rate-limit'
 
-export async function POST(request: NextRequest) {
-  try {
-    // 1. Optional authentication - allow anonymous users
-    const session = await auth()
+export const runtime = 'nodejs'
 
-    // 2. Get raw text from body
-    const { rawText } = await request.json()
+export const POST = withRateLimit(
+  async (request: Request) => {
+    try {
+      // 1. Optional authentication - allow anonymous users
+      const session = await auth()
 
-    if (!rawText || rawText.length < 20) {
-      return NextResponse.json(
-        {
-          error: `Invalid CV text - too short (${rawText?.length || 0} characters, minimum 20 required)`,
-        },
-        { status: 400 },
-      )
-    }
+      // 2. Get raw text from body
+      const { rawText } = await request.json()
 
-    logger.info('Parsing CV', { textLength: rawText.length })
-
-    // Get locale from accept-language header or default to 'en'
-    const acceptLanguage = request.headers.get('accept-language')
-    const locale = acceptLanguage?.split(',')[0]?.split('-')[0] || 'en'
-
-    // 4. Parse CV with AI (OpenRouter Gemini Flash or Claude fallback)
-    const openRouterKey = process.env.OPENROUTER_API_KEY
-    const anthropicKey = process.env.ANTHROPIC_API_KEY
-
-    if (!openRouterKey && !anthropicKey) {
-      return NextResponse.json({ error: 'AI service not configured' }, { status: 500 })
-    }
-
-    const extractedCV = await extractCvFromText(rawText, {
-      openRouterApiKey: openRouterKey,
-      apiKey: anthropicKey,
-      model: openRouterKey ? 'google/gemini-flash-1.5-8b' : 'claude-opus-4-20250514',
-      locale,
-    })
-
-    // 5. If user is logged in, save to database
-    if (session?.user?.id) {
-      // Get user's organization membership to find orgId
-      const userOrg = await prisma.userOrgRole.findFirst({
-        where: { userId: session.user.id },
-        select: { orgId: true },
-      })
-
-      if (!userOrg) {
-        return NextResponse.json({ error: 'User organization not found' }, { status: 404 })
+      if (!rawText || rawText.length < 20) {
+        return NextResponse.json(
+          {
+            error: `Invalid CV text - too short (${rawText?.length || 0} characters, minimum 20 required)`,
+          },
+          { status: 400 },
+        )
       }
 
-      // Find or create Candidate record
-      let candidate = await prisma.candidate.findFirst({
-        where: { orgId: userOrg.orgId },
+      logger.info('Parsing CV', { textLength: rawText.length })
+
+      // Get locale from accept-language header or default to 'en'
+      const acceptLanguage = request.headers.get('accept-language')
+      const locale = acceptLanguage?.split(',')[0]?.split('-')[0] || 'en'
+
+      // 4. Parse CV with AI (OpenRouter Gemini Flash or Claude fallback)
+      const openRouterKey = process.env.OPENROUTER_API_KEY
+      const anthropicKey = process.env.ANTHROPIC_API_KEY
+
+      if (!openRouterKey && !anthropicKey) {
+        return NextResponse.json({ error: 'AI service not configured' }, { status: 500 })
+      }
+
+      const extractedCV = await extractCvFromText(rawText, {
+        openRouterApiKey: openRouterKey,
+        apiKey: anthropicKey,
+        model: openRouterKey ? 'google/gemini-flash-1.5-8b' : 'claude-opus-4-20250514',
+        locale,
       })
 
-      if (!candidate) {
-        candidate = await prisma.candidate.create({
+      // 5. If user is logged in, save to database
+      if (session?.user?.id) {
+        // Get user's organization membership to find orgId
+        const userOrg = await prisma.userOrgRole.findFirst({
+          where: { userId: session.user.id },
+          select: { orgId: true },
+        })
+
+        if (!userOrg) {
+          return NextResponse.json({ error: 'User organization not found' }, { status: 404 })
+        }
+
+        // Find or create Candidate record
+        let candidate = await prisma.candidate.findFirst({
+          where: { orgId: userOrg.orgId },
+        })
+
+        if (!candidate) {
+          candidate = await prisma.candidate.create({
+            data: {
+              orgId: userOrg.orgId,
+              source: 'MANUAL',
+            },
+          })
+        }
+
+        // Create Resume record with basic info from parsed CV
+        const resume = await prisma.resume.create({
           data: {
-            orgId: userOrg.orgId,
-            source: 'MANUAL',
+            candidateId: candidate.id,
+            language: locale,
+            summary: extractedCV.summary || null,
           },
         })
-      }
 
-      // Create Resume record with basic info from parsed CV
-      const resume = await prisma.resume.create({
-        data: {
-          candidateId: candidate.id,
-          language: locale,
-          summary: extractedCV.summary || null,
-        },
-      })
+        // 6. Create ResumeSection records from extractedCV
+        const sections = []
 
-      // 6. Create ResumeSection records from extractedCV
-      const sections = []
+        if (extractedCV.summary) {
+          sections.push({
+            resumeId: resume.id,
+            kind: 'SUMMARY',
+            text: extractedCV.summary,
+            order: 1,
+          })
+        }
 
-      if (extractedCV.summary) {
-        sections.push({
+        if (extractedCV.experiences && Array.isArray(extractedCV.experiences)) {
+          const experienceText = extractedCV.experiences
+            .map((exp: any) => {
+              const parts = []
+              if (exp.title) parts.push(exp.title)
+              if (exp.company) parts.push(exp.company)
+              if (exp.period) parts.push(exp.period)
+              if (exp.description) parts.push(exp.description)
+              return parts.join(' | ')
+            })
+            .join('\n\n')
+
+          if (experienceText) {
+            sections.push({
+              resumeId: resume.id,
+              kind: 'EXPERIENCE',
+              text: experienceText,
+              order: 2,
+            })
+          }
+        }
+
+        if (extractedCV.education && Array.isArray(extractedCV.education)) {
+          const educationText = extractedCV.education
+            .map((edu: any) => {
+              const parts = []
+              if (edu.degree) parts.push(edu.degree)
+              if (edu.institution) parts.push(edu.institution)
+              if (edu.year) parts.push(edu.year)
+              if (edu.field) parts.push(edu.field)
+              return parts.join(' | ')
+            })
+            .join('\n\n')
+
+          if (educationText) {
+            sections.push({
+              resumeId: resume.id,
+              kind: 'EDUCATION',
+              text: educationText,
+              order: 3,
+            })
+          }
+        }
+
+        if (extractedCV.skills && Array.isArray(extractedCV.skills)) {
+          const skillsText = extractedCV.skills.join(', ')
+
+          if (skillsText) {
+            sections.push({
+              resumeId: resume.id,
+              kind: 'SKILLS',
+              text: skillsText,
+              order: 4,
+            })
+          }
+        }
+
+        // Bulk create sections
+        if (sections.length > 0) {
+          await prisma.resumeSection.createMany({
+            data: sections,
+          })
+        }
+
+        // 7. Queue embedding generation job asynchronously
+        if (sections.length > 0) {
+          addEmbeddingJob({ resumeId: resume.id }).catch((error) => {
+            logger.error('Failed to queue embedding job', error)
+            // Don't fail the request if job queueing fails
+          })
+          logger.info('Queued embedding job for resume', { resumeId: resume.id })
+        }
+
+        return NextResponse.json({
           resumeId: resume.id,
-          kind: 'SUMMARY',
-          text: extractedCV.summary,
-          order: 1,
+          candidateId: candidate.id,
+          success: true,
+          parsed: extractedCV,
+          sectionsCreated: sections.length,
         })
       }
 
-      if (extractedCV.experiences && Array.isArray(extractedCV.experiences)) {
-        const experienceText = extractedCV.experiences
-          .map((exp: any) => {
-            const parts = []
-            if (exp.title) parts.push(exp.title)
-            if (exp.company) parts.push(exp.company)
-            if (exp.period) parts.push(exp.period)
-            if (exp.description) parts.push(exp.description)
-            return parts.join(' | ')
-          })
-          .join('\n\n')
-
-        if (experienceText) {
-          sections.push({
-            resumeId: resume.id,
-            kind: 'EXPERIENCE',
-            text: experienceText,
-            order: 2,
-          })
-        }
-      }
-
-      if (extractedCV.education && Array.isArray(extractedCV.education)) {
-        const educationText = extractedCV.education
-          .map((edu: any) => {
-            const parts = []
-            if (edu.degree) parts.push(edu.degree)
-            if (edu.institution) parts.push(edu.institution)
-            if (edu.year) parts.push(edu.year)
-            if (edu.field) parts.push(edu.field)
-            return parts.join(' | ')
-          })
-          .join('\n\n')
-
-        if (educationText) {
-          sections.push({
-            resumeId: resume.id,
-            kind: 'EDUCATION',
-            text: educationText,
-            order: 3,
-          })
-        }
-      }
-
-      if (extractedCV.skills && Array.isArray(extractedCV.skills)) {
-        const skillsText = extractedCV.skills.join(', ')
-
-        if (skillsText) {
-          sections.push({
-            resumeId: resume.id,
-            kind: 'SKILLS',
-            text: skillsText,
-            order: 4,
-          })
-        }
-      }
-
-      // Bulk create sections
-      if (sections.length > 0) {
-        await prisma.resumeSection.createMany({
-          data: sections,
-        })
-      }
-
-      // 7. Queue embedding generation job asynchronously
-      if (sections.length > 0) {
-        addEmbeddingJob({ resumeId: resume.id }).catch((error) => {
-          logger.error('Failed to queue embedding job', error)
-          // Don't fail the request if job queueing fails
-        })
-        logger.info('Queued embedding job for resume', { resumeId: resume.id })
-      }
-
+      // 6. For anonymous users, just return parsed data (don't save to DB)
       return NextResponse.json({
-        resumeId: resume.id,
-        candidateId: candidate.id,
         success: true,
         parsed: extractedCV,
-        sectionsCreated: sections.length,
+        anonymous: true,
       })
+    } catch (error) {
+      logger.error('CV parse error', error)
+      return NextResponse.json({ error: 'Failed to parse CV' }, { status: 500 })
     }
-
-    // 6. For anonymous users, just return parsed data (don't save to DB)
-    return NextResponse.json({
-      success: true,
-      parsed: extractedCV,
-      anonymous: true,
-    })
-  } catch (error) {
-    logger.error('CV parse error', error)
-    return NextResponse.json({ error: 'Failed to parse CV' }, { status: 500 })
-  }
-}
+  },
+  { preset: 'upload' }, // 10 requests per 5 minutes
+)

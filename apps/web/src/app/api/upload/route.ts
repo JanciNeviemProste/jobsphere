@@ -5,6 +5,8 @@ import { join, resolve, basename } from 'path'
 import { randomUUID } from 'crypto'
 import { logger } from '@/lib/logger'
 
+export const runtime = 'nodejs'
+
 // Security: Validate filename to prevent path traversal attacks
 function isValidFilename(filename: string): boolean {
   // Only allow UUID-based filenames with valid extensions (our upload format)

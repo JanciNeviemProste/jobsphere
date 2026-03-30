@@ -20,9 +20,6 @@ process.env.NEXTAUTH_SECRET = 'test-secret-key-for-integration-tests'
 // Disable rate limiting in tests
 process.env.DISABLE_RATE_LIMIT = 'true'
 
-// Disable email sending in tests
-process.env.EMAIL_SERVICE = 'log'
-
 // Disable external API calls
 process.env.ANTHROPIC_API_KEY = 'test-key'
 process.env.STRIPE_SECRET_KEY = 'sk_test_fake'

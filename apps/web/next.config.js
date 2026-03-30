@@ -9,11 +9,17 @@ const nextConfig = {
   transpilePackages: ['@jobsphere/db'],
 
   images: {
-    domains: ['localhost', 'jobsphere.com'],
+    domains: ['jobsphere.com'],
     formats: ['image/avif', 'image/webp'],
   },
 
   async headers() {
+    // Allow unsafe-eval in dev for Next.js HMR
+    const isDev = process.env.NODE_ENV === 'development'
+    const scriptSrc = isDev
+      ? "'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://browser.sentry-cdn.com https://js.sentry-cdn.com https://accounts.google.com"
+      : "'self' 'unsafe-inline' https://js.stripe.com https://browser.sentry-cdn.com https://js.sentry-cdn.com https://accounts.google.com"
+
     return [
       {
         source: '/:path*',
@@ -46,7 +52,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' https://js.stripe.com https://browser.sentry-cdn.com https://js.sentry-cdn.com https://accounts.google.com",
+              `script-src ${scriptSrc}`,
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://*.stripe.com",
               "font-src 'self' data: https://fonts.gstatic.com",

@@ -6,6 +6,8 @@ import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
 
+export const runtime = 'nodejs'
+
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await auth()
@@ -135,9 +137,18 @@ export const PATCH = withCsrfProtection(
           // Send email notification for HIRED or REJECTED status
           if (status === 'HIRED' || status === 'REJECTED') {
             // Send email asynchronously - don't wait for it
-            sendStatusChangeEmail(application.id, status).catch((error) => {
-              logger.error('Failed to send status change email', error)
-            })
+            const candidateEmail =
+              (application as any).candidate?.email || (application as any).email
+            if (candidateEmail) {
+              sendStatusChangeEmail({
+                candidateName: (application as any).candidate?.name || 'Candidate',
+                jobTitle: (application as any).job?.title || 'the position',
+                newStatus: status,
+                recipientEmail: candidateEmail,
+              }).catch((error) => {
+                logger.error('Failed to send status change email', error)
+              })
+            }
           }
         }
 

@@ -2,20 +2,20 @@
 FROM node:20-alpine AS base
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+RUN corepack enable
 
 # Install dependencies only when needed
 FROM base AS deps
 WORKDIR /app
 
 # Copy package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json yarn.lock ./
 COPY apps/api/package.json ./apps/api/
 COPY apps/workers/package.json ./apps/workers/
 COPY packages/*/package.json ./packages/
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN yarn install --frozen-lockfile
 
 # Build the applications
 FROM base AS builder
@@ -25,7 +25,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build all packages and apps
-RUN pnpm build
+RUN yarn build
 
 # Production image
 FROM base AS runner
@@ -43,7 +43,6 @@ COPY --from=builder --chown=jobsphere:nodejs /app/apps/api/dist ./apps/api/dist
 COPY --from=builder --chown=jobsphere:nodejs /app/apps/workers/dist ./apps/workers/dist
 COPY --from=builder --chown=jobsphere:nodejs /app/packages ./packages
 COPY --from=builder --chown=jobsphere:nodejs /app/package.json ./
-COPY --from=builder --chown=jobsphere:nodejs /app/pnpm-workspace.yaml ./
 
 USER jobsphere
 

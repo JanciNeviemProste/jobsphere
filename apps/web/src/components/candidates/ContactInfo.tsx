@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 interface Contact {
   fullName: string | null
@@ -21,11 +22,13 @@ interface ContactInfoProps {
 }
 
 export function ContactInfo({ contact }: ContactInfoProps) {
+  const t = useTranslations('contact')
+
   if (!contact) {
     return (
       <Card className="mb-6">
         <CardContent className="p-6">
-          <p className="text-muted-foreground">No contact information available</p>
+          <p className="text-muted-foreground">{t('noInfo')}</p>
         </CardContent>
       </Card>
     )
@@ -59,10 +62,10 @@ export function ContactInfo({ contact }: ContactInfoProps) {
           <div className="flex-1 space-y-3">
             <div>
               <h1 className="text-3xl font-bold">
-                {contact.fullName || contact.email || 'Candidate'}
+                {contact.fullName || contact.email || t('candidate')}
               </h1>
               <Badge variant="secondary" className="mt-2">
-                Candidate
+                {t('candidate')}
               </Badge>
             </div>
 
@@ -120,7 +123,7 @@ export function ContactInfo({ contact }: ContactInfoProps) {
                 <Button variant="outline" size="sm" asChild>
                   <Link href={contact.portfolio} target="_blank" rel="noopener noreferrer">
                     <Globe className="mr-2 h-4 w-4" />
-                    Portfolio
+                    {t('portfolio')}
                   </Link>
                 </Button>
               )}
@@ -133,14 +136,14 @@ export function ContactInfo({ contact }: ContactInfoProps) {
               <Button asChild>
                 <a href={`mailto:${contact.email}`}>
                   <Mail className="mr-2 h-4 w-4" />
-                  Send Email
+                  {t('sendEmail')}
                 </a>
               </Button>
             )}
             {contact.phone && (
               <Button variant="outline">
                 <Phone className="mr-2 h-4 w-4" />
-                Contact
+                {t('contact')}
               </Button>
             )}
           </div>

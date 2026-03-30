@@ -1,3 +1,4 @@
+import React from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { Footer } from '../footer'
@@ -27,6 +28,7 @@ vi.mock('next-intl', () => ({
     }
     return translations[key] || key
   },
+  useLocale: () => 'en',
 }))
 
 // Mock next/link
@@ -36,6 +38,11 @@ vi.mock('next/link', () => ({
       {children}
     </a>
   ),
+}))
+
+// Mock next/image
+vi.mock('next/image', () => ({
+  default: ({ alt, ...props }: any) => <img alt={alt} {...props} />,
 }))
 
 describe('Footer', () => {
@@ -88,61 +95,60 @@ describe('Footer', () => {
     render(<Footer />)
 
     const browseJobsLink = screen.getByText('Browse Jobs').closest('a')
-    expect(browseJobsLink).toHaveAttribute('href', '/jobs')
+    expect(browseJobsLink).toHaveAttribute('href', '/en/jobs')
 
     const createCVLink = screen.getByText('Create CV').closest('a')
-    expect(createCVLink).toHaveAttribute('href', '/create-cv')
+    expect(createCVLink).toHaveAttribute('href', '/en/create-cv')
 
     const careerAdviceLink = screen.getByText('Career Advice').closest('a')
-    expect(careerAdviceLink).toHaveAttribute('href', '/career-advice')
+    expect(careerAdviceLink).toHaveAttribute('href', '/en/career-advice')
   })
 
   it('should have correct href for employer links', () => {
     render(<Footer />)
 
     const postJobLink = screen.getByText('Post a Job').closest('a')
-    expect(postJobLink).toHaveAttribute('href', '/post-job')
+    expect(postJobLink).toHaveAttribute('href', '/en/post-job')
 
     const pricingLink = screen.getByText('Pricing').closest('a')
-    expect(pricingLink).toHaveAttribute('href', '/pricing')
+    expect(pricingLink).toHaveAttribute('href', '/en/pricing')
 
     const featuresLink = screen.getByText('ATS Features').closest('a')
-    expect(featuresLink).toHaveAttribute('href', '/features')
+    expect(featuresLink).toHaveAttribute('href', '/en/features')
   })
 
   it('should have correct href for company links', () => {
     render(<Footer />)
 
     const aboutLink = screen.getByText('About Us').closest('a')
-    expect(aboutLink).toHaveAttribute('href', '/about')
+    expect(aboutLink).toHaveAttribute('href', '/en/about')
 
     const contactLink = screen.getByText('Contact').closest('a')
-    expect(contactLink).toHaveAttribute('href', '/contact')
+    expect(contactLink).toHaveAttribute('href', '/en/contact')
 
     const blogLink = screen.getByText('Blog').closest('a')
-    expect(blogLink).toHaveAttribute('href', '/blog')
+    expect(blogLink).toHaveAttribute('href', '/en/blog')
   })
 
   it('should have correct href for legal links', () => {
     render(<Footer />)
 
     const privacyLink = screen.getByText('Privacy Policy').closest('a')
-    expect(privacyLink).toHaveAttribute('href', '/privacy')
+    expect(privacyLink).toHaveAttribute('href', '/en/privacy')
 
     const termsLink = screen.getByText('Terms of Service').closest('a')
-    expect(termsLink).toHaveAttribute('href', '/terms')
+    expect(termsLink).toHaveAttribute('href', '/en/terms')
 
     const gdprLink = screen.getByText('GDPR').closest('a')
-    expect(gdprLink).toHaveAttribute('href', '/gdpr')
+    expect(gdprLink).toHaveAttribute('href', '/en/gdpr')
   })
 
-  it('should render company branding', () => {
+  it('should render company branding logo', () => {
     render(<Footer />)
 
-    const job = screen.getByText('Job')
-    const sphere = screen.getByText('Sphere')
-    expect(job).toBeInTheDocument()
-    expect(sphere).toBeInTheDocument()
+    const logo = screen.getByAltText('JobSphere')
+    expect(logo).toBeInTheDocument()
+    expect(logo).toHaveAttribute('src', '/images/jobsphere_logo.png')
   })
 
   it('should render tagline', () => {
@@ -172,7 +178,7 @@ describe('Footer', () => {
     expect(sections).toHaveLength(4)
   })
 
-  it('should render all 12 links (3 per section × 4 sections)', () => {
+  it('should render all 12 links (3 per section x 4 sections)', () => {
     const { container } = render(<Footer />)
 
     const links = container.querySelectorAll('a')

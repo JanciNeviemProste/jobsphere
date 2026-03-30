@@ -6,9 +6,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import Stripe from 'stripe'
-import { prisma } from '@/lib/db'
+import { Prisma } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { withRateLimit } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
+
+export const runtime = 'nodejs'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16',
@@ -18,6 +21,8 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
 export const POST = withRateLimit(
   async (request: NextRequest) => {
+    let eventId: string | undefined
+
     try {
       const body = await request.text()
       const signature = headers().get('stripe-signature')
@@ -35,7 +40,39 @@ export const POST = withRateLimit(
         return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
       }
 
+      eventId = event.id
       logger.info(`Stripe webhook received: ${event.type}`, { eventId: event.id })
+
+      // Atomic idempotency: upsert to prevent race conditions on concurrent retries
+      let providerEvent
+      try {
+        providerEvent = await prisma.providerEvent.upsert({
+          where: { id: event.id },
+          update: {},
+          create: {
+            id: event.id,
+            provider: 'stripe',
+            kind: event.type,
+            payload: JSON.parse(JSON.stringify(event.data.object)),
+            processed: false,
+          },
+        })
+      } catch (e) {
+        // Handle race condition: concurrent upsert may still hit P2002
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+          logger.warn('Concurrent Stripe webhook duplicate detected', { eventId: event.id })
+          return NextResponse.json({ received: true, duplicate: true })
+        }
+        throw e
+      }
+
+      if (providerEvent.processed) {
+        logger.warn('Duplicate Stripe webhook event skipped', {
+          eventId: event.id,
+          type: event.type,
+        })
+        return NextResponse.json({ received: true, duplicate: true })
+      }
 
       // Handle events with proper type safety
       switch (event.type) {
@@ -74,9 +111,28 @@ export const POST = withRateLimit(
           logger.warn(`Unhandled Stripe event type: ${event.type}`, { eventId: event.id })
       }
 
+      // Mark the event as successfully processed
+      await prisma.providerEvent.update({
+        where: { id: event.id },
+        data: { processed: true },
+      })
+
       return NextResponse.json({ received: true })
     } catch (error) {
       logger.error('Webhook error', error)
+
+      // Record the error against the event for observability
+      if (eventId) {
+        try {
+          await prisma.providerEvent.updateMany({
+            where: { id: eventId, provider: 'stripe' },
+            data: { error: String(error) },
+          })
+        } catch {
+          // Ignore errors in error recording - don't mask the original error
+        }
+      }
+
       return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 })
     }
   },
@@ -177,9 +233,11 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     status:
       subscription.status === 'active'
         ? 'ACTIVE'
-        : subscription.status === 'past_due'
-          ? 'PAST_DUE'
-          : 'CANCELED',
+        : subscription.status === 'trialing'
+          ? 'TRIALING'
+          : subscription.status === 'past_due'
+            ? 'PAST_DUE'
+            : 'CANCELED',
     currentPeriodStart: new Date(subscription.current_period_start * 1000),
     currentPeriodEnd: new Date(subscription.current_period_end * 1000),
     cancelAtPeriodEnd: subscription.cancel_at_period_end || false,

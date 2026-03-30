@@ -56,6 +56,20 @@ prisma.$use(async (params, next) => {
   return next(params)
 })
 
+// Soft delete middleware
+// Automatically filters out soft-deleted records on read operations
+prisma.$use(async (params, next) => {
+  const modelsWithSoftDelete = ['Job', 'Organization', 'User', 'Candidate', 'Application']
+  if (
+    modelsWithSoftDelete.includes(params.model ?? '') &&
+    ['findFirst', 'findMany', 'count'].includes(params.action)
+  ) {
+    params.args = params.args || {}
+    params.args.where = { deletedAt: null, ...params.args.where }
+  }
+  return next(params)
+})
+
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 // Graceful shutdown: disconnect Prisma on process termination

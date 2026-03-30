@@ -6,10 +6,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { withRateLimit } from '@/lib/rate-limit'
 import { withCsrfProtection } from '@/lib/csrf'
+
+export const runtime = 'nodejs'
 
 // Validation schema for GDPR consent
 const consentSchema = z.object({

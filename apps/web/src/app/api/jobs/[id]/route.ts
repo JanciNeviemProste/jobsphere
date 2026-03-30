@@ -7,6 +7,8 @@ import { requireAuth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
+export const runtime = 'nodejs'
+
 const updateJobSchema = z.object({
   title: z.string().min(3).max(200).optional(),
   description: z.string().min(50).max(10000).optional(),
@@ -37,7 +39,7 @@ export const GET = withRateLimit(
       const job = await prisma.job.findUnique({
         where: {
           id: params.id,
-          status: 'ACTIVE',
+          status: 'PUBLISHED',
         },
         include: {
           organization: {

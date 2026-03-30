@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
@@ -35,11 +36,11 @@ async function getApplicants(userId: string) {
         include: {
           contacts: {
             where: {
-              isPrimary: true
+              isPrimary: true,
             },
-            take: 1
-          }
-        }
+            take: 1,
+          },
+        },
       },
     },
     orderBy: {
@@ -48,6 +49,13 @@ async function getApplicants(userId: string) {
   })
 
   return applications
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: 'All Applicants | JobSphere',
+    description: 'View and manage all job applicants across your organization.',
+  }
 }
 
 export default async function ApplicantsPage({ params }: { params: { locale: string } }) {
@@ -68,8 +76,11 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
   const stats = {
     total: applications.length,
     new: applications.filter((a: ApplicationWithRelations) => a.stage === 'NEW').length,
-    reviewing: applications.filter((a: ApplicationWithRelations) => a.stage === 'SCREENING' || a.stage === 'PHONE_SCREEN').length,
-    interviewed: applications.filter((a: ApplicationWithRelations) => a.stage === 'INTERVIEW').length,
+    reviewing: applications.filter(
+      (a: ApplicationWithRelations) => a.stage === 'SCREENING' || a.stage === 'PHONE_SCREEN',
+    ).length,
+    interviewed: applications.filter((a: ApplicationWithRelations) => a.stage === 'INTERVIEW')
+      .length,
   }
 
   const getStatusBadge = (stage: string) => {
@@ -105,16 +116,16 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
         </Button>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Všetci kandidáti</h1>
+            <h1 className="mb-2 text-3xl font-bold">Všetci kandidáti</h1>
             <p className="text-muted-foreground">Prehľad všetkých prihlášok</p>
           </div>
           <ExportCSVButton />
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4 mb-8">
+        <div className="mb-8 grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">Celkovo</CardTitle>
@@ -148,13 +159,17 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
               {applications.map((application: ApplicationWithRelations) => (
                 <div
                   key={application.id}
-                  className="flex items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/50"
                 >
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <div className="mb-2 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                         <span className="font-semibold text-primary">
-                          {(application.candidate.contacts?.[0]?.fullName || application.candidate.contacts?.[0]?.email || '')
+                          {(
+                            application.candidate.contacts?.[0]?.fullName ||
+                            application.candidate.contacts?.[0]?.email ||
+                            ''
+                          )
                             .split(' ')
                             .map((n: string) => n[0])
                             .join('')
@@ -164,15 +179,21 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
                       </div>
                       <div>
                         <h3 className="font-semibold">
-                          {application.candidate.contacts?.[0]?.fullName || application.candidate.contacts?.[0]?.email || 'Kandidát'}
+                          {application.candidate.contacts?.[0]?.fullName ||
+                            application.candidate.contacts?.[0]?.email ||
+                            'Kandidát'}
                         </h3>
-                        <p className="text-sm text-muted-foreground">{application.candidate.contacts?.[0]?.email}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {application.candidate.contacts?.[0]?.email}
+                        </p>
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground ml-13">
+                    <div className="ml-13 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                       <span>{application.job.title}</span>
                       <span>•</span>
-                      <span>Prihlásený {new Date(application.createdAt).toLocaleDateString('sk-SK')}</span>
+                      <span>
+                        Prihlásený {new Date(application.createdAt).toLocaleDateString('sk-SK')}
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -187,7 +208,7 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
               ))}
 
               {applications.length === 0 && (
-                <div className="text-center py-12">
+                <div className="py-12 text-center">
                   <p className="text-muted-foreground">
                     Nenašli sa žiadni kandidáti. Vytvorte pracovnú ponuku a počkajte na prihlášky.
                   </p>

@@ -7,18 +7,29 @@ import { logger } from '@/lib/logger'
 import { withRateLimit } from '@/lib/rate-limit'
 import { withCsrfProtection } from '@/lib/csrf'
 
+export const runtime = 'nodejs'
+
 const inviteMemberSchema = z.object({
   email: z.string().email(),
   role: z.enum(['ORG_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'AGENCY']),
 })
 
 export const GET = withRateLimit(
-  async function GET() {
+  async function GET(request: Request) {
     try {
       const session = await auth()
       if (!session?.user?.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
+
+      // Parse pagination params
+      const { searchParams } = new URL(request.url)
+      const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
+      const limit = Math.min(
+        100,
+        Math.max(1, parseInt(searchParams.get('limit') || '50', 10) || 50),
+      )
+      const skip = (page - 1) * limit
 
       // Get user's organization
       const userOrgRole = await prisma.userOrgRole.findFirst({
@@ -29,30 +40,43 @@ export const GET = withRateLimit(
         return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
       }
 
-      // Get all team members
-      const members = await prisma.userOrgRole.findMany({
-        where: {
-          orgId: userOrgRole.orgId,
-          deletedAt: null,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              avatar: true,
+      // Get paginated team members and total count in parallel
+      const where = {
+        orgId: userOrgRole.orgId,
+        deletedAt: null,
+      }
+
+      const [members, total] = await Promise.all([
+        prisma.userOrgRole.findMany({
+          where,
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatar: true,
+              },
             },
           },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      })
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: limit,
+          skip,
+        }),
+        prisma.userOrgRole.count({ where }),
+      ])
 
       return NextResponse.json({
         members,
         currentUserRole: userOrgRole.role,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
       })
     } catch (error) {
       logger.error('Error fetching team members:', error)
@@ -99,7 +123,7 @@ export const POST = withCsrfProtection(
           // Generate a random temporary password
           const tempPassword =
             Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8)
-          const hashedPassword = await hash(tempPassword, 10)
+          const hashedPassword = await hash(tempPassword, 12)
 
           user = await prisma.user.create({
             data: {

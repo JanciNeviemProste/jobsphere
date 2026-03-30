@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { withRateLimit } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
 
+export const runtime = 'nodejs'
+
 export const GET = withRateLimit(
   async () => {
     try {

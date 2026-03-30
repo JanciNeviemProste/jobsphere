@@ -7,9 +7,11 @@ import { createSequenceSchema } from '@/schemas'
 import { validateRequest } from '@/lib/validation'
 import { requireAuth } from '@/lib/api-helpers'
 import { handleApiError } from '@/lib/errors'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { withRateLimit } from '@/lib/rate-limit'
 import { withCsrfProtection } from '@/lib/csrf'
+
+export const runtime = 'nodejs'
 
 /**
  * GET /api/sequences

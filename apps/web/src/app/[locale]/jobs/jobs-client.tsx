@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -90,6 +91,7 @@ const SENIORITY_LEVELS = ['JUNIOR', 'MEDIOR', 'SENIOR', 'LEAD']
 
 export default function JobsClient({ params }: { params: { locale: string } }) {
   const t = useTranslations()
+  const { data: session } = useSession()
   const locale = params.locale
   const dateLocale = getDateLocale(locale)
 
@@ -220,8 +222,8 @@ export default function JobsClient({ params }: { params: { locale: string } }) {
           </p>
         </div>
 
-        {/* Recommended Jobs Section */}
-        <RecommendedJobsSection locale={locale} />
+        {/* Recommended Jobs Section - only for authenticated users */}
+        {session && <RecommendedJobsSection locale={locale} />}
 
         {/* Search and Filters */}
         <div className="mb-8 flex flex-col gap-4 md:flex-row">
@@ -385,7 +387,7 @@ export default function JobsClient({ params }: { params: { locale: string } }) {
                         ? `${job.salaryMin.toLocaleString()} - ${job.salaryMax.toLocaleString()}`
                         : job.salaryMin
                           ? `${job.salaryMin.toLocaleString()}+`
-                          : `až ${job.salaryMax?.toLocaleString()}`}{' '}
+                          : `${t('jobs.upTo')} ${job.salaryMax?.toLocaleString()}`}{' '}
                       € / {t('jobs.perMonth')}
                     </div>
                   )}

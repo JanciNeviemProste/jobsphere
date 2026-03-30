@@ -9,6 +9,8 @@ import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 import { withRateLimit } from '@/lib/rate-limit'
 
+export const runtime = 'nodejs'
+
 // Validation schema for Web Vitals metrics
 const webVitalSchema = z.object({
   name: z.enum(['CLS', 'FCP', 'FID', 'INP', 'LCP', 'TTFB']),

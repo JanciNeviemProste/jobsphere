@@ -5,6 +5,8 @@ import { errorResponse } from '@/lib/errors'
 import { withRateLimit } from '@/lib/rate-limit'
 import { requireAuth } from '@/lib/auth'
 
+export const runtime = 'nodejs'
+
 export const GET = withRateLimit(
   async (req: Request) => {
     try {
@@ -27,7 +29,7 @@ export const GET = withRateLimit(
 
       // Get candidate profile for this organization
       const candidate = await prisma.candidate.findFirst({
-        where: { orgId: userOrg.orgId }
+        where: { orgId: userOrg.orgId },
       })
 
       if (!candidate) {
@@ -61,11 +63,8 @@ export const GET = withRateLimit(
     } catch (error) {
       logger.apiError('GET', '/api/user/cvs', error)
       const errorData = errorResponse(error)
-      return NextResponse.json(
-        { error: errorData.error },
-        { status: errorData.statusCode }
-      )
+      return NextResponse.json({ error: errorData.error }, { status: errorData.statusCode })
     }
   },
-  { preset: 'api', byUser: true }
+  { preset: 'api', byUser: true },
 )

@@ -6,6 +6,8 @@ import { addEmailSequenceJob } from '@/lib/queue'
 import { withRateLimit } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
 
+export const runtime = 'nodejs'
+
 const enrollSchema = z.object({
   candidateId: z.string().uuid(),
   jobId: z.string().uuid().optional(),

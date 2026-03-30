@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
+export const runtime = 'nodejs'
+
 export async function GET() {
   try {
     const session = await auth()
@@ -24,7 +26,7 @@ export async function GET() {
       where: {
         orgId: userOrgRole.orgId,
         status: {
-          in: ['active', 'trialing', 'past_due'],
+          in: ['ACTIVE', 'TRIALING', 'PAST_DUE'],
         },
       },
       include: {

@@ -6,6 +6,8 @@ import { withRateLimit } from '@/lib/rate-limit'
 import { sanitizeNote } from '@/lib/sanitize'
 import { logger } from '@/lib/logger'
 
+export const runtime = 'nodejs'
+
 export const POST = withCsrfProtection(
   withRateLimit(
     async (req: Request, context?: { params?: Record<string, string> }) => {

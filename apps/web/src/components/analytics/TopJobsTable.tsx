@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useTranslations } from 'next-intl'
 
 interface TopJobsTableProps {
   jobs: Array<{
@@ -19,24 +20,26 @@ interface TopJobsTableProps {
 }
 
 export function TopJobsTable({ jobs }: TopJobsTableProps) {
+  const t = useTranslations('analytics')
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Top Jobs by Applications</CardTitle>
+        <CardTitle>{t('topJobs')}</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Job Title</TableHead>
-              <TableHead className="text-right">Applications</TableHead>
+              <TableHead>{t('jobTitle')}</TableHead>
+              <TableHead className="text-right">{t('applications')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {jobs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={2} className="text-center text-muted-foreground">
-                  No applications yet
+                  {t('noApplications')}
                 </TableCell>
               </TableRow>
             ) : (

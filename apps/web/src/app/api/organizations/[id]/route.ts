@@ -5,6 +5,8 @@ import { z } from 'zod'
 import { sanitizeHtml, sanitizeUrl } from '@/lib/sanitize'
 import { logger } from '@/lib/logger'
 
+export const runtime = 'nodejs'
+
 const updateOrgSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   website: z.string().url().optional().or(z.literal('')),
