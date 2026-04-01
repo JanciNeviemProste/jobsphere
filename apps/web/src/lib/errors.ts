@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { UnauthorizedError, ForbiddenError, NotFoundError } from './api-helpers'
 import { ValidationError } from './validation'
+import { logger } from './logger'
 
 /**
  * Generic application error with status code and optional error code
@@ -9,7 +10,11 @@ import { ValidationError } from './validation'
 export class AppError extends Error {
   public code?: string
 
-  constructor(message: string, public statusCode: number = 500, code?: string) {
+  constructor(
+    message: string,
+    public statusCode: number = 500,
+    code?: string,
+  ) {
     super(message)
     this.name = 'AppError'
     this.code = code
@@ -17,64 +22,46 @@ export class AppError extends Error {
 }
 
 export function handleApiError(error: unknown): NextResponse {
-  console.error('API Error:', error)
+  logger.error('API Error:', error)
 
   if (error instanceof UnauthorizedError) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 401 }
-    )
+    return NextResponse.json({ error: error.message }, { status: 401 })
   }
 
   if (error instanceof ForbiddenError) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 403 }
-    )
+    return NextResponse.json({ error: error.message }, { status: 403 })
   }
 
   if (error instanceof NotFoundError) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 404 }
-    )
+    return NextResponse.json({ error: error.message }, { status: 404 })
   }
 
   if (error instanceof ValidationError) {
     return NextResponse.json(
       {
         error: 'Validation failed',
-        issues: error.issues.map(issue => ({
+        issues: error.issues.map((issue) => ({
           path: issue.path.join('.'),
-          message: issue.message
-        }))
+          message: issue.message,
+        })),
       },
-      { status: 400 }
+      { status: 400 },
     )
   }
 
   if (error instanceof z.ZodError) {
-    return NextResponse.json(
-      { error: 'Validation failed', issues: error.issues },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'Validation failed', issues: error.issues }, { status: 400 })
   }
 
   if (error instanceof Error && error.message) {
     // Check for known Prisma errors
     if (error.message.includes('Unique constraint')) {
-      return NextResponse.json(
-        { error: 'Resource already exists' },
-        { status: 409 }
-      )
+      return NextResponse.json({ error: 'Resource already exists' }, { status: 409 })
     }
   }
 
   // Generic error - don't leak details
-  return NextResponse.json(
-    { error: 'Internal server error' },
-    { status: 500 }
-  )
+  return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
 }
 
 /**
@@ -82,7 +69,7 @@ export function handleApiError(error: unknown): NextResponse {
  * Useful when you need to construct the response manually
  */
 export function errorResponse(error: unknown): { error: string; statusCode: number } {
-  console.error('Error:', error)
+  logger.error('Error:', error)
 
   if (error instanceof UnauthorizedError) {
     return { error: error.message, statusCode: 401 }

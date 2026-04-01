@@ -1,41 +1,42 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 
 export function Footer() {
   const t = useTranslations('footer')
+  const locale = useLocale()
 
   const footerSections = [
     {
       title: t('forCandidates'),
       links: [
-        { label: t('browseJobs'), href: '/jobs' },
-        { label: t('createCV'), href: '/create-cv' },
-        { label: t('careerAdvice'), href: '/career-advice' },
+        { label: t('browseJobs'), href: `/${locale}/jobs` },
+        { label: t('createCV'), href: `/${locale}/create-cv` },
+        { label: t('careerAdvice'), href: `/${locale}/career-advice` },
       ],
     },
     {
       title: t('forEmployers'),
       links: [
-        { label: t('postJob'), href: '/post-job' },
-        { label: t('pricing'), href: '/pricing' },
-        { label: t('atsFeatures'), href: '/features' },
+        { label: t('postJob'), href: `/${locale}/post-job` },
+        { label: t('pricing'), href: `/${locale}/pricing` },
+        { label: t('atsFeatures'), href: `/${locale}/features` },
       ],
     },
     {
       title: t('company'),
       links: [
-        { label: t('about'), href: '/about' },
-        { label: t('contact'), href: '/contact' },
-        { label: t('blog'), href: '/blog' },
+        { label: t('about'), href: `/${locale}/about` },
+        { label: t('contact'), href: `/${locale}/contact` },
+        { label: t('blog'), href: `/${locale}/blog` },
       ],
     },
     {
       title: t('legal'),
       links: [
-        { label: t('privacy'), href: '/privacy' },
-        { label: t('terms'), href: '/terms' },
-        { label: t('gdpr'), href: '/gdpr' },
+        { label: t('privacy'), href: `/${locale}/privacy` },
+        { label: t('terms'), href: `/${locale}/terms` },
+        { label: t('gdpr'), href: `/${locale}/gdpr` },
       ],
     },
   ]
@@ -71,11 +72,9 @@ export function Footer() {
                 alt="JobSphere"
                 width={120}
                 height={40}
-                className="h-10 w-auto mx-auto md:mx-0"
+                className="mx-auto h-10 w-auto md:mx-0"
               />
-              <p className="mt-2 text-sm text-muted-foreground">
-                {t('tagline')}
-              </p>
+              <p className="mt-2 text-sm text-muted-foreground">{t('tagline')}</p>
             </div>
             <p className="text-sm text-muted-foreground">
               © {new Date().getFullYear()} JobSphere. {t('allRightsReserved')}

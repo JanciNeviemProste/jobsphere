@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { withRateLimit } from '@/lib/rate-limit'
 import { z } from 'zod'
 import { validateRequest, strongPasswordSchema } from '@/lib/validation'
+import { logger } from '@/lib/logger'
+
+export const runtime = 'nodejs'
 
 const signupSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -104,7 +107,7 @@ export const POST = withRateLimit(
         )
       }
 
-      console.error('Signup error:', error)
+      logger.error('Signup error:', error)
       return NextResponse.json({ error: 'An error occurred during signup' }, { status: 500 })
     }
   },

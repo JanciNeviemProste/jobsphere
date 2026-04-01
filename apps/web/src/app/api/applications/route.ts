@@ -3,6 +3,18 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
+import { z } from 'zod'
+
+const stageEnum = z
+  .enum(['NEW', 'SCREENING', 'PHONE_SCREEN', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED'])
+  .optional()
+const paginationSchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(20),
+})
+
+export const runtime = 'nodejs'
 
 export async function GET(req: Request) {
   try {
@@ -12,35 +24,51 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url)
-    const stage = searchParams.get('stage')
+    const stageRaw = searchParams.get('stage') || undefined
     const jobId = searchParams.get('jobId')
+    const validatedStage = stageEnum.parse(stageRaw)
+    const { page, limit } = paginationSchema.parse({
+      page: searchParams.get('page'),
+      limit: searchParams.get('limit'),
+    })
 
-    const applications = await prisma.application.findMany({
-      where: {
-        candidateId: session.user.id,
-        ...(stage && { stage: stage as any }),
-        ...(jobId && { jobId }),
-      },
-      include: {
-        job: {
-          include: {
-            organization: {
-              select: {
-                name: true,
-                logo: true,
+    const where = {
+      candidateId: session.user.id,
+      ...(validatedStage && { stage: validatedStage }),
+      ...(jobId && { jobId }),
+    }
+
+    const [applications, total] = await Promise.all([
+      prisma.application.findMany({
+        where,
+        include: {
+          job: {
+            include: {
+              organization: {
+                select: {
+                  name: true,
+                  logo: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.application.count({ where }),
+    ])
 
-    return NextResponse.json(applications)
+    return NextResponse.json({
+      data: applications,
+      total,
+      page,
+      pageSize: limit,
+      hasMore: page * limit < total,
+    })
   } catch (error) {
-    console.error('Error fetching applications:', error)
+    logger.error('Error fetching applications', error)
     return NextResponse.json({ error: 'Failed to fetch applications' }, { status: 500 })
   }
 }
@@ -167,13 +195,13 @@ export const POST = withCsrfProtection(
             })
           }
         } catch (emailError) {
-          console.error('Failed to send email notifications:', emailError)
+          logger.error('Failed to send email notifications', emailError)
           // Don't fail the request if email fails
         }
 
         return NextResponse.json(application, { status: 201 })
       } catch (error: any) {
-        console.error('Error creating application:', error)
+        logger.error('Error creating application', error)
 
         // Handle unique constraint violation (race condition)
         if (error.code === 'P2002') {

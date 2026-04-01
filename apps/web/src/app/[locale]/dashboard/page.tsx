@@ -1,9 +1,19 @@
 import { Suspense } from 'react'
 import { getTranslations } from 'next-intl/server'
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import DashboardClient from './dashboard-client'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+
+export async function generateMetadata({
+  params: { locale },
+}: {
+  params: { locale: string }
+}): Promise<Metadata> {
+  const t = await getTranslations({ locale, namespace: 'pageMetadata' })
+  return { title: t('dashboard.title'), description: t('dashboard.description') }
+}
 
 async function getDashboardData() {
   const session = await auth()
@@ -23,7 +33,7 @@ async function getDashboardData() {
         name: true,
         email: true,
         avatar: true,
-      }
+      },
     }),
 
     // Get recent applications
@@ -36,10 +46,10 @@ async function getDashboardData() {
               select: {
                 name: true,
                 logo: true,
-              }
-            }
-          }
-        }
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 10,
@@ -51,11 +61,11 @@ async function getDashboardData() {
         candidateId: session.user.id,
       },
       orderBy: {
-        createdAt: 'desc'
+        createdAt: 'desc',
       },
       include: {
-        sections: true
-      }
+        sections: true,
+      },
     }),
 
     // Get recommended jobs (simplified server-side version)
@@ -68,21 +78,22 @@ async function getDashboardData() {
           select: {
             name: true,
             logo: true,
-          }
-        }
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 5,
-    })
+    }),
   ])
 
   // Calculate stats
   const stats = {
     total: applications.length,
-    pending: applications.filter(a => a.stage === 'NEW').length,
-    reviewing: applications.filter(a => a.stage === 'SCREENING' || a.stage === 'PHONE_SCREEN').length,
-    accepted: applications.filter(a => a.stage === 'HIRED' || a.stage === 'OFFER').length,
-    rejected: applications.filter(a => a.stage === 'REJECTED').length,
+    pending: applications.filter((a) => a.stage === 'NEW').length,
+    reviewing: applications.filter((a) => a.stage === 'SCREENING' || a.stage === 'PHONE_SCREEN')
+      .length,
+    accepted: applications.filter((a) => a.stage === 'HIRED' || a.stage === 'OFFER').length,
+    rejected: applications.filter((a) => a.stage === 'REJECTED').length,
   }
 
   // Calculate profile completion
@@ -115,7 +126,7 @@ async function getDashboardData() {
   profileSteps.preferences = false
 
   // Format applications
-  const formattedApplications = applications.map(app => ({
+  const formattedApplications = applications.map((app) => ({
     id: app.id,
     jobTitle: app.job.title,
     company: app.job.organization.name,
@@ -137,7 +148,7 @@ async function getDashboardData() {
     salaryMax: job.salaryMax,
     type: job.employmentType,
     // Simple decreasing match score
-    match: 95 - (index * 5)
+    match: 95 - index * 5,
   }))
 
   return {
@@ -159,15 +170,15 @@ function DashboardLoading() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <div className="h-9 w-64 bg-muted rounded animate-pulse mb-2" />
-          <div className="h-5 w-48 bg-muted rounded animate-pulse" />
+          <div className="mb-2 h-9 w-64 animate-pulse rounded bg-muted" />
+          <div className="h-5 w-48 animate-pulse rounded bg-muted" />
         </div>
-        <div className="grid gap-4 md:grid-cols-4 mb-8">
+        <div className="mb-8 grid gap-4 md:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i}>
               <CardHeader>
-                <div className="h-4 w-24 bg-muted rounded animate-pulse mb-2" />
-                <div className="h-8 w-16 bg-muted rounded animate-pulse" />
+                <div className="mb-2 h-4 w-24 animate-pulse rounded bg-muted" />
+                <div className="h-8 w-16 animate-pulse rounded bg-muted" />
               </CardHeader>
             </Card>
           ))}
@@ -176,14 +187,14 @@ function DashboardLoading() {
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <div className="h-6 w-32 bg-muted rounded animate-pulse" />
+                <div className="h-6 w-32 animate-pulse rounded bg-muted" />
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {[...Array(3)].map((_, i) => (
-                    <div key={i} className="p-4 border rounded-lg">
-                      <div className="h-5 w-48 bg-muted rounded animate-pulse mb-2" />
-                      <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+                    <div key={i} className="rounded-lg border p-4">
+                      <div className="mb-2 h-5 w-48 animate-pulse rounded bg-muted" />
+                      <div className="h-4 w-32 animate-pulse rounded bg-muted" />
                     </div>
                   ))}
                 </div>
@@ -193,10 +204,10 @@ function DashboardLoading() {
           <div>
             <Card>
               <CardHeader>
-                <div className="h-6 w-24 bg-muted rounded animate-pulse" />
+                <div className="h-6 w-24 animate-pulse rounded bg-muted" />
               </CardHeader>
               <CardContent>
-                <div className="h-32 bg-muted rounded animate-pulse" />
+                <div className="h-32 animate-pulse rounded bg-muted" />
               </CardContent>
             </Card>
           </div>

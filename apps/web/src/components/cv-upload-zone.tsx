@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Upload, FileText, Loader2, CheckCircle2, XCircle, Edit3 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { logger } from '@/lib/logger'
 
 type UploadStatus = 'idle' | 'uploading' | 'parsing' | 'success' | 'error'
 
@@ -53,7 +54,7 @@ export function CVUploadZone({ onCVParsed, onManualClick }: CVUploadZoneProps) {
     const validTypes = [
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain'
+      'text/plain',
     ]
 
     if (!validTypes.includes(selectedFile.type)) {
@@ -115,9 +116,8 @@ export function CVUploadZone({ onCVParsed, onManualClick }: CVUploadZoneProps) {
       setTimeout(() => {
         onCVParsed(parsed)
       }, 1000)
-
     } catch (err) {
-      console.error('Upload error:', err)
+      logger.error('Upload error', err)
       setStatus('error')
       setError(err instanceof Error ? err.message : t('error'))
     }
@@ -131,8 +131,8 @@ export function CVUploadZone({ onCVParsed, onManualClick }: CVUploadZoneProps) {
     <Card className="mb-8">
       <CardContent className="pt-6">
         {/* Title & Subtitle */}
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-semibold mb-2">{t('title')}</h2>
+        <div className="mb-6 text-center">
+          <h2 className="mb-2 text-2xl font-semibold">{t('title')}</h2>
           <p className="text-muted-foreground">{t('subtitle')}</p>
         </div>
 
@@ -142,9 +142,9 @@ export function CVUploadZone({ onCVParsed, onManualClick }: CVUploadZoneProps) {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={handleClick}
-          className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-all ${
+          className={`cursor-pointer rounded-lg border-2 border-dashed p-12 text-center transition-all ${
             isDragging
-              ? 'border-primary bg-primary/5 scale-[1.02]'
+              ? 'scale-[1.02] border-primary bg-primary/5'
               : 'border-gray-300 hover:border-primary hover:bg-muted/50'
           } ${status === 'uploading' || status === 'parsing' ? 'pointer-events-none opacity-60' : ''}`}
         >
@@ -159,15 +159,15 @@ export function CVUploadZone({ onCVParsed, onManualClick }: CVUploadZoneProps) {
 
           {/* Icon */}
           {status === 'idle' || status === 'error' ? (
-            <Upload className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <Upload className="mx-auto mb-4 h-16 w-16 text-gray-400" />
           ) : status === 'uploading' || status === 'parsing' ? (
-            <Loader2 className="h-16 w-16 text-primary mx-auto mb-4 animate-spin" />
+            <Loader2 className="mx-auto mb-4 h-16 w-16 animate-spin text-primary" />
           ) : status === 'success' ? (
-            <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto mb-4" />
+            <CheckCircle2 className="mx-auto mb-4 h-16 w-16 text-green-600" />
           ) : null}
 
           {/* Text */}
-          <p className="text-lg font-medium text-gray-900 mb-2">
+          <p className="mb-2 text-lg font-medium text-gray-900">
             {status === 'idle' && (file ? file.name : t('dragDrop'))}
             {status === 'uploading' && t('uploading')}
             {status === 'parsing' && t('parsing')}
@@ -179,9 +179,9 @@ export function CVUploadZone({ onCVParsed, onManualClick }: CVUploadZoneProps) {
 
         {/* Error Message */}
         {error && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-            <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-red-800 whitespace-pre-line flex-1">{error}</div>
+          <div className="mt-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
+            <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
+            <div className="flex-1 whitespace-pre-line text-sm text-red-800">{error}</div>
           </div>
         )}
 
@@ -192,7 +192,7 @@ export function CVUploadZone({ onCVParsed, onManualClick }: CVUploadZoneProps) {
             onClick={onManualClick}
             className="text-muted-foreground hover:text-foreground"
           >
-            <Edit3 className="h-4 w-4 mr-2" />
+            <Edit3 className="mr-2 h-4 w-4" />
             {t('manual')}
           </Button>
         </div>

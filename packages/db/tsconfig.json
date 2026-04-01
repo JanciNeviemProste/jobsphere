@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     "target": "ES2020",
     "module": "ESNext",
     "lib": ["ES2020"],
@@ -19,14 +20,5 @@
     "isolatedModules": true
   },
   "include": ["src/**/*"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.ts",
-    "**/*.spec.ts",
-    "tests/**/*",
-    "seed.ts",
-    "vitest.config.ts",
-    "**/*.d.ts"
-  ]
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts", "tests/**/*", "seed.ts", "vitest.config.ts", "**/*.d.ts"]
 }

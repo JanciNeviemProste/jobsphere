@@ -5,6 +5,8 @@ import { errorResponse } from '@/lib/errors'
 import { withRateLimit } from '@/lib/rate-limit'
 import { requireAuth } from '@/lib/auth'
 
+export const runtime = 'nodejs'
+
 export const GET = withRateLimit(
   async (req: Request) => {
     try {
@@ -15,35 +17,39 @@ export const GET = withRateLimit(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
 
-      // Get user profile
-      const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-      })
-
-      // Get candidate data separately (User doesn't have candidate relation)
-      const candidate = await prisma.candidate.findFirst({
-        where: { id: session.user.id },
-        include: {
-          _count: {
-            select: {
-              resumes: true
-            }
-          }
-        }
-      })
-
-      // Get application statistics
-      const applications = await prisma.application.findMany({
-        where: { candidateId: session.user.id },
-        select: { stage: true }
-      })
+      // Fetch user, candidate (with resume count and first resume skills),
+      // and applications in parallel to avoid sequential N+1 queries
+      const [user, candidate, applications] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: session.user.id },
+        }),
+        prisma.candidate.findFirst({
+          where: { id: session.user.id },
+          include: {
+            _count: {
+              select: {
+                resumes: true,
+              },
+            },
+            resumes: {
+              select: { skills: true },
+              take: 1,
+            },
+          },
+        }),
+        prisma.application.findMany({
+          where: { candidateId: session.user.id },
+          select: { stage: true },
+        }),
+      ])
 
       const stats = {
         total: applications.length,
-        pending: applications.filter(a => a.stage === 'NEW').length,
-        reviewing: applications.filter(a => a.stage === 'SCREENING' || a.stage === 'PHONE_SCREEN').length,
-        accepted: applications.filter(a => a.stage === 'HIRED' || a.stage === 'OFFER').length,
-        rejected: applications.filter(a => a.stage === 'REJECTED').length,
+        pending: applications.filter((a) => a.stage === 'NEW').length,
+        reviewing: applications.filter((a) => a.stage === 'SCREENING' || a.stage === 'PHONE_SCREEN')
+          .length,
+        accepted: applications.filter((a) => a.stage === 'HIRED' || a.stage === 'OFFER').length,
+        rejected: applications.filter((a) => a.stage === 'REJECTED').length,
       }
 
       // Calculate profile completion
@@ -67,13 +73,8 @@ export const GET = withRateLimit(
         profileCompletion += 25
       }
 
-      // Check skills (stored in resume)
-      const resume = candidate ? await prisma.resume.findFirst({
-        where: { candidateId: candidate.id },
-        select: {
-          skills: true
-        }
-      }) : null
+      // Check skills (already fetched via include above)
+      const resume = candidate?.resumes?.[0] ?? null
 
       if (resume?.skills && resume.skills.length > 0) {
         profileSteps.skills = true
@@ -88,20 +89,17 @@ export const GET = withRateLimit(
         user: {
           name: user?.name || 'User',
           email: user?.email || '',
-          avatarUrl: user?.avatar
+          avatarUrl: user?.avatar,
         },
         stats,
         profileCompletion,
-        profileSteps
+        profileSteps,
       })
     } catch (error) {
       logger.apiError('GET', '/api/dashboard/stats', error)
       const errorData = errorResponse(error)
-      return NextResponse.json(
-        { error: errorData.error },
-        { status: errorData.statusCode }
-      )
+      return NextResponse.json({ error: errorData.error }, { status: errorData.statusCode })
     }
   },
-  { preset: 'api', byUser: true }
+  { preset: 'api', byUser: true },
 )

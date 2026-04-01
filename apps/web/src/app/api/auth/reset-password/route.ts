@@ -3,18 +3,16 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { errorResponse } from '@/lib/errors'
 import { withRateLimit } from '@/lib/rate-limit'
+import { strongPasswordSchema } from '@/lib/validation'
 import * as z from 'zod'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 
+export const runtime = 'nodejs'
+
 const resetPasswordSchema = z.object({
   token: z.string(),
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-      'Password must contain uppercase, lowercase, number and special character'
-    ),
+  password: strongPasswordSchema,
 })
 
 export const POST = withRateLimit(
@@ -26,10 +24,7 @@ export const POST = withRateLimit(
       const { token, password } = resetPasswordSchema.parse(body)
 
       // Hash the token to compare with stored version
-      const hashedToken = crypto
-        .createHash('sha256')
-        .update(token)
-        .digest('hex')
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
 
       // Find valid reset token
       const resetToken = await prisma.verificationToken.findFirst({
@@ -43,10 +38,7 @@ export const POST = withRateLimit(
       })
 
       if (!resetToken) {
-        return NextResponse.json(
-          { error: 'Invalid or expired reset token' },
-          { status: 400 }
-        )
+        return NextResponse.json({ error: 'Invalid or expired reset token' }, { status: 400 })
       }
 
       // Find user by email from the token identifier
@@ -55,10 +47,7 @@ export const POST = withRateLimit(
       })
 
       if (!user) {
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
-        )
+        return NextResponse.json({ error: 'User not found' }, { status: 404 })
       }
 
       // Hash the new password
@@ -95,7 +84,7 @@ export const POST = withRateLimit(
               <p>Your password has been successfully changed.</p>
               <p>If you didn't make this change, please contact our support team immediately.</p>
               <p style="margin: 30px 0;">
-                <a href="${process.env.NEXT_PUBLIC_URL}/login" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                   Sign In
                 </a>
               </p>
@@ -114,7 +103,7 @@ export const POST = withRateLimit(
 
             If you didn't make this change, please contact our support team immediately.
 
-            Sign in at: ${process.env.NEXT_PUBLIC_URL}/login
+            Sign in at: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login
           `,
         })
       } catch (emailError) {
@@ -130,17 +119,14 @@ export const POST = withRateLimit(
       if (error instanceof z.ZodError) {
         return NextResponse.json(
           { error: 'Invalid password format', issues: error.issues },
-          { status: 400 }
+          { status: 400 },
         )
       }
 
       logger.apiError('POST', '/api/auth/reset-password', error)
       const errorData = errorResponse(error)
-      return NextResponse.json(
-        { error: errorData.error },
-        { status: errorData.statusCode }
-      )
+      return NextResponse.json({ error: errorData.error }, { status: errorData.statusCode })
     }
   },
-  { preset: 'auth' } // More restrictive rate limiting for auth endpoints
+  { preset: 'strict' }, // Strict rate limiting for sensitive password reset
 )

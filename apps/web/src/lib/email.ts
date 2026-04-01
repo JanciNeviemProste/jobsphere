@@ -1,11 +1,15 @@
-import { prisma } from './prisma'
+import { logger } from './logger'
 
 interface EmailData {
   to: string
   subject: string
   html: string
   text?: string
-  // Optional tracking metadata
+  variables?: Record<string, string>
+  includeUnsubscribe?: boolean
+  retryAttempts?: number
+  throwOnError?: boolean
+  useQueue?: boolean
   metadata?: {
     orgId?: string
     accountId?: string
@@ -14,185 +18,195 @@ interface EmailData {
   }
 }
 
+interface EmailResult {
+  success: boolean
+  id?: string
+  error?: string
+}
+
+/**
+ * Validate email fields against header injection attacks.
+ */
+function validateEmailHeaders(data: Pick<EmailData, 'to' | 'subject'>): void {
+  const NEWLINE_REGEX = /[\r\n]/
+  if (NEWLINE_REGEX.test(data.to)) {
+    throw new Error(
+      'Invalid email recipient: contains newline characters (possible header injection)',
+    )
+  }
+  if (NEWLINE_REGEX.test(data.subject)) {
+    throw new Error(
+      'Invalid email subject: contains newline characters (possible header injection)',
+    )
+  }
+}
+
+/**
+ * Replace {{key}} template variables in a string
+ */
+function applyVariables(text: string, variables?: Record<string, string>): string {
+  if (!variables) return text
+  let result = text
+  for (const [key, value] of Object.entries(variables)) {
+    result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value)
+  }
+  return result
+}
+
 /**
  * Send email using configured email service
- * Currently uses Resend (can be configured via env vars)
  */
-export async function sendEmail(data: EmailData): Promise<void> {
-  const emailService = process.env.EMAIL_SERVICE || 'resend'
+export async function sendEmail(data: EmailData): Promise<EmailResult> {
+  // Guard against email header injection
+  validateEmailHeaders(data)
 
-  if (emailService === 'resend') {
-    return sendResendEmail(data)
-  } else if (emailService === 'sendgrid') {
-    return sendSendGridEmail(data)
-  } else if (emailService === 'log') {
-    // Development mode - just log emails
-    console.log('📧 Email would be sent:', {
-      to: data.to,
-      subject: data.subject,
-      preview: data.text || data.html.substring(0, 100),
-    })
-    return
+  // Apply template variables
+  let subject = applyVariables(data.subject, data.variables)
+  let html = applyVariables(data.html, data.variables)
+
+  // Append unsubscribe link if requested
+  if (data.includeUnsubscribe) {
+    html +=
+      '<p style="font-size:12px;color:#999;text-align:center;margin-top:20px;">If you no longer wish to receive these emails, <a href="{{unsubscribe_url}}" style="color:#999;">unsubscribe</a>.</p>'
   }
 
-  throw new Error(`Unknown email service: ${emailService}`)
+  const processedData = { ...data, subject, html }
+  const emailService = process.env.EMAIL_SERVICE || 'resend'
+  const throwOnError = data.throwOnError !== false
+  const retryAttempts = data.retryAttempts ?? 0
+
+  try {
+    let result: EmailResult
+
+    if (emailService === 'resend') {
+      result = await sendWithRetry(() => sendResendEmail(processedData), retryAttempts)
+    } else if (emailService === 'sendgrid') {
+      result = await sendWithRetry(() => sendSendGridEmail(processedData), retryAttempts)
+    } else if (emailService === 'log') {
+      logger.info('Email logged', {
+        to: processedData.to,
+        subject: processedData.subject,
+      })
+      result = { success: true }
+    } else {
+      throw new Error(`Unknown email service: ${emailService}`)
+    }
+
+    return result
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    logger.error('Failed to send email', { error: errorMessage, to: data.to, subject })
+
+    if (!throwOnError) {
+      return { success: false, error: errorMessage }
+    }
+    throw error
+  }
+}
+
+async function sendWithRetry(
+  fn: () => Promise<EmailResult>,
+  retryAttempts: number,
+): Promise<EmailResult> {
+  let lastError: Error | undefined
+  const maxAttempts = retryAttempts + 1
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+      if (attempt >= maxAttempts - 1) {
+        throw lastError
+      }
+    }
+  }
+
+  throw lastError
+}
+
+async function sendResendEmail(data: EmailData): Promise<EmailResult> {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-expect-error resend may not be installed
+  const { Resend } = await import('resend')
+  const resend = new Resend(process.env.RESEND_API_KEY)
+
+  const result = await resend.emails.send({
+    from: process.env.EMAIL_FROM || 'JobSphere <noreply@jobsphere.app>',
+    to: data.to,
+    subject: data.subject,
+    html: data.html,
+  })
+
+  return { success: true, id: (result as any)?.id }
+}
+
+async function sendSendGridEmail(data: EmailData): Promise<EmailResult> {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-expect-error @sendgrid/mail may not be installed
+  const sgMail = (await import('@sendgrid/mail')).default
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY || '')
+
+  const result = await sgMail.send({
+    from: process.env.EMAIL_FROM || 'noreply@jobsphere.app',
+    to: data.to,
+    subject: data.subject,
+    html: data.html,
+  } as any)
+
+  return { success: true }
 }
 
 /**
- * Track email in database (if metadata provided)
+ * Send application received notification
  */
-async function trackEmail(
-  data: EmailData,
-  status: 'SENT' | 'FAILED',
-  providerId?: string,
-): Promise<void> {
-  // Only track if we have org/account context
-  if (!data.metadata?.orgId || !data.metadata?.accountId) {
-    return
-  }
+export async function sendApplicationNotification(params: {
+  candidateName: string
+  jobTitle: string
+  companyName: string
+  recipientEmail: string
+}): Promise<EmailResult> {
+  const { candidateName, jobTitle, companyName, recipientEmail } = params
 
-  try {
-    // Get or create email thread
-    let thread = await prisma.emailThread.findFirst({
-      where: {
-        orgId: data.metadata.orgId,
-        accountId: data.metadata.accountId,
-        entityType: data.metadata.entityType || null,
-        entityId: data.metadata.entityId || null,
-      },
-    })
-
-    if (!thread) {
-      thread = await prisma.emailThread.create({
-        data: {
-          orgId: data.metadata.orgId,
-          accountId: data.metadata.accountId,
-          entityType: data.metadata.entityType || null,
-          entityId: data.metadata.entityId || null,
-          subject: data.subject,
-          participants: [data.to],
-        },
-      })
-    }
-
-    // Create email message record
-    await prisma.emailMessage.create({
-      data: {
-        threadId: thread.id,
-        fromEmail: process.env.EMAIL_FROM || 'noreply@jobsphere.app',
-        toEmails: [data.to],
-        subject: data.subject,
-        bodyHtml: data.html,
-        bodyText: data.text,
-        direction: 'OUTBOUND',
-        status: status,
-        sentAt: status === 'SENT' ? new Date() : null,
-        providerId: providerId,
-      },
-    })
-  } catch (error) {
-    console.error('Failed to track email in database:', error)
-    // Don't throw - tracking failures shouldn't block email sending
-  }
+  return sendEmail({
+    to: recipientEmail,
+    subject: `Application Received - ${jobTitle} at ${companyName}`,
+    html: `
+      <div>
+        <h1>Application Received</h1>
+        <p>Dear ${candidateName},</p>
+        <p>Thank you for applying to <strong>${jobTitle}</strong> at <strong>${companyName}</strong>.</p>
+        <p>We have received your application and will review it shortly.</p>
+        <p>Best regards,<br>The ${companyName} Team</p>
+      </div>
+    `,
+  })
 }
 
-async function sendResendEmail(data: EmailData): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY
+/**
+ * Send status change email notification
+ */
+export async function sendStatusChangeEmail(params: {
+  candidateName: string
+  jobTitle: string
+  newStatus: string
+  recipientEmail: string
+}): Promise<EmailResult> {
+  const { candidateName, jobTitle, newStatus, recipientEmail } = params
 
-  if (!apiKey) {
-    console.warn('RESEND_API_KEY not set, email not sent:', data.subject)
-    return
-  }
-
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        from: process.env.EMAIL_FROM || 'JobSphere <noreply@jobsphere.app>',
-        to: data.to,
-        subject: data.subject,
-        html: data.html,
-        text: data.text,
-      }),
-    })
-
-    if (!response.ok) {
-      const error = await response.text()
-      throw new Error(`Resend API error: ${error}`)
-    }
-
-    // Track email in database
-    const responseData = await response.json()
-    await trackEmail(data, 'SENT', responseData.id)
-  } catch (error) {
-    console.error('Error sending email via Resend:', error)
-
-    // Track failed email
-    await trackEmail(data, 'FAILED')
-
-    throw error
-  }
-}
-
-async function sendSendGridEmail(data: EmailData): Promise<void> {
-  const apiKey = process.env.SENDGRID_API_KEY
-
-  if (!apiKey) {
-    console.warn('SENDGRID_API_KEY not set, email not sent:', data.subject)
-    return
-  }
-
-  try {
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: data.to }] }],
-        from: {
-          email: process.env.EMAIL_FROM || 'noreply@jobsphere.app',
-          name: 'JobSphere',
-        },
-        subject: data.subject,
-        content: [
-          {
-            type: 'text/html',
-            value: data.html,
-          },
-          ...(data.text
-            ? [
-                {
-                  type: 'text/plain',
-                  value: data.text,
-                },
-              ]
-            : []),
-        ],
-      }),
-    })
-
-    if (!response.ok) {
-      const error = await response.text()
-      throw new Error(`SendGrid API error: ${error}`)
-    }
-
-    // Track email in database
-    const responseHeaders = response.headers.get('x-message-id')
-    await trackEmail(data, 'SENT', responseHeaders || undefined)
-  } catch (error) {
-    console.error('Error sending email via SendGrid:', error)
-
-    // Track failed email
-    await trackEmail(data, 'FAILED')
-
-    throw error
-  }
+  return sendEmail({
+    to: recipientEmail,
+    subject: `Application Update - ${jobTitle}`,
+    html: `
+      <div>
+        <h1>Application Update</h1>
+        <p>Dear ${candidateName},</p>
+        <p>Your application for <strong>${jobTitle}</strong> has been updated.</p>
+        <p>New status: <strong>${newStatus}</strong></p>
+        <p>Best regards,<br>The JobSphere Team</p>
+      </div>
+    `,
+  })
 }
 
 /**
@@ -331,132 +345,4 @@ export function getApplicationStatusChangeEmail(
       </body>
     </html>
   `
-}
-
-/**
- * Send status change email notification to candidate
- */
-export async function sendStatusChangeEmail(
-  applicationId: string,
-  newStage: string,
-): Promise<void> {
-  try {
-    // Get application with related data
-    const application = await prisma.application.findUnique({
-      where: { id: applicationId },
-      include: {
-        candidate: {
-          include: {
-            contacts: {
-              where: { isPrimary: true },
-              take: 1,
-            },
-          },
-        },
-        job: {
-          include: {
-            organization: true,
-          },
-        },
-      },
-    })
-
-    if (!application) {
-      console.warn('Application not found for email notification:', applicationId)
-      return
-    }
-
-    const email = application.candidate?.contacts?.[0]?.email
-    if (!email) {
-      console.warn('No email found for candidate:', application.candidateId)
-      return
-    }
-
-    const candidateName = application.candidate?.contacts?.[0]?.fullName || 'there'
-    const jobTitle = application.job?.title || 'the position'
-    const companyName = application.job?.organization?.name || 'our company'
-
-    let subject = ''
-    let html = ''
-
-    if (newStage === 'HIRED') {
-      subject = `Congratulations! You've been selected for ${jobTitle}`
-      html = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <style>
-              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-              .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-              .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-              .button { display: inline-block; background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-              .footer { text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="header">
-                <h1>Congratulations!</h1>
-              </div>
-              <div class="content">
-                <p>Hi ${candidateName},</p>
-                <p>We're thrilled to inform you that you've been selected for the <strong>${jobTitle}</strong> position at <strong>${companyName}</strong>!</p>
-                <p>We'll be in touch soon with next steps regarding your onboarding and start date.</p>
-                <p>Welcome to the team!</p>
-                <p>Best regards,<br>The ${companyName} Team</p>
-              </div>
-              <div class="footer">
-                <p>This is an automated email from JobSphere.</p>
-              </div>
-            </div>
-          </body>
-        </html>
-      `
-    } else if (newStage === 'REJECTED') {
-      subject = `Update on your application for ${jobTitle}`
-      html = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <style>
-              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-              .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-              .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-              .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-              .footer { text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="header">
-                <h1>Application Update</h1>
-              </div>
-              <div class="content">
-                <p>Hi ${candidateName},</p>
-                <p>Thank you for your interest in the <strong>${jobTitle}</strong> position at <strong>${companyName}</strong>.</p>
-                <p>After careful consideration, we've decided to move forward with other candidates at this time.</p>
-                <p>We appreciate the time you invested in the application process and wish you the best in your job search.</p>
-                <p>Best regards,<br>The ${companyName} Team</p>
-              </div>
-              <div class="footer">
-                <p>This is an automated email from JobSphere.</p>
-              </div>
-            </div>
-          </body>
-        </html>
-      `
-    } else {
-      // For other stages, don't send email
-      return
-    }
-
-    await sendEmail({ to: email, subject, html })
-  } catch (error) {
-    console.error('Error sending status change email:', error)
-    // Don't throw - email failures shouldn't block the application status update
-  }
 }

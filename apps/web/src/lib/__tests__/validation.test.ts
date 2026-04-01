@@ -116,7 +116,8 @@ describe('Zod Validation Schemas', () => {
       const validApp = {
         jobId: 'job123',
         candidateId: 'candidate123',
-        coverLetter: 'I am very interested in this position and believe my skills align well with the requirements.',
+        coverLetter:
+          'I am very interested in this position and believe my skills align well with the requirements.',
       }
 
       const result = applicationSchema.safeParse(validApp)
@@ -128,25 +129,17 @@ describe('Zod Validation Schemas', () => {
         email: 'john.doe@example.com',
       }
 
-      expect(applicationSchema.pick({ email: true }).safeParse(validEmail).success).toBe(
-        true
-      )
+      expect(applicationSchema.pick({ email: true }).safeParse(validEmail).success).toBe(true)
 
       const invalidEmail = {
         email: 'not-an-email',
       }
 
-      expect(
-        applicationSchema.pick({ email: true }).safeParse(invalidEmail).success
-      ).toBe(false)
+      expect(applicationSchema.pick({ email: true }).safeParse(invalidEmail).success).toBe(false)
     })
 
     it('should validate phone number format', () => {
-      const validPhones = [
-        '+421 900 123 456',
-        '+1 (555) 123-4567',
-        '0900123456',
-      ]
+      const validPhones = ['+421 900 123 456', '+1 (555) 123-4567', '0900123456']
 
       validPhones.forEach((phone) => {
         const result = applicationSchema
@@ -172,9 +165,7 @@ describe('Zod Validation Schemas', () => {
         linkedin: 'https://linkedin.com/in/john-doe',
       }
 
-      const result = applicationSchema
-        .pick({ linkedin: true })
-        .safeParse(validLinkedIn)
+      const result = applicationSchema.pick({ linkedin: true }).safeParse(validLinkedIn)
       expect(result.success).toBe(true)
     })
 
@@ -183,9 +174,7 @@ describe('Zod Validation Schemas', () => {
         linkedin: 'not-a-url',
       }
 
-      const result = applicationSchema
-        .pick({ linkedin: true })
-        .safeParse(invalidLinkedIn)
+      const result = applicationSchema.pick({ linkedin: true }).safeParse(invalidLinkedIn)
       expect(result.success).toBe(false)
     })
 
@@ -295,7 +284,7 @@ describe('Zod Validation Schemas', () => {
       const result = userSignupSchema.safeParse(weakPassword)
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error.issues[0].message).toContain('8')
+        expect(result.error.issues[0].message).toContain('12')
       }
     })
   })
@@ -342,9 +331,7 @@ describe('Zod Validation Schemas', () => {
         email: 'invalid-email',
       }
 
-      const result = applicationSchema
-        .pick({ email: true })
-        .safeParse(invalid)
+      const result = applicationSchema.pick({ email: true }).safeParse(invalid)
       expect(result.success).toBe(false)
       if (!result.success) {
         expect(result.error.issues[0].path).toContain('email')

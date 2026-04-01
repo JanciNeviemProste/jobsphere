@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -14,20 +15,30 @@ import {
   Sparkles,
   CheckCircle,
   Clock,
-  ArrowRight
+  ArrowRight,
 } from 'lucide-react'
+
+export async function generateMetadata({
+  params: { locale },
+}: {
+  params: { locale: string }
+}): Promise<Metadata> {
+  const t = await getTranslations({ locale, namespace: 'pageMetadata' })
+  return { title: t('academy.title'), description: t('academy.description') }
+}
 
 // Academy modules data
 const academyModules = [
   {
     id: 'cv-basics',
     title: 'Ako napísať perfektný životopis',
-    description: 'Naučte sa vytvoriť profesionálny CV, ktorý zaujme recruiterov a prejde cez ATS systémy.',
+    description:
+      'Naučte sa vytvoriť profesionálny CV, ktorý zaujme recruiterov a prejde cez ATS systémy.',
     icon: FileText,
     duration: '15 min',
     difficulty: 'Začiatočník',
     topics: ['Štruktúra CV', 'Kľúčové slová', 'Formátovanie', 'Časté chyby'],
-    color: 'bg-blue-500'
+    color: 'bg-blue-500',
   },
   {
     id: 'cover-letter',
@@ -37,7 +48,7 @@ const academyModules = [
     duration: '12 min',
     difficulty: 'Začiatočník',
     topics: ['Personalizácia', 'Storytelling', 'Štruktúra', 'Volanie k akcii'],
-    color: 'bg-green-500'
+    color: 'bg-green-500',
   },
   {
     id: 'job-search',
@@ -47,7 +58,7 @@ const academyModules = [
     duration: '18 min',
     difficulty: 'Začiatočník',
     topics: ['Job portály', 'Networking', 'Priame oslovenie', 'Sledovanie firiem'],
-    color: 'bg-purple-500'
+    color: 'bg-purple-500',
   },
   {
     id: 'linkedin',
@@ -57,7 +68,7 @@ const academyModules = [
     duration: '20 min',
     difficulty: 'Stredne pokročilý',
     topics: ['Headline a summary', 'Odporúčania', 'Contentt marketing', 'Networking tipy'],
-    color: 'bg-sky-500'
+    color: 'bg-sky-500',
   },
   {
     id: 'interview-prep',
@@ -67,7 +78,7 @@ const academyModules = [
     duration: '25 min',
     difficulty: 'Stredne pokročilý',
     topics: ['Výskum firmy', 'Časté otázky', 'STAR metóda', 'Body language'],
-    color: 'bg-orange-500'
+    color: 'bg-orange-500',
   },
   {
     id: 'salary-negotiation',
@@ -77,7 +88,7 @@ const academyModules = [
     duration: '15 min',
     difficulty: 'Pokročilý',
     topics: ['Výskum miezd', 'Timing', 'Argumentácia', 'Alternatívne benefity'],
-    color: 'bg-emerald-500'
+    color: 'bg-emerald-500',
   },
   {
     id: 'personal-brand',
@@ -87,7 +98,7 @@ const academyModules = [
     duration: '22 min',
     difficulty: 'Pokročilý',
     topics: ['Online prítomnosť', 'Portfolio', 'Thought leadership', 'Konzistencia'],
-    color: 'bg-pink-500'
+    color: 'bg-pink-500',
   },
   {
     id: 'career-change',
@@ -96,34 +107,33 @@ const academyModules = [
     icon: Target,
     duration: '30 min',
     difficulty: 'Pokročilý',
-    topics: ['Sebahodnotenie', 'Transferable skills', 'Prekvalifikácia', 'Networking v novom odbore'],
-    color: 'bg-amber-500'
-  }
+    topics: [
+      'Sebahodnotenie',
+      'Transferable skills',
+      'Prekvalifikácia',
+      'Networking v novom odbore',
+    ],
+    color: 'bg-amber-500',
+  },
 ]
 
-export default async function AcademyPage({
-  params
-}: {
-  params: { locale: string }
-}) {
+export default async function AcademyPage({ params }: { params: { locale: string } }) {
   const t = await getTranslations()
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       {/* Hero Section */}
-      <div className="bg-primary/5 border-b">
+      <div className="border-b bg-primary/5">
         <div className="container mx-auto px-4 py-16">
           <div className="max-w-3xl">
             <Badge className="mb-4">
               <GraduationCap className="mr-1 h-3 w-3" />
               JobSphere Academy
             </Badge>
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Nájdite si vysnívanú prácu
-            </h1>
-            <p className="text-xl text-muted-foreground mb-8">
-              Bezplatné vzdelávacie materiály, ktoré vám pomôžu zlepšiť vaše šance
-              na pracovnom trhu. Od písania CV až po vyjednávanie o plate.
+            <h1 className="mb-6 text-4xl font-bold md:text-5xl">Nájdite si vysnívanú prácu</h1>
+            <p className="mb-8 text-xl text-muted-foreground">
+              Bezplatné vzdelávacie materiály, ktoré vám pomôžu zlepšiť vaše šance na pracovnom
+              trhu. Od písania CV až po vyjednávanie o plate.
             </p>
             <div className="flex flex-wrap gap-4">
               <div className="flex items-center gap-2 text-sm">
@@ -145,33 +155,33 @@ export default async function AcademyPage({
 
       {/* Modules Grid */}
       <div className="container mx-auto px-4 py-12">
-        <h2 className="text-2xl font-bold mb-8">Vzdelávacie moduly</h2>
+        <h2 className="mb-8 text-2xl font-bold">Vzdelávacie moduly</h2>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {academyModules.map((module, index) => {
             const Icon = module.icon
             return (
-              <Card key={module.id} className="hover:shadow-lg transition-shadow group">
+              <Card key={module.id} className="group transition-shadow hover:shadow-lg">
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <div className={`p-3 rounded-lg ${module.color} text-white`}>
+                    <div className={`rounded-lg p-3 ${module.color} text-white`}>
                       <Icon className="h-6 w-6" />
                     </div>
                     <Badge variant="outline">{module.difficulty}</Badge>
                   </div>
-                  <CardTitle className="mt-4 group-hover:text-primary transition-colors">
+                  <CardTitle className="mt-4 transition-colors group-hover:text-primary">
                     {module.title}
                   </CardTitle>
                   <CardDescription>{module.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                  <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock className="h-4 w-4" />
                     <span>{module.duration} čítania</span>
                   </div>
 
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {module.topics.map(topic => (
+                  <div className="mb-4 flex flex-wrap gap-1">
+                    {module.topics.map((topic) => (
                       <Badge key={topic} variant="secondary" className="text-xs">
                         {topic}
                       </Badge>
@@ -192,23 +202,19 @@ export default async function AcademyPage({
 
         {/* CTA Section */}
         <div className="mt-16 text-center">
-          <Card className="bg-primary/5 border-primary/20">
+          <Card className="border-primary/20 bg-primary/5">
             <CardContent className="py-12">
-              <h3 className="text-2xl font-bold mb-4">Pripravený začať?</h3>
-              <p className="text-muted-foreground max-w-xl mx-auto mb-6">
-                Vytvorte si účet a sledujte svoj pokrok. Ukladajte si poznámky
-                a vracajte sa k materiálom kedykoľvek potrebujete.
+              <h3 className="mb-4 text-2xl font-bold">Pripravený začať?</h3>
+              <p className="mx-auto mb-6 max-w-xl text-muted-foreground">
+                Vytvorte si účet a sledujte svoj pokrok. Ukladajte si poznámky a vracajte sa k
+                materiálom kedykoľvek potrebujete.
               </p>
-              <div className="flex flex-wrap gap-4 justify-center">
+              <div className="flex flex-wrap justify-center gap-4">
                 <Button size="lg" asChild>
-                  <Link href={`/${params.locale}/signup`}>
-                    Vytvoriť účet
-                  </Link>
+                  <Link href={`/${params.locale}/signup`}>Vytvoriť účet</Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
-                  <Link href={`/${params.locale}/jobs`}>
-                    Prehľadať práce
-                  </Link>
+                  <Link href={`/${params.locale}/jobs`}>Prehľadať práce</Link>
                 </Button>
               </div>
             </CardContent>

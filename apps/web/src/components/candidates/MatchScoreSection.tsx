@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { TrendingUp, Briefcase, AlertCircle, MapPin, Euro } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
+import { logger } from '@/lib/logger'
 
 interface MatchScore {
   jobId: string
@@ -40,30 +41,30 @@ export function MatchScoreSection({ candidateId, locale }: MatchScoreSectionProp
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchScores = async () => {
-      try {
-        setLoading(true)
-        setError(null)
+  const fetchScores = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
 
-        const response = await fetch(`/api/candidates/${candidateId}/match-scores`)
+      const response = await fetch(`/api/candidates/${candidateId}/match-scores`)
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch match scores')
-        }
-
-        const data = await response.json()
-        setScores(data.scores || [])
-      } catch (err) {
-        console.error('Error fetching match scores:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load match scores')
-      } finally {
-        setLoading(false)
+      if (!response.ok) {
+        throw new Error('Failed to fetch match scores')
       }
-    }
 
-    fetchScores()
+      const data = await response.json()
+      setScores(data.scores || [])
+    } catch (err) {
+      logger.error('Error fetching match scores', err)
+      setError(err instanceof Error ? err.message : 'Failed to load match scores')
+    } finally {
+      setLoading(false)
+    }
   }, [candidateId])
+
+  useEffect(() => {
+    fetchScores()
+  }, [fetchScores])
 
   const getMatchColor = (score: number) => {
     if (score >= 80) return 'text-green-600 dark:text-green-500'
@@ -118,7 +119,12 @@ export function MatchScoreSection({ candidateId, locale }: MatchScoreSectionProp
         </h2>
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription className="flex items-center justify-between">
+            {error}
+            <Button variant="outline" size="sm" onClick={() => fetchScores()}>
+              Retry
+            </Button>
+          </AlertDescription>
         </Alert>
       </div>
     )

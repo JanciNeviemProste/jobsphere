@@ -10,7 +10,7 @@ export interface AntivirusResult {
   clean: boolean
   virus?: string
   scanTime: number
-  skipped?: boolean  // True if scan was skipped due to unavailability
+  skipped?: boolean // True if scan was skipped due to unavailability
 }
 
 // Security: Determine fail mode - default to CLOSED in production, OPEN in development
@@ -66,7 +66,6 @@ export async function scanWithClamAV(buffer: Buffer): Promise<AntivirusResult> {
 
     logger.info('File clean', { scanTime })
     return { clean: true, scanTime }
-
   } catch (error) {
     const scanTime = Date.now() - startTime
     const failMode = getFailMode()
@@ -80,7 +79,7 @@ export async function scanWithClamAV(buffer: Buffer): Promise<AntivirusResult> {
         clean: false,
         virus: 'ANTIVIRUS_UNAVAILABLE',
         scanTime,
-        skipped: true
+        skipped: true,
       }
     }
 
@@ -95,7 +94,7 @@ export async function scanWithClamAV(buffer: Buffer): Promise<AntivirusResult> {
  */
 export async function verifyMimeType(
   buffer: Buffer,
-  declaredType: string
+  declaredType: string,
 ): Promise<{ valid: boolean; actualType?: string }> {
   try {
     // Dynamic import for file-type
@@ -103,11 +102,8 @@ export async function verifyMimeType(
     const fileType = await fileTypeModule.fileTypeFromBuffer(buffer)
 
     if (!fileType) {
-      // Unable to detect type, allow if it's plain text
-      if (declaredType === 'text/plain') {
-        return { valid: true }
-      }
-      logger.warn('Unable to detect file type', { declaredType })
+      // Unable to detect file type from magic bytes - reject for security
+      logger.warn('Unable to detect file type from magic bytes', { declaredType })
       return { valid: false }
     }
 
@@ -117,13 +113,9 @@ export async function verifyMimeType(
     const actualNorm = normalize(fileType.mime)
 
     // Special cases
-    const isDocx =
-      declaredNorm.includes('wordprocessing') &&
-      actualNorm === 'application/zip' // DOCX is a zip file
+    const isDocx = declaredNorm.includes('wordprocessing') && actualNorm === 'application/zip' // DOCX is a zip file
 
-    const isPdf =
-      declaredNorm === 'application/pdf' &&
-      actualNorm === 'application/pdf'
+    const isPdf = declaredNorm === 'application/pdf' && actualNorm === 'application/pdf'
 
     const valid = isDocx || isPdf || declaredNorm === actualNorm
 
@@ -149,7 +141,9 @@ export async function verifyMimeType(
     }
 
     // Fail-open mode (development only)
-    logger.warn('MIME verification failed - allowing file (fail-open mode). DO NOT USE IN PRODUCTION!')
+    logger.warn(
+      'MIME verification failed - allowing file (fail-open mode). DO NOT USE IN PRODUCTION!',
+    )
     return { valid: true }
   }
 }
@@ -159,7 +153,7 @@ export async function verifyMimeType(
  */
 export async function securityCheck(
   buffer: Buffer,
-  metadata: { filename: string; mimeType: string; fileSize: number }
+  metadata: { filename: string; mimeType: string; fileSize: number },
 ): Promise<void> {
   const traceId = crypto.randomUUID()
 
@@ -175,7 +169,7 @@ export async function securityCheck(
   const mimeCheck = await verifyMimeType(buffer, metadata.mimeType)
   if (!mimeCheck.valid) {
     throw new CVParseException(
-      CVErrors.mimeMismatch(metadata.mimeType, mimeCheck.actualType || 'unknown')
+      CVErrors.mimeMismatch(metadata.mimeType, mimeCheck.actualType || 'unknown'),
     )
   }
 

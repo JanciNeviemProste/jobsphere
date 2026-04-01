@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { addEmbeddingJob, addMatchScoreCacheJob } from '@/lib/queue'
+import { logger } from '@/lib/logger'
+import type { Job } from '@prisma/client'
 
 export async function createJob(formData: {
   title: string
@@ -15,7 +17,7 @@ export async function createJob(formData: {
   seniority: string
   description: string
   orgId: string
-}) {
+}): Promise<Job> {
   const session = await auth()
 
   if (!session?.user?.id) {
@@ -43,8 +45,8 @@ export async function createJob(formData: {
       hybrid: formData.workMode === 'HYBRID',
       salaryMin: formData.minSalary ? parseInt(formData.minSalary) : null,
       salaryMax: formData.maxSalary ? parseInt(formData.maxSalary) : null,
-      employmentType: formData.type as any,
-      seniority: formData.seniority as any,
+      employmentType: formData.type,
+      seniority: formData.seniority,
       description: formData.description,
       orgId: formData.orgId,
       status: 'PUBLISHED',
@@ -54,13 +56,13 @@ export async function createJob(formData: {
 
   // Async embedding generation (non-blocking)
   addEmbeddingJob({ jobId: job.id }).catch((err) => {
-    console.error('Failed to queue job embedding:', err)
+    logger.error('Failed to queue job embedding', { error: err, jobId: job.id })
     // Don't throw - embedding is nice-to-have, not critical
   })
 
   // Async match score caching for popular jobs (non-blocking)
   addMatchScoreCacheJob({ jobId: job.id }).catch((err) => {
-    console.error('Failed to queue match score caching:', err)
+    logger.error('Failed to queue match score caching', { error: err, jobId: job.id })
     // Don't throw - caching is nice-to-have, not critical
   })
 
@@ -70,7 +72,7 @@ export async function createJob(formData: {
   return job
 }
 
-export async function updateJobStatus(jobId: string, status: string) {
+export async function updateJobStatus(jobId: string, status: string): Promise<Job> {
   const session = await auth()
 
   if (!session?.user?.id) {
@@ -99,7 +101,7 @@ export async function updateJobStatus(jobId: string, status: string) {
 
   const updatedJob = await prisma.job.update({
     where: { id: jobId },
-    data: { status: status as any },
+    data: { status },
   })
 
   revalidatePath('/employer')
@@ -108,7 +110,7 @@ export async function updateJobStatus(jobId: string, status: string) {
   return updatedJob
 }
 
-export async function deleteJob(jobId: string) {
+export async function deleteJob(jobId: string): Promise<{ success: true }> {
   const session = await auth()
 
   if (!session?.user?.id) {

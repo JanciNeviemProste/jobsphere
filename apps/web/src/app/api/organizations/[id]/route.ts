@@ -3,6 +3,9 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { sanitizeHtml, sanitizeUrl } from '@/lib/sanitize'
+import { logger } from '@/lib/logger'
+
+export const runtime = 'nodejs'
 
 const updateOrgSchema = z.object({
   name: z.string().min(1).max(255).optional(),
@@ -51,7 +54,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     return NextResponse.json(organization)
   } catch (error) {
-    console.error('Error fetching organization:', error)
+    logger.error('Error fetching organization:', error)
     return NextResponse.json({ error: 'Failed to fetch organization' }, { status: 500 })
   }
 }
@@ -127,7 +130,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       )
     }
 
-    console.error('Error updating organization:', error)
+    logger.error('Error updating organization:', error)
     return NextResponse.json({ error: 'Failed to update organization' }, { status: 500 })
   }
 }

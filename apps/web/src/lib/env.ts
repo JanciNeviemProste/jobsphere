@@ -6,10 +6,11 @@
  *
  * Usage:
  * import { env } from '@/lib/env'
- * console.log(env.NEXT_PUBLIC_APP_URL)
+ * logger.info(env.NEXT_PUBLIC_APP_URL)
  */
 
 import { z } from 'zod'
+import { logger } from './logger'
 
 // Define schema for environment variables
 const envSchema = z.object({
@@ -25,7 +26,9 @@ const envSchema = z.object({
   REDIS_URL: z.string().url(),
 
   // ----- SECURITY KEYS -----
-  ENCRYPTION_KEY: z.string().min(64, 'ENCRYPTION_KEY must be at least 64 characters (32 bytes hex)'),
+  ENCRYPTION_KEY: z
+    .string()
+    .min(64, 'ENCRYPTION_KEY must be at least 64 characters (32 bytes hex)'),
   CSRF_SECRET: z.string().min(32, 'CSRF_SECRET must be at least 32 characters').optional(),
 
   // ----- AI API KEYS -----
@@ -91,8 +94,8 @@ function validateEnv(): Env {
 
       throw new Error(
         `\n❌ Invalid environment variables:\n\n${missingVars.join('\n')}\n\n` +
-        `📝 Check your .env.local file or Vercel Environment Variables.\n` +
-        `📖 See apps/web/.env.example for required variables.\n`
+          `📝 Check your .env.local file or Vercel Environment Variables.\n` +
+          `📖 See apps/web/.env.example for required variables.\n`,
       )
     }
     throw error
@@ -123,6 +126,6 @@ export const clientEnv = {
  */
 if (isClient) {
   if (!clientEnv.NEXT_PUBLIC_APP_URL || !clientEnv.NEXT_PUBLIC_API_URL) {
-    console.error('❌ Missing required NEXT_PUBLIC_* environment variables')
+    logger.error('❌ Missing required NEXT_PUBLIC_* environment variables')
   }
 }

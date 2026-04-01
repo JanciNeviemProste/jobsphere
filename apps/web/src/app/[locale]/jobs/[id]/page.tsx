@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getTranslations } from 'next-intl/server'
@@ -19,22 +20,93 @@ import {
   ArrowLeft,
   Share2,
   Heart,
-  Send
+  Send,
 } from 'lucide-react'
 import { ViewTracker } from '@/components/job/view-tracker'
 import { SaveJobButton } from '@/components/job/save-job-button'
 import { ShareJobButton } from '@/components/job/share-job-button'
 import { formatDistanceToNow } from 'date-fns'
 import { sk, cs, pl, de, enUS } from 'date-fns/locale'
+import { logger } from '@/lib/logger'
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { id: string; locale: string }
+}): Promise<Metadata> {
+  const job = await prisma.job.findUnique({
+    where: { id: params.id, status: 'ACTIVE' },
+    select: {
+      title: true,
+      description: true,
+      city: true,
+      region: true,
+      salaryMin: true,
+      salaryMax: true,
+      salaryCurrency: true,
+      employmentType: true,
+      metaTitle: true,
+      metaDescription: true,
+      organization: { select: { name: true } },
+    },
+  })
+
+  if (!job) {
+    return { title: 'Job not found' }
+  }
+
+  const title = job.metaTitle || `${job.title} at ${job.organization.name}`
+  const location = job.city || job.region || 'Remote'
+  const salary =
+    job.salaryMin && job.salaryMax
+      ? ` | ${job.salaryCurrency} ${job.salaryMin.toLocaleString()}-${job.salaryMax.toLocaleString()}`
+      : ''
+  const description =
+    job.metaDescription ||
+    `${job.title} - ${job.employmentType.replace('_', ' ')} in ${location}${salary} | ${job.organization.name}`
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title: `${title} | JobSphere`,
+      description,
+      type: 'website',
+      url: `/${params.locale}/jobs/${params.id}`,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${title} | JobSphere`,
+      description,
+    },
+    alternates: {
+      canonical: `${appUrl}/${params.locale}/jobs/${params.id}`,
+      languages: {
+        en: `${appUrl}/en/jobs/${params.id}`,
+        de: `${appUrl}/de/jobs/${params.id}`,
+        cs: `${appUrl}/cs/jobs/${params.id}`,
+        sk: `${appUrl}/sk/jobs/${params.id}`,
+        pl: `${appUrl}/pl/jobs/${params.id}`,
+      },
+    },
+  }
+}
 
 // Get date locale based on current locale
 function getDateLocale(locale: string) {
-  switch(locale) {
-    case 'sk': return sk
-    case 'cs': return cs
-    case 'pl': return pl
-    case 'de': return de
-    default: return enUS
+  switch (locale) {
+    case 'sk':
+      return sk
+    case 'cs':
+      return cs
+    case 'pl':
+      return pl
+    case 'de':
+      return de
+    default:
+      return enUS
   }
 }
 
@@ -44,7 +116,7 @@ async function getJob(id: string) {
     const job = await prisma.job.findUnique({
       where: {
         id,
-        status: 'ACTIVE'
+        status: 'ACTIVE',
       },
       include: {
         organization: {
@@ -54,19 +126,19 @@ async function getJob(id: string) {
             description: true,
             logo: true,
             website: true,
-          }
+          },
         },
         _count: {
           select: {
-            applications: true
-          }
-        }
-      }
+            applications: true,
+          },
+        },
+      },
     })
 
     return job
   } catch (error) {
-    console.error('Error fetching job:', error)
+    logger.error('Error fetching job', error)
     return null
   }
 }
@@ -83,32 +155,98 @@ async function getSimilarJobs(job: any, limit: number = 3) {
           { remote: job.remote },
           { hybrid: job.hybrid },
           { employmentType: job.employmentType },
-          { orgId: job.orgId }
-        ]
+          { orgId: job.orgId },
+        ],
       },
       include: {
         organization: {
           select: {
             name: true,
-            logo: true
-          }
-        }
+            logo: true,
+          },
+        },
       },
       take: limit,
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: 'desc',
+      },
     })
 
     return similarJobs
   } catch (error) {
-    console.error('Error fetching similar jobs:', error)
+    logger.error('Error fetching similar jobs', error)
     return []
   }
 }
 
+// Generate JSON-LD structured data for Google for Jobs
+function generateJobPostingJsonLd(job: any, locale: string) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jobsphere.com'
+
+  const employmentTypeMap: Record<string, string> = {
+    FULL_TIME: 'FULL_TIME',
+    PART_TIME: 'PART_TIME',
+    CONTRACT: 'CONTRACTOR',
+    INTERNSHIP: 'INTERN',
+    TEMPORARY: 'TEMPORARY',
+  }
+
+  const jsonLd: Record<string, any> = {
+    '@context': 'https://schema.org/',
+    '@type': 'JobPosting',
+    title: job.title,
+    description: job.description || '',
+    datePosted: new Date(job.createdAt).toISOString().split('T')[0],
+    employmentType: employmentTypeMap[job.employmentType] || job.employmentType,
+    hiringOrganization: {
+      '@type': 'Organization',
+      name: job.organization.name,
+      ...(job.organization.logo && { logo: job.organization.logo }),
+      ...(job.organization.website && { sameAs: job.organization.website }),
+    },
+    jobLocation: {
+      '@type': 'Place',
+      address: {
+        '@type': 'PostalAddress',
+        ...(job.city && { addressLocality: job.city }),
+        ...(job.region && { addressRegion: job.region }),
+        addressCountry: 'SK',
+      },
+    },
+    directApply: true,
+    url: `${appUrl}/${locale}/jobs/${job.id}`,
+  }
+
+  if (job.remote) {
+    jsonLd.jobLocationType = 'TELECOMMUTE'
+  }
+
+  if (job.closedAt) {
+    jsonLd.validThrough = new Date(job.closedAt).toISOString().split('T')[0]
+  }
+
+  if (job.salaryMin || job.salaryMax) {
+    const unitText = job.salaryPeriod === 'MONTH' ? 'MONTH' : 'YEAR'
+    jsonLd.baseSalary = {
+      '@type': 'MonetaryAmount',
+      currency: job.salaryCurrency || 'EUR',
+      value: {
+        '@type': 'QuantitativeValue',
+        unitText,
+        ...(job.salaryMin && job.salaryMax
+          ? { minValue: job.salaryMin, maxValue: job.salaryMax }
+          : job.salaryMin
+            ? { value: job.salaryMin }
+            : { maxValue: job.salaryMax }),
+      },
+    }
+  }
+
+  return jsonLd
+}
+
 export default async function JobDetailPage({
-  params
+  params,
 }: {
   params: { id: string; locale: string }
 }) {
@@ -121,6 +259,7 @@ export default async function JobDetailPage({
   }
 
   const similarJobs = await getSimilarJobs(job)
+  const jobPostingJsonLd = generateJobPostingJsonLd(job, params.locale)
 
   // Format work mode based on remote/hybrid boolean flags
   const getWorkModeLabel = () => {
@@ -132,10 +271,14 @@ export default async function JobDetailPage({
   // Format job type
   const getJobTypeLabel = (type: string) => {
     switch (type) {
-      case 'FULL_TIME': return t('jobs.fullTime')
-      case 'PART_TIME': return t('jobs.partTime')
-      case 'CONTRACT': return t('jobs.contract')
-      default: return type
+      case 'FULL_TIME':
+        return t('jobs.fullTime')
+      case 'PART_TIME':
+        return t('jobs.partTime')
+      case 'CONTRACT':
+        return t('jobs.contract')
+      default:
+        return type
     }
   }
 
@@ -148,14 +291,14 @@ export default async function JobDetailPage({
       // Headers
       if (section.startsWith('## ')) {
         return (
-          <h3 key={idx} className="text-xl font-semibold mt-6 mb-3">
+          <h3 key={idx} className="mb-3 mt-6 text-xl font-semibold">
             {section.replace('## ', '')}
           </h3>
         )
       }
       if (section.startsWith('# ')) {
         return (
-          <h2 key={idx} className="text-2xl font-bold mt-6 mb-3">
+          <h2 key={idx} className="mb-3 mt-6 text-2xl font-bold">
             {section.replace('# ', '')}
           </h2>
         )
@@ -163,12 +306,12 @@ export default async function JobDetailPage({
 
       // List items
       if (section.includes('\n- ') || section.startsWith('- ')) {
-        const items = section.split('\n').filter(item => item.startsWith('- '))
+        const items = section.split('\n').filter((item) => item.startsWith('- '))
         return (
-          <ul key={idx} className="space-y-2 mb-4">
+          <ul key={idx} className="mb-4 space-y-2">
             {items.map((item, i) => (
               <li key={i} className="flex items-start gap-2">
-                <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                 <span>{item.replace('- ', '')}</span>
               </li>
             ))}
@@ -187,6 +330,12 @@ export default async function JobDetailPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+      {/* JSON-LD structured data for Google for Jobs */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd) }}
+      />
+
       {/* Track job view */}
       <ViewTracker jobId={job.id} />
 
@@ -195,7 +344,7 @@ export default async function JobDetailPage({
         <div className="mb-6">
           <Button variant="ghost" size="sm" asChild>
             <Link href={`/${params.locale}/jobs`}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="mr-2 h-4 w-4" />
               {t('jobDetail.backToJobs')}
             </Link>
           </Button>
@@ -203,7 +352,7 @@ export default async function JobDetailPage({
 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="space-y-8 lg:col-span-2">
             {/* Job Header */}
             <Card>
               <CardHeader>
@@ -218,10 +367,8 @@ export default async function JobDetailPage({
                         {job.organization.name}
                       </Link>
                     </CardDescription>
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      {job.seniority && (
-                        <Badge variant="secondary">{job.seniority}</Badge>
-                      )}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {job.seniority && <Badge variant="secondary">{job.seniority}</Badge>}
                       <Badge variant="outline">{getWorkModeLabel()}</Badge>
                       <Badge variant="outline">{getJobTypeLabel(job.employmentType)}</Badge>
                     </div>
@@ -248,21 +395,27 @@ export default async function JobDetailPage({
                         {job.salaryMin && job.salaryMax
                           ? `€${job.salaryMin.toLocaleString()} - €${job.salaryMax.toLocaleString()}`
                           : job.salaryMin
-                          ? `€${job.salaryMin.toLocaleString()}+`
-                          : `${t('jobDetail.upTo')} €${job.salaryMax?.toLocaleString()}`
-                        } / {t('jobs.perMonth')}
+                            ? `€${job.salaryMin.toLocaleString()}+`
+                            : `${t('jobDetail.upTo')} €${job.salaryMax?.toLocaleString()}`}{' '}
+                        / {t('jobs.perMonth')}
                       </span>
                     </div>
                   )}
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="h-4 w-4" />
                     <span>
-                      {t('jobDetail.posted')} {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true, locale: dateLocale })}
+                      {t('jobDetail.posted')}{' '}
+                      {formatDistanceToNow(new Date(job.createdAt), {
+                        addSuffix: true,
+                        locale: dateLocale,
+                      })}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Users className="h-4 w-4" />
-                    <span>{job._count.applications} {t('jobDetail.applications')}</span>
+                    <span>
+                      {job._count.applications} {t('jobDetail.applications')}
+                    </span>
                   </div>
                 </div>
 
@@ -271,7 +424,7 @@ export default async function JobDetailPage({
                 {/* Job Description */}
                 <div className="space-y-4">
                   <h3 className="text-xl font-semibold">{t('jobDetail.description')}</h3>
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
                     {renderDescription(job.description)}
                   </div>
                 </div>
@@ -281,19 +434,19 @@ export default async function JobDetailPage({
             </Card>
 
             {/* Application Section */}
-            <Card className="bg-primary/5 border-primary/20">
+            <Card className="border-primary/20 bg-primary/5">
               <CardContent className="pt-6">
-                <div className="flex flex-col sm:flex-row gap-4 items-center">
+                <div className="flex flex-col items-center gap-4 sm:flex-row">
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold mb-1">{t('jobDetail.readyToApply')}</h3>
+                    <h3 className="mb-1 text-lg font-semibold">{t('jobDetail.readyToApply')}</h3>
                     <p className="text-sm text-muted-foreground">
                       {t('jobDetail.applyDescription')}
                     </p>
                   </div>
-                  <div className="flex gap-3 w-full sm:w-auto">
+                  <div className="flex w-full gap-3 sm:w-auto">
                     <Button size="lg" className="flex-1 sm:flex-initial" asChild>
                       <Link href={`/${params.locale}/jobs/${job.id}/apply`}>
-                        <Send className="h-4 w-4 mr-2" />
+                        <Send className="mr-2 h-4 w-4" />
                         {t('jobDetail.applyNow')}
                       </Link>
                     </Button>
@@ -325,7 +478,7 @@ export default async function JobDetailPage({
                       className="h-12 w-12 rounded-lg object-cover"
                     />
                   ) : (
-                    <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
                       <Building2 className="h-6 w-6" />
                     </div>
                   )}
@@ -335,9 +488,7 @@ export default async function JobDetailPage({
                 </div>
 
                 {job.organization.description && (
-                  <p className="text-sm text-muted-foreground">
-                    {job.organization.description}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{job.organization.description}</p>
                 )}
 
                 <div className="space-y-2">
@@ -348,7 +499,7 @@ export default async function JobDetailPage({
                         href={job.organization.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="hover:underline text-primary"
+                        className="text-primary hover:underline"
                       >
                         {t('jobDetail.visitWebsite')}
                       </a>
@@ -375,19 +526,22 @@ export default async function JobDetailPage({
                     <Link
                       key={similarJob.id}
                       href={`/${params.locale}/jobs/${similarJob.id}`}
-                      className="block space-y-1 p-3 -mx-3 rounded-lg hover:bg-muted transition-colors"
+                      className="-mx-3 block space-y-1 rounded-lg p-3 transition-colors hover:bg-muted"
                     >
-                      <p className="font-medium line-clamp-1">{similarJob.title}</p>
-                      <p className="text-sm text-muted-foreground">{similarJob.organization.name}</p>
-                      <p className="text-sm text-muted-foreground">{similarJob.city || similarJob.region || 'Remote'}</p>
+                      <p className="line-clamp-1 font-medium">{similarJob.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {similarJob.organization.name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {similarJob.city || similarJob.region || 'Remote'}
+                      </p>
                       {(similarJob.salaryMin || similarJob.salaryMax) && (
                         <p className="text-sm font-medium text-primary">
                           {similarJob.salaryMin && similarJob.salaryMax
                             ? `€${similarJob.salaryMin.toLocaleString()} - €${similarJob.salaryMax.toLocaleString()}`
                             : similarJob.salaryMin
-                            ? `€${similarJob.salaryMin.toLocaleString()}+`
-                            : `${t('jobDetail.upTo')} €${similarJob.salaryMax?.toLocaleString()}`
-                          }
+                              ? `€${similarJob.salaryMin.toLocaleString()}+`
+                              : `${t('jobDetail.upTo')} €${similarJob.salaryMax?.toLocaleString()}`}
                         </p>
                       )}
                     </Link>
@@ -406,7 +560,10 @@ export default async function JobDetailPage({
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">{t('jobDetail.posted')}:</span>
                     <span className="font-medium">
-                      {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true, locale: dateLocale })}
+                      {formatDistanceToNow(new Date(job.createdAt), {
+                        addSuffix: true,
+                        locale: dateLocale,
+                      })}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">

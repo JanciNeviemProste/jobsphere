@@ -6,9 +6,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import Stripe from 'stripe'
-import { prisma } from '@/lib/db'
+import { Prisma } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { withRateLimit } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
+
+export const runtime = 'nodejs'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16',
@@ -18,15 +21,14 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
 export const POST = withRateLimit(
   async (request: NextRequest) => {
+    let eventId: string | undefined
+
     try {
       const body = await request.text()
       const signature = headers().get('stripe-signature')
 
       if (!signature) {
-        return NextResponse.json(
-          { error: 'Missing stripe-signature header' },
-          { status: 400 }
-        )
+        return NextResponse.json({ error: 'Missing stripe-signature header' }, { status: 400 })
       }
 
       let event: Stripe.Event
@@ -34,14 +36,43 @@ export const POST = withRateLimit(
       try {
         event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
       } catch (err) {
-        console.error('Webhook signature verification failed:', err)
-        return NextResponse.json(
-          { error: 'Invalid signature' },
-          { status: 400 }
-        )
+        logger.error('Webhook signature verification failed', err)
+        return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
       }
 
+      eventId = event.id
       logger.info(`Stripe webhook received: ${event.type}`, { eventId: event.id })
+
+      // Atomic idempotency: upsert to prevent race conditions on concurrent retries
+      let providerEvent
+      try {
+        providerEvent = await prisma.providerEvent.upsert({
+          where: { id: event.id },
+          update: {},
+          create: {
+            id: event.id,
+            provider: 'stripe',
+            kind: event.type,
+            payload: JSON.parse(JSON.stringify(event.data.object)),
+            processed: false,
+          },
+        })
+      } catch (e) {
+        // Handle race condition: concurrent upsert may still hit P2002
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+          logger.warn('Concurrent Stripe webhook duplicate detected', { eventId: event.id })
+          return NextResponse.json({ received: true, duplicate: true })
+        }
+        throw e
+      }
+
+      if (providerEvent.processed) {
+        logger.warn('Duplicate Stripe webhook event skipped', {
+          eventId: event.id,
+          type: event.type,
+        })
+        return NextResponse.json({ received: true, duplicate: true })
+      }
 
       // Handle events with proper type safety
       switch (event.type) {
@@ -80,16 +111,32 @@ export const POST = withRateLimit(
           logger.warn(`Unhandled Stripe event type: ${event.type}`, { eventId: event.id })
       }
 
+      // Mark the event as successfully processed
+      await prisma.providerEvent.update({
+        where: { id: event.id },
+        data: { processed: true },
+      })
+
       return NextResponse.json({ received: true })
     } catch (error) {
-      console.error('Webhook error:', error)
-      return NextResponse.json(
-        { error: 'Webhook handler failed' },
-        { status: 500 }
-      )
+      logger.error('Webhook error', error)
+
+      // Record the error against the event for observability
+      if (eventId) {
+        try {
+          await prisma.providerEvent.updateMany({
+            where: { id: eventId, provider: 'stripe' },
+            data: { error: String(error) },
+          })
+        } catch {
+          // Ignore errors in error recording - don't mask the original error
+        }
+      }
+
+      return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 })
     }
   },
-  { limit: 1000, window: 60 } // High limit for webhooks - 1000 per minute
+  { limit: 1000, window: 60 }, // High limit for webhooks - 1000 per minute
 )
 
 /**
@@ -99,7 +146,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const organizationId = session.metadata?.organizationId
 
   if (!organizationId) {
-    console.error('No organizationId in checkout session metadata')
+    logger.error('No organizationId in checkout session metadata')
     return
   }
 
@@ -130,7 +177,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   })
 
   if (!customer) {
-    console.error(`Customer not found: ${customerId}`)
+    logger.error('Customer not found', { customerId })
     return
   }
 
@@ -138,7 +185,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   const priceId = subscription.items.data[0]?.price.id
 
   if (!priceId) {
-    console.error('No price ID in subscription')
+    logger.error('No price ID in subscription')
     return
   }
 
@@ -162,7 +209,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   })
 
   if (!price) {
-    console.error('No price found for price ID:', priceId)
+    logger.error('No price found for price ID', { priceId })
     return
   }
 
@@ -183,7 +230,14 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
 
   const subscriptionData = {
     plan: planName,
-    status: subscription.status === 'active' ? 'ACTIVE' : subscription.status === 'past_due' ? 'PAST_DUE' : 'CANCELED',
+    status:
+      subscription.status === 'active'
+        ? 'ACTIVE'
+        : subscription.status === 'trialing'
+          ? 'TRIALING'
+          : subscription.status === 'past_due'
+            ? 'PAST_DUE'
+            : 'CANCELED',
     currentPeriodStart: new Date(subscription.current_period_start * 1000),
     currentPeriodEnd: new Date(subscription.current_period_end * 1000),
     cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
@@ -212,7 +266,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     organizationId: customer.orgId,
     subscriptionId: subscription.id,
     status: subscription.status,
-    plan
+    plan,
   })
 }
 
@@ -243,7 +297,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
   logger.info('Stripe subscription canceled', {
     organizationId: customer.orgId,
-    subscriptionId: subscription.id
+    subscriptionId: subscription.id,
   })
 }
 
@@ -254,7 +308,7 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
   logger.info('Stripe payment succeeded', {
     invoiceId: invoice.id,
     customerId: invoice.customer,
-    amount: invoice.amount_paid
+    amount: invoice.amount_paid,
   })
 
   try {
@@ -310,7 +364,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
   logger.warn('Stripe payment failed', {
     invoiceId: invoice.id,
     customerId: invoice.customer,
-    attemptCount: invoice.attempt_count
+    attemptCount: invoice.attempt_count,
   })
 
   try {
@@ -389,7 +443,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
  */
 async function updateEntitlements(
   organizationId: string,
-  plan: 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE'
+  plan: 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE',
 ) {
   // Define limits per plan
   const limits = {

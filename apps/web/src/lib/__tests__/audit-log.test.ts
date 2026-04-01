@@ -1,9 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { createAuditLog, queryAuditLogs, getRequestMetadata, logUserLogin, logDataAccess, logDataExport } from '../audit-log'
+import {
+  createAuditLog,
+  queryAuditLogs,
+  getRequestMetadata,
+  logUserLogin,
+  logDataAccess,
+  logDataExport,
+} from '../audit-log'
 import { createMockAuditLog } from '../../../tests/helpers/factories'
-import { prisma } from '@/lib/db'
 
-// Mock prisma
+// Mock prisma - audit-log.ts imports from './db'
 vi.mock('@/lib/db', () => ({
   prisma: {
     auditLog: {
@@ -12,6 +18,19 @@ vi.mock('@/lib/db', () => ({
     },
   },
 }))
+
+// Mock logger - audit-log.ts uses logger.error instead of console.error
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}))
+
+// Import after mocking
+import { prisma } from '@/lib/db'
+import { logger } from '@/lib/logger'
 
 describe('AuditLog', () => {
   beforeEach(() => {
@@ -30,7 +49,7 @@ describe('AuditLog', () => {
         resourceId: 'user-123',
         metadata: { ip: '1.2.3.4' },
         ipAddress: '1.2.3.4',
-        userAgent: 'Mozilla/5.0'
+        userAgent: 'Mozilla/5.0',
       })
 
       expect(prisma.auditLog.create).toHaveBeenCalledWith({
@@ -40,10 +59,10 @@ describe('AuditLog', () => {
           action: 'USER_LOGIN',
           entityType: 'USER',
           entityId: 'user-123',
-          changes: { ip: '1.2.3.4' },
+          newValues: { ip: '1.2.3.4' },
           ipAddress: '1.2.3.4',
-          userAgent: 'Mozilla/5.0'
-        }
+          userAgent: 'Mozilla/5.0',
+        },
       })
     })
 
@@ -57,22 +76,28 @@ describe('AuditLog', () => {
 
       expect(prisma.auditLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          entityId: 'SYSTEM'
-        })
+          entityId: 'SYSTEM',
+        }),
       })
     })
 
     it('should not throw on database error', async () => {
       vi.mocked(prisma.auditLog.create).mockRejectedValue(new Error('DB error') as any)
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-      await expect(createAuditLog({
-        action: 'USER_LOGIN',
-        resource: 'USER'
-      })).resolves.not.toThrow()
+      await expect(
+        createAuditLog({
+          action: 'USER_LOGIN',
+          resource: 'USER',
+        }),
+      ).resolves.not.toThrow()
 
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to create audit log:', expect.any(Error))
-      consoleSpy.mockRestore()
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to create audit log',
+        expect.objectContaining({
+          action: 'USER_LOGIN',
+          resource: 'USER',
+        }),
+      )
     })
   })
 
@@ -87,7 +112,7 @@ describe('AuditLog', () => {
         resource: 'USER',
         startDate: new Date('2025-01-01'),
         endDate: new Date('2025-01-31'),
-        limit: 50
+        limit: 50,
       })
 
       expect(prisma.auditLog.findMany).toHaveBeenCalledWith({
@@ -98,11 +123,11 @@ describe('AuditLog', () => {
           entityType: 'USER',
           createdAt: {
             gte: new Date('2025-01-01'),
-            lte: new Date('2025-01-31')
-          }
+            lte: new Date('2025-01-31'),
+          },
         },
         orderBy: { createdAt: 'desc' },
-        take: 50
+        take: 50,
       })
     })
 
@@ -114,7 +139,7 @@ describe('AuditLog', () => {
       expect(prisma.auditLog.findMany).toHaveBeenCalledWith({
         where: {},
         orderBy: { createdAt: 'desc' },
-        take: 100
+        take: 100,
       })
     })
 
@@ -123,18 +148,18 @@ describe('AuditLog', () => {
 
       await queryAuditLogs({
         userId: 'user-123',
-        startDate: new Date('2025-01-01')
+        startDate: new Date('2025-01-01'),
       })
 
       expect(prisma.auditLog.findMany).toHaveBeenCalledWith({
         where: {
           userId: 'user-123',
           createdAt: {
-            gte: new Date('2025-01-01')
-          }
+            gte: new Date('2025-01-01'),
+          },
         },
         orderBy: { createdAt: 'desc' },
-        take: 100
+        take: 100,
       })
     })
   })
@@ -144,15 +169,15 @@ describe('AuditLog', () => {
       const request = new Request('http://localhost', {
         headers: {
           'x-forwarded-for': '1.2.3.4',
-          'user-agent': 'Mozilla/5.0'
-        }
+          'user-agent': 'Mozilla/5.0',
+        },
       })
 
       const result = getRequestMetadata(request)
 
       expect(result).toEqual({
         ipAddress: '1.2.3.4',
-        userAgent: 'Mozilla/5.0'
+        userAgent: 'Mozilla/5.0',
       })
     })
 
@@ -163,7 +188,7 @@ describe('AuditLog', () => {
 
       expect(result).toEqual({
         ipAddress: 'unknown',
-        userAgent: 'unknown'
+        userAgent: 'unknown',
       })
     })
   })
@@ -175,8 +200,8 @@ describe('AuditLog', () => {
       const request = new Request('http://localhost', {
         headers: {
           'x-forwarded-for': '1.2.3.4',
-          'user-agent': 'Chrome'
-        }
+          'user-agent': 'Chrome',
+        },
       })
 
       await logUserLogin('user-123', request)
@@ -188,8 +213,8 @@ describe('AuditLog', () => {
           entityType: 'USER',
           entityId: 'user-123',
           ipAddress: '1.2.3.4',
-          userAgent: 'Chrome'
-        })
+          userAgent: 'Chrome',
+        }),
       })
     })
   })
@@ -208,8 +233,8 @@ describe('AuditLog', () => {
           orgId: 'org-123',
           action: 'CANDIDATE_VIEWED',
           entityType: 'CANDIDATE',
-          entityId: 'candidate-456'
-        })
+          entityId: 'candidate-456',
+        }),
       })
     })
   })
@@ -229,8 +254,8 @@ describe('AuditLog', () => {
           action: 'DATA_EXPORTED',
           entityType: 'CANDIDATE',
           entityId: 'user-123',
-          changes: { exportType: 'GDPR_EXPORT' }
-        })
+          newValues: { exportType: 'GDPR_EXPORT' },
+        }),
       })
     })
 
@@ -243,8 +268,8 @@ describe('AuditLog', () => {
 
       expect(prisma.auditLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          orgId: undefined
-        })
+          orgId: undefined,
+        }),
       })
     })
   })

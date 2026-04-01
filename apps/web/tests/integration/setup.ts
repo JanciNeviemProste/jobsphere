@@ -1,41 +1,46 @@
 import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
-import { seedTestData, cleanupDynamicData, cleanupAllTestData, disconnectDb } from './helpers/test-db'
+import {
+  seedTestData,
+  cleanupDynamicData,
+  cleanupAllTestData,
+  disconnectDb,
+} from './helpers/test-db'
 
 /**
  * Integration Test Setup
  * Configures database and environment for integration tests
  */
 
+// This file is loaded only for integration tests (see vitest.config.ts setupFiles)
+// Always set test environment
+process.env.NODE_ENV = 'test'
+process.env.NEXTAUTH_URL = 'http://localhost:3000'
+process.env.NEXTAUTH_SECRET = 'test-secret-key-for-integration-tests'
+
+// Disable rate limiting in tests
+process.env.DISABLE_RATE_LIMIT = 'true'
+
+// Disable external API calls
+process.env.ANTHROPIC_API_KEY = 'test-key'
+process.env.STRIPE_SECRET_KEY = 'sk_test_fake'
+
 // Check if we're running integration tests (not unit/security tests)
-const isIntegrationTest = process.argv.some(arg =>
-  arg.includes('tests/integration') && !arg.includes('tests/security')
-)
+const isIntegrationTest = process.argv.some((arg) => {
+  const normalizedArg = arg.replace(/\\/g, '/')
+  return normalizedArg.includes('tests/integration') && !normalizedArg.includes('tests/security')
+})
 
 // Ensure we're using test database only for integration tests
 if (isIntegrationTest && !process.env.DATABASE_URL?.includes('test')) {
-  console.warn('⚠️  WARNING: DATABASE_URL does not contain "test". Are you sure you want to run integration tests?')
+  console.warn(
+    '⚠️  WARNING: DATABASE_URL does not contain "test". Are you sure you want to run integration tests?',
+  )
   console.warn('   Current DATABASE_URL:', process.env.DATABASE_URL)
   console.warn('   Set DATABASE_URL to a test database to continue.')
   process.exit(1)
 }
 
-// Only run integration setup for integration tests
 if (isIntegrationTest) {
-  // Set test environment variables
-  process.env.NODE_ENV = 'test'
-  process.env.NEXTAUTH_URL = 'http://localhost:3000'
-  process.env.NEXTAUTH_SECRET = 'test-secret-key-for-integration-tests'
-
-  // Disable rate limiting in tests
-  process.env.DISABLE_RATE_LIMIT = 'true'
-
-  // Disable email sending in tests
-  process.env.EMAIL_SERVICE = 'log'
-
-  // Disable external API calls
-  process.env.ANTHROPIC_API_KEY = 'test-key'
-  process.env.STRIPE_SECRET_KEY = 'sk_test_fake'
-
   console.log('Integration test environment configured')
 
   /**

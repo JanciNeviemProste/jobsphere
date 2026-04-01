@@ -31,12 +31,17 @@ describe('Rate Limit Library', () => {
   const originalEnv = {
     KV_REST_API_URL: process.env.KV_REST_API_URL,
     KV_REST_API_TOKEN: process.env.KV_REST_API_TOKEN,
+    NODE_ENV: process.env.NODE_ENV,
+    DISABLE_RATE_LIMIT: process.env.DISABLE_RATE_LIMIT,
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
     process.env.KV_REST_API_URL = 'https://test-redis.upstash.io'
     process.env.KV_REST_API_TOKEN = 'test-token'
+    // Enable rate limiting for tests (override test environment)
+    process.env.NODE_ENV = 'development'
+    delete process.env.DISABLE_RATE_LIMIT
     // Reset mock implementations
     mockPipeline.zremrangebyscore.mockReturnThis()
     mockPipeline.zcard.mockReturnThis()
@@ -47,6 +52,12 @@ describe('Rate Limit Library', () => {
   afterEach(() => {
     process.env.KV_REST_API_URL = originalEnv.KV_REST_API_URL
     process.env.KV_REST_API_TOKEN = originalEnv.KV_REST_API_TOKEN
+    process.env.NODE_ENV = originalEnv.NODE_ENV
+    if (originalEnv.DISABLE_RATE_LIMIT) {
+      process.env.DISABLE_RATE_LIMIT = originalEnv.DISABLE_RATE_LIMIT
+    } else {
+      delete process.env.DISABLE_RATE_LIMIT
+    }
   })
 
   describe('rateLimit', () => {
@@ -123,7 +134,7 @@ describe('Rate Limit Library', () => {
       expect(result300.reset).toBeGreaterThan(Date.now() + 299000)
     })
 
-    it('should fail open on Redis error', async () => {
+    it('should fail-closed with in-memory fallback on Redis error', async () => {
       mockPipeline.exec.mockRejectedValue(new Error('Redis connection failed'))
 
       const result = await rateLimit({
@@ -132,9 +143,33 @@ describe('Rate Limit Library', () => {
         window: 60,
       })
 
-      // Should allow request when Redis fails (fail open)
+      // Should use in-memory fallback with conservative limit (50% of requested)
       expect(result.success).toBe(true)
-      expect(result.remaining).toBe(10)
+      expect(result.limit).toBe(10) // Original limit is preserved in response
+      // In-memory tracks requests, first request should succeed
+    })
+
+    it('should use conservative limit in memory fallback', async () => {
+      mockPipeline.exec.mockRejectedValue(new Error('Redis down'))
+
+      // Make multiple requests to test conservative limit
+      const identifier = 'test-conservative-' + Date.now()
+      const results = []
+
+      for (let i = 0; i < 7; i++) {
+        const result = await rateLimit({
+          identifier,
+          limit: 10, // Requested limit
+          window: 60,
+        })
+        results.push(result)
+      }
+
+      // First 5 should succeed (50% of 10 = 5), 6th and 7th should fail
+      expect(results[0].success).toBe(true)
+      expect(results[4].success).toBe(true)
+      expect(results[5].success).toBe(false)
+      expect(results[6].success).toBe(false)
     })
 
     it('should handle zero count correctly', async () => {
@@ -431,7 +466,7 @@ describe('Rate Limit Library', () => {
           identifier: `user-${i}`,
           limit: 10,
           window: 60,
-        })
+        }),
       )
 
       const results = await Promise.all(promises)

@@ -10,7 +10,11 @@
     "forEmployers": "Pre zamestnávateľov",
     "pricing": "Cenník",
     "login": "Prihlásiť sa",
-    "signup": "Registrovať sa"
+    "signup": "Registrovať sa",
+    "loading": "Načítavam...",
+    "dashboard": "Dashboard",
+    "profile": "Profil",
+    "logout": "Odhlásiť sa"
   },
   "hero": {
     "title": "Nájdite svoju vysnívanú prácu s AI",
@@ -46,30 +50,6 @@
       "description": "Rozhodujte sa na základe dát s komplexnými náborovými štatistikami"
     }
   },
-  "jobs": {
-    "title": "Najnovšie pracovné ponuky",
-    "viewAll": "Zobraziť všetky ponuky",
-    "remote": "Na diaľku",
-    "hybrid": "Hybrid",
-    "onsite": "V kancelárii",
-    "fullTime": "Plný úväzok",
-    "partTime": "Čiastočný úväzok",
-    "contract": "Kontrakt",
-    "loading": "Načítavam ponuky...",
-    "retry": "Skúsiť znova",
-    "searchPlaceholder": "Hľadať ponuky podľa názvu, spoločnosti alebo lokality",
-    "workMode": "Režim práce",
-    "jobType": "Typ práce",
-    "seniority": "Seniorita",
-    "seniorityLevel": "Úroveň seniority",
-    "perMonth": "mesiac",
-    "viewDetail": "Zobraziť detaily",
-    "offer": "ponuka",
-    "offers": "ponúk",
-    "found": "nájdených",
-    "noResults": "Neboli nájdené žiadne ponuky zodpovedajúce vašim kritériám",
-    "resetFilters": "Resetovať filtre"
-  },
   "jobDetail": {
     "backToJobs": "Späť na ponuky",
     "description": "Popis pozície",
@@ -104,7 +84,8 @@
       "noAccount": "Nemáte účet?",
       "signupLink": "Registrovať sa",
       "orContinueWith": "Alebo pokračovať s",
-      "google": "Google"
+      "google": "Google",
+      "divider": "Alebo pokračovať s emailom"
     },
     "signup": {
       "title": "Vytvorte si účet",
@@ -118,7 +99,25 @@
       "hasAccount": "Už máte účet?",
       "loginLink": "Prihlásiť sa",
       "orContinueWith": "Alebo pokračovať s",
-      "google": "Google"
+      "google": "Google",
+      "divider": "Alebo pokračovať s emailom",
+      "registerAs": "Registrujem sa ako",
+      "roleCandidate": "Uchádzač o prácu",
+      "roleCandidateDesc": "Hľadám pracovné príležitosti",
+      "roleEmployer": "Zamestnávateľ / Firma",
+      "roleEmployerDesc": "Zverejňujem pracovné pozície a hľadám kandidátov",
+      "companyName": "Názov spoločnosti",
+      "passwordHint": "Musí mať aspoň 12 znakov",
+      "creating": "Vytváranie účtu...",
+      "errors": {
+        "passwordMismatch": "Heslá sa nezhodujú",
+        "acceptTerms": "Musíte súhlasiť s podmienkami používania",
+        "passwordLength": "Heslo musí mať aspoň 12 znakov",
+        "companyRequired": "Názov spoločnosti je povinný pre zamestnávateľov",
+        "createFailed": "Nepodarilo sa vytvoriť účet",
+        "signInFailed": "Účet bol vytvorený, ale prihlásenie zlyhalo. Skúste sa prihlásiť.",
+        "generic": "Vyskytla sa chyba. Skúste to znova."
+      }
     }
   },
   "footer": {
@@ -158,19 +157,49 @@
     "fullTime": "Plný úväzok",
     "partTime": "Čiastočný úväzok",
     "contract": "Kontrakt",
+    "loading": "Načítavam ponuky...",
+    "retry": "Skúsiť znova",
     "searchPlaceholder": "Hľadať podľa pozície, firmy alebo lokality...",
     "workMode": "Pracovný režim",
     "jobType": "Typ úväzku",
     "seniority": "Seniority",
     "seniorityLevel": "Úroveň seniorita",
     "perMonth": "mesiac",
+    "upTo": "až",
     "viewDetail": "Zobraziť detail",
     "noResults": "Nenašli sa žiadne ponuky zodpovedajúce vašim kritériám.",
     "resetFilters": "Resetovať filtre",
     "found": "nájdených",
     "offer": "ponuka",
     "offers": "ponúk",
-    "postedAt": "Pridané"
+    "postedAt": "Pridané",
+    "recommendedForYou": "Odporúčané pre vás",
+    "apply": "Uchádzať sa",
+    "matchBreakdown": "Rozdelenie zhody",
+    "skills": "Zručnosti",
+    "experience": "Skúsenosti",
+    "matchedSkills": "Zhodné zručnosti",
+    "recommendationsInfo": "Na základe vášho profilu sme našli {count} pozícií, ktoré zodpovedajú vašim zručnostiam a preferenciám",
+    "allJobs": "Všetky ponuky",
+    "browseAllPositions": "Prehliadať všetky dostupné pozície",
+    "loginRequired": "Prihlásenie vyžadované",
+    "loginRequiredDescription": "Pre uloženie práce sa musíte prihlásiť.",
+    "saved": "Uložené",
+    "removed": "Odstránené",
+    "savedDescription": "Práca bola pridaná do obľúbených.",
+    "removedDescription": "Práca bola odstránená z obľúbených.",
+    "error": "Chyba",
+    "saveError": "Nepodarilo sa uložiť prácu. Skúste to znova.",
+    "removeFromSaved": "Odstrániť z obľúbených",
+    "addToSaved": "Pridať do obľúbených",
+    "save": "Uložiť",
+    "linkCopied": "Odkaz skopírovaný",
+    "linkCopiedDescription": "Odkaz na prácu bol skopírovaný do schránky.",
+    "copyError": "Nepodarilo sa skopírovať odkaz.",
+    "shareJob": "Pozri si túto pracovnú ponuku",
+    "jobOffer": "Pracovná ponuka",
+    "shareJobLabel": "Zdieľať prácu",
+    "copyLink": "Kopírovať odkaz"
   },
   "dashboard": {
     "welcome": "Vitajte späť, {name}!",
@@ -219,6 +248,16 @@
       "negotiable": "Dohodou"
     }
   },
+  "applicant": {
+    "statusUpdated": "Stav prihlášky bol úspešne aktualizovaný",
+    "statusUpdateFailed": "Nepodarilo sa aktualizovať stav prihlášky",
+    "emailRequiredFields": "Predmet a text emailu sú povinné",
+    "emailSent": "Email bol úspešne odoslaný",
+    "emailSendFailed": "Nepodarilo sa odoslať email",
+    "noteRequired": "Poznámka nesmie byť prázdna",
+    "noteAdded": "Poznámka bola úspešne pridaná",
+    "noteAddFailed": "Nepodarilo sa pridať poznámku"
+  },
   "employer": {
     "dashboard": "ATS Dashboard",
     "manage": "Spravujte vaše pracovné ponuky a kandidátov",
@@ -251,9 +290,60 @@
     "responseHelp": "Kandidáti oceňujú rýchlu spätnú väzbu po podaní prihlášky",
     "accessDenied": "Prístup odmietnutý",
     "noAccess": "Nemáte prístup k employer dashboardu. Vytvorte si organizáciu alebo sa pripojiť k existujúcej.",
-    "backToDashboard": "Späť na dashboard"
+    "backToDashboard": "Späť na dashboard",
+    "newJob": {
+      "title": "Vytvoriť novú pozíciu",
+      "subtitle": "Vyplňte detaily nižšie pre publikovanie pracovnej ponuky",
+      "basicInfo": "Základné informácie",
+      "basicInfoDesc": "Dôležité detaily o pozícii",
+      "jobTitle": "Názov pozície",
+      "jobTitlePlaceholder": "napr. Senior React Developer",
+      "employmentType": "Typ úväzku",
+      "fullTime": "Plný úväzok",
+      "partTime": "Čiastočný úväzok",
+      "contract": "Kontrakt",
+      "freelance": "Freelance",
+      "internship": "Stáž",
+      "seniorityLevel": "Úroveň seniority",
+      "junior": "Junior",
+      "mid": "Stredná úroveň",
+      "senior": "Senior",
+      "lead": "Lead",
+      "executive": "Executive",
+      "department": "Oddelenie",
+      "departmentPlaceholder": "napr. IT, Marketing",
+      "locationWorkMode": "Lokalita a pracovný režim",
+      "locationWorkModeDesc": "Kde sa bude práca vykonávať?",
+      "location": "Lokalita",
+      "locationPlaceholder": "napr. Bratislava, Slovensko",
+      "workMode": "Pracovný režim",
+      "onsite": "V kancelárii",
+      "hybrid": "Hybridný",
+      "remote": "Na diaľku",
+      "jobDescription": "Popis pozície",
+      "jobDescriptionDesc": "Detailné informácie o pozícii",
+      "description": "Popis",
+      "descriptionPlaceholder": "Popíšte pozíciu, zodpovednosti a čo robí túto príležitosť jedinečnou...",
+      "requirements": "Požiadavky",
+      "requirementsPlaceholder": "Uveďte požadované zručnosti, skúsenosti a kvalifikáciu...",
+      "benefits": "Benefity",
+      "benefitsPlaceholder": "Uveďte výhody a benefity (voliteľné)...",
+      "compensation": "Odmena",
+      "compensationDesc": "Platové informácie (voliteľné, ale odporúčané)",
+      "minSalary": "Min. plat",
+      "maxSalary": "Max. plat",
+      "currency": "Mena",
+      "keywords": "Kľúčové slová a SEO",
+      "keywordsDesc": "Pomôžte kandidátom nájsť túto pozíciu",
+      "keywordsLabel": "Kľúčové slová",
+      "keywordsPlaceholder": "napr. React, TypeScript, Remote",
+      "keywordsHint": "Oddeľte kľúčové slová čiarkami",
+      "publishing": "Publikuje sa...",
+      "publish": "Publikovať ponuku"
+    }
   },
   "common": {
+    "cancel": "Zrušiť",
     "status": {
       "pending": "Čaká sa",
       "reviewing": "Preveruje sa",
@@ -264,6 +354,13 @@
       "closed": "Uzavreté",
       "new": "Nový",
       "interviewed": "Interview"
+    },
+    "errors": {
+      "title": "Niečo sa pokazilo",
+      "description": "Nastala neočakávaná chyba pri načítavaní tejto sekcie.",
+      "retry": "Skúsiť znova",
+      "reload": "Obnoviť stránku",
+      "inline": "Túto sekciu sa nepodarilo načítať"
     }
   },
   "forEmployers": {
@@ -590,5 +687,55 @@
       "improve": "Vylepšiť popis",
       "generating": "Generujem..."
     }
+  },
+  "errorPage": {
+    "title": "Ups! Niečo sa pokazilo",
+    "description": "Pri spracovaní vašej požiadavky došlo k chybe. Skúste to prosím znova.",
+    "tryAgain": "Skúsiť znova",
+    "goHome": "Domov",
+    "errorDetails": "Detaily chyby (viditeľné len vo vývoji)"
+  },
+  "notFoundPage": {
+    "title": "404 - Stránka nenájdená",
+    "description": "Stránka, ktorú hľadáte, neexistuje alebo bola presunutá.",
+    "goHome": "Na domovskú stránku",
+    "browseJobs": "Prehľadávať ponuky"
+  },
+  "resume": {
+    "professionalSummary": "Profesijný profil",
+    "careerObjective": "Kariérny cieľ",
+    "workExperience": "Pracovné skúsenosti",
+    "education": "Vzdelanie",
+    "skills": "Zručnosti",
+    "certifications": "Certifikácie",
+    "projects": "Projekty",
+    "awards": "Ocenenia a úspechy",
+    "noResume": "Žiadny životopis nie je k dispozícii",
+    "details": "Detaily životopisu",
+    "noSections": "Žiadne sekcie životopisu neboli spracované"
+  },
+  "contact": {
+    "noInfo": "Žiadne kontaktné informácie nie sú k dispozícii",
+    "candidate": "Kandidát",
+    "sendEmail": "Poslať email",
+    "contact": "Kontakt",
+    "portfolio": "Portfólio"
+  },
+  "analytics": {
+    "topJobs": "Top pozície podľa prihlášok",
+    "jobTitle": "Názov pozície",
+    "applications": "Prihlášky",
+    "noApplications": "Zatiaľ žiadne prihlášky"
+  },
+  "pageMetadata": {
+    "home": { "title": "Nájdite svoju vysnívanú prácu s AI", "description": "AI job board a ATS platforma. Prehliadajte tisíce pracovných ponúk v celej Európe." },
+    "jobs": { "title": "Pracovné ponuky", "description": "Prehliadajte a vyhľadávajte pracovné príležitosti v celej Európe. Filtrujte podľa lokality, platu a ďalších kritérií." },
+    "login": { "title": "Prihlásenie", "description": "Prihláste sa do svojho JobSphere účtu." },
+    "signup": { "title": "Vytvorenie účtu", "description": "Zaregistrujte sa na JobSphere a začnite hľadať svoju vysnívanú prácu." },
+    "pricing": { "title": "Cenník", "description": "Vyberte si správny plán pre vaše náborové potreby." },
+    "forEmployers": { "title": "Pre zamestnávateľov", "description": "AI ATS systém na rýchlejšie nájdenie a prijatie najlepších kandidátov." },
+    "dashboard": { "title": "Dashboard", "description": "Spravujte svoje žiadosti o prácu a profil." },
+    "employer": { "title": "Dashboard zamestnávateľa", "description": "Spravujte pracovné pozície, kandidátov a nábor." },
+    "academy": { "title": "Kariérna akadémia", "description": "Kariérne tipy, príprava na pohovory a zručnosti hľadania práce." }
   }
 }

@@ -4,12 +4,25 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { z } from 'zod'
+import { prisma } from '@/lib/prisma'
+import { encrypt } from '@/lib/encryption'
+import { logger } from '@/lib/logger'
+
+export const runtime = 'nodejs'
 
 const MICROSOFT_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
 const MICROSOFT_GRAPH_URL = 'https://graph.microsoft.com/v1.0'
 
+// OAuth state validation schema
+const oauthStateSchema = z.object({
+  userId: z.string().min(1, 'User ID is required'),
+  timestamp: z.number().positive('Timestamp must be positive'),
+})
+
 export async function GET(request: NextRequest) {
+  const baseUrl = request.nextUrl.origin
+
   try {
     const searchParams = request.nextUrl.searchParams
     const code = searchParams.get('code')
@@ -18,26 +31,27 @@ export async function GET(request: NextRequest) {
 
     // Check for errors
     if (error) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?error=oauth_failed`
-      )
+      return NextResponse.redirect(`${baseUrl}/employer/settings?error=oauth_failed`)
     }
 
     if (!code || !state) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?error=invalid_callback`
-      )
+      return NextResponse.redirect(`${baseUrl}/employer/settings?error=invalid_callback`)
     }
 
-    // Verify state
-    const stateData = JSON.parse(Buffer.from(state, 'base64').toString())
+    // Verify and validate state
+    let stateData
+    try {
+      const rawState = JSON.parse(Buffer.from(state, 'base64').toString())
+      stateData = oauthStateSchema.parse(rawState)
+    } catch (error) {
+      return NextResponse.redirect(`${baseUrl}/employer/settings?error=invalid_state`)
+    }
+
     const { userId, timestamp } = stateData
 
     // Check state freshness (5 minutes)
     if (Date.now() - timestamp > 5 * 60 * 1000) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?error=state_expired`
-      )
+      return NextResponse.redirect(`${baseUrl}/employer/settings?error=state_expired`)
     }
 
     // Exchange code for tokens
@@ -48,17 +62,18 @@ export async function GET(request: NextRequest) {
         client_id: process.env.MICROSOFT_CLIENT_ID!,
         client_secret: process.env.MICROSOFT_CLIENT_SECRET!,
         code,
-        redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/email/oauth/microsoft/callback`,
+        redirect_uri: `${baseUrl}/api/email/oauth/microsoft/callback`,
         grant_type: 'authorization_code',
       }),
     })
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.json()
-      console.error('Token exchange failed:', errorData)
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?error=token_failed`
-      )
+      logger.error('Microsoft OAuth token exchange failed', {
+        status: tokenResponse.status,
+        errorData,
+      })
+      return NextResponse.redirect(`${baseUrl}/employer/settings?error=token_failed`)
     }
 
     const tokens = await tokenResponse.json()
@@ -70,10 +85,8 @@ export async function GET(request: NextRequest) {
     })
 
     if (!userResponse.ok) {
-      console.error('Failed to get user info')
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?error=user_info_failed`
-      )
+      logger.error('Microsoft OAuth failed to get user info', { status: userResponse.status })
+      return NextResponse.redirect(`${baseUrl}/employer/settings?error=user_info_failed`)
     }
 
     const user = await userResponse.json()
@@ -85,10 +98,18 @@ export async function GET(request: NextRequest) {
     })
 
     if (!orgMember) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?error=no_org`
-      )
+      return NextResponse.redirect(`${baseUrl}/employer/settings?error=no_org`)
     }
+
+    // Encrypt OAuth tokens for secure storage (parity with Gmail)
+    const encryptedTokens = encrypt(
+      JSON.stringify({
+        access_token,
+        refresh_token,
+        expires_in,
+        token_type: 'Bearer',
+      }),
+    )
 
     // Save email account
     await prisma.emailAccount.upsert({
@@ -103,21 +124,11 @@ export async function GET(request: NextRequest) {
         provider: 'MICROSOFT',
         orgId: orgMember.orgId,
         name: user.displayName || email,
-        oauthJson: {
-          access_token,
-          refresh_token,
-          expires_in,
-          token_type: 'Bearer',
-        },
+        oauthJson: encryptedTokens,
         isActive: true,
       },
       update: {
-        oauthJson: {
-          access_token,
-          refresh_token,
-          expires_in,
-          token_type: 'Bearer',
-        },
+        oauthJson: encryptedTokens,
         isActive: true,
         lastSyncAt: new Date(),
       },
@@ -125,12 +136,10 @@ export async function GET(request: NextRequest) {
 
     // Redirect to settings with success
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?success=email_connected&email=${encodeURIComponent(email)}`
+      `${baseUrl}/employer/settings?success=email_connected&email=${encodeURIComponent(email)}`,
     )
   } catch (error) {
-    console.error('OAuth callback error:', error)
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?error=callback_failed`
-    )
+    logger.error('Microsoft OAuth callback error', { error })
+    return NextResponse.redirect(`${baseUrl}/employer/settings?error=callback_failed`)
   }
 }

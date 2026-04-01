@@ -15,6 +15,8 @@ import { createAssessmentSchema } from '@/schemas/assessment.schema'
 import { z } from 'zod'
 import type { Prisma } from '@prisma/client'
 
+export const runtime = 'nodejs'
+
 export const POST = withCsrfProtection<NextRequest>(
   withRateLimit<NextRequest>(
     async (req: NextRequest) => {

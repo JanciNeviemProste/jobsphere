@@ -4,17 +4,23 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import {
-  Prisma,
-  PrismaClient
-} from '@prisma/client'
+import { Prisma, PrismaClient } from '@prisma/client'
+import { logger } from '@/lib/logger'
 import { createAuditLog } from '@/lib/audit-log'
 import { checkEntitlement, consumeEntitlement } from '@/lib/entitlements'
 import { AppError } from '@/lib/errors'
 import { sendEmail } from '@/lib/email'
 
 // Application stage as string literal (matches Prisma schema)
-type ApplicationStage = 'NEW' | 'SCREENING' | 'PHONE' | 'INTERVIEW' | 'OFFER' | 'HIRED' | 'REJECTED' | 'WITHDRAWN'
+type ApplicationStage =
+  | 'NEW'
+  | 'SCREENING'
+  | 'PHONE'
+  | 'INTERVIEW'
+  | 'OFFER'
+  | 'HIRED'
+  | 'REJECTED'
+  | 'WITHDRAWN'
 
 export interface CreateApplicationInput {
   jobId: string
@@ -39,6 +45,7 @@ export interface ApplicationSearchParams {
   jobId?: string
   candidateId?: string
   stage?: ApplicationStage
+  status?: ApplicationStage // alias for stage
   search?: string
   limit?: number
   offset?: number
@@ -48,9 +55,7 @@ export class ApplicationService {
   /**
    * Create a new application
    */
-  static async createApplication(
-    input: CreateApplicationInput
-  ) {
+  static async createApplication(input: CreateApplicationInput) {
     // Check if already applied
     const existingApplication = await prisma.application.findFirst({
       where: {
@@ -60,10 +65,7 @@ export class ApplicationService {
     })
 
     if (existingApplication) {
-      throw new AppError(
-        'You have already applied for this position',
-        400
-      )
+      throw new AppError('You have already applied for this position', 400)
     }
 
     // Get job details
@@ -81,16 +83,10 @@ export class ApplicationService {
     }
 
     // Check organization's candidate limit
-    const canAddCandidate = await checkEntitlement(
-      job.orgId,
-      'MAX_CANDIDATES'
-    )
+    const canAddCandidate = await checkEntitlement(job.orgId, 'MAX_CANDIDATES')
 
     if (!canAddCandidate) {
-      throw new AppError(
-        'Candidate limit reached for this organization',
-        403
-      )
+      throw new AppError('Candidate limit reached for this organization', 403)
     }
 
     const application = await prisma.$transaction(async (tx) => {
@@ -114,12 +110,7 @@ export class ApplicationService {
       })
 
       // Consume entitlement
-      await consumeEntitlement(
-        job.orgId,
-        'MAX_CANDIDATES',
-        1,
-        tx as unknown as PrismaClient
-      )
+      await consumeEntitlement(job.orgId, 'MAX_CANDIDATES', 1, tx as unknown as PrismaClient)
 
       // Create audit log
       await createAuditLog({
@@ -138,7 +129,9 @@ export class ApplicationService {
     })
 
     // Send notification email to recruiter (async)
-    this.sendNewApplicationNotification(application).catch(console.error)
+    this.sendNewApplicationNotification(application).catch((err) =>
+      logger.error('Async operation failed', err),
+    )
 
     return application
   }
@@ -149,7 +142,7 @@ export class ApplicationService {
   static async updateApplicationStatus(
     applicationId: string,
     input: UpdateApplicationInput,
-    userId: string
+    userId: string,
   ) {
     const existingApplication = await prisma.application.findUnique({
       where: { id: applicationId },
@@ -166,6 +159,7 @@ export class ApplicationService {
         data: {
           ...(input.stage && { stage: input.stage }),
           ...(input.tags && { tags: input.tags }),
+          ...(input.notes !== undefined && { notes: input.notes }),
         },
         include: {
           candidate: {
@@ -201,10 +195,14 @@ export class ApplicationService {
   /**
    * Bulk update application statuses
    */
+  static async bulkUpdateStatus(applicationIds: string[], stage: ApplicationStage, userId: string) {
+    return ApplicationService.bulkUpdateStage(applicationIds, stage, userId)
+  }
+
   static async bulkUpdateStage(
     applicationIds: string[],
     stage: ApplicationStage,
-    userId: string
+    userId: string,
   ): Promise<number> {
     const result = await prisma.$transaction(async (tx) => {
       // Get organization ID for audit
@@ -248,22 +246,14 @@ export class ApplicationService {
   /**
    * Search applications
    */
-  static async searchApplications(
-    params: ApplicationSearchParams
-  ) {
-    const {
-      jobId,
-      candidateId,
-      stage,
-      search,
-      limit = 50,
-      offset = 0,
-    } = params
+  static async searchApplications(params: ApplicationSearchParams) {
+    const { jobId, candidateId, stage, status, search, limit = 50, offset = 0 } = params
+    const effectiveStage = stage || status
 
     const where: Prisma.ApplicationWhereInput = {
       ...(jobId && { jobId }),
       ...(candidateId && { candidateId }),
-      ...(stage && { stage }),
+      ...(effectiveStage && { stage: effectiveStage }),
       ...(search && {
         OR: [
           {
@@ -310,9 +300,7 @@ export class ApplicationService {
   /**
    * Get application with full details
    */
-  static async getApplicationById(
-    applicationId: string
-  ) {
+  static async getApplicationById(applicationId: string) {
     return prisma.application.findUnique({
       where: { id: applicationId },
       include: {
@@ -334,10 +322,7 @@ export class ApplicationService {
   /**
    * Delete application (soft delete)
    */
-  static async deleteApplication(
-    applicationId: string,
-    userId: string
-  ) {
+  static async deleteApplication(applicationId: string, userId: string) {
     const application = await prisma.application.findUnique({
       where: { id: applicationId },
       include: { job: true },
@@ -371,18 +356,16 @@ export class ApplicationService {
   /**
    * Send notification about new application
    */
-  private static async sendNewApplicationNotification(
-    application: {
-      id: string
-      job?: any
-      candidate?: {
-        contacts?: Array<{
-          fullName?: string | null
-          email?: string | null
-        }>
-      }
+  private static async sendNewApplicationNotification(application: {
+    id: string
+    job?: any
+    candidate?: {
+      contacts?: Array<{
+        fullName?: string | null
+        email?: string | null
+      }>
     }
-  ): Promise<void> {
+  }): Promise<void> {
     try {
       const { sendEmail } = await import('@/lib/email')
 
@@ -398,7 +381,7 @@ export class ApplicationService {
       })
 
       if (!orgAdmin?.user?.email) {
-        console.warn('No admin email found for organization')
+        logger.warn('No admin email found for organization')
         return
       }
 
@@ -419,7 +402,7 @@ export class ApplicationService {
         `,
       })
     } catch (error) {
-      console.error('Failed to send new application notification:', error)
+      logger.error('Failed to send new application notification:', error)
       // Don't fail the request if email fails
     }
   }
@@ -438,14 +421,14 @@ export class ApplicationService {
       }
       job?: any
     },
-    newStage: ApplicationStage
+    newStage: ApplicationStage,
   ): Promise<void> {
     try {
       const { sendEmail } = await import('@/lib/email')
 
       const candidateEmail = application.candidate?.contacts?.[0]?.email
       if (!candidateEmail) {
-        console.warn('No candidate email found for notification')
+        logger.warn('No candidate email found for notification')
         return
       }
 
@@ -487,7 +470,7 @@ export class ApplicationService {
         `,
       })
     } catch (error) {
-      console.error('Failed to send status change notification:', error)
+      logger.error('Failed to send status change notification:', error)
       // Don't fail the request if email fails
     }
   }
@@ -525,15 +508,15 @@ export class ApplicationService {
       }),
     ])
 
-    const stageCounts = byStage.reduce((acc, item) => {
-      acc[item.stage] = item._count.stage
-      return acc
-    }, {} as Record<string, number>)
-
-    const total = Object.values(stageCounts).reduce(
-      (sum, count) => sum + count,
-      0
+    const stageCounts = byStage.reduce(
+      (acc, item) => {
+        acc[item.stage] = item._count.stage
+        return acc
+      },
+      {} as Record<string, number>,
     )
+
+    const total = Object.values(stageCounts).reduce((sum, count) => sum + count, 0)
 
     return {
       total,

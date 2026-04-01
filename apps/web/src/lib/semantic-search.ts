@@ -37,15 +37,13 @@ export interface SearchCandidatesParams {
  * @param params Search parameters
  * @returns Array of candidate matches sorted by similarity
  */
-export async function searchCandidates(
-  params: SearchCandidatesParams
-): Promise<CandidateMatch[]> {
+export async function searchCandidates(params: SearchCandidatesParams): Promise<CandidateMatch[]> {
   const {
     jobDescription,
     organizationId,
     limit = 10,
     minSimilarity = 0.5,
-    includeDetails = false
+    includeDetails = false,
   } = params
 
   try {
@@ -56,7 +54,12 @@ export async function searchCandidates(
     // 2. Convert embedding to pgvector format
     const embeddingString = `[${jobEmbedding.join(',')}]`
 
-    // 3. Execute vector similarity search using pgvector
+    // 2.5. Set HNSW search quality parameter for better recall
+    // ef_search = 100 provides 95-98% recall (recommended for production)
+    // See: apps/web/src/lib/VECTOR_SEARCH_PERFORMANCE.md
+    await prisma.$executeRaw`SET hnsw.ef_search = 100;`
+
+    // 3. Execute vector similarity search using pgvector (uses HNSW index)
     const results = await prisma.$queryRaw<any[]>`
       SELECT
         r.id as "resumeId",
@@ -76,33 +79,33 @@ export async function searchCandidates(
     `
 
     // 4. Transform results
-    const matches: CandidateMatch[] = results.map(row => ({
+    const matches: CandidateMatch[] = results.map((row) => ({
       candidateId: row.candidateId,
       resumeId: row.resumeId,
       resumeTitle: row.resumeTitle,
       similarity: parseFloat(row.similarity),
       matchedSection: {
         type: row.sectionType,
-        content: row.sectionContent?.slice(0, 200) + '...'
-      }
+        content: row.sectionContent?.slice(0, 200) + '...',
+      },
     }))
 
     // 5. Optionally include candidate details
     if (includeDetails && matches.length > 0) {
-      const candidateIds = matches.map(m => m.candidateId)
+      const candidateIds = matches.map((m) => m.candidateId)
       const candidates = await prisma.candidate.findMany({
         where: { id: { in: candidateIds } },
         select: {
           id: true,
           orgId: true,
           tags: true,
-          source: true
-        }
+          source: true,
+        },
       })
 
-      const candidateMap = new Map(candidates.map(c => [c.id, c]))
+      const candidateMap = new Map(candidates.map((c) => [c.id, c]))
 
-      matches.forEach(match => {
+      matches.forEach((match) => {
         match.candidate = candidateMap.get(match.candidateId)
       })
     }
@@ -110,7 +113,7 @@ export async function searchCandidates(
     logger.info('Candidate search completed', {
       resultsCount: matches.length,
       limit,
-      minSimilarity
+      minSimilarity,
     })
 
     return matches
@@ -128,7 +131,7 @@ export async function searchCandidates(
  */
 export async function findSimilarCandidates(
   candidateId: string,
-  limit: number = 5
+  limit: number = 5,
 ): Promise<CandidateMatch[]> {
   try {
     const resume = await prisma.resume.findFirst({
@@ -137,9 +140,9 @@ export async function findSimilarCandidates(
         sections: {
           // @ts-ignore - embeddingVector is Unsupported type
           where: { embeddingVector: { not: null } },
-          take: 1
-        }
-      }
+          take: 1,
+        },
+      },
     })
 
     // @ts-expect-error - sections is included but TS doesn't infer it
@@ -152,6 +155,9 @@ export async function findSimilarCandidates(
     // @ts-expect-error - sections is included
     const sourceEmbedding = resume.sections[0].embeddingVector
     const embeddingString = `[${sourceEmbedding}]`
+
+    // Set HNSW search quality parameter
+    await prisma.$executeRaw`SET hnsw.ef_search = 100;`
 
     const results = await prisma.$queryRaw<any[]>`
       SELECT
@@ -168,11 +174,11 @@ export async function findSimilarCandidates(
       LIMIT ${limit}
     `
 
-    return results.map(row => ({
+    return results.map((row) => ({
       candidateId: row.candidateId,
       resumeId: row.resumeId,
       resumeTitle: row.resumeTitle,
-      similarity: parseFloat(row.similarity)
+      similarity: parseFloat(row.similarity),
     }))
   } catch (error) {
     logger.error('Find similar candidates failed', { error, candidateId })
@@ -188,13 +194,13 @@ export async function findSimilarCandidates(
  */
 export async function getJobCandidateMatchScore(
   jobId: string,
-  candidateId: string
+  candidateId: string,
 ): Promise<number | null> {
   try {
     const job = await prisma.job.findUnique({
       where: { id: jobId },
       // @ts-ignore - embedding is Unsupported type
-      select: { embedding: true }
+      select: { embedding: true },
     })
 
     // @ts-ignore - embedding is Unsupported type
@@ -210,11 +216,11 @@ export async function getJobCandidateMatchScore(
           where: {
             kind: 'SUMMARY',
             // @ts-ignore - embeddingVector is Unsupported type
-            embeddingVector: { not: null }
+            embeddingVector: { not: null },
           },
-          take: 1
-        }
-      }
+          take: 1,
+        },
+      },
     })
 
     // @ts-expect-error - sections is included but TS doesn't infer it

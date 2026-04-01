@@ -4,10 +4,13 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { addEmailSequenceJob } from '@/lib/queue'
 import { withRateLimit } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
+
+export const runtime = 'nodejs'
 
 const enrollSchema = z.object({
   candidateId: z.string().uuid(),
-  jobId: z.string().uuid().optional()
+  jobId: z.string().uuid().optional(),
 })
 
 export const POST = withRateLimit(
@@ -29,7 +32,7 @@ export const POST = withRateLimit(
       if (!validation.success) {
         return NextResponse.json(
           { error: 'Invalid request data', details: validation.error.issues },
-          { status: 400 }
+          { status: 400 },
         )
       }
 
@@ -38,7 +41,7 @@ export const POST = withRateLimit(
       // Get user's organizations
       const userOrgs = await prisma.userOrgRole.findMany({
         where: { userId: session.user.id },
-        select: { orgId: true }
+        select: { orgId: true },
       })
 
       const orgIds = userOrgs.map((o: { orgId: string }) => o.orgId)
@@ -48,13 +51,13 @@ export const POST = withRateLimit(
         where: {
           id: params.id,
           orgId: { in: orgIds },
-          active: true
+          active: true,
         },
         include: {
           steps: {
-            orderBy: { order: 'asc' }
-          }
-        }
+            orderBy: { order: 'asc' },
+          },
+        },
       })
 
       if (!sequence) {
@@ -70,14 +73,14 @@ export const POST = withRateLimit(
         where: {
           sequenceId: params.id,
           candidateId,
-          status: { in: ['ACTIVE', 'PAUSED'] }
-        }
+          status: { in: ['ACTIVE', 'PAUSED'] },
+        },
       })
 
       if (existing) {
         return NextResponse.json(
           { error: 'Candidate is already enrolled in this sequence' },
-          { status: 409 }
+          { status: 409 },
         )
       }
 
@@ -86,8 +89,8 @@ export const POST = withRateLimit(
         data: {
           sequenceId: params.id,
           candidateId,
-          status: 'ACTIVE'
-        }
+          status: 'ACTIVE',
+        },
       })
 
       // Queue first email with first step (with A/B testing support)
@@ -103,39 +106,36 @@ export const POST = withRateLimit(
           const randomIndex = Math.floor(Math.random() * variants.length)
           selectedFirstStep = variants[randomIndex]
 
-          console.log('A/B test variant selected for enrollment', {
+          logger.info('A/B test variant selected for enrollment', {
             runId: run.id,
             selectedVariant: selectedFirstStep.abGroup,
-            totalVariants: variants.length
+            totalVariants: variants.length,
           })
         }
       }
 
       await addEmailSequenceJob({
         enrollmentId: run.id,
-        stepId: selectedFirstStep.id
+        stepId: selectedFirstStep.id,
       })
 
       return NextResponse.json({
         success: true,
         runId: run.id,
-        message: 'Candidate enrolled successfully'
+        message: 'Candidate enrolled successfully',
       })
     } catch (error) {
-      console.error('Failed to enroll candidate in email sequence:', error)
+      logger.error('Failed to enroll candidate in email sequence:', error)
 
       if (error instanceof z.ZodError) {
         return NextResponse.json(
           { error: 'Validation failed', details: error.issues },
-          { status: 400 }
+          { status: 400 },
         )
       }
 
-      return NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
   },
-  { preset: 'api', byUser: true }
+  { preset: 'api', byUser: true },
 )

@@ -5,6 +5,15 @@
 
 import { randomBytes, createHmac } from 'crypto'
 import { cookies } from 'next/headers'
+import { logger } from './logger'
+
+// CRITICAL: CSRF_SECRET is required in production for cryptographic security
+if (process.env.NODE_ENV === 'production' && !process.env.CSRF_SECRET) {
+  throw new Error(
+    'CSRF_SECRET environment variable is required in production. ' +
+      "Generate one with: node -e \"logger.info(require('crypto').randomBytes(32).toString('hex'))\"",
+  )
+}
 
 // Security: Require CSRF_SECRET in production, use random fallback only in development
 function getCsrfSecret(): string {
@@ -14,7 +23,7 @@ function getCsrfSecret(): string {
       throw new Error('CSRF_SECRET environment variable is required in production')
     }
     // Only for development - generate a random secret per process start
-    console.warn('WARNING: CSRF_SECRET not set, using temporary development secret')
+    logger.warn('CSRF_SECRET not set - using temporary development secret')
     return 'dev-' + Math.random().toString(36).substring(2) + Date.now().toString(36)
   }
   return secret
@@ -29,9 +38,7 @@ const CSRF_TOKEN_LENGTH = 32
  */
 export function generateCsrfToken(): string {
   const token = randomBytes(CSRF_TOKEN_LENGTH).toString('hex')
-  const signature = createHmac('sha256', CSRF_SECRET)
-    .update(token)
-    .digest('hex')
+  const signature = createHmac('sha256', CSRF_SECRET).update(token).digest('hex')
 
   return `${token}.${signature}`
 }
@@ -51,9 +58,7 @@ export function verifyCsrfToken(token: string): boolean {
 
   const [tokenValue, signature] = parts
 
-  const expectedSignature = createHmac('sha256', CSRF_SECRET)
-    .update(tokenValue)
-    .digest('hex')
+  const expectedSignature = createHmac('sha256', CSRF_SECRET).update(tokenValue).digest('hex')
 
   // Constant-time comparison to prevent timing attacks
   return timingSafeEqual(signature, expectedSignature)
@@ -104,9 +109,7 @@ export async function getCsrfToken(): Promise<string> {
 /**
  * Verify CSRF token from request
  */
-export async function verifyCsrfFromRequest(
-  headerToken: string | null
-): Promise<boolean> {
+export async function verifyCsrfFromRequest(headerToken: string | null): Promise<boolean> {
   if (!headerToken) {
     return false
   }
@@ -119,9 +122,44 @@ export async function verifyCsrfFromRequest(
   }
 
   // Both tokens must be valid and match
-  return (
-    verifyCsrfToken(headerToken) &&
-    verifyCsrfToken(cookieToken) &&
-    headerToken === cookieToken
-  )
+  return verifyCsrfToken(headerToken) && verifyCsrfToken(cookieToken) && headerToken === cookieToken
+}
+
+/**
+ * CSRF protection middleware for API routes
+ * Wraps handler and validates CSRF token from x-csrf-token header
+ *
+ * @example
+ * export const POST = withCsrfProtection(async (req: Request) => {
+ *   // Your handler code
+ * })
+ */
+export function withCsrfProtection<T extends Request = Request>(
+  handler: (request: T, context?: { params?: Record<string, string> }) => Promise<Response>,
+): (request: T, context?: { params?: Record<string, string> }) => Promise<Response> {
+  return async (request: T, context?: { params?: Record<string, string> }) => {
+    // Skip CSRF validation in test environment
+    if (process.env.NODE_ENV === 'test') {
+      return handler(request, context)
+    }
+
+    const csrfToken = request.headers.get('x-csrf-token')
+
+    const isValid = await verifyCsrfFromRequest(csrfToken)
+
+    if (!isValid) {
+      return new Response(
+        JSON.stringify({
+          error: 'Invalid CSRF token',
+          code: 'CSRF_TOKEN_INVALID',
+        }),
+        {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      )
+    }
+
+    return handler(request, context)
+  }
 }

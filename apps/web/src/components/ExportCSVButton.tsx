@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Download } from 'lucide-react'
 import { toast } from 'sonner'
+import { logger } from '@/lib/logger'
 
 export function ExportCSVButton() {
   const [isExporting, setIsExporting] = useState(false)
@@ -30,7 +31,7 @@ export function ExportCSVButton() {
 
       toast.success('Export successful!')
     } catch (error) {
-      console.error('Export error:', error)
+      logger.error('Export error', error)
       toast.error('Export failed. Please try again.')
     } finally {
       setIsExporting(false)

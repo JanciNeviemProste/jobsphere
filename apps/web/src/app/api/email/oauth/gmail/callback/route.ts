@@ -3,13 +3,25 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { z } from 'zod'
+import { prisma } from '@/lib/prisma'
 import { encrypt } from '@/lib/encryption'
+import { logger } from '@/lib/logger'
+
+export const runtime = 'nodejs'
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v2/userinfo'
 
+// OAuth state validation schema
+const oauthStateSchema = z.object({
+  userId: z.string().min(1, 'User ID is required'),
+  timestamp: z.number().positive('Timestamp must be positive'),
+})
+
 export async function GET(request: NextRequest) {
+  const baseUrl = request.nextUrl.origin
+
   try {
     const searchParams = request.nextUrl.searchParams
     const code = searchParams.get('code')
@@ -17,25 +29,26 @@ export async function GET(request: NextRequest) {
     const error = searchParams.get('error')
 
     if (error) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?error=oauth_failed`
-      )
+      return NextResponse.redirect(`${baseUrl}/employer/settings?error=oauth_failed`)
     }
 
     if (!code || !state) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?error=invalid_callback`
-      )
+      return NextResponse.redirect(`${baseUrl}/employer/settings?error=invalid_callback`)
     }
 
-    // Verify state
-    const stateData = JSON.parse(Buffer.from(state, 'base64').toString())
+    // Verify and validate state
+    let stateData
+    try {
+      const rawState = JSON.parse(Buffer.from(state, 'base64').toString())
+      stateData = oauthStateSchema.parse(rawState)
+    } catch (error) {
+      return NextResponse.redirect(`${baseUrl}/employer/settings?error=invalid_state`)
+    }
+
     const { userId, timestamp } = stateData
 
     if (Date.now() - timestamp > 5 * 60 * 1000) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?error=state_expired`
-      )
+      return NextResponse.redirect(`${baseUrl}/employer/settings?error=state_expired`)
     }
 
     // Exchange code for tokens
@@ -46,16 +59,14 @@ export async function GET(request: NextRequest) {
         client_id: process.env.GOOGLE_CLIENT_ID!,
         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
         code,
-        redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/email/oauth/gmail/callback`,
+        redirect_uri: `${baseUrl}/api/email/oauth/gmail/callback`,
         grant_type: 'authorization_code',
       }),
     })
 
     if (!tokenResponse.ok) {
-      console.error('Token exchange failed')
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?error=token_failed`
-      )
+      logger.error('Gmail OAuth token exchange failed', { status: tokenResponse.status })
+      return NextResponse.redirect(`${baseUrl}/employer/settings?error=token_failed`)
     }
 
     const tokens = await tokenResponse.json()
@@ -67,9 +78,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!userResponse.ok) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?error=user_info_failed`
-      )
+      return NextResponse.redirect(`${baseUrl}/employer/settings?error=user_info_failed`)
     }
 
     const user = await userResponse.json()
@@ -81,19 +90,19 @@ export async function GET(request: NextRequest) {
     })
 
     if (!orgMember) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?error=no_org`
-      )
+      return NextResponse.redirect(`${baseUrl}/employer/settings?error=no_org`)
     }
 
     // Encrypt OAuth tokens before storing
-    const encryptedTokens = encrypt(JSON.stringify({
-      access_token,
-      refresh_token,
-      expires_in,
-      token_type: 'Bearer',
-      expiry_date: Date.now() + (expires_in * 1000),
-    }))
+    const encryptedTokens = encrypt(
+      JSON.stringify({
+        access_token,
+        refresh_token,
+        expires_in,
+        token_type: 'Bearer',
+        expiry_date: Date.now() + expires_in * 1000,
+      }),
+    )
 
     // Save email account
     await prisma.emailAccount.upsert({
@@ -119,12 +128,10 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?success=email_connected&email=${encodeURIComponent(email)}`
+      `${baseUrl}/employer/settings?success=email_connected&email=${encodeURIComponent(email)}`,
     )
   } catch (error) {
-    console.error('Gmail callback error:', error)
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/employer/settings?error=callback_failed`
-    )
+    logger.error('Gmail OAuth callback error', { error })
+    return NextResponse.redirect(`${baseUrl}/employer/settings?error=callback_failed`)
   }
 }

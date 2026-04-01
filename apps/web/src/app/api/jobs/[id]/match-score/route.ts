@@ -6,6 +6,8 @@ import { withRateLimit } from '@/lib/rate-limit'
 import { requireAuth } from '@/lib/auth'
 import { calculateMatchScore } from '@/lib/ai-matching'
 
+export const runtime = 'nodejs'
+
 export const GET = withRateLimit(
   async (req: Request, context?: { params?: Record<string, string> }) => {
     try {

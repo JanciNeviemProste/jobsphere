@@ -1,4 +1,6 @@
 import { redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -6,6 +8,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Briefcase, Users, Eye, CheckCircle, Clock, XCircle } from 'lucide-react'
+
+export async function generateMetadata({
+  params: { locale },
+}: {
+  params: { locale: string }
+}): Promise<Metadata> {
+  const t = await getTranslations({ locale, namespace: 'pageMetadata' })
+  return { title: t('employer.title'), description: t('employer.description') }
+}
 
 async function getEmployerData(userId: string) {
   // Get user's organization
@@ -51,11 +62,11 @@ async function getEmployerData(userId: string) {
         include: {
           contacts: {
             where: {
-              isPrimary: true
+              isPrimary: true,
             },
-            take: 1
-          }
-        }
+            take: 1,
+          },
+        },
       },
     },
     orderBy: {
@@ -71,11 +82,7 @@ async function getEmployerData(userId: string) {
   }
 }
 
-export default async function EmployerDashboardPage({
-  params,
-}: {
-  params: { locale: string }
-}) {
+export default async function EmployerDashboardPage({ params }: { params: { locale: string } }) {
   const session = await auth()
 
   if (!session?.user?.id) {
@@ -87,12 +94,13 @@ export default async function EmployerDashboardPage({
   if (!data) {
     // User is not an employer
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30">
         <Card className="max-w-md">
           <CardHeader>
             <CardTitle>Prístup odmietnutý</CardTitle>
             <CardDescription>
-              Nemáte prístup k employer dashboardu. Vytvorte si organizáciu alebo sa pripojiť k existujúcej.
+              Nemáte prístup k employer dashboardu. Vytvorte si organizáciu alebo sa pripojiť k
+              existujúcej.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -113,8 +121,12 @@ export default async function EmployerDashboardPage({
   // Calculate stats
   const stats = {
     activeJobs: jobs.filter((j: JobWithApplications) => j.status === 'PUBLISHED').length,
-    totalApplicants: jobs.reduce((sum: number, job: JobWithApplications) => sum + job.applications.length, 0),
-    newApplicants: recentApplications.filter((a: ApplicationWithRelations) => a.stage === 'NEW').length,
+    totalApplicants: jobs.reduce(
+      (sum: number, job: JobWithApplications) => sum + job.applications.length,
+      0,
+    ),
+    newApplicants: recentApplications.filter((a: ApplicationWithRelations) => a.stage === 'NEW')
+      .length,
     totalJobs: jobs.length,
   }
 
@@ -164,9 +176,9 @@ export default async function EmployerDashboardPage({
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">{organization.name} - ATS Dashboard</h1>
+            <h1 className="mb-2 text-3xl font-bold">{organization.name} - ATS Dashboard</h1>
             <p className="text-muted-foreground">Spravujte vaše pracovné ponuky a kandidátov</p>
           </div>
           <Button asChild>
@@ -178,7 +190,7 @@ export default async function EmployerDashboardPage({
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4 mb-8">
+        <div className="mb-8 grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Aktívne pozície</CardDescription>
@@ -207,7 +219,7 @@ export default async function EmployerDashboardPage({
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6 lg:col-span-2">
             {/* Active Jobs */}
             <Card>
               <CardHeader>
@@ -223,10 +235,10 @@ export default async function EmployerDashboardPage({
                   {jobs.map((job: JobWithApplications) => (
                     <div
                       key={job.id}
-                      className="flex items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                      className="flex items-center justify-between gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/50"
                     >
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="mb-2 flex items-center gap-2">
                           <h3 className="font-semibold">{job.title}</h3>
                           {getStatusBadge(job.status)}
                         </div>
@@ -235,7 +247,9 @@ export default async function EmployerDashboardPage({
                             <Users className="h-4 w-4" />
                             {job.applications.length} prihlášok
                           </span>
-                          <span>Vytvorené {new Date(job.createdAt).toLocaleDateString('sk-SK')}</span>
+                          <span>
+                            Vytvorené {new Date(job.createdAt).toLocaleDateString('sk-SK')}
+                          </span>
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -243,16 +257,20 @@ export default async function EmployerDashboardPage({
                           <Link href={`/${params.locale}/jobs/${job.id}`}>Zobraziť</Link>
                         </Button>
                         <Button variant="default" size="sm" asChild>
-                          <Link href={`/${params.locale}/employer/jobs/${job.id}/edit`}>Upraviť</Link>
+                          <Link href={`/${params.locale}/employer/jobs/${job.id}/edit`}>
+                            Upraviť
+                          </Link>
                         </Button>
                       </div>
                     </div>
                   ))}
 
                   {jobs.length === 0 && (
-                    <div className="text-center py-8">
-                      <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
-                      <p className="text-muted-foreground mb-4">Zatiaľ nemáte žiadne pracovné ponuky</p>
+                    <div className="py-8 text-center">
+                      <Briefcase className="mx-auto mb-3 h-12 w-12 text-muted-foreground" />
+                      <p className="mb-4 text-muted-foreground">
+                        Zatiaľ nemáte žiadne pracovné ponuky
+                      </p>
                       <Button asChild>
                         <Link href={`/${params.locale}/employer/jobs/new`}>
                           <Plus className="mr-2 h-4 w-4" />
@@ -283,27 +301,37 @@ export default async function EmployerDashboardPage({
                   {recentApplications.map((application: ApplicationWithRelations) => (
                     <div
                       key={application.id}
-                      className="flex items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                      className="flex items-center justify-between gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/50"
                     >
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold">{application.candidate.contacts?.[0]?.fullName || application.candidate.contacts?.[0]?.email || 'Kandidát'}</h4>
+                        <div className="mb-1 flex items-center gap-2">
+                          <h4 className="font-semibold">
+                            {application.candidate.contacts?.[0]?.fullName ||
+                              application.candidate.contacts?.[0]?.email ||
+                              'Kandidát'}
+                          </h4>
                           {getApplicantStatusBadge(application.stage)}
                         </div>
-                        <p className="text-sm text-muted-foreground mb-1">{application.job.title}</p>
+                        <p className="mb-1 text-sm text-muted-foreground">
+                          {application.job.title}
+                        </p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>Prihlásený {new Date(application.createdAt).toLocaleDateString('sk-SK')}</span>
+                          <span>
+                            Prihlásený {new Date(application.createdAt).toLocaleDateString('sk-SK')}
+                          </span>
                         </div>
                       </div>
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/${params.locale}/employer/applicants/${application.id}`}>Detail</Link>
+                        <Link href={`/${params.locale}/employer/applicants/${application.id}`}>
+                          Detail
+                        </Link>
                       </Button>
                     </div>
                   ))}
 
                   {recentApplications.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Users className="mx-auto h-12 w-12 mb-3" />
+                    <div className="py-8 text-center text-muted-foreground">
+                      <Users className="mx-auto mb-3 h-12 w-12" />
                       <p>Zatiaľ žiadne prihlášky</p>
                     </div>
                   )}
@@ -347,21 +375,21 @@ export default async function EmployerDashboardPage({
                 <CardTitle>Tipy pre lepší nábor</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <p className="font-medium mb-1">✨ Použite AI matching</p>
-                  <p className="text-muted-foreground text-xs">
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="mb-1 font-medium">✨ Použite AI matching</p>
+                  <p className="text-xs text-muted-foreground">
                     Naša AI automaticky vyhodnotí kandidátov a priradí im skóre zhody
                   </p>
                 </div>
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <p className="font-medium mb-1">📝 Detailný popis pozície</p>
-                  <p className="text-muted-foreground text-xs">
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="mb-1 font-medium">📝 Detailný popis pozície</p>
+                  <p className="text-xs text-muted-foreground">
                     Presné popisy pozícií priťahujú kvalitnejších kandidátov
                   </p>
                 </div>
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <p className="font-medium mb-1">⚡ Rýchla reakcia</p>
-                  <p className="text-muted-foreground text-xs">
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="mb-1 font-medium">⚡ Rýchla reakcia</p>
+                  <p className="text-xs text-muted-foreground">
                     Kandidáti oceňujú rýchlu spätnú väzbu po podaní prihlášky
                   </p>
                 </div>

@@ -66,7 +66,7 @@ describe('ApplicationService', () => {
     }
 
     it('should create application successfully', async () => {
-      const mockJob = createMockJob({ id: mockJobId, orgId: mockOrgId, status: 'ACTIVE' })
+      const mockJob = createMockJob({ id: mockJobId, orgId: mockOrgId, status: 'PUBLISHED' })
       const mockApplication = createMockApplication({ ...createInput, status: 'PENDING' })
 
       vi.mocked(prisma.application.findFirst).mockResolvedValue(null)
@@ -101,7 +101,7 @@ describe('ApplicationService', () => {
       vi.mocked(prisma.application.findFirst).mockResolvedValue(existingApplication)
 
       await expect(ApplicationService.createApplication(createInput)).rejects.toThrow(
-        'You have already applied for this position'
+        'You have already applied for this position',
       )
       await expect(ApplicationService.createApplication(createInput)).rejects.toThrow(AppError)
     })
@@ -111,7 +111,7 @@ describe('ApplicationService', () => {
       vi.mocked(prisma.job.findUnique).mockResolvedValue(null)
 
       await expect(ApplicationService.createApplication(createInput)).rejects.toThrow(
-        'Job not found'
+        'Job not found',
       )
       await expect(ApplicationService.createApplication(createInput)).rejects.toThrow(AppError)
     })
@@ -123,12 +123,12 @@ describe('ApplicationService', () => {
       vi.mocked(prisma.job.findUnique).mockResolvedValue(mockJob as any)
 
       await expect(ApplicationService.createApplication(createInput)).rejects.toThrow(
-        'This position is no longer accepting applications'
+        'This position is no longer accepting applications',
       )
     })
 
     it('should throw error when candidate limit reached', async () => {
-      const mockJob = createMockJob({ id: mockJobId, orgId: mockOrgId, status: 'ACTIVE' })
+      const mockJob = createMockJob({ id: mockJobId, orgId: mockOrgId, status: 'PUBLISHED' })
 
       vi.mocked(prisma.application.findFirst).mockResolvedValue(null)
       vi.mocked(prisma.job.findUnique).mockResolvedValue({
@@ -138,12 +138,12 @@ describe('ApplicationService', () => {
       vi.mocked(checkEntitlement).mockResolvedValue(false)
 
       await expect(ApplicationService.createApplication(createInput)).rejects.toThrow(
-        'Candidate limit reached for this organization'
+        'Candidate limit reached for this organization',
       )
     })
 
     it('should consume entitlement and create audit log', async () => {
-      const mockJob = createMockJob({ id: mockJobId, orgId: mockOrgId, status: 'ACTIVE' })
+      const mockJob = createMockJob({ id: mockJobId, orgId: mockOrgId, status: 'PUBLISHED' })
       const mockApplication = createMockApplication(createInput)
 
       vi.mocked(prisma.application.findFirst).mockResolvedValue(null)
@@ -164,7 +164,7 @@ describe('ApplicationService', () => {
         mockOrgId,
         'MAX_CANDIDATES',
         1,
-        expect.anything()
+        expect.anything(),
       )
       expect(createAuditLog).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -172,7 +172,7 @@ describe('ApplicationService', () => {
           orgId: mockOrgId,
           action: 'CREATE',
           resource: 'APPLICATION',
-        })
+        }),
       )
     })
   })
@@ -197,7 +197,7 @@ describe('ApplicationService', () => {
           application: {
             update: vi.fn().mockResolvedValue({
               ...existingApplication,
-              status: 'REVIEWING',
+              stage: 'REVIEWING',
             }),
           },
         } as any)
@@ -206,7 +206,7 @@ describe('ApplicationService', () => {
       const result = await ApplicationService.updateApplicationStatus(
         applicationId,
         updateInput,
-        mockUserId
+        mockUserId,
       )
 
       expect(result.status).toBe('REVIEWING')
@@ -219,8 +219,8 @@ describe('ApplicationService', () => {
         ApplicationService.updateApplicationStatus(
           applicationId,
           { status: 'REVIEWING' },
-          mockUserId
-        )
+          mockUserId,
+        ),
       ).rejects.toThrow('Application not found')
     })
 
@@ -268,7 +268,7 @@ describe('ApplicationService', () => {
       await ApplicationService.updateApplicationStatus(
         applicationId,
         { status: 'ACCEPTED' },
-        mockUserId
+        mockUserId,
       )
 
       expect(createAuditLog).toHaveBeenCalledWith(
@@ -278,7 +278,7 @@ describe('ApplicationService', () => {
           action: 'UPDATE',
           resource: 'APPLICATION',
           resourceId: applicationId,
-        })
+        }),
       )
     })
   })
@@ -287,16 +287,14 @@ describe('ApplicationService', () => {
     it('should update multiple applications successfully', async () => {
       const applicationIds = ['app-1', 'app-2', 'app-3']
       const mockJob = createMockJob({ orgId: mockOrgId })
-      const applications = applicationIds.map((id) =>
-        createMockApplication({ id, job: mockJob })
-      )
+      const applications = applicationIds.map((id) => createMockApplication({ id, job: mockJob }))
 
       vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
         return callback({
           application: {
-            findMany: vi.fn().mockResolvedValue(
-              applications.map((app) => ({ ...app, job: mockJob }))
-            ),
+            findMany: vi
+              .fn()
+              .mockResolvedValue(applications.map((app) => ({ ...app, job: mockJob }))),
             updateMany: vi.fn().mockResolvedValue({ count: 3 }),
           },
         } as any)
@@ -305,7 +303,7 @@ describe('ApplicationService', () => {
       const result = await ApplicationService.bulkUpdateStatus(
         applicationIds,
         'REJECTED',
-        mockUserId
+        mockUserId,
       )
 
       expect(result).toBe(3)
@@ -324,7 +322,7 @@ describe('ApplicationService', () => {
       })
 
       await expect(
-        ApplicationService.bulkUpdateStatus(applicationIds, 'REJECTED', mockUserId)
+        ApplicationService.bulkUpdateStatus(applicationIds, 'REJECTED', mockUserId),
       ).rejects.toThrow('No applications found')
     })
 
@@ -335,9 +333,9 @@ describe('ApplicationService', () => {
       vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
         return callback({
           application: {
-            findMany: vi.fn().mockResolvedValue([
-              { ...createMockApplication({ id: 'app-1' }), job: mockJob },
-            ]),
+            findMany: vi
+              .fn()
+              .mockResolvedValue([{ ...createMockApplication({ id: 'app-1' }), job: mockJob }]),
             updateMany: vi.fn().mockResolvedValue({ count: 2 }),
           },
         } as any)
@@ -356,7 +354,7 @@ describe('ApplicationService', () => {
             status: 'ACCEPTED',
             count: 2,
           }),
-        })
+        }),
       )
     })
   })
@@ -375,7 +373,7 @@ describe('ApplicationService', () => {
         expect.objectContaining({
           skip: 0,
           take: 50,
-        })
+        }),
       )
     })
 
@@ -392,7 +390,7 @@ describe('ApplicationService', () => {
           where: expect.objectContaining({
             jobId: mockJobId,
           }),
-        })
+        }),
       )
     })
 
@@ -409,7 +407,7 @@ describe('ApplicationService', () => {
           where: expect.objectContaining({
             candidateId: mockCandidateId,
           }),
-        })
+        }),
       )
     })
 
@@ -424,9 +422,9 @@ describe('ApplicationService', () => {
       expect(prisma.application.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            status: 'REVIEWING',
+            stage: 'REVIEWING',
           }),
-        })
+        }),
       )
     })
 
@@ -443,7 +441,7 @@ describe('ApplicationService', () => {
           where: expect.objectContaining({
             OR: expect.any(Array),
           }),
-        })
+        }),
       )
     })
 
@@ -459,7 +457,7 @@ describe('ApplicationService', () => {
         expect.objectContaining({
           skip: 20,
           take: 10,
-        })
+        }),
       )
     })
 
@@ -485,10 +483,10 @@ describe('ApplicationService', () => {
       expect(prisma.application.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           include: expect.objectContaining({
-            candidate: true,
+            candidate: expect.any(Object),
             job: expect.any(Object),
           }),
-        })
+        }),
       )
     })
   })
@@ -552,7 +550,7 @@ describe('ApplicationService', () => {
       vi.mocked(prisma.application.findUnique).mockResolvedValue(null)
 
       await expect(
-        ApplicationService.deleteApplication('non-existent', mockUserId)
+        ApplicationService.deleteApplication('non-existent', mockUserId),
       ).rejects.toThrow('Application not found')
     })
 
@@ -581,7 +579,7 @@ describe('ApplicationService', () => {
           resource: 'APPLICATION',
           resourceId: applicationId,
           metadata: { status: 'WITHDRAWN' },
-        })
+        }),
       )
     })
   })

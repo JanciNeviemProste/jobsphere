@@ -6,6 +6,8 @@ import { logger } from '@/lib/logger'
 import { errorResponse } from '@/lib/errors'
 import { withRateLimit } from '@/lib/rate-limit'
 
+export const runtime = 'nodejs'
+
 export const GET = withRateLimit(
   async (req: NextRequest, context?: { params?: Record<string, string> }) => {
     try {

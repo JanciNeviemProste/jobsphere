@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
@@ -37,20 +38,20 @@ async function getApplicationDetail(applicationId: string, userId: string) {
         include: {
           contacts: {
             where: {
-              isPrimary: true
+              isPrimary: true,
             },
-            take: 1
+            take: 1,
           },
           resumes: {
             orderBy: {
-              createdAt: 'desc'
+              createdAt: 'desc',
             },
             take: 1,
             include: {
-              sourceDocument: true
-            }
-          }
-        }
+              sourceDocument: true,
+            },
+          },
+        },
       },
       activities: {
         orderBy: {
@@ -61,6 +62,13 @@ async function getApplicationDetail(applicationId: string, userId: string) {
   })
 
   return application
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: 'Applicant Detail | JobSphere',
+    description: 'Review applicant details, resume, and application history.',
+  }
 }
 
 export default async function EmployerApplicationDetailPage({
@@ -114,13 +122,13 @@ export default async function EmployerApplicationDetailPage({
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6 lg:col-span-2">
             {/* Job Info */}
             <Card>
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <CardTitle className="text-2xl mb-2">{application.job.title}</CardTitle>
+                    <CardTitle className="mb-2 text-2xl">{application.job.title}</CardTitle>
                     <CardDescription className="text-base">
                       {application.job.organization.name}
                     </CardDescription>
@@ -133,7 +141,10 @@ export default async function EmployerApplicationDetailPage({
                   {application.job.city && (
                     <div className="flex items-center gap-2 text-sm">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span>{application.job.city}{application.job.region ? `, ${application.job.region}` : ''}</span>
+                      <span>
+                        {application.job.city}
+                        {application.job.region ? `, ${application.job.region}` : ''}
+                      </span>
                     </div>
                   )}
                   {application.job.salaryMin && application.job.salaryMax && (
@@ -183,23 +194,33 @@ export default async function EmployerApplicationDetailPage({
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {application.activities.map((activity: { id: string; type: string; description: string; createdAt: Date }, index: number) => (
-                      <div key={activity.id} className="flex gap-4">
-                        <div className="flex flex-col items-center">
-                          <div className="h-3 w-3 rounded-full bg-primary" />
-                          {index !== application.activities.length - 1 && (
-                            <div className="w-px flex-1 bg-border mt-2" />
-                          )}
+                    {application.activities.map(
+                      (
+                        activity: {
+                          id: string
+                          type: string
+                          description: string
+                          createdAt: Date
+                        },
+                        index: number,
+                      ) => (
+                        <div key={activity.id} className="flex gap-4">
+                          <div className="flex flex-col items-center">
+                            <div className="h-3 w-3 rounded-full bg-primary" />
+                            {index !== application.activities.length - 1 && (
+                              <div className="mt-2 w-px flex-1 bg-border" />
+                            )}
+                          </div>
+                          <div className="flex-1 pb-4">
+                            <p className="font-medium">{activity.type.replace('_', ' ')}</p>
+                            <p className="text-sm text-muted-foreground">{activity.description}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {new Date(activity.createdAt).toLocaleDateString('sk-SK')}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex-1 pb-4">
-                          <p className="font-medium">{activity.type.replace('_', ' ')}</p>
-                          <p className="text-sm text-muted-foreground">{activity.description}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {new Date(activity.createdAt).toLocaleDateString('sk-SK')}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                      ),
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -215,8 +236,10 @@ export default async function EmployerApplicationDetailPage({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="font-semibold text-lg">
-                    {application.candidate.contacts?.[0]?.fullName || application.candidate.contacts?.[0]?.email || 'Kandidát'}
+                  <p className="text-lg font-semibold">
+                    {application.candidate.contacts?.[0]?.fullName ||
+                      application.candidate.contacts?.[0]?.email ||
+                      'Kandidát'}
                   </p>
                   <div className="mt-3 space-y-2">
                     {application.candidate.contacts?.[0]?.email && (
@@ -285,12 +308,12 @@ export default async function EmployerApplicationDetailPage({
                 <CardContent>
                   <div className="space-y-3">
                     {application.notes.map((note: any, index: number) => (
-                      <div key={index} className="border-l-2 border-primary/30 pl-3 py-2">
-                        <p className="text-sm whitespace-pre-wrap">
+                      <div key={index} className="border-l-2 border-primary/30 py-2 pl-3">
+                        <p className="whitespace-pre-wrap text-sm">
                           {typeof note === 'string' ? note : note.text || JSON.stringify(note)}
                         </p>
                         {typeof note === 'object' && note.createdAt && (
-                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                             <span>{note.createdByName}</span>
                             <span>•</span>
                             <span>{new Date(note.createdAt).toLocaleDateString('sk-SK')}</span>

@@ -3,6 +3,8 @@
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { logger } from '@/lib/logger'
+import type { Application, ApplicationActivity, EmailStep } from '@prisma/client'
 
 export async function createApplication(formData: {
   jobId: string
@@ -10,7 +12,7 @@ export async function createApplication(formData: {
   cvUrl?: string
   expectedSalary?: string
   availableFrom?: string
-}) {
+}): Promise<Application> {
   const session = await auth()
 
   if (!session?.user?.id) {
@@ -35,7 +37,10 @@ export async function createApplication(formData: {
       candidateId: session.user.id,
       coverLetter: formData.coverLetter,
       stage: 'NEW',
-      orgId: (await prisma.job.findUnique({ where: { id: formData.jobId }, select: { orgId: true }}))!.orgId,
+      orgId: (await prisma.job.findUnique({
+        where: { id: formData.jobId },
+        select: { orgId: true },
+      }))!.orgId,
     },
   })
 
@@ -57,8 +62,8 @@ export async function createApplication(formData: {
 export async function updateApplicationStatus(
   applicationId: string,
   status: string,
-  notes?: string
-) {
+  notes?: string,
+): Promise<Application> {
   const session = await auth()
 
   if (!session?.user?.id) {
@@ -89,7 +94,7 @@ export async function updateApplicationStatus(
   const updatedApplication = await prisma.application.update({
     where: { id: applicationId },
     data: {
-      stage: status as any,
+      stage: status,
       ...(notes && { notes: notes }),
     },
   })
@@ -122,13 +127,13 @@ export async function updateApplicationStatus(
           where: {
             orgId: application.job.orgId,
             active: true,
-            name: { contains: status, mode: 'insensitive' }
+            name: { contains: status, mode: 'insensitive' },
           },
           include: {
             steps: {
-              orderBy: { order: 'asc' }
-            }
-          }
+              orderBy: { order: 'asc' },
+            },
+          },
         })
 
         if (sequence && sequence.steps.length > 0) {
@@ -137,26 +142,26 @@ export async function updateApplicationStatus(
             data: {
               sequenceId: sequence.id,
               candidateId: application.candidateId,
-              status: 'ACTIVE'
-            }
+              status: 'ACTIVE',
+            },
           })
 
           // A/B Testing: Select variant for first step if multiple exist
-          const firstStepCandidates = sequence.steps.filter((s: any) => s.order === 1)
+          const firstStepCandidates = sequence.steps.filter((s: EmailStep) => s.order === 1)
           let selectedFirstStep = firstStepCandidates[0]
 
           if (firstStepCandidates.length > 1) {
-            const variants = firstStepCandidates.filter((s: any) => s.abGroup)
+            const variants = firstStepCandidates.filter((s: EmailStep) => s.abGroup)
 
             if (variants.length > 1) {
               // Random selection with equal distribution
               const randomIndex = Math.floor(Math.random() * variants.length)
               selectedFirstStep = variants[randomIndex]
 
-              console.log('A/B test variant selected for auto-enrollment', {
+              logger.info('A/B test variant selected for auto-enrollment', {
                 runId: run.id,
                 selectedVariant: selectedFirstStep.abGroup,
-                totalVariants: variants.length
+                totalVariants: variants.length,
               })
             }
           }
@@ -165,13 +170,16 @@ export async function updateApplicationStatus(
           const { addEmailSequenceJob } = await import('@/lib/queue')
           await addEmailSequenceJob({
             enrollmentId: run.id,
-            stepId: selectedFirstStep.id
+            stepId: selectedFirstStep.id,
           })
 
-          console.log(`Auto-enrolled candidate ${application.candidateId} into sequence ${sequence.id}`)
+          logger.info('Auto-enrolled candidate into email sequence', {
+            candidateId: application.candidateId,
+            sequenceId: sequence.id,
+          })
         }
       } catch (error) {
-        console.error('Failed to auto-enroll candidate in email sequence:', error)
+        logger.error('Failed to auto-enroll candidate in email sequence', { error })
         // Don't throw - auto-enrollment is nice-to-have, not critical
       }
     }
@@ -184,7 +192,7 @@ export async function updateApplicationStatus(
   return updatedApplication
 }
 
-export async function deleteApplication(applicationId: string) {
+export async function deleteApplication(applicationId: string): Promise<{ success: true }> {
   const session = await auth()
 
   if (!session?.user?.id) {
@@ -213,7 +221,10 @@ export async function deleteApplication(applicationId: string) {
   return { success: true }
 }
 
-export async function addApplicationNote(applicationId: string, note: string) {
+export async function addApplicationNote(
+  applicationId: string,
+  note: string,
+): Promise<ApplicationActivity> {
   const session = await auth()
 
   if (!session?.user?.id) {

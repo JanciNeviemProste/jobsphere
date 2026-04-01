@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { logger } from '@/lib/logger'
 
 interface ViewTrackerProps {
   jobId: string
@@ -24,12 +25,12 @@ export function ViewTracker({ jobId }: ViewTrackerProps) {
         await fetch(`/api/jobs/${jobId}/view`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         })
       } catch (error) {
         // Silently fail - view tracking is not critical
-        console.warn('Failed to track job view:', error)
+        logger.warn('Failed to track job view', { error: String(error) })
       }
     }
 

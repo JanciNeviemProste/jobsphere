@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { prisma, hashPassword, comparePassword } from '../src'
 
-describe('Database Models', () => {
+const canConnect =
+  process.env.DATABASE_URL &&
+  (process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1'))
+
+describe.skipIf(!canConnect)('Database Models', () => {
   describe('Organization', () => {
     it('should create an organization', async () => {
       const org = await prisma.organization.create({
@@ -32,7 +36,7 @@ describe('Database Models', () => {
             name: 'Company 2',
             slug: 'same-slug',
           },
-        })
+        }),
       ).rejects.toThrow()
     })
 
@@ -89,7 +93,7 @@ describe('Database Models', () => {
             email: 'duplicate@example.com',
             password: 'hashed',
           },
-        })
+        }),
       ).rejects.toThrow()
     })
 
@@ -211,7 +215,7 @@ describe('Database Models', () => {
             slug: 'same-slug',
             createdBy: user.id,
           },
-        })
+        }),
       ).rejects.toThrow()
     })
   })
@@ -276,7 +280,7 @@ describe('Database Models', () => {
             jobId: job.id,
             orgId: org.id,
           },
-        })
+        }),
       ).rejects.toThrow()
     })
 

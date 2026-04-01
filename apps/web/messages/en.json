@@ -10,7 +10,11 @@
     "forEmployers": "For Employers",
     "pricing": "Pricing",
     "login": "Log in",
-    "signup": "Sign up"
+    "signup": "Sign up",
+    "loading": "Loading...",
+    "dashboard": "Dashboard",
+    "profile": "Profile",
+    "logout": "Logout"
   },
   "hero": {
     "title": "Find Your Dream Job with AI",
@@ -45,39 +49,6 @@
       "title": "Advanced Analytics",
       "description": "Make data-driven decisions with comprehensive recruitment insights"
     }
-  },
-  "jobs": {
-    "title": "Latest Job Opportunities",
-    "viewAll": "View All Jobs",
-    "remote": "Remote",
-    "hybrid": "Hybrid",
-    "onsite": "On-site",
-    "fullTime": "Full-time",
-    "partTime": "Part-time",
-    "contract": "Contract",
-    "loading": "Loading jobs...",
-    "retry": "Try again",
-    "searchPlaceholder": "Search jobs by title, company or location",
-    "workMode": "Work Mode",
-    "jobType": "Job Type",
-    "seniority": "Seniority",
-    "seniorityLevel": "Seniority Level",
-    "perMonth": "month",
-    "viewDetail": "View Details",
-    "offer": "job",
-    "offers": "jobs",
-    "found": "found",
-    "noResults": "No jobs found matching your criteria",
-    "resetFilters": "Reset Filters",
-    "recommendedForYou": "Recommended For You",
-    "apply": "Apply",
-    "matchBreakdown": "Match Breakdown",
-    "skills": "Skills",
-    "experience": "Experience",
-    "matchedSkills": "Matched Skills",
-    "recommendationsInfo": "Based on your profile, we found {count} jobs that match your skills and preferences",
-    "allJobs": "All Jobs",
-    "browseAllPositions": "Browse all available positions"
   },
   "jobDetail": {
     "backToJobs": "Back to Jobs",
@@ -158,6 +129,7 @@
       "signupLink": "Sign up",
       "orContinueWith": "Or continue with",
       "google": "Google",
+      "divider": "Or continue with email",
       "invalidCredentials": "Invalid email or password",
       "error": "An error occurred. Please try again.",
       "signingIn": "Signing in..."
@@ -172,7 +144,27 @@
       "terms": "I agree to the Terms and Privacy Policy",
       "submit": "Create account",
       "hasAccount": "Already have an account?",
-      "loginLink": "Sign in"
+      "loginLink": "Sign in",
+      "orContinueWith": "Or continue with",
+      "google": "Google",
+      "divider": "Or continue with email",
+      "registerAs": "I am registering as",
+      "roleCandidate": "Job Seeker / Candidate",
+      "roleCandidateDesc": "Looking for job opportunities",
+      "roleEmployer": "Employer / Company",
+      "roleEmployerDesc": "Post jobs and hire candidates",
+      "companyName": "Company Name",
+      "passwordHint": "Must be at least 12 characters long",
+      "creating": "Creating account...",
+      "errors": {
+        "passwordMismatch": "Passwords do not match",
+        "acceptTerms": "You must accept the terms and conditions",
+        "passwordLength": "Password must be at least 12 characters long",
+        "companyRequired": "Company name is required for employers",
+        "createFailed": "Failed to create account",
+        "signInFailed": "Account created but failed to sign in. Please try logging in.",
+        "generic": "An error occurred. Please try again."
+      }
     }
   },
   "footer": {
@@ -212,19 +204,49 @@
     "fullTime": "Full-time",
     "partTime": "Part-time",
     "contract": "Contract",
+    "loading": "Loading jobs...",
+    "retry": "Try again",
     "searchPlaceholder": "Search by position, company or location...",
     "workMode": "Work Mode",
     "jobType": "Job Type",
     "seniority": "Seniority",
     "seniorityLevel": "Seniority Level",
     "perMonth": "per month",
+    "upTo": "up to",
     "viewDetail": "View Details",
     "noResults": "No jobs found matching your criteria.",
     "resetFilters": "Reset filters",
     "found": "found",
     "offer": "offer",
     "offers": "offers",
-    "postedAt": "Posted"
+    "postedAt": "Posted",
+    "recommendedForYou": "Recommended For You",
+    "apply": "Apply",
+    "matchBreakdown": "Match Breakdown",
+    "skills": "Skills",
+    "experience": "Experience",
+    "matchedSkills": "Matched Skills",
+    "recommendationsInfo": "Based on your profile, we found {count} jobs that match your skills and preferences",
+    "allJobs": "All Jobs",
+    "browseAllPositions": "Browse all available positions",
+    "loginRequired": "Login required",
+    "loginRequiredDescription": "Please log in to save jobs.",
+    "saved": "Saved",
+    "removed": "Removed",
+    "savedDescription": "Job has been added to your favorites.",
+    "removedDescription": "Job has been removed from your favorites.",
+    "error": "Error",
+    "saveError": "Failed to save job. Please try again.",
+    "removeFromSaved": "Remove from favorites",
+    "addToSaved": "Add to favorites",
+    "save": "Save",
+    "linkCopied": "Link copied",
+    "linkCopiedDescription": "Job link has been copied to clipboard.",
+    "copyError": "Failed to copy link.",
+    "shareJob": "Check out this job",
+    "jobOffer": "Job offer",
+    "shareJobLabel": "Share job",
+    "copyLink": "Copy link"
   },
   "dashboard": {
     "welcome": "Welcome back, {name}!",
@@ -273,6 +295,16 @@
       "negotiable": "Negotiable"
     }
   },
+  "applicant": {
+    "statusUpdated": "Application status successfully updated",
+    "statusUpdateFailed": "Failed to update application status",
+    "emailRequiredFields": "Subject and email body are required",
+    "emailSent": "Email sent successfully",
+    "emailSendFailed": "Failed to send email",
+    "noteRequired": "Note cannot be empty",
+    "noteAdded": "Note added successfully",
+    "noteAddFailed": "Failed to add note"
+  },
   "employer": {
     "dashboard": "ATS Dashboard",
     "manage": "Manage your job postings and candidates",
@@ -305,9 +337,60 @@
     "responseHelp": "Candidates appreciate fast feedback after applying",
     "accessDenied": "Access Denied",
     "noAccess": "You don't have access to employer dashboard. Create an organization or join an existing one.",
-    "backToDashboard": "Back to dashboard"
+    "backToDashboard": "Back to dashboard",
+    "newJob": {
+      "title": "Post New Job",
+      "subtitle": "Fill in the details below to publish your job posting",
+      "basicInfo": "Basic Information",
+      "basicInfoDesc": "Essential details about the position",
+      "jobTitle": "Job Title",
+      "jobTitlePlaceholder": "e.g. Senior React Developer",
+      "employmentType": "Employment Type",
+      "fullTime": "Full-time",
+      "partTime": "Part-time",
+      "contract": "Contract",
+      "freelance": "Freelance",
+      "internship": "Internship",
+      "seniorityLevel": "Seniority Level",
+      "junior": "Junior",
+      "mid": "Mid-level",
+      "senior": "Senior",
+      "lead": "Lead",
+      "executive": "Executive",
+      "department": "Department",
+      "departmentPlaceholder": "e.g. Engineering, Marketing",
+      "locationWorkMode": "Location & Work Mode",
+      "locationWorkModeDesc": "Where will the work take place?",
+      "location": "Location",
+      "locationPlaceholder": "e.g. Bratislava, Slovakia",
+      "workMode": "Work Mode",
+      "onsite": "On-site",
+      "hybrid": "Hybrid",
+      "remote": "Remote",
+      "jobDescription": "Job Description",
+      "jobDescriptionDesc": "Detailed information about the role",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe the role, responsibilities, and what makes this opportunity unique...",
+      "requirements": "Requirements",
+      "requirementsPlaceholder": "List the required skills, experience, and qualifications...",
+      "benefits": "Benefits",
+      "benefitsPlaceholder": "List perks and benefits (optional)...",
+      "compensation": "Compensation",
+      "compensationDesc": "Salary information (optional but recommended)",
+      "minSalary": "Min Salary",
+      "maxSalary": "Max Salary",
+      "currency": "Currency",
+      "keywords": "Keywords & SEO",
+      "keywordsDesc": "Help candidates find this position",
+      "keywordsLabel": "Keywords",
+      "keywordsPlaceholder": "e.g. React, TypeScript, Remote",
+      "keywordsHint": "Separate keywords with commas",
+      "publishing": "Publishing...",
+      "publish": "Publish Job"
+    }
   },
   "common": {
+    "cancel": "Cancel",
     "status": {
       "pending": "Pending",
       "reviewing": "Reviewing",
@@ -318,6 +401,13 @@
       "closed": "Closed",
       "new": "New",
       "interviewed": "Interviewed"
+    },
+    "errors": {
+      "title": "Something went wrong",
+      "description": "An unexpected error occurred while loading this section.",
+      "retry": "Try again",
+      "reload": "Reload page",
+      "inline": "Failed to load this section"
     }
   },
   "forEmployers": {
@@ -621,5 +711,55 @@
       "improve": "Improve Description",
       "generating": "Generating..."
     }
+  },
+  "errorPage": {
+    "title": "Oops! Something went wrong",
+    "description": "An error occurred while processing your request. Please try again.",
+    "tryAgain": "Try again",
+    "goHome": "Home",
+    "errorDetails": "Error details (visible only in development)"
+  },
+  "notFoundPage": {
+    "title": "404 - Page not found",
+    "description": "The page you are looking for does not exist or has been moved.",
+    "goHome": "Go to homepage",
+    "browseJobs": "Browse jobs"
+  },
+  "resume": {
+    "professionalSummary": "Professional Summary",
+    "careerObjective": "Career Objective",
+    "workExperience": "Work Experience",
+    "education": "Education",
+    "skills": "Skills",
+    "certifications": "Certifications",
+    "projects": "Projects",
+    "awards": "Awards & Achievements",
+    "noResume": "No resume available",
+    "details": "Resume Details",
+    "noSections": "No resume sections parsed"
+  },
+  "contact": {
+    "noInfo": "No contact information available",
+    "candidate": "Candidate",
+    "sendEmail": "Send Email",
+    "contact": "Contact",
+    "portfolio": "Portfolio"
+  },
+  "analytics": {
+    "topJobs": "Top Jobs by Applications",
+    "jobTitle": "Job Title",
+    "applications": "Applications",
+    "noApplications": "No applications yet"
+  },
+  "pageMetadata": {
+    "home": { "title": "Find Your Dream Job with AI", "description": "AI-powered job board and ATS platform. Browse thousands of jobs across Europe." },
+    "jobs": { "title": "Job Listings", "description": "Browse and search job opportunities across Europe. Filter by location, salary, and more." },
+    "login": { "title": "Log In", "description": "Sign in to your JobSphere account." },
+    "signup": { "title": "Create Account", "description": "Sign up for JobSphere and start finding your dream job." },
+    "pricing": { "title": "Pricing Plans", "description": "Choose the right plan for your recruitment needs." },
+    "forEmployers": { "title": "For Employers", "description": "AI-powered ATS to find and hire the best candidates faster." },
+    "dashboard": { "title": "Dashboard", "description": "Manage your job applications and profile." },
+    "employer": { "title": "Employer Dashboard", "description": "Manage job postings, candidates, and recruitment." },
+    "academy": { "title": "Career Academy", "description": "Career tips, interview preparation, and job search skills." }
   }
 }

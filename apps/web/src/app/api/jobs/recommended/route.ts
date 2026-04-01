@@ -6,6 +6,8 @@ import { withRateLimit } from '@/lib/rate-limit'
 import { requireAuth } from '@/lib/auth'
 import { getRecommendedJobsWithAI, calculateMatchScore } from '@/lib/ai-matching'
 
+export const runtime = 'nodejs'
+
 export const GET = withRateLimit(
   async (req: Request) => {
     try {
@@ -43,7 +45,7 @@ export const GET = withRateLimit(
             salary: matchScore.salary,
             matchedSkills: matchScore.details.matchedSkills,
             missingSkills: matchScore.details.missingSkills,
-          }
+          },
         }))
 
         return NextResponse.json(formattedJobs)
@@ -53,8 +55,8 @@ export const GET = withRateLimit(
       // Get user's candidate profile first
       const candidate = await prisma.candidate.findFirst({
         where: {
-          orgId: session.user.id
-        }
+          orgId: session.user.id,
+        },
       })
 
       if (!candidate) {
@@ -64,18 +66,20 @@ export const GET = withRateLimit(
       // Get user's resume for matching
       const resume = await prisma.resume.findFirst({
         where: {
-          candidateId: candidate.id
+          candidateId: candidate.id,
         },
         orderBy: {
-          createdAt: 'desc'
-        }
+          createdAt: 'desc',
+        },
       })
 
       // Get user's applied job IDs to exclude
-      const appliedJobIds = await prisma.application.findMany({
-        where: { candidateId: candidate.id },
-        select: { jobId: true }
-      }).then(apps => apps.map(a => a.jobId))
+      const appliedJobIds = await prisma.application
+        .findMany({
+          where: { candidateId: candidate.id },
+          select: { jobId: true },
+        })
+        .then((apps) => apps.map((a) => a.jobId))
 
       // Extract user skills from resume
       const userSkills: string[] = []
@@ -86,36 +90,36 @@ export const GET = withRateLimit(
       // Get recommended jobs
       let recommendedJobs = await prisma.job.findMany({
         where: {
-          status: 'ACTIVE',
+          status: 'PUBLISHED',
           id: {
-            notIn: appliedJobIds
-          }
+            notIn: appliedJobIds,
+          },
         },
         include: {
           organization: {
             select: {
               name: true,
               logo: true,
-            }
-          }
+            },
+          },
         },
         orderBy: {
-          createdAt: 'desc'
+          createdAt: 'desc',
         },
-        take: 10
+        take: 10,
       })
 
       // Calculate basic match scores
-      const jobsWithScores = recommendedJobs.map(job => {
+      const jobsWithScores = recommendedJobs.map((job) => {
         let matchScore = 50 // Base score
 
         // Simple skill matching using description
         if (userSkills.length > 0 && job.description) {
           const jobDescription = job.description.toLowerCase()
-          const matchingSkills = userSkills.filter(skill =>
-            jobDescription.includes(skill.toLowerCase())
+          const matchingSkills = userSkills.filter((skill) =>
+            jobDescription.includes(skill.toLowerCase()),
           )
-          matchScore += Math.min((matchingSkills.length * 10), 30)
+          matchScore += Math.min(matchingSkills.length * 10, 30)
         }
 
         // Location and salary matching removed since user preference fields don't exist
@@ -135,7 +139,7 @@ export const GET = withRateLimit(
           type: job.employmentType,
           workMode: job.remote ? 'REMOTE' : job.hybrid ? 'HYBRID' : 'ONSITE',
           seniority: job.seniority,
-          match: matchScore
+          match: matchScore,
         }
       })
 
@@ -147,11 +151,8 @@ export const GET = withRateLimit(
     } catch (error) {
       logger.apiError('GET', '/api/jobs/recommended', error)
       const errorData = errorResponse(error)
-      return NextResponse.json(
-        { error: errorData.error },
-        { status: errorData.statusCode }
-      )
+      return NextResponse.json({ error: errorData.error }, { status: errorData.statusCode })
     }
   },
-  { preset: 'api', byUser: true }
+  { preset: 'api', byUser: true },
 )
