@@ -35,7 +35,7 @@ export async function generateMetadata({
   params: { id: string; locale: string }
 }): Promise<Metadata> {
   const job = await prisma.job.findUnique({
-    where: { id: params.id, status: 'ACTIVE' },
+    where: { id: params.id, status: 'PUBLISHED' },
     select: {
       title: true,
       description: true,
@@ -116,7 +116,7 @@ async function getJob(id: string) {
     const job = await prisma.job.findUnique({
       where: {
         id,
-        status: 'ACTIVE',
+        status: 'PUBLISHED',
       },
       include: {
         organization: {
@@ -148,7 +148,7 @@ async function getSimilarJobs(job: any, limit: number = 3) {
   try {
     const similarJobs = await prisma.job.findMany({
       where: {
-        status: 'ACTIVE',
+        status: 'PUBLISHED',
         id: { not: job.id },
         OR: [
           { seniority: job.seniority },

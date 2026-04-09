@@ -12,25 +12,24 @@
 
 const requiredEnvVars = {
   // Public (client-side)
-  public: [
-    'NEXT_PUBLIC_APP_URL',
-    'NEXT_PUBLIC_API_URL',
-  ],
+  public: ['NEXT_PUBLIC_APP_URL', 'NEXT_PUBLIC_API_URL'],
   // Server-only
   server: [
     'NEXTAUTH_SECRET',
     'NEXTAUTH_URL',
     'DATABASE_URL',
-    'REDIS_URL',
     // Security Keys
     'ENCRYPTION_KEY',
-    // AI API Keys
-    'OPENROUTER_API_KEY',
+    // AI API Keys (Anthropic is the primary provider)
     'ANTHROPIC_API_KEY',
-    'OPENAI_API_KEY',
   ],
   // Optional (warnings only)
   optional: [
+    // Redis has in-memory fallback in rate-limit.ts
+    'REDIS_URL',
+    // Alternative LLM providers (Anthropic is primary)
+    'OPENROUTER_API_KEY',
+    'OPENAI_API_KEY',
     'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY',
     'NEXT_PUBLIC_POSTHOG_KEY',
     'NEXT_PUBLIC_SENTRY_DSN',
