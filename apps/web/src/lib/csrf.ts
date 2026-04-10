@@ -7,26 +7,22 @@ import { randomBytes, createHmac } from 'crypto'
 import { cookies } from 'next/headers'
 import { logger } from './logger'
 
-// CRITICAL: CSRF_SECRET is required in production for cryptographic security
-if (process.env.NODE_ENV === 'production' && !process.env.CSRF_SECRET) {
-  throw new Error(
-    'CSRF_SECRET environment variable is required in production. ' +
-      "Generate one with: node -e \"logger.info(require('crypto').randomBytes(32).toString('hex'))\"",
-  )
-}
+// Generate a per-process fallback secret (logged as warning, not a crash)
+let _fallbackSecret: string | null = null
 
-// Security: Require CSRF_SECRET in production, use random fallback only in development
 function getCsrfSecret(): string {
   const secret = process.env.CSRF_SECRET
-  if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('CSRF_SECRET environment variable is required in production')
-    }
-    // Only for development - generate a random secret per process start
-    logger.warn('CSRF_SECRET not set - using temporary development secret')
-    return 'dev-' + Math.random().toString(36).substring(2) + Date.now().toString(36)
+  if (secret) return secret
+
+  // No CSRF_SECRET set — generate a random per-process fallback
+  if (!_fallbackSecret) {
+    _fallbackSecret = randomBytes(32).toString('hex')
+    logger.warn(
+      'CSRF_SECRET not set — using random per-process secret. ' +
+        'Set CSRF_SECRET env var for persistent CSRF tokens across deployments.',
+    )
   }
-  return secret
+  return _fallbackSecret
 }
 
 const CSRF_SECRET = getCsrfSecret()
