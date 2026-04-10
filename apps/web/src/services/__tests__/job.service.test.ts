@@ -80,7 +80,7 @@ describe('JobService', () => {
       vi.mocked(checkEntitlement).mockResolvedValue(false)
 
       await expect(JobService.createJob(input, mockUserId)).rejects.toThrow(
-        'Job posting limit reached. Please upgrade your plan.'
+        'Job posting limit reached. Please upgrade your plan.',
       )
       await expect(JobService.createJob(input, mockUserId)).rejects.toThrow(AppError)
     })
@@ -98,7 +98,7 @@ describe('JobService', () => {
         workMode: 'HYBRID',
         type: 'FULL_TIME',
         seniority: 'MEDIOR',
-        status: 'ACTIVE',
+        status: 'PUBLISHED',
       })
 
       let capturedData: any
@@ -120,7 +120,7 @@ describe('JobService', () => {
       expect(capturedData.workMode).toBe('HYBRID')
       expect(capturedData.type).toBe('FULL_TIME')
       expect(capturedData.seniority).toBe('MEDIOR')
-      expect(capturedData.status).toBe('ACTIVE')
+      expect(capturedData.status).toBe('DRAFT')
     })
 
     it('should consume entitlement and create audit log', async () => {
@@ -143,12 +143,7 @@ describe('JobService', () => {
 
       await JobService.createJob(input, mockUserId)
 
-      expect(consumeEntitlement).toHaveBeenCalledWith(
-        mockOrgId,
-        'MAX_JOBS',
-        1,
-        expect.anything()
-      )
+      expect(consumeEntitlement).toHaveBeenCalledWith(mockOrgId, 'MAX_JOBS', 1, expect.anything())
       expect(createAuditLog).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: mockUserId,
@@ -156,7 +151,7 @@ describe('JobService', () => {
           action: 'CREATE',
           resource: 'JOB',
           resourceId: mockJob.id,
-        })
+        }),
       )
     })
   })
@@ -191,12 +186,12 @@ describe('JobService', () => {
 
       vi.mocked(prisma.job.findUnique).mockResolvedValue(null)
 
-      await expect(
-        JobService.updateJob(jobId, { title: 'New Title' }, mockUserId)
-      ).rejects.toThrow('Job not found')
-      await expect(
-        JobService.updateJob(jobId, { title: 'New Title' }, mockUserId)
-      ).rejects.toThrow(AppError)
+      await expect(JobService.updateJob(jobId, { title: 'New Title' }, mockUserId)).rejects.toThrow(
+        'Job not found',
+      )
+      await expect(JobService.updateJob(jobId, { title: 'New Title' }, mockUserId)).rejects.toThrow(
+        AppError,
+      )
     })
 
     it('should create audit log for update', async () => {
@@ -221,13 +216,13 @@ describe('JobService', () => {
           resource: 'JOB',
           resourceId: jobId,
           metadata: updateInput,
-        })
+        }),
       )
     })
 
     it('should update job status', async () => {
       const jobId = 'job-123'
-      const existingJob = createMockJob({ id: jobId, status: 'ACTIVE' })
+      const existingJob = createMockJob({ id: jobId, status: 'PUBLISHED' })
       const updateInput = { status: 'CLOSED' as const }
 
       let capturedData: any
@@ -253,8 +248,8 @@ describe('JobService', () => {
   describe('searchJobs', () => {
     it('should return jobs with default parameters', async () => {
       const mockJobs = [
-        createMockJob({ status: 'ACTIVE' }),
-        createMockJob({ status: 'ACTIVE' }),
+        createMockJob({ status: 'PUBLISHED' }),
+        createMockJob({ status: 'PUBLISHED' }),
       ]
 
       vi.mocked(prisma.job.findMany).mockResolvedValue(mockJobs as any)
@@ -265,10 +260,10 @@ describe('JobService', () => {
       expect(result).toEqual({ jobs: mockJobs, total: 2 })
       expect(prisma.job.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { status: 'ACTIVE' },
+          where: { status: 'PUBLISHED' },
           skip: 0,
           take: 50,
-        })
+        }),
       )
     })
 
@@ -289,7 +284,7 @@ describe('JobService', () => {
               { description: { contains: 'TypeScript', mode: 'insensitive' } },
             ]),
           }),
-        })
+        }),
       )
     })
 
@@ -306,7 +301,7 @@ describe('JobService', () => {
           where: expect.objectContaining({
             workMode: 'REMOTE',
           }),
-        })
+        }),
       )
     })
 
@@ -324,7 +319,7 @@ describe('JobService', () => {
             type: 'CONTRACT',
             seniority: 'SENIOR',
           }),
-        })
+        }),
       )
     })
 
@@ -341,7 +336,7 @@ describe('JobService', () => {
           where: expect.objectContaining({
             orgId: mockOrgId,
           }),
-        })
+        }),
       )
     })
 
@@ -357,7 +352,7 @@ describe('JobService', () => {
         expect.objectContaining({
           skip: 20,
           take: 10,
-        })
+        }),
       )
     })
 
@@ -388,7 +383,7 @@ describe('JobService', () => {
             organization: expect.any(Object),
             _count: expect.any(Object),
           }),
-        })
+        }),
       )
     })
   })
@@ -449,7 +444,7 @@ describe('JobService', () => {
       vi.mocked(prisma.job.findUnique).mockResolvedValue(null)
 
       await expect(JobService.deleteJob('non-existent', mockUserId)).rejects.toThrow(
-        'Job not found'
+        'Job not found',
       )
       await expect(JobService.deleteJob('non-existent', mockUserId)).rejects.toThrow(AppError)
     })
@@ -475,7 +470,7 @@ describe('JobService', () => {
           resource: 'JOB',
           resourceId: jobId,
           metadata: { status: 'ARCHIVED' },
-        })
+        }),
       )
     })
   })

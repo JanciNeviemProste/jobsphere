@@ -10,21 +10,22 @@ const baseJobSchema = z.object({
   workMode: z.enum(['REMOTE', 'HYBRID', 'ONSITE']).default('HYBRID'),
   type: z.enum(['FULL_TIME', 'PART_TIME', 'CONTRACT']).default('FULL_TIME'),
   seniority: z.enum(['JUNIOR', 'MEDIOR', 'SENIOR', 'LEAD']).default('MEDIOR'),
-  status: z.enum(['ACTIVE', 'CLOSED', 'DRAFT']).default('ACTIVE'),
+  status: z.enum(['DRAFT', 'PUBLISHED', 'PAUSED', 'CLOSED']).default('PUBLISHED'),
   organizationId: z.string().cuid(),
 })
 
 // Create job schema with salary validation
 export const createJobSchema = baseJobSchema.refine(
   (data) => !data.salaryMin || !data.salaryMax || data.salaryMin <= data.salaryMax,
-  { message: 'Minimum salary must be less than maximum salary' }
+  { message: 'Minimum salary must be less than maximum salary' },
 )
 
 // Update job schema - partial with optional salary validation
-export const updateJobSchema = baseJobSchema.partial().refine(
-  (data) => !data.salaryMin || !data.salaryMax || data.salaryMin <= data.salaryMax,
-  { message: 'Minimum salary must be less than maximum salary' }
-)
+export const updateJobSchema = baseJobSchema
+  .partial()
+  .refine((data) => !data.salaryMin || !data.salaryMax || data.salaryMin <= data.salaryMax, {
+    message: 'Minimum salary must be less than maximum salary',
+  })
 
 export type CreateJobInput = z.infer<typeof createJobSchema>
 export type UpdateJobInput = z.infer<typeof updateJobSchema>

@@ -27,10 +27,7 @@ export interface MatchScore {
 /**
  * Calculate AI-powered match score between a candidate and a job
  */
-export async function calculateMatchScore(
-  resumeId: string,
-  jobId: string
-): Promise<MatchScore> {
+export async function calculateMatchScore(resumeId: string, jobId: string): Promise<MatchScore> {
   try {
     // Fetch resume and job data
     const [resume, job] = await Promise.all([
@@ -38,8 +35,8 @@ export async function calculateMatchScore(
         where: { id: resumeId },
         include: {
           sections: true,
-          candidate: true
-        }
+          candidate: true,
+        },
       }),
       prisma.job.findUnique({
         where: { id: jobId },
@@ -47,10 +44,10 @@ export async function calculateMatchScore(
           organization: {
             select: {
               name: true,
-            }
-          }
-        }
-      })
+            },
+          },
+        },
+      }),
     ])
 
     if (!resume || !job) {
@@ -62,7 +59,7 @@ export async function calculateMatchScore(
     const candidateExperience: any[] = []
     const candidateEducation: any[] = []
 
-    resume.sections.forEach(section => {
+    resume.sections.forEach((section) => {
       if (section.kind === 'skills') {
         // Skills stored in text, bullets, or json fields
         if (section.text) {
@@ -146,9 +143,9 @@ Return a JSON response with this structure:
       messages: [
         {
           role: 'user',
-          content: prompt
-        }
-      ]
+          content: prompt,
+        },
+      ],
     })
 
     // Parse the response
@@ -176,7 +173,7 @@ Return a JSON response with this structure:
     logger.info('AI match score calculated', {
       resumeId,
       jobId,
-      score: matchScore.overall
+      score: matchScore.overall,
     })
 
     return matchScore
@@ -191,21 +188,18 @@ Return a JSON response with this structure:
 /**
  * Fallback scoring when AI is unavailable
  */
-async function calculateFallbackScore(
-  resumeId: string,
-  jobId: string
-): Promise<MatchScore> {
+async function calculateFallbackScore(resumeId: string, jobId: string): Promise<MatchScore> {
   const [resume, job] = await Promise.all([
     prisma.resume.findUnique({
       where: { id: resumeId },
       include: {
         sections: true,
-        candidate: true
-      }
+        candidate: true,
+      },
     }),
     prisma.job.findUnique({
-      where: { id: jobId }
-    })
+      where: { id: jobId },
+    }),
   ])
 
   if (!resume || !job) {
@@ -214,7 +208,7 @@ async function calculateFallbackScore(
 
   // Extract skills
   const candidateSkills: string[] = []
-  resume.sections.forEach(section => {
+  resume.sections.forEach((section) => {
     if (section.kind === 'skills') {
       // Skills stored in text, bullets, or json fields
       if (section.text) {
@@ -228,12 +222,11 @@ async function calculateFallbackScore(
 
   // Simple skill matching using description
   const jobDescription = (job.description || '').toLowerCase()
-  const matchedSkills = candidateSkills.filter(skill =>
-    jobDescription.includes(skill)
-  )
-  const skillsScore = candidateSkills.length > 0
-    ? Math.min((matchedSkills.length / candidateSkills.length) * 100, 100)
-    : 50
+  const matchedSkills = candidateSkills.filter((skill) => jobDescription.includes(skill))
+  const skillsScore =
+    candidateSkills.length > 0
+      ? Math.min((matchedSkills.length / candidateSkills.length) * 100, 100)
+      : 50
 
   // Location matching - simplified since preferredLocations doesn't exist
   const locationScore = 70
@@ -242,20 +235,20 @@ async function calculateFallbackScore(
   const salaryScore = 70
 
   // Experience score (basic)
-  const hasExperience = resume.sections.some(s => s.kind === 'experience')
+  const hasExperience = resume.sections.some((s) => s.kind === 'experience')
   const experienceScore = hasExperience ? 75 : 40
 
   // Education score (basic)
-  const hasEducation = resume.sections.some(s => s.kind === 'education')
+  const hasEducation = resume.sections.some((s) => s.kind === 'education')
   const educationScore = hasEducation ? 75 : 50
 
   // Calculate overall score
   const overall = Math.round(
-    (skillsScore * 0.35 +
-     experienceScore * 0.25 +
-     educationScore * 0.15 +
-     locationScore * 0.15 +
-     salaryScore * 0.10)
+    skillsScore * 0.35 +
+      experienceScore * 0.25 +
+      educationScore * 0.15 +
+      locationScore * 0.15 +
+      salaryScore * 0.1,
   )
 
   return {
@@ -272,7 +265,7 @@ async function calculateFallbackScore(
       educationAnalysis: 'Based on education entries',
       locationAnalysis: 'Based on location preferences',
       salaryAnalysis: 'Based on salary expectations',
-    }
+    },
   }
 }
 
@@ -281,7 +274,7 @@ async function calculateFallbackScore(
  */
 export async function calculateBulkMatchScores(
   resumeId: string,
-  jobIds: string[]
+  jobIds: string[],
 ): Promise<Map<string, MatchScore>> {
   const scores = new Map<string, MatchScore>()
 
@@ -290,17 +283,17 @@ export async function calculateBulkMatchScores(
   for (let i = 0; i < jobIds.length; i += batchSize) {
     const batch = jobIds.slice(i, i + batchSize)
     const batchScores = await Promise.all(
-      batch.map(jobId =>
+      batch.map((jobId) =>
         calculateMatchScore(resumeId, jobId)
-          .then(score => ({ jobId, score }))
-          .catch(error => {
+          .then((score) => ({ jobId, score }))
+          .catch((error) => {
             logger.error(`Failed to calculate score for job ${jobId}`, error)
             return null
-          })
-      )
+          }),
+      ),
     )
 
-    batchScores.forEach(result => {
+    batchScores.forEach((result) => {
       if (result) {
         scores.set(result.jobId, result.score)
       }
@@ -315,17 +308,17 @@ export async function calculateBulkMatchScores(
  */
 export async function getRecommendedJobsWithAI(
   candidateId: string,
-  limit: number = 10
+  limit: number = 10,
 ): Promise<Array<{ job: any; matchScore: MatchScore }>> {
   try {
     // Get candidate's first resume
     const resume = await prisma.resume.findFirst({
       where: {
-        candidateId
+        candidateId,
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: 'desc',
+      },
     })
 
     if (!resume) {
@@ -333,34 +326,36 @@ export async function getRecommendedJobsWithAI(
     }
 
     // Get jobs the candidate hasn't applied to
-    const appliedJobIds = await prisma.application.findMany({
-      where: { candidateId },
-      select: { jobId: true }
-    }).then(apps => apps.map(a => a.jobId))
+    const appliedJobIds = await prisma.application
+      .findMany({
+        where: { candidateId },
+        select: { jobId: true },
+      })
+      .then((apps) => apps.map((a) => a.jobId))
 
     // Get available jobs
     const jobs = await prisma.job.findMany({
       where: {
-        status: 'ACTIVE',
+        status: 'PUBLISHED',
         id: {
-          notIn: appliedJobIds
-        }
+          notIn: appliedJobIds,
+        },
       },
       include: {
-        organization: true
+        organization: true,
       },
       orderBy: {
-        createdAt: 'desc'
+        createdAt: 'desc',
       },
-      take: limit * 2 // Get more to filter by score
+      take: limit * 2, // Get more to filter by score
     })
 
     // Calculate match scores
     const jobsWithScores = await Promise.all(
-      jobs.map(async job => ({
+      jobs.map(async (job) => ({
         job,
-        matchScore: await calculateMatchScore(resume.id, job.id)
-      }))
+        matchScore: await calculateMatchScore(resume.id, job.id),
+      })),
     )
 
     // Sort by overall match score

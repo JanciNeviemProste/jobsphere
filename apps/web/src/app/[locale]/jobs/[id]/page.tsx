@@ -333,7 +333,9 @@ export default async function JobDetailPage({
       {/* JSON-LD structured data for Google for Jobs */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jobPostingJsonLd).replace(/</g, '\\u003c'),
+        }}
       />
 
       {/* Track job view */}

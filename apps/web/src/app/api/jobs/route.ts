@@ -53,8 +53,8 @@ export const GET = withRateLimit(
         workMode: searchParams.get('workMode') || undefined,
         jobType: searchParams.get('jobType') || undefined,
         seniority: searchParams.get('seniority') || undefined,
-        page: searchParams.get('page'),
-        limit: searchParams.get('limit'),
+        page: searchParams.get('page') || undefined,
+        limit: searchParams.get('limit') || undefined,
       })
 
       const where = {
