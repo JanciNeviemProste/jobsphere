@@ -126,8 +126,6 @@ async function sendWithRetry(
 }
 
 async function sendResendEmail(data: EmailData): Promise<EmailResult> {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-expect-error resend may not be installed
   const { Resend } = await import('resend')
   const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -142,8 +140,6 @@ async function sendResendEmail(data: EmailData): Promise<EmailResult> {
 }
 
 async function sendSendGridEmail(data: EmailData): Promise<EmailResult> {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-expect-error @sendgrid/mail may not be installed
   const sgMail = (await import('@sendgrid/mail')).default
   sgMail.setApiKey(process.env.SENDGRID_API_KEY || '')
 
