@@ -141,7 +141,11 @@ export const GET = withRateLimit(
 
       logger.apiError('GET', '/api/jobs', error)
       const errorData = errorResponse(error)
-      return NextResponse.json(errorData, { status: errorData.statusCode })
+      const debugMsg = error instanceof Error ? error.message : String(error)
+      return NextResponse.json(
+        { error: errorData.error, debug: debugMsg },
+        { status: errorData.statusCode },
+      )
     }
   },
   { preset: 'public' }, // 200 requests per minute
