@@ -30,6 +30,7 @@ export async function generateMetadata({ params: { locale } }: { params: { local
     keywords: t('keywords'),
     authors: [{ name: 'JobSphere Team' }],
     creator: 'JobSphere',
+    icons: { icon: '/images/jobsphere_logo.png' },
     metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
     openGraph: {
       type: 'website',
