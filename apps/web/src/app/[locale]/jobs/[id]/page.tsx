@@ -34,22 +34,27 @@ export async function generateMetadata({
 }: {
   params: { id: string; locale: string }
 }): Promise<Metadata> {
-  const job = await prisma.job.findUnique({
-    where: { id: params.id, status: 'PUBLISHED' },
-    select: {
-      title: true,
-      description: true,
-      city: true,
-      region: true,
-      salaryMin: true,
-      salaryMax: true,
-      salaryCurrency: true,
-      employmentType: true,
-      metaTitle: true,
-      metaDescription: true,
-      organization: { select: { name: true } },
-    },
-  })
+  let job = null
+  try {
+    job = await prisma.job.findUnique({
+      where: { id: params.id, status: 'PUBLISHED' },
+      select: {
+        title: true,
+        description: true,
+        city: true,
+        region: true,
+        salaryMin: true,
+        salaryMax: true,
+        salaryCurrency: true,
+        employmentType: true,
+        metaTitle: true,
+        metaDescription: true,
+        organization: { select: { name: true } },
+      },
+    })
+  } catch {
+    return { title: 'Job not found' }
+  }
 
   if (!job) {
     return { title: 'Job not found' }
