@@ -5,6 +5,7 @@ import { sendStatusChangeEmail } from '@/lib/email'
 import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
+import { z } from 'zod'
 
 export const runtime = 'nodejs'
 
@@ -77,7 +78,13 @@ export const PATCH = withCsrfProtection(
         }
 
         const body = await req.json()
-        const { status, notes } = body
+        const updateSchema = z.object({
+          status: z
+            .enum(['NEW', 'SCREENING', 'PHONE_SCREEN', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED'])
+            .optional(),
+          notes: z.string().max(5000).optional(),
+        })
+        const { status, notes } = updateSchema.parse(body)
 
         const application = await prisma.application.findUnique({
           where: { id: params.id },

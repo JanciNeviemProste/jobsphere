@@ -72,11 +72,16 @@ export const POST = withCsrfProtection(
           return NextResponse.json({ error: 'No email found for candidate' }, { status: 400 })
         }
 
+        // Sanitize body to prevent XSS in email HTML
+        const safeBody = body
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+          .replace(/\s*on\w+\s*=\s*(['"])[^'"]*\1/gi, '')
+
         // Send email
         await sendEmail({
           to: candidateEmail,
           subject,
-          html: body,
+          html: safeBody,
         })
 
         // Log activity

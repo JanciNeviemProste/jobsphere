@@ -272,27 +272,25 @@ export class ApplicationService {
       }),
     } as Prisma.ApplicationWhereInput
 
-    const [applications, total] = await Promise.all([
-      prisma.application.findMany({
-        where,
-        include: {
-          candidate: {
-            include: {
-              contacts: true,
-            },
-          },
-          job: {
-            include: {
-              organization: true,
-            },
+    const applications = await prisma.application.findMany({
+      where,
+      include: {
+        candidate: {
+          include: {
+            contacts: true,
           },
         },
-        orderBy: { createdAt: 'desc' },
-        skip: offset,
-        take: limit,
-      }),
-      prisma.application.count({ where }),
-    ])
+        job: {
+          include: {
+            organization: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: offset,
+      take: limit,
+    })
+    const total = await prisma.application.count({ where })
 
     return { applications, total }
   }
@@ -485,28 +483,28 @@ export class ApplicationService {
     weekCount: number
   }> {
     const now = new Date()
-    const startOfDay = new Date(now.setHours(0, 0, 0, 0))
-    const startOfWeek = new Date(now.setDate(now.getDate() - 7))
+    const startOfDay = new Date(now)
+    startOfDay.setHours(0, 0, 0, 0)
+    const startOfWeek = new Date(now)
+    startOfWeek.setDate(startOfWeek.getDate() - 7)
 
-    const [byStage, todayCount, weekCount] = await Promise.all([
-      prisma.application.groupBy({
-        by: ['stage'],
-        where: { jobId },
-        _count: { stage: true },
-      }),
-      prisma.application.count({
-        where: {
-          jobId,
-          createdAt: { gte: startOfDay },
-        },
-      }),
-      prisma.application.count({
-        where: {
-          jobId,
-          createdAt: { gte: startOfWeek },
-        },
-      }),
-    ])
+    const byStage = await prisma.application.groupBy({
+      by: ['stage'],
+      where: { jobId },
+      _count: { stage: true },
+    })
+    const todayCount = await prisma.application.count({
+      where: {
+        jobId,
+        createdAt: { gte: startOfDay },
+      },
+    })
+    const weekCount = await prisma.application.count({
+      where: {
+        jobId,
+        createdAt: { gte: startOfWeek },
+      },
+    })
 
     const stageCounts = byStage.reduce(
       (acc, item) => {

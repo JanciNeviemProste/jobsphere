@@ -7,11 +7,15 @@ export const runtime = 'nodejs'
 
 /**
  * Verify Resend webhook signature using Svix headers.
- * If RESEND_WEBHOOK_SECRET is not set, logs a warning and allows the request (dev backward compatibility).
+ * If RESEND_WEBHOOK_SECRET is not set, rejects the request in production.
  */
 function verifyResendSignature(body: string, headers: Headers): boolean {
   const secret = process.env.RESEND_WEBHOOK_SECRET
   if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      logger.error('RESEND_WEBHOOK_SECRET not set in production - rejecting webhook')
+      return false
+    }
     console.warn('RESEND_WEBHOOK_SECRET not set - skipping webhook signature verification')
     return true // Allow in dev
   }
@@ -35,6 +39,30 @@ function verifyResendSignature(body: string, headers: Headers): boolean {
   })
 }
 
+/**
+ * Verify SendGrid webhook using the x-twilio-email-event-webhook-signature header.
+ * If SENDGRID_WEBHOOK_SECRET is not set, rejects the request in production.
+ */
+function verifySendGridSignature(body: string, headers: Headers): boolean {
+  const secret = process.env.SENDGRID_WEBHOOK_SECRET
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      logger.error('SENDGRID_WEBHOOK_SECRET not set in production - rejecting webhook')
+      return false
+    }
+    console.warn('SENDGRID_WEBHOOK_SECRET not set - skipping SendGrid signature verification')
+    return true // Allow in dev
+  }
+
+  const signature = headers.get('x-twilio-email-event-webhook-signature')
+  if (!signature) {
+    return false
+  }
+
+  const expectedSig = crypto.createHmac('sha256', secret).update(body).digest('base64')
+  return signature === expectedSig
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Read raw body for signature verification before parsing JSON
@@ -54,8 +82,11 @@ export async function POST(req: NextRequest) {
     }
 
     // SendGrid webhook format
-    // TODO: Add SendGrid signature verification (Event Webhook Verification Key)
     if (Array.isArray(body)) {
+      if (!verifySendGridSignature(rawBody, req.headers)) {
+        logger.warn('SendGrid webhook signature verification failed')
+        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+      }
       return handleSendGridWebhook(body)
     }
 

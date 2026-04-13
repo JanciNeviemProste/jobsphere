@@ -144,7 +144,7 @@ export default function SignupClient({ params }: { params: { locale: string } })
 
   const handleGoogleSignIn = async () => {
     setLoading(true)
-    await signIn('google', { callbackUrl: '/dashboard' })
+    await signIn('google', { callbackUrl: `/${locale}/dashboard` })
   }
 
   return (

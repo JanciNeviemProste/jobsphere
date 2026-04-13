@@ -25,7 +25,7 @@ export default async function CandidateProfilePage({
   const session = await auth()
 
   if (!session?.user?.id) {
-    redirect('/login')
+    redirect(`/${params.locale}/login`)
   }
 
   // Get candidate with all related data

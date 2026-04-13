@@ -16,30 +16,30 @@ const paginationSchema = z.object({
 
 export const runtime = 'nodejs'
 
-export async function GET(req: Request) {
-  try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+export const GET = withRateLimit(
+  async (req: Request) => {
+    try {
+      const session = await auth()
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
 
-    const { searchParams } = new URL(req.url)
-    const stageRaw = searchParams.get('stage') || undefined
-    const jobId = searchParams.get('jobId')
-    const validatedStage = stageEnum.parse(stageRaw)
-    const { page, limit } = paginationSchema.parse({
-      page: searchParams.get('page'),
-      limit: searchParams.get('limit'),
-    })
+      const { searchParams } = new URL(req.url)
+      const stageRaw = searchParams.get('stage') || undefined
+      const jobId = searchParams.get('jobId')
+      const validatedStage = stageEnum.parse(stageRaw)
+      const { page, limit } = paginationSchema.parse({
+        page: searchParams.get('page'),
+        limit: searchParams.get('limit'),
+      })
 
-    const where = {
-      candidateId: session.user.id,
-      ...(validatedStage && { stage: validatedStage }),
-      ...(jobId && { jobId }),
-    }
+      const where = {
+        candidateId: session.user.id,
+        ...(validatedStage && { stage: validatedStage }),
+        ...(jobId && { jobId }),
+      }
 
-    const [applications, total] = await Promise.all([
-      prisma.application.findMany({
+      const applications = await prisma.application.findMany({
         where,
         include: {
           job: {
@@ -56,22 +56,23 @@ export async function GET(req: Request) {
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
-      }),
-      prisma.application.count({ where }),
-    ])
+      })
+      const total = await prisma.application.count({ where })
 
-    return NextResponse.json({
-      data: applications,
-      total,
-      page,
-      pageSize: limit,
-      hasMore: page * limit < total,
-    })
-  } catch (error) {
-    logger.error('Error fetching applications', error)
-    return NextResponse.json({ error: 'Failed to fetch applications' }, { status: 500 })
-  }
-}
+      return NextResponse.json({
+        data: applications,
+        total,
+        page,
+        pageSize: limit,
+        hasMore: page * limit < total,
+      })
+    } catch (error) {
+      logger.error('Error fetching applications', error)
+      return NextResponse.json({ error: 'Failed to fetch applications' }, { status: 500 })
+    }
+  },
+  { preset: 'api', byUser: true },
+)
 
 export const POST = withCsrfProtection(
   withRateLimit(

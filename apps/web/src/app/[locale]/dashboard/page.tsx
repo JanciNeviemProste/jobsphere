@@ -24,67 +24,67 @@ async function getDashboardData() {
   // Import prisma dynamically to avoid build issues
   const { prisma } = await import('@/lib/prisma')
 
-  // Fetch all dashboard data in parallel
-  const [user, applications, resume, recommendedJobs] = await Promise.all([
-    // Get user details
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        name: true,
-        email: true,
-        avatar: true,
-      },
-    }),
+  // Fetch dashboard data sequentially to avoid pgBouncer prepared statement conflicts
+  // (pgBouncer transaction mode + Promise.all causes 42P05: prepared statement already exists)
 
-    // Get recent applications
-    prisma.application.findMany({
-      where: { candidateId: session.user.id },
-      include: {
-        job: {
-          include: {
-            organization: {
-              select: {
-                name: true,
-                logo: true,
-              },
+  // Get user details
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      name: true,
+      email: true,
+      avatar: true,
+    },
+  })
+
+  // Get recent applications
+  const applications = await prisma.application.findMany({
+    where: { candidateId: session.user.id },
+    include: {
+      job: {
+        include: {
+          organization: {
+            select: {
+              name: true,
+              logo: true,
             },
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    }),
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 10,
+  })
 
-    // Get first resume (since isDefault field doesn't exist)
-    prisma.resume.findFirst({
-      where: {
-        candidateId: session.user.id,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      include: {
-        sections: true,
-      },
-    }),
+  // Get first resume (since isDefault field doesn't exist)
+  const resume = await prisma.resume.findFirst({
+    where: {
+      candidateId: session.user.id,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    include: {
+      sections: true,
+    },
+  })
 
-    // Get recommended jobs (simplified server-side version)
-    prisma.job.findMany({
-      where: {
-        status: 'PUBLISHED',
-      },
-      include: {
-        organization: {
-          select: {
-            name: true,
-            logo: true,
-          },
+  // Get recommended jobs (simplified server-side version)
+  const recommendedJobs = await prisma.job.findMany({
+    where: {
+      status: 'PUBLISHED',
+    },
+    include: {
+      organization: {
+        select: {
+          name: true,
+          logo: true,
         },
       },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-    }),
-  ])
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+  })
 
   // Calculate stats
   const stats = {

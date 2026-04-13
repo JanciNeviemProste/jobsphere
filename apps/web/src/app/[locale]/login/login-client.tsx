@@ -76,7 +76,7 @@ export default function LoginClient({ params }: { params: { locale: string } }) 
 
   const handleGoogleSignIn = async () => {
     setLoading(true)
-    await signIn('google', { callbackUrl: '/dashboard' })
+    await signIn('google', { callbackUrl: `/${locale}/dashboard` })
   }
 
   return (
@@ -140,7 +140,10 @@ export default function LoginClient({ params }: { params: { locale: string } }) 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">{t('password')}</Label>
-                <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+                <Link
+                  href={`/${locale}/forgot-password`}
+                  className="text-sm text-primary hover:underline"
+                >
                   {t('forgotPassword')}
                 </Link>
               </div>

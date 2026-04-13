@@ -4,11 +4,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import {
-  Job,
-  Prisma,
-  PrismaClient
-} from '@prisma/client'
+import { Job, Prisma, PrismaClient } from '@prisma/client'
 import { createAuditLog } from '@/lib/audit-log'
 import { checkEntitlement, consumeEntitlement } from '@/lib/entitlements'
 import { AppError } from '@/lib/errors'
@@ -53,20 +49,12 @@ export class JobService {
   /**
    * Create a new job posting
    */
-  static async createJob(
-    input: CreateJobInput
-  ): Promise<Job> {
+  static async createJob(input: CreateJobInput): Promise<Job> {
     // Check entitlement
-    const canCreate = await checkEntitlement(
-      input.orgId,
-      'MAX_JOBS'
-    )
+    const canCreate = await checkEntitlement(input.orgId, 'MAX_JOBS')
 
     if (!canCreate) {
-      throw new AppError(
-        'Job posting limit reached. Please upgrade your plan.',
-        403
-      )
+      throw new AppError('Job posting limit reached. Please upgrade your plan.', 403)
     }
 
     const job = await prisma.$transaction(async (tx) => {
@@ -90,12 +78,7 @@ export class JobService {
       })
 
       // Consume entitlement
-      await consumeEntitlement(
-        input.orgId,
-        'MAX_JOBS',
-        1,
-        tx as unknown as PrismaClient
-      )
+      await consumeEntitlement(input.orgId, 'MAX_JOBS', 1, tx as unknown as PrismaClient)
 
       // Create audit log
       await createAuditLog({
@@ -119,11 +102,7 @@ export class JobService {
   /**
    * Update an existing job
    */
-  static async updateJob(
-    jobId: string,
-    input: UpdateJobInput,
-    userId: string
-  ): Promise<Job> {
+  static async updateJob(jobId: string, input: UpdateJobInput, userId: string): Promise<Job> {
     const existingJob = await prisma.job.findUnique({
       where: { id: jobId },
     })
@@ -201,29 +180,27 @@ export class JobService {
       ...(seniority && { seniority }),
     }
 
-    const [jobs, total] = await Promise.all([
-      prisma.job.findMany({
-        where,
-        include: {
-          organization: {
-            select: {
-              id: true,
-              name: true,
-              logo: true,
-            },
-          },
-          _count: {
-            select: {
-              applications: true,
-            },
+    const jobs = await prisma.job.findMany({
+      where,
+      include: {
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,
           },
         },
-        orderBy: { createdAt: 'desc' },
-        skip: offset,
-        take: limit,
-      }),
-      prisma.job.count({ where }),
-    ])
+        _count: {
+          select: {
+            applications: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: offset,
+      take: limit,
+    })
+    const total = await prisma.job.count({ where })
 
     return { jobs, total }
   }
@@ -252,10 +229,7 @@ export class JobService {
   /**
    * Delete a job (soft delete by changing status)
    */
-  static async deleteJob(
-    jobId: string,
-    userId: string
-  ): Promise<Job> {
+  static async deleteJob(jobId: string, userId: string): Promise<Job> {
     const job = await prisma.job.findUnique({
       where: { id: jobId },
     })

@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
@@ -39,13 +40,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Google OAuth not configured' }, { status: 500 })
     }
 
-    // Generate state token
-    const state = Buffer.from(
-      JSON.stringify({
-        userId: session.user.id,
-        timestamp: Date.now(),
-      }),
+    // Generate HMAC-signed state token to prevent forgery
+    const secret = process.env.NEXTAUTH_SECRET || 'fallback'
+    const payload = Buffer.from(
+      JSON.stringify({ userId: session.user.id, timestamp: Date.now() }),
     ).toString('base64')
+    const sig = crypto.createHmac('sha256', secret).update(payload).digest('hex')
+    const state = `${payload}.${sig}`
 
     const authUrl = new URL(GOOGLE_AUTH_URL)
     authUrl.searchParams.set('client_id', clientId)

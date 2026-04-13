@@ -48,7 +48,7 @@ export const POST = withCsrfProtection(
 
         // Upload to Vercel Blob
         const blob = await put(file.name, file, {
-          access: 'public', // @vercel/blob only supports 'public'; security via randomized URLs + API auth
+          access: 'public',
           addRandomSuffix: true,
         })
 

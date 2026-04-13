@@ -46,27 +46,25 @@ export const GET = withRateLimit(
         deletedAt: null,
       }
 
-      const [members, total] = await Promise.all([
-        prisma.userOrgRole.findMany({
-          where,
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                avatar: true,
-              },
+      const members = await prisma.userOrgRole.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatar: true,
             },
           },
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: limit,
-          skip,
-        }),
-        prisma.userOrgRole.count({ where }),
-      ])
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: limit,
+        skip,
+      })
+      const total = await prisma.userOrgRole.count({ where })
 
       return NextResponse.json({
         members,
@@ -121,8 +119,7 @@ export const POST = withCsrfProtection(
         // If user doesn't exist, create a new user account
         if (!user) {
           // Generate a random temporary password
-          const tempPassword =
-            Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8)
+          const tempPassword = require('crypto').randomBytes(16).toString('hex')
           const hashedPassword = await hash(tempPassword, 12)
 
           user = await prisma.user.create({

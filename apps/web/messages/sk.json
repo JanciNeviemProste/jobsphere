@@ -85,7 +85,10 @@
       "signupLink": "Registrovať sa",
       "orContinueWith": "Alebo pokračovať s",
       "google": "Google",
-      "divider": "Alebo pokračovať s emailom"
+      "divider": "Alebo pokračovať s emailom",
+      "invalidCredentials": "Neplatné prihlasovacie údaje",
+      "signingIn": "Prihlasovanie...",
+      "error": "Prihlásenie zlyhalo"
     },
     "signup": {
       "title": "Vytvorte si účet",
@@ -631,6 +634,16 @@
         "manual_fill": "Vyplňte prosím formulár manuálne"
       }
     }
+  },
+  "apply": {
+    "title": "Prihláška na pozíciu",
+    "error": "Nastala chyba",
+    "jobNotFound": "Pracovná ponuka nebola nájdená",
+    "success": "Prihláška odoslaná",
+    "successDescription": "Vaša prihláška bola úspešne odoslaná. Budeme vás kontaktovať.",
+    "submitError": "Odoslanie prihlášky zlyhalo. Skúste to znova.",
+    "submit": "Odoslať prihlášku",
+    "submitting": "Odosielam..."
   },
   "postJob": {
     "title": "Pridať ponuku",

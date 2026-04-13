@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { captureException } from '@/lib/monitoring/sentry'
 
@@ -12,14 +11,12 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  const params = useParams()
-  const locale = (params?.locale as string) || 'sk'
   const t = useTranslations('errorPage')
 
   useEffect(() => {
     captureException(error, {
       tags: {
-        location: 'employer-error',
+        location: 'reset-password-error',
         ...(error.digest && { digest: error.digest }),
       },
     })
@@ -40,7 +37,7 @@ export default function Error({
             {t('tryAgain')}
           </button>
           <a
-            href={`/${locale}`}
+            href="/"
             className="rounded-md bg-gray-200 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
           >
             {t('goHome')}

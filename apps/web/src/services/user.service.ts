@@ -225,28 +225,26 @@ export class UserService {
       }),
     }
 
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          avatar: true,
-          emailVerified: true,
-          createdAt: true,
-          organizations: {
-            include: {
-              organization: true,
-            },
+    const users = await prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        emailVerified: true,
+        createdAt: true,
+        organizations: {
+          include: {
+            organization: true,
           },
         },
-        orderBy: { createdAt: 'desc' },
-        skip: offset,
-        take: limit,
-      }),
-      prisma.user.count({ where }),
-    ])
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: offset,
+      take: limit,
+    })
+    const total = await prisma.user.count({ where })
 
     return { users: users as unknown as User[], total }
   }

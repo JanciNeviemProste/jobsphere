@@ -19,29 +19,27 @@ export const GET = withRateLimit(
 
       // Fetch user, candidate (with resume count and first resume skills),
       // and applications in parallel to avoid sequential N+1 queries
-      const [user, candidate, applications] = await Promise.all([
-        prisma.user.findUnique({
-          where: { id: session.user.id },
-        }),
-        prisma.candidate.findFirst({
-          where: { id: session.user.id },
-          include: {
-            _count: {
-              select: {
-                resumes: true,
-              },
-            },
-            resumes: {
-              select: { skills: true },
-              take: 1,
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+      })
+      const candidate = await prisma.candidate.findFirst({
+        where: { id: session.user.id },
+        include: {
+          _count: {
+            select: {
+              resumes: true,
             },
           },
-        }),
-        prisma.application.findMany({
-          where: { candidateId: session.user.id },
-          select: { stage: true },
-        }),
-      ])
+          resumes: {
+            select: { skills: true },
+            take: 1,
+          },
+        },
+      })
+      const applications = await prisma.application.findMany({
+        where: { candidateId: session.user.id },
+        select: { stage: true },
+      })
 
       const stats = {
         total: applications.length,

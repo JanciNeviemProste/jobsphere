@@ -30,25 +30,23 @@ export interface MatchScore {
 export async function calculateMatchScore(resumeId: string, jobId: string): Promise<MatchScore> {
   try {
     // Fetch resume and job data
-    const [resume, job] = await Promise.all([
-      prisma.resume.findUnique({
-        where: { id: resumeId },
-        include: {
-          sections: true,
-          candidate: true,
-        },
-      }),
-      prisma.job.findUnique({
-        where: { id: jobId },
-        include: {
-          organization: {
-            select: {
-              name: true,
-            },
+    const resume = await prisma.resume.findUnique({
+      where: { id: resumeId },
+      include: {
+        sections: true,
+        candidate: true,
+      },
+    })
+    const job = await prisma.job.findUnique({
+      where: { id: jobId },
+      include: {
+        organization: {
+          select: {
+            name: true,
           },
         },
-      }),
-    ])
+      },
+    })
 
     if (!resume || !job) {
       throw new Error('Resume or job not found')
@@ -189,18 +187,16 @@ Return a JSON response with this structure:
  * Fallback scoring when AI is unavailable
  */
 async function calculateFallbackScore(resumeId: string, jobId: string): Promise<MatchScore> {
-  const [resume, job] = await Promise.all([
-    prisma.resume.findUnique({
-      where: { id: resumeId },
-      include: {
-        sections: true,
-        candidate: true,
-      },
-    }),
-    prisma.job.findUnique({
-      where: { id: jobId },
-    }),
-  ])
+  const resume = await prisma.resume.findUnique({
+    where: { id: resumeId },
+    include: {
+      sections: true,
+      candidate: true,
+    },
+  })
+  const job = await prisma.job.findUnique({
+    where: { id: jobId },
+  })
 
   if (!resume || !job) {
     throw new Error('Resume or job not found')
