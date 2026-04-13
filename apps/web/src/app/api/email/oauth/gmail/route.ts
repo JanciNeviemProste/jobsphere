@@ -41,7 +41,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Generate HMAC-signed state token to prevent forgery
-    const secret = process.env.NEXTAUTH_SECRET || 'fallback'
+    const secret = process.env.NEXTAUTH_SECRET
+    if (!secret) {
+      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
+    }
     const payload = Buffer.from(
       JSON.stringify({ userId: session.user.id, timestamp: Date.now() }),
     ).toString('base64')

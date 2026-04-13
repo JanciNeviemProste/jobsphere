@@ -246,36 +246,35 @@ export default function ApplyClient({ params }: { params: { id: string; locale: 
     setSubmitting(true)
 
     try {
-      const formData = new FormData()
-      formData.append('jobId', params.id)
-      formData.append('coverLetter', values.coverLetter)
+      const body: Record<string, unknown> = {
+        jobId: params.id,
+        coverLetter: values.coverLetter,
+      }
 
       if (values.expectedSalary) {
-        formData.append('expectedSalary', values.expectedSalary)
+        body.expectedSalary = values.expectedSalary
       }
 
       if (values.availableFrom) {
-        formData.append('availableFrom', values.availableFrom.toISOString())
+        body.availableFrom = values.availableFrom.toISOString()
       }
 
       if (values.phoneNumber) {
-        formData.append('phoneNumber', values.phoneNumber)
+        body.phoneNumber = values.phoneNumber
       }
 
       if (values.linkedin) {
-        formData.append('linkedin', values.linkedin)
+        body.linkedin = values.linkedin
       }
 
-      // Handle CV based on source
       if (values.cvSource === 'existing' && values.cvId) {
-        formData.append('cvId', values.cvId)
-      } else if (values.cvSource === 'upload' && values.cvFile) {
-        formData.append('cvFile', values.cvFile)
+        body.cvId = values.cvId
       }
 
       const response = await fetch('/api/applications', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       })
 
       if (!response.ok) {

@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { encrypt } from '@/lib/encryption'
@@ -38,10 +39,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${baseUrl}/employer/settings?error=invalid_callback`)
     }
 
-    // Verify and validate state
+    // Verify HMAC signature and validate state
     let stateData
     try {
-      const rawState = JSON.parse(Buffer.from(state, 'base64').toString())
+      const [payload, sig] = state.split('.')
+      if (!payload || !sig) {
+        return NextResponse.redirect(`${baseUrl}/employer/settings?error=invalid_state`)
+      }
+      const secret = process.env.NEXTAUTH_SECRET
+      if (!secret) {
+        return NextResponse.redirect(`${baseUrl}/employer/settings?error=server_error`)
+      }
+      const expectedSig = crypto.createHmac('sha256', secret).update(payload).digest('hex')
+      if (sig !== expectedSig) {
+        return NextResponse.redirect(`${baseUrl}/employer/settings?error=invalid_state`)
+      }
+      const rawState = JSON.parse(Buffer.from(payload, 'base64').toString())
       stateData = oauthStateSchema.parse(rawState)
     } catch (error) {
       return NextResponse.redirect(`${baseUrl}/employer/settings?error=invalid_state`)

@@ -5,7 +5,7 @@ import { locales } from './i18n'
 
 const intlMiddleware = createMiddleware({
   locales,
-  defaultLocale: 'en',
+  defaultLocale: 'sk',
   localeDetection: true,
 })
 
@@ -22,7 +22,7 @@ export default async function middleware(request: NextRequest) {
   if (isProtectedRoute) {
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
     if (!token) {
-      const locale = pathname.split('/')[1] || 'en'
+      const locale = pathname.split('/')[1] || 'sk'
       return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
     }
   }

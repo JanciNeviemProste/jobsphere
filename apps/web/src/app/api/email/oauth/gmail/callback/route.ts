@@ -44,7 +44,10 @@ export async function GET(request: NextRequest) {
       if (!payload || !sig) {
         return NextResponse.redirect(`${baseUrl}/employer/settings?error=invalid_state`)
       }
-      const secret = process.env.NEXTAUTH_SECRET || 'fallback'
+      const secret = process.env.NEXTAUTH_SECRET
+      if (!secret) {
+        return NextResponse.redirect(`${baseUrl}/employer/settings?error=server_error`)
+      }
       const expectedSig = crypto.createHmac('sha256', secret).update(payload).digest('hex')
       if (sig !== expectedSig) {
         return NextResponse.redirect(`${baseUrl}/employer/settings?error=invalid_state`)

@@ -215,7 +215,10 @@ function generateJobPostingJsonLd(job: any, locale: string) {
         '@type': 'PostalAddress',
         ...(job.city && { addressLocality: job.city }),
         ...(job.region && { addressRegion: job.region }),
-        addressCountry: 'SK',
+        addressCountry:
+          ({ sk: 'SK', de: 'DE', cs: 'CZ', pl: 'PL', en: 'GB' } as Record<string, string>)[
+            locale
+          ] || 'SK',
       },
     },
     directApply: true,

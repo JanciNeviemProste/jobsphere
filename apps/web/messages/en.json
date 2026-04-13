@@ -114,7 +114,12 @@
     "tips": "Application Tips",
     "tip1": "Tailor your cover letter to the specific role",
     "tip2": "Highlight relevant experience and skills",
-    "tip3": "Check for spelling and grammar errors"
+    "tip3": "Check for spelling and grammar errors",
+    "parsingCV": "Analyzing CV with AI...",
+    "cvParsed": "CV analyzed",
+    "fieldsAutoFilled": "Fields were auto-filled from your CV.",
+    "parseError": "CV parsing error",
+    "parseErrorDescription": "Failed to parse CV. Please fill fields manually."
   },
   "auth": {
     "login": {
