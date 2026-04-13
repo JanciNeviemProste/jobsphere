@@ -102,7 +102,7 @@ export async function emailSequencesWorker(job: Job<EmailSequenceJobData>) {
     // Check quiet hours
     if (settings.quietHours) {
       const hour = now.getHours()
-      if (hour >= settings.quietHours.end || hour < settings.quietHours.start) {
+      if (hour >= settings.quietHours.start && hour < settings.quietHours.end) {
         console.log('⏰ Skipping - quiet hours')
         return { skipped: 'Quiet hours' }
       }

@@ -42,13 +42,31 @@ function validateEmailHeaders(data: Pick<EmailData, 'to' | 'subject'>): void {
 }
 
 /**
- * Replace {{key}} template variables in a string
+ * Escape HTML special characters to prevent XSS in HTML email content
  */
-function applyVariables(text: string, variables?: Record<string, string>): string {
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+}
+
+/**
+ * Replace {{key}} template variables in a string.
+ * When isHtml is true (default), values are HTML-escaped to prevent XSS.
+ */
+function applyVariables(
+  text: string,
+  variables?: Record<string, string>,
+  isHtml = true,
+): string {
   if (!variables) return text
   let result = text
   for (const [key, value] of Object.entries(variables)) {
-    result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value)
+    const safeValue = isHtml ? escapeHtml(value) : value
+    result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), safeValue)
   }
   return result
 }
@@ -60,14 +78,14 @@ export async function sendEmail(data: EmailData): Promise<EmailResult> {
   // Guard against email header injection
   validateEmailHeaders(data)
 
-  // Apply template variables
-  let subject = applyVariables(data.subject, data.variables)
-  let html = applyVariables(data.html, data.variables)
+  // Apply template variables (subject is plain text — no HTML escaping; html is HTML — escape values)
+  let subject = applyVariables(data.subject, data.variables, false)
+  let html = applyVariables(data.html, data.variables, true)
 
   // Append unsubscribe link if requested
   if (data.includeUnsubscribe) {
-    html +=
-      '<p style="font-size:12px;color:#999;text-align:center;margin-top:20px;">If you no longer wish to receive these emails, <a href="{{unsubscribe_url}}" style="color:#999;">unsubscribe</a>.</p>'
+    const unsubscribeUrl = `${process.env.NEXT_PUBLIC_APP_URL || ''}/unsubscribe`
+    html += `<p style="font-size:12px;color:#999;text-align:center;margin-top:20px;">If you no longer wish to receive these emails, <a href="${unsubscribeUrl}" style="color:#999;">unsubscribe</a>.</p>`
   }
 
   const processedData = { ...data, subject, html }
@@ -136,7 +154,11 @@ async function sendResendEmail(data: EmailData): Promise<EmailResult> {
     html: data.html,
   })
 
-  return { success: true, id: (result as any)?.id }
+  if (result.error) {
+    throw new Error(`Resend API error: ${result.error.message || JSON.stringify(result.error)}`)
+  }
+
+  return { success: true, id: result.data?.id }
 }
 
 async function sendSendGridEmail(data: EmailData): Promise<EmailResult> {
