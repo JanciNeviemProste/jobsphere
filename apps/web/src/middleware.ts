@@ -21,9 +21,14 @@ export default async function middleware(request: NextRequest) {
 
   if (isProtectedRoute) {
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
+    const locale = pathname.split('/')[1] || 'sk'
     if (!token) {
-      const locale = pathname.split('/')[1] || 'sk'
       return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
+    }
+    // /admin je vyhradený len pre globálnych adminov
+    const pathWithoutLocale = pathname.replace(/^\/(en|de|cs|sk|pl)/, '')
+    if (pathWithoutLocale.startsWith('/admin') && !token.isGlobalAdmin) {
+      return NextResponse.redirect(new URL(`/${locale}/login?error=forbidden`, request.url))
     }
   }
 

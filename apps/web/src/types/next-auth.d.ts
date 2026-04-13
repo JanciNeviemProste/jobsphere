@@ -1,6 +1,6 @@
-import NextAuth, { DefaultSession } from "next-auth"
+import NextAuth, { DefaultSession } from 'next-auth'
 
-declare module "next-auth" {
+declare module 'next-auth' {
   interface Session {
     user: {
       id: string
@@ -10,15 +10,17 @@ declare module "next-auth" {
       role?: string
       orgId?: string
       orgName?: string
+      isGlobalAdmin?: boolean
     }
   }
 }
 
-declare module "next-auth/jwt" {
+declare module 'next-auth/jwt' {
   interface JWT {
     id: string
     role?: string
     orgId?: string | null
     orgName?: string | null
+    isGlobalAdmin?: boolean
   }
 }

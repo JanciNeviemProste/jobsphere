@@ -827,6 +827,20 @@
     "applications": "Applications",
     "noApplications": "No applications yet"
   },
+  "admin": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "organizations": "Organizations",
+    "jobs": "Jobs",
+    "subscriptions": "Subscriptions",
+    "settings": "Settings",
+    "totalUsers": "Total users",
+    "totalOrgs": "Total organizations",
+    "totalJobs": "Total jobs",
+    "activeSubscriptions": "Active subscriptions",
+    "recentRegistrations": "Recent registrations",
+    "adminPanel": "Admin panel"
+  },
   "pageMetadata": {
     "home": { "title": "Find Your Dream Job with AI", "description": "AI-powered job board and ATS platform. Browse thousands of jobs across Europe." },
     "jobs": { "title": "Job Listings", "description": "Browse and search job opportunities across Europe. Filter by location, salary, and more." },

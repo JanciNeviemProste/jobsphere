@@ -827,6 +827,20 @@
     "applications": "Prihlášky",
     "noApplications": "Zatiaľ žiadne prihlášky"
   },
+  "admin": {
+    "dashboard": "Dashboard",
+    "users": "Používatelia",
+    "organizations": "Organizácie",
+    "jobs": "Joby",
+    "subscriptions": "Predplatné",
+    "settings": "Nastavenia",
+    "totalUsers": "Celkom používateľov",
+    "totalOrgs": "Celkom organizácií",
+    "totalJobs": "Celkom jobov",
+    "activeSubscriptions": "Aktívne predplatné",
+    "recentRegistrations": "Posledné registrácie",
+    "adminPanel": "Admin panel"
+  },
   "pageMetadata": {
     "home": { "title": "Nájdite svoju vysnívanú prácu s AI", "description": "AI job board a ATS platforma. Prehliadajte tisíce pracovných ponúk v celej Európe." },
     "jobs": { "title": "Pracovné ponuky", "description": "Prehliadajte a vyhľadávajte pracovné príležitosti v celej Európe. Filtrujte podľa lokality, platu a ďalších kritérií." },

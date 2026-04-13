@@ -173,15 +173,22 @@ export const authOptions: NextAuthOptions = {
         if (user?.id) {
           token.id = user.id
 
-          // Load user's organization and role
-          const userOrg = await prisma.userOrgRole.findFirst({
-            where: { userId: user.id },
-            include: { organization: true },
-          })
+          // Load user's organization, role and global admin flag
+          const [userOrg, dbUser] = await Promise.all([
+            prisma.userOrgRole.findFirst({
+              where: { userId: user.id },
+              include: { organization: true },
+            }),
+            prisma.user.findUnique({
+              where: { id: user.id },
+              select: { isGlobalAdmin: true },
+            }),
+          ])
 
           token.role = userOrg?.role || 'candidate'
           token.orgId = userOrg?.orgId || null
           token.orgName = userOrg?.organization?.name || null
+          token.isGlobalAdmin = dbUser?.isGlobalAdmin ?? false
         }
 
         return token
@@ -198,6 +205,7 @@ export const authOptions: NextAuthOptions = {
           session.user.role = token.role as string | undefined
           session.user.orgId = token.orgId as string | undefined
           session.user.orgName = token.orgName as string | undefined
+          session.user.isGlobalAdmin = token.isGlobalAdmin as boolean | undefined
         }
         return session
       } catch (error) {
