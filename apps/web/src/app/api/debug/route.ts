@@ -1,32 +1,44 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { logger } from '@/lib/logger'
-import { errorResponse } from '@/lib/errors'
-import { withRateLimit } from '@/lib/rate-limit'
-import { z } from 'zod'
 
 export const runtime = 'nodejs'
 
-export const GET = withRateLimit(
-  async () => {
+export async function GET() {
+  const results: Record<string, string> = { node: process.version }
+
+  // Test require() — this is what causes ERR_REQUIRE_ESM
+  const pkgs = [
+    'zod',
+    '@prisma/client',
+    '@upstash/redis',
+    'next-auth',
+    'bcryptjs',
+    'ioredis',
+    'pdf-parse',
+    'mammoth',
+    'file-type',
+    'execa',
+    'isomorphic-dompurify',
+    'resend',
+    '@sendgrid/mail',
+    '@vercel/blob',
+    'bullmq',
+    'openai',
+    'superjson',
+    'web-vitals',
+    'next-intl',
+    'framer-motion',
+    'react-markdown',
+    'stripe',
+  ]
+
+  for (const pkg of pkgs) {
     try {
-      const count = await prisma.job.count({ where: { status: 'PUBLISHED' } })
-      return NextResponse.json({
-        status: 'ok',
-        jobCount: count,
-        node: process.version,
-      })
+      require(pkg)
+      results[pkg] = 'OK'
     } catch (e: any) {
-      logger.error('Debug endpoint error', e)
-      return NextResponse.json(
-        {
-          status: 'error',
-          error: e.message?.substring(0, 500),
-          code: e.code,
-        },
-        { status: 500 },
-      )
+      results[pkg] = `${e.code || 'ERROR'}: ${(e.message || '').substring(0, 300)}`
     }
-  },
-  { preset: 'public' },
-)
+  }
+
+  return NextResponse.json(results)
+}
