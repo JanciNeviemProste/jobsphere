@@ -7,51 +7,59 @@ import * as Sentry from '@sentry/nextjs'
 
 const SENTRY_DSN = process.env.NEXT_PUBLIC_SENTRY_DSN
 
-Sentry.init({
-  dsn: SENTRY_DSN,
+// Only initialize Sentry if DSN is configured
+// Without this guard, Sentry's OpenTelemetry instrumentation causes
+// ERR_REQUIRE_ESM errors on Vercel with ESM-only packages
+if (!SENTRY_DSN) {
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  ;(() => {})()
+} else {
+  Sentry.init({
+    dsn: SENTRY_DSN,
 
-  // Environment
-  environment: process.env.NODE_ENV,
+    // Environment
+    environment: process.env.NODE_ENV,
 
-  // Performance Monitoring
-  tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+    // Performance Monitoring
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
 
-  // Debug
-  debug: process.env.NODE_ENV === 'development',
+    // Debug
+    debug: process.env.NODE_ENV === 'development',
 
-  // Filtering
-  beforeSend(event, hint) {
-    // Add server context
-    if (event.contexts) {
-      event.contexts.runtime = {
-        name: 'node',
-        version: process.version,
-      }
-    }
-
-    // Filter sensitive data
-    if (event.request) {
-      // Remove headers
-      if (event.request.headers) {
-        delete event.request.headers['authorization']
-        delete event.request.headers['cookie']
-        delete event.request.headers['x-api-key']
+    // Filtering
+    beforeSend(event, hint) {
+      // Add server context
+      if (event.contexts) {
+        event.contexts.runtime = {
+          name: 'node',
+          version: process.version,
+        }
       }
 
-      // Sanitize data
-      if (event.request.data) {
-        event.request.data = sanitizeData(event.request.data)
+      // Filter sensitive data
+      if (event.request) {
+        // Remove headers
+        if (event.request.headers) {
+          delete event.request.headers['authorization']
+          delete event.request.headers['cookie']
+          delete event.request.headers['x-api-key']
+        }
+
+        // Sanitize data
+        if (event.request.data) {
+          event.request.data = sanitizeData(event.request.data)
+        }
       }
-    }
 
-    // Log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Sentry Server Event]', event)
-    }
+      // Log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Sentry Server Event]', event)
+      }
 
-    return event
-  },
-})
+      return event
+    },
+  })
+} // end if (SENTRY_DSN)
 
 /**
  * Sanitize sensitive data from request bodies
@@ -65,7 +73,7 @@ function sanitizeData(data: unknown): unknown {
   const sanitized = { ...data } as Record<string, unknown>
 
   for (const key in sanitized) {
-    if (sensitiveKeys.some(sensitive => key.toLowerCase().includes(sensitive))) {
+    if (sensitiveKeys.some((sensitive) => key.toLowerCase().includes(sensitive))) {
       sanitized[key] = '[REDACTED]'
     } else if (typeof sanitized[key] === 'object') {
       sanitized[key] = sanitizeData(sanitized[key])
