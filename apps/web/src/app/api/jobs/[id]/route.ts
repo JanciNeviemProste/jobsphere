@@ -37,11 +37,12 @@ export const GET = withRateLimit(
 
       logger.apiRequest('GET', `/api/jobs/${params.id}`)
 
+      // Autentifikovaní používatelia (zamestnávatelia) môžu vidieť aj DRAFT/PAUSED joby svojej org
+      const session = await requireAuth().catch(() => null)
+      const orgId = session?.user?.orgId
+
       const job = await prisma.job.findUnique({
-        where: {
-          id: params.id,
-          status: 'PUBLISHED',
-        },
+        where: { id: params.id },
         include: {
           organization: {
             select: {
@@ -61,6 +62,12 @@ export const GET = withRateLimit(
       })
 
       if (!job) {
+        return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+      }
+
+      // Verejní používatelia vidia len PUBLISHED joby
+      const isOwner = orgId && job.orgId === orgId
+      if (job.status !== 'PUBLISHED' && !isOwner) {
         return NextResponse.json({ error: 'Job not found' }, { status: 404 })
       }
 

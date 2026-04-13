@@ -334,6 +334,12 @@
     "accessDenied": "Prístup odmietnutý",
     "noAccess": "Nemáte prístup k employer dashboardu. Vytvorte si organizáciu alebo sa pripojiť k existujúcej.",
     "backToDashboard": "Späť na dashboard",
+    "editJob": {
+      "title": "Upraviť pozíciu",
+      "subtitle": "Aktualizujte detaily pracovnej ponuky",
+      "save": "Uložiť zmeny",
+      "saving": "Ukladám..."
+    },
     "newJob": {
       "title": "Vytvoriť novú pozíciu",
       "subtitle": "Vyplňte detaily nižšie pre publikovanie pracovnej ponuky",

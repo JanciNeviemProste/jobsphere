@@ -72,7 +72,13 @@ export async function createJob(formData: {
   return job
 }
 
+const VALID_JOB_STATUSES = ['DRAFT', 'PUBLISHED', 'PAUSED', 'CLOSED'] as const
+
 export async function updateJobStatus(jobId: string, status: string): Promise<Job> {
+  if (!VALID_JOB_STATUSES.includes(status as (typeof VALID_JOB_STATUSES)[number])) {
+    throw new Error('Invalid status value')
+  }
+
   const session = await auth()
 
   if (!session?.user?.id) {
@@ -137,8 +143,9 @@ export async function deleteJob(jobId: string): Promise<{ success: true }> {
     throw new Error('Forbidden')
   }
 
-  await prisma.job.delete({
+  await prisma.job.update({
     where: { id: jobId },
+    data: { status: 'CLOSED', deletedAt: new Date() },
   })
 
   revalidatePath('/employer')

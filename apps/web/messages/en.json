@@ -383,6 +383,12 @@
     "accessDenied": "Access Denied",
     "noAccess": "You don't have access to employer dashboard. Create an organization or join an existing one.",
     "backToDashboard": "Back to dashboard",
+    "editJob": {
+      "title": "Edit Job",
+      "subtitle": "Update the details of your job posting",
+      "save": "Save Changes",
+      "saving": "Saving..."
+    },
     "newJob": {
       "title": "Post New Job",
       "subtitle": "Fill in the details below to publish your job posting",

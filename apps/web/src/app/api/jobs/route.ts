@@ -13,8 +13,8 @@ export const runtime = 'nodejs'
 
 // Define enums for job fields (as strings in database)
 const WorkModeEnum = z.enum(['REMOTE', 'HYBRID', 'ONSITE'])
-const JobTypeEnum = z.enum(['FULL_TIME', 'PART_TIME', 'CONTRACT'])
-const SeniorityLevelEnum = z.enum(['JUNIOR', 'MEDIOR', 'SENIOR', 'LEAD'])
+const JobTypeEnum = z.enum(['FULL_TIME', 'PART_TIME', 'CONTRACT', 'FREELANCE', 'INTERNSHIP'])
+const SeniorityLevelEnum = z.enum(['JUNIOR', 'MID', 'SENIOR', 'LEAD', 'EXECUTIVE'])
 
 const jobSearchSchema = z.object({
   search: z.string().optional(),
@@ -29,15 +29,20 @@ const jobSearchSchema = z.object({
 const createJobSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(200),
   description: z.string().min(50, 'Description must be at least 50 characters').max(10000),
+  requirements: z.string().max(10000).optional(),
+  benefits: z.string().max(10000).optional(),
+  department: z.string().max(100).optional(),
+  keywords: z.string().max(500).optional(),
   location: z.string().min(2).max(100).optional(),
   region: z.string().max(100).optional(),
   workMode: z.enum(['REMOTE', 'HYBRID', 'ONSITE']),
   type: z
     .enum(['FULL_TIME', 'PART_TIME', 'CONTRACT', 'FREELANCE', 'INTERNSHIP'])
     .default('FULL_TIME'),
-  seniority: z.enum(['JUNIOR', 'MEDIOR', 'SENIOR', 'LEAD', 'EXECUTIVE']).default('MEDIOR'),
+  seniority: z.enum(['JUNIOR', 'MID', 'SENIOR', 'LEAD', 'EXECUTIVE']).default('MID'),
   salaryMin: z.number().int().min(0).optional(),
   salaryMax: z.number().int().min(0).optional(),
+  salaryCurrency: z.string().max(10).default('EUR'),
 })
 
 export const GET = withRateLimit(
@@ -200,14 +205,17 @@ export const POST = withCsrfProtection(
           data: {
             title: data.title,
             description: data.description,
+            requirements: data.requirements || null,
+            benefits: data.benefits || null,
             city: data.location || null,
             region: data.region || null,
             remote: data.workMode === 'REMOTE',
             hybrid: data.workMode === 'HYBRID',
             salaryMin: data.salaryMin ? Number(data.salaryMin) : null,
             salaryMax: data.salaryMax ? Number(data.salaryMax) : null,
+            salaryCurrency: data.salaryCurrency,
             employmentType: data.type || 'FULL_TIME',
-            seniority: data.seniority || 'MEDIOR',
+            seniority: data.seniority || 'MID',
             status: 'PUBLISHED',
             orgId: organizationId,
             createdBy: session.user.id,
