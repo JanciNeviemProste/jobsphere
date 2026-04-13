@@ -57,7 +57,7 @@ export default async function middleware(request: NextRequest) {
     "img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://*.stripe.com",
     "font-src 'self' data: https://fonts.gstatic.com",
     "connect-src 'self' https://api.stripe.com https://api.anthropic.com https://api.openai.com https://api.voyageai.com https://*.sentry.io https://*.ingest.sentry.io https://vitals.vercel-insights.com https://graph.microsoft.com https://login.microsoftonline.com",
-    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://vercel.live",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
