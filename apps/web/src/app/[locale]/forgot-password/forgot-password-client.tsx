@@ -51,7 +51,7 @@ export default function ForgotPasswordClient({ params }: { params: { locale: str
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, locale: params.locale }),
       })
 
       const result = await response.json()

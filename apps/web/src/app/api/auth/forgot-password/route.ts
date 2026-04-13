@@ -11,6 +11,7 @@ export const runtime = 'nodejs'
 
 const forgotPasswordSchema = z.object({
   email: z.string().email(),
+  locale: z.string().default('en'),
 })
 
 export const POST = withRateLimit(
@@ -19,7 +20,7 @@ export const POST = withRateLimit(
       logger.apiRequest('POST', '/api/auth/forgot-password')
 
       const body = await req.json()
-      const { email } = forgotPasswordSchema.parse(body)
+      const { email, locale } = forgotPasswordSchema.parse(body)
 
       // Find user by email
       const user = await prisma.user.findUnique({
@@ -63,14 +64,13 @@ export const POST = withRateLimit(
 
       // Use NEXT_PUBLIC_APP_URL to prevent Host header injection attacks
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-      const resetUrl = `${appUrl}/en/reset-password?token=${resetToken}`
+      const resetUrl = `${appUrl}/${locale}/reset-password?token=${resetToken}`
 
       // Send email with reset link
-      try {
-        await sendEmail({
-          to: user.email,
-          subject: 'Reset Your Password - JobSphere',
-          html: `
+      await sendEmail({
+        to: user.email,
+        subject: 'Reset Your Password - JobSphere',
+        html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2>Password Reset Request</h2>
               <p>Hi ${user.name || 'there'},</p>
@@ -90,7 +90,7 @@ export const POST = withRateLimit(
               </p>
             </div>
           `,
-          text: `
+        text: `
             Password Reset Request
 
             Hi ${user.name || 'there'},
@@ -103,13 +103,9 @@ export const POST = withRateLimit(
 
             If you didn't request this password reset, you can safely ignore this email.
           `,
-        })
+      })
 
-        logger.info('Password reset email sent', { userId: user.id })
-      } catch (emailError) {
-        logger.error('Failed to send password reset email', emailError)
-        // Still return success to not reveal if email exists
-      }
+      logger.info('Password reset email sent', { userId: user.id })
 
       return NextResponse.json({
         success: true,
