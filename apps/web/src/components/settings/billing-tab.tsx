@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -57,6 +58,8 @@ const INVOICE_STATUS_COLORS = {
 
 export function BillingTab() {
   const { data: session } = useSession()
+  const params = useParams()
+  const locale = (params?.locale as string) || 'sk'
   const [loading, setLoading] = useState(true)
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null)
   const [invoices, setInvoices] = useState<InvoiceData[]>([])
@@ -197,7 +200,7 @@ export function BillingTab() {
             <div className="py-8 text-center">
               <p className="mb-4 text-muted-foreground">You don't have an active subscription</p>
               <Button asChild>
-                <a href="/sk/pricing">View Plans</a>
+                <a href={`/${locale}/pricing`}>View Plans</a>
               </Button>
             </div>
           )}

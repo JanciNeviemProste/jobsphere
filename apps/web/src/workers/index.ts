@@ -12,10 +12,15 @@ import { assessmentGradingWorker } from './assessment-grading.worker'
 import { embeddingWorker } from './embedding.worker'
 import { assessmentReminderWorker } from './assessment-reminder.worker'
 
-const workers = [emailSequenceWorker, assessmentGradingWorker, embeddingWorker, assessmentReminderWorker]
+const workers = [
+  emailSequenceWorker,
+  assessmentGradingWorker,
+  embeddingWorker,
+  assessmentReminderWorker,
+]
 
 logger.info('🚀 All workers started successfully', {
-  workers: workers.map(w => w.name),
+  workers: workers.map((w) => w.name),
   timestamp: new Date().toISOString(),
 })
 

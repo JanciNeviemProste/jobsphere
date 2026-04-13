@@ -57,11 +57,7 @@ function escapeHtml(str: string): string {
  * Replace {{key}} template variables in a string.
  * When isHtml is true (default), values are HTML-escaped to prevent XSS.
  */
-function applyVariables(
-  text: string,
-  variables?: Record<string, string>,
-  isHtml = true,
-): string {
+function applyVariables(text: string, variables?: Record<string, string>, isHtml = true): string {
   if (!variables) return text
   let result = text
   for (const [key, value] of Object.entries(variables)) {

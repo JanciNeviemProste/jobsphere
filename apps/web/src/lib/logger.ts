@@ -46,17 +46,17 @@ class Logger {
 
     // In production, send to external logging service
     if (!this.isDevelopment && process.env.NEXT_PUBLIC_SENTRY_DSN) {
-      try {
-        import('./monitoring/sentry').then(({ captureException }) => {
+      import('./monitoring/sentry')
+        .then(({ captureException }) => {
           if (error instanceof Error) {
             captureException(error, { extra: { message, ...context } })
           } else {
             captureException(new Error(message), { extra: { error: String(error), ...context } })
           }
         })
-      } catch (sentryError) {
-        console.error('Failed to send error to Sentry:', sentryError)
-      }
+        .catch((sentryError) => {
+          console.error('Failed to send error to Sentry:', sentryError)
+        })
     }
   }
 

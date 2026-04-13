@@ -49,9 +49,11 @@ export const authOptions: NextAuthOptions = {
             return null
           }
 
+          const normalizedEmail = credentials.email.toLowerCase()
+
           const user = await prisma.user.findUnique({
             where: {
-              email: credentials.email,
+              email: normalizedEmail,
             },
           })
 
@@ -145,6 +147,18 @@ export const authOptions: NextAuthOptions = {
         } catch (error) {
           // Re-throw known auth errors so NextAuth can expose them to the client
           if (error instanceof Error && error.message === 'EMAIL_NOT_VERIFIED') {
+            throw error
+          }
+          // Re-throw infrastructure errors (DB down, bcrypt crash) so they surface
+          // as 500 and get captured by Sentry rather than looking like wrong password
+          const msg = error instanceof Error ? error.message : String(error)
+          const isInfraError =
+            msg.includes('connect') ||
+            msg.includes('timeout') ||
+            msg.includes('ECONNREFUSED') ||
+            msg.includes('prepared statement')
+          if (isInfraError) {
+            logger.error('❌ Infrastructure error during auth:', error)
             throw error
           }
           logger.error('❌ Auth error:', error)

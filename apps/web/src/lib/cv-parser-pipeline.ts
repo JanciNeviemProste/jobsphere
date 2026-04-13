@@ -38,7 +38,7 @@ async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
   } catch (error) {
     logger.warn('PDF parsing error', { error })
     throw new CVParseException(
-      CVErrors.corrupted(error instanceof Error ? error.message : 'PDF parse failed')
+      CVErrors.corrupted(error instanceof Error ? error.message : 'PDF parse failed'),
     )
   }
 }
@@ -59,7 +59,7 @@ async function extractTextFromDOCX(buffer: ArrayBuffer): Promise<string> {
   } catch (error) {
     logger.warn('DOCX parsing error', { error })
     throw new CVParseException(
-      CVErrors.corrupted(error instanceof Error ? error.message : 'DOCX parse failed')
+      CVErrors.corrupted(error instanceof Error ? error.message : 'DOCX parse failed'),
     )
   }
 }
@@ -73,14 +73,17 @@ async function checkForMacros(buffer: ArrayBuffer): Promise<boolean> {
     const zip = await JSZip.default.loadAsync(buffer)
 
     // Check for vbaProject.bin (indicates VBA macros)
-    const hasMacros = Object.keys(zip.files).some(
-      (filename) => filename.includes('vbaProject.bin')
-    )
+    const hasMacros = Object.keys(zip.files).some((filename) => filename.includes('vbaProject.bin'))
 
     return hasMacros
   } catch (error) {
     logger.warn('Macro detection failed', { error })
-    return false // Fail open for macro detection
+    // Fail closed in production — a JSZip crash could be caused by a malformed file
+    // designed to bypass detection. Safer to reject and ask user to re-upload.
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Failed to scan file for macros. Please re-upload.')
+    }
+    return false
   }
 }
 
@@ -105,7 +108,7 @@ function extractMetadataFallback(metadata: {
  */
 export async function parseCV(
   buffer: ArrayBuffer,
-  metadata: { filename: string; mimeType: string; fileSize?: number; locale?: string }
+  metadata: { filename: string; mimeType: string; fileSize?: number; locale?: string },
 ): Promise<ParseResult> {
   const traceId = crypto.randomUUID()
   const startTime = Date.now()
@@ -114,7 +117,7 @@ export async function parseCV(
     traceId,
     filename: metadata.filename,
     mimeType: metadata.mimeType,
-    fileSize: metadata.fileSize || buffer.byteLength
+    fileSize: metadata.fileSize || buffer.byteLength,
   })
 
   let text = ''
@@ -129,11 +132,9 @@ export async function parseCV(
       traceId,
       fileSize,
       maxSize: MAX_FILE_SIZE,
-      filename: metadata.filename
+      filename: metadata.filename,
     })
-    throw new CVParseException(
-      CVErrors.fileTooLarge(fileSize, MAX_FILE_SIZE)
-    )
+    throw new CVParseException(CVErrors.fileTooLarge(fileSize, MAX_FILE_SIZE))
   }
 
   // Stage 0: Security checks (macros)
@@ -153,7 +154,7 @@ export async function parseCV(
       logger.info('Node.js PDF parser complete', {
         traceId,
         extractedLength: text.length,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       })
     } else if (metadata.mimeType.includes('wordprocessing')) {
       text = await extractTextFromDOCX(buffer)
@@ -161,7 +162,7 @@ export async function parseCV(
       logger.info('Node.js DOCX parser complete', {
         traceId,
         extractedLength: text.length,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       })
     }
   } catch (error) {
@@ -170,7 +171,7 @@ export async function parseCV(
       traceId,
       error,
       errorType: error instanceof CVParseException ? 'CVParseException' : 'Unknown',
-      errorMessage: error instanceof Error ? error.message : String(error)
+      errorMessage: error instanceof Error ? error.message : String(error),
     })
     // text remains empty, triggering OCR fallback at line 161
   }
@@ -180,7 +181,7 @@ export async function parseCV(
     logger.info('Triggering OCR fallback', {
       traceId,
       nodeExtractedLength: text.length,
-      reason: 'insufficient_text'
+      reason: 'insufficient_text',
     })
 
     try {
@@ -196,7 +197,7 @@ export async function parseCV(
           traceId,
           extractedLength: text.length,
           confidence: ocrResult.confidence,
-          duration: Date.now() - startTime
+          duration: Date.now() - startTime,
         })
       } else {
         logger.warn('OCR returned no text', { traceId, error: ocrResult.error })
@@ -212,7 +213,7 @@ export async function parseCV(
     logger.warn('Insufficient text after all parsers', {
       traceId,
       finalLength: text.length,
-      duration: Date.now() - startTime
+      duration: Date.now() - startTime,
     })
 
     // Return metadata fallback instead of throwing
@@ -246,7 +247,7 @@ export async function parseCV(
     method,
     extractedLength: text.length,
     confidence,
-    duration: Date.now() - startTime
+    duration: Date.now() - startTime,
   })
 
   return {

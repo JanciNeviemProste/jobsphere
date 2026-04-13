@@ -49,7 +49,9 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${baseUrl}/employer/settings?error=server_error`)
       }
       const expectedSig = crypto.createHmac('sha256', secret).update(payload).digest('hex')
-      if (sig !== expectedSig) {
+      const sigBuf = Buffer.from(sig)
+      const expectedBuf = Buffer.from(expectedSig)
+      if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
         return NextResponse.redirect(`${baseUrl}/employer/settings?error=invalid_state`)
       }
       const rawState = JSON.parse(Buffer.from(payload, 'base64').toString())

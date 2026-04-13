@@ -68,6 +68,16 @@ export const POST = withRateLimit(
         return NextResponse.json({ error: 'Sequence has no steps' }, { status: 400 })
       }
 
+      // Verify the candidate belongs to the same organization as the authenticated user
+      const candidate = await prisma.candidate.findUnique({
+        where: { id: candidateId },
+        select: { orgId: true },
+      })
+
+      if (!candidate || !orgIds.includes(candidate.orgId)) {
+        return NextResponse.json({ error: 'Candidate not found or access denied' }, { status: 403 })
+      }
+
       // Check if already enrolled
       const existing = await prisma.emailSequenceRun.findFirst({
         where: {

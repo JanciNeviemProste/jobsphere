@@ -21,6 +21,7 @@ export const POST = withRateLimit(
     try {
       // Validate request body
       const data = await validateRequest(req, signupSchema)
+      data.email = data.email.toLowerCase()
 
       // Validate employer-specific fields
       if (data.role === 'employer' && !data.companyName?.trim()) {
