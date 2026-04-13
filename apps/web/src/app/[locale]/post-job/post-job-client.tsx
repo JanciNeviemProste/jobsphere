@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/use-toast'
 
 export default function PostJobClient() {
   const t = useTranslations('postJob')
+  const locale = useLocale()
   const router = useRouter()
   const { toast } = useToast()
 
@@ -95,16 +96,16 @@ export default function PostJobClient() {
 
       const job = await response.json()
 
-      toast.success('Success!', {
-        description: 'Job posted successfully',
+      toast.success(t('toast.successTitle'), {
+        description: t('toast.successDescription'),
       })
 
       // Redirect to job detail page
-      router.push(`/jobs/${job.id}`)
+      router.push(`/${locale}/jobs/${job.id}`)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to publish job'
       setError(errorMessage)
-      toast.error('Error', {
+      toast.error(t('toast.errorTitle'), {
         description: errorMessage,
       })
     } finally {
@@ -114,8 +115,8 @@ export default function PostJobClient() {
 
   // Save draft handler (placeholder for now)
   const handleSaveDraft = () => {
-    toast.success('Draft saved', {
-      description: 'Your job draft has been saved locally',
+    toast.success(t('toast.draftSavedTitle'), {
+      description: t('toast.draftSavedDescription'),
     })
   }
 

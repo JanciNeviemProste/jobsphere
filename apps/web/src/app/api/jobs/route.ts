@@ -7,6 +7,7 @@ import { withCsrfProtection } from '@/lib/csrf'
 import { requireAuth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { checkEntitlement, consumeEntitlement } from '@/lib/entitlements'
 
 export const runtime = 'nodejs'
 
@@ -185,6 +186,15 @@ export const POST = withCsrfProtection(
 
         const organizationId = userWithOrg.organizations[0].organization.id
 
+        // Check MAX_JOBS entitlement before creating
+        const canCreate = await checkEntitlement(organizationId, 'MAX_JOBS')
+        if (!canCreate) {
+          return NextResponse.json(
+            { error: 'Job limit reached for your current plan' },
+            { status: 403 },
+          )
+        }
+
         // Create the job
         const job = await prisma.job.create({
           data: {
@@ -211,6 +221,9 @@ export const POST = withCsrfProtection(
             },
           },
         })
+
+        // Consume entitlement slot after successful creation
+        await consumeEntitlement(organizationId, 'MAX_JOBS')
 
         logger.info('Job created', { jobId: job.id, organizationId })
 

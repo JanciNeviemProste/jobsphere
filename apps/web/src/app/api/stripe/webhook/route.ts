@@ -476,6 +476,22 @@ async function updateEntitlements(
   const planLimits = limits[plan]
 
   // Upsert entitlements
+  // On update: only change the limit, preserving the current remaining counter.
+  // If the new limit is lower than the current remaining, cap remaining at the new limit.
+  const maxJobsLimit = planLimits.maxJobs === -1 ? null : planLimits.maxJobs
+
+  const existingJobsEntitlement = await prisma.entitlement.findUnique({
+    where: { orgId_featureKey: { orgId: organizationId, featureKey: 'MAX_JOBS' } },
+  })
+
+  const newJobsRemaining =
+    maxJobsLimit === null
+      ? null
+      : existingJobsEntitlement?.remainingInt !== undefined &&
+          existingJobsEntitlement.remainingInt !== null
+        ? Math.min(existingJobsEntitlement.remainingInt, maxJobsLimit)
+        : maxJobsLimit
+
   await prisma.entitlement.upsert({
     where: {
       orgId_featureKey: {
@@ -486,14 +502,28 @@ async function updateEntitlements(
     create: {
       orgId: organizationId,
       featureKey: 'MAX_JOBS',
-      limitInt: planLimits.maxJobs === -1 ? null : planLimits.maxJobs,
-      remainingInt: planLimits.maxJobs === -1 ? null : planLimits.maxJobs,
+      limitInt: maxJobsLimit,
+      remainingInt: maxJobsLimit,
     },
     update: {
-      limitInt: planLimits.maxJobs === -1 ? null : planLimits.maxJobs,
-      remainingInt: planLimits.maxJobs === -1 ? null : planLimits.maxJobs,
+      limitInt: maxJobsLimit,
+      remainingInt: newJobsRemaining,
     },
   })
+
+  const maxCandidatesLimit = planLimits.maxCandidates === -1 ? null : planLimits.maxCandidates
+
+  const existingCandidatesEntitlement = await prisma.entitlement.findUnique({
+    where: { orgId_featureKey: { orgId: organizationId, featureKey: 'MAX_CANDIDATES' } },
+  })
+
+  const newCandidatesRemaining =
+    maxCandidatesLimit === null
+      ? null
+      : existingCandidatesEntitlement?.remainingInt !== undefined &&
+          existingCandidatesEntitlement.remainingInt !== null
+        ? Math.min(existingCandidatesEntitlement.remainingInt, maxCandidatesLimit)
+        : maxCandidatesLimit
 
   await prisma.entitlement.upsert({
     where: {
@@ -505,12 +535,12 @@ async function updateEntitlements(
     create: {
       orgId: organizationId,
       featureKey: 'MAX_CANDIDATES',
-      limitInt: planLimits.maxCandidates === -1 ? null : planLimits.maxCandidates,
-      remainingInt: planLimits.maxCandidates === -1 ? null : planLimits.maxCandidates,
+      limitInt: maxCandidatesLimit,
+      remainingInt: maxCandidatesLimit,
     },
     update: {
-      limitInt: planLimits.maxCandidates === -1 ? null : planLimits.maxCandidates,
-      remainingInt: planLimits.maxCandidates === -1 ? null : planLimits.maxCandidates,
+      limitInt: maxCandidatesLimit,
+      remainingInt: newCandidatesRemaining,
     },
   })
 

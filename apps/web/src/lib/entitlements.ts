@@ -100,7 +100,7 @@ export async function getCurrentPlan(
   const subscription = await prisma.subscription.findFirst({
     where: {
       orgId,
-      status: { in: ['active', 'trialing'] },
+      status: { in: ['ACTIVE', 'TRIALING'] },
     },
     include: {
       product: {
