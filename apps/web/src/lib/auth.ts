@@ -121,6 +121,11 @@ export const authOptions: NextAuthOptions = {
             return null
           }
 
+          // SECURITY: Email must be verified before login (production only)
+          if (!user.emailVerified && process.env.NODE_ENV === 'production') {
+            throw new Error('EMAIL_NOT_VERIFIED')
+          }
+
           // SECURITY: Successful login - reset failed attempts and update lastLoginAt
           await prisma.user.update({
             where: { id: user.id },
@@ -138,14 +143,11 @@ export const authOptions: NextAuthOptions = {
             image: user.avatar,
           }
         } catch (error) {
+          // Re-throw known auth errors so NextAuth can expose them to the client
+          if (error instanceof Error && error.message === 'EMAIL_NOT_VERIFIED') {
+            throw error
+          }
           logger.error('❌ Auth error:', error)
-          logger.error('❌ Auth error stack:', error instanceof Error ? error.stack : 'No stack')
-          logger.error('❌ Auth error details:', {
-            name: error instanceof Error ? error.name : 'Unknown',
-            message: error instanceof Error ? error.message : String(error),
-            credentials: credentials?.email, // Add email for debugging
-          })
-          // Return null instead of throwing - NextAuth will show "invalid credentials"
           return null
         }
       },

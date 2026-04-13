@@ -53,7 +53,9 @@ export default function LoginClient({ params }: { params: { locale: string } }) 
         redirect: false,
       })
 
-      if (result?.error) {
+      if (result?.error === 'EMAIL_NOT_VERIFIED') {
+        setError(t('emailNotVerified'))
+      } else if (result?.error) {
         setError(t('invalidCredentials'))
       } else {
         // Get session to determine redirect based on role

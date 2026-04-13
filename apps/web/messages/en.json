@@ -136,6 +136,7 @@
       "google": "Google",
       "divider": "Or continue with email",
       "invalidCredentials": "Invalid email or password",
+      "emailNotVerified": "Please verify your email before logging in. Check your inbox.",
       "error": "An error occurred. Please try again.",
       "signingIn": "Signing in..."
     },

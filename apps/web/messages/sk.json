@@ -87,6 +87,7 @@
       "google": "Google",
       "divider": "Alebo pokračovať s emailom",
       "invalidCredentials": "Neplatné prihlasovacie údaje",
+      "emailNotVerified": "Pred prihlásením overte svoju emailovú adresu. Skontrolujte si doručenú poštu.",
       "signingIn": "Prihlasovanie...",
       "error": "Prihlásenie zlyhalo"
     },
