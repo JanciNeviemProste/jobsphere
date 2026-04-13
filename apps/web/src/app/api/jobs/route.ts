@@ -76,38 +76,36 @@ export const GET = withRateLimit(
         ...(params.seniority && { seniority: params.seniority }),
       }
 
-      const [jobs, total] = await Promise.all([
-        prisma.job.findMany({
-          where,
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            city: true,
-            region: true,
-            remote: true,
-            hybrid: true,
-            employmentType: true,
-            seniority: true,
-            salaryMin: true,
-            salaryMax: true,
-            salaryCurrency: true,
-            status: true,
-            publishedAt: true,
-            createdAt: true,
-            organization: {
-              select: {
-                name: true,
-                logo: true,
-              },
+      const jobs = await prisma.job.findMany({
+        where,
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          city: true,
+          region: true,
+          remote: true,
+          hybrid: true,
+          employmentType: true,
+          seniority: true,
+          salaryMin: true,
+          salaryMax: true,
+          salaryCurrency: true,
+          status: true,
+          publishedAt: true,
+          createdAt: true,
+          organization: {
+            select: {
+              name: true,
+              logo: true,
             },
           },
-          orderBy: { createdAt: 'desc' },
-          skip: (params.page - 1) * params.limit,
-          take: params.limit,
-        }),
-        prisma.job.count({ where }),
-      ])
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (params.page - 1) * params.limit,
+        take: params.limit,
+      })
+      const total = await prisma.job.count({ where })
 
       // Transform to match client interface (workMode, type, location)
       const transformedJobs = jobs.map((job) => ({
@@ -115,6 +113,12 @@ export const GET = withRateLimit(
         workMode: job.remote ? 'REMOTE' : job.hybrid ? 'HYBRID' : 'ONSITE',
         type: job.employmentType,
         location: job.city,
+        description: job.description
+          ? job.description
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+          : null,
       }))
 
       const duration = Date.now() - startTime
@@ -137,12 +141,7 @@ export const GET = withRateLimit(
 
       logger.apiError('GET', '/api/jobs', error)
       const errorData = errorResponse(error)
-      // TODO: remove debug info before final release
-      const debugMsg = error instanceof Error ? error.message : String(error)
-      return NextResponse.json(
-        { error: errorData.error, debug: debugMsg },
-        { status: errorData.statusCode },
-      )
+      return NextResponse.json(errorData, { status: errorData.statusCode })
     }
   },
   { preset: 'public' }, // 200 requests per minute
