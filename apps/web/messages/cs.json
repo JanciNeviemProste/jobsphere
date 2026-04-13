@@ -119,6 +119,7 @@
       "google": "Google",
       "divider": "Nebo pokračovat s emailem",
       "invalidCredentials": "Neplatný e-mail nebo heslo",
+      "emailNotVerified": "Před přihlášením ověřte svou e-mailovou adresu. Zkontrolujte svou doručenou poštu.",
       "error": "Došlo k chybě. Zkuste to prosím znovu.",
       "signingIn": "Přihlašování..."
     },

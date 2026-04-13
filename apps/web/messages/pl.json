@@ -119,6 +119,7 @@
       "google": "Google",
       "divider": "Lub kontynuuj z e-mailem",
       "invalidCredentials": "Nieprawidłowy e-mail lub hasło",
+      "emailNotVerified": "Przed zalogowaniem potwierdź swój adres e-mail. Sprawdź skrzynkę odbiorczą.",
       "error": "Wystąpił błąd. Spróbuj ponownie.",
       "signingIn": "Logowanie..."
     },

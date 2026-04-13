@@ -119,6 +119,7 @@
       "google": "Google",
       "divider": "Oder mit E-Mail fortfahren",
       "invalidCredentials": "Ungültige E-Mail oder Passwort",
+      "emailNotVerified": "Bitte bestätigen Sie Ihre E-Mail-Adresse, bevor Sie sich anmelden. Überprüfen Sie Ihren Posteingang.",
       "error": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
       "signingIn": "Anmelden..."
     },
