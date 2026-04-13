@@ -1,6 +1,7 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -64,6 +65,8 @@ const errorMessages: Record<string, { title: string; description: string }> = {
 
 export default function AuthErrorClient() {
   const searchParams = useSearchParams()
+  const params = useParams()
+  const locale = (params?.locale as string) || 'sk'
   const error = searchParams.get('error') || 'Default'
 
   const errorInfo = errorMessages[error] || errorMessages.Default
@@ -91,14 +94,14 @@ export default function AuthErrorClient() {
 
           <div className="flex flex-col gap-2">
             <Button asChild className="w-full">
-              <Link href="/login">
+              <Link href={`/${locale}/login`}>
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Skúsiť znova
               </Link>
             </Button>
 
             <Button variant="outline" asChild className="w-full">
-              <Link href="/">
+              <Link href={`/${locale}`}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Späť na hlavnú stránku
               </Link>

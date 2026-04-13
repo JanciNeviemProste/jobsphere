@@ -44,7 +44,7 @@ const STATUS_COLORS = {
   trialing: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
   past_due: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
   canceled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  unpaid: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+  unpaid: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
 }
 
 const INVOICE_STATUS_COLORS = {
@@ -52,7 +52,7 @@ const INVOICE_STATUS_COLORS = {
   open: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
   draft: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
   void: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  uncollectible: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+  uncollectible: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
 }
 
 export function BillingTab() {
@@ -90,8 +90,8 @@ export function BillingTab() {
       const response = await fetch('/api/stripe/portal', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       })
 
       if (!response.ok) throw new Error('Failed to create portal session')
@@ -107,7 +107,7 @@ export function BillingTab() {
   const formatCurrency = (amount: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: currency.toUpperCase()
+      currency: currency.toUpperCase(),
     }).format(amount / 100)
   }
 
@@ -135,20 +135,28 @@ export function BillingTab() {
         <CardContent className="space-y-6">
           {subscription ? (
             <>
-              <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-3">
-                    <h3 className="font-semibold text-lg">{subscription.product.name} Plan</h3>
-                    <Badge className={STATUS_COLORS[subscription.status as keyof typeof STATUS_COLORS] || ''}>
+                    <h3 className="text-lg font-semibold">{subscription.product.name} Plan</h3>
+                    <Badge
+                      className={
+                        STATUS_COLORS[subscription.status as keyof typeof STATUS_COLORS] || ''
+                      }
+                    >
                       {subscription.status.replace('_', ' ').toUpperCase()}
                     </Badge>
                   </div>
                   {subscription.product.description && (
-                    <p className="text-sm text-muted-foreground">{subscription.product.description}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {subscription.product.description}
+                    </p>
                   )}
-                  <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                  <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
                     <span>
-                      Current period: {new Date(subscription.currentPeriodStart).toLocaleDateString()} - {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                      Current period:{' '}
+                      {new Date(subscription.currentPeriodStart).toLocaleDateString()} -{' '}
+                      {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
@@ -180,15 +188,16 @@ export function BillingTab() {
                   Update Payment Method
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  Manage your payment methods, billing address, and tax information through the Stripe portal
+                  Manage your payment methods, billing address, and tax information through the
+                  Stripe portal
                 </p>
               </div>
             </>
           ) : (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground mb-4">You don't have an active subscription</p>
+            <div className="py-8 text-center">
+              <p className="mb-4 text-muted-foreground">You don't have an active subscription</p>
               <Button asChild>
-                <a href="/pricing">View Plans</a>
+                <a href="/sk/pricing">View Plans</a>
               </Button>
             </div>
           )}
@@ -206,9 +215,7 @@ export function BillingTab() {
         </CardHeader>
         <CardContent>
           {invoices.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No invoices found
-            </div>
+            <div className="py-8 text-center text-muted-foreground">No invoices found</div>
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -227,36 +234,34 @@ export function BillingTab() {
                         {new Date(invoice.paidAt || invoice.createdAt).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'long',
-                          day: 'numeric'
+                          day: 'numeric',
                         })}
                       </TableCell>
                       <TableCell className="font-medium">
                         {formatCurrency(invoice.amount, invoice.currency)}
                       </TableCell>
                       <TableCell>
-                        <Badge className={INVOICE_STATUS_COLORS[invoice.status as keyof typeof INVOICE_STATUS_COLORS] || ''}>
+                        <Badge
+                          className={
+                            INVOICE_STATUS_COLORS[
+                              invoice.status as keyof typeof INVOICE_STATUS_COLORS
+                            ] || ''
+                          }
+                        >
                           {invoice.status.toUpperCase()}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           {invoice.pdfUrl && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              asChild
-                            >
+                            <Button variant="ghost" size="sm" asChild>
                               <a href={invoice.pdfUrl} target="_blank" rel="noopener noreferrer">
                                 <Download className="h-4 w-4" />
                               </a>
                             </Button>
                           )}
                           {invoice.hostedUrl && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              asChild
-                            >
+                            <Button variant="ghost" size="sm" asChild>
                               <a href={invoice.hostedUrl} target="_blank" rel="noopener noreferrer">
                                 <ExternalLink className="h-4 w-4" />
                               </a>

@@ -278,8 +278,8 @@ export default function ApplyClient({ params }: { params: { id: string; locale: 
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || 'Failed to submit application')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to submit application')
       }
 
       setSubmitted(true)

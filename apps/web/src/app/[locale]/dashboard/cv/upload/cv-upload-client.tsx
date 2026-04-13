@@ -7,6 +7,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { Upload, FileText, Loader2, CheckCircle2, XCircle } from 'lucide-react'
 import { logger } from '@/lib/logger'
 
@@ -14,6 +15,8 @@ type UploadStatus = 'idle' | 'uploading' | 'parsing' | 'success' | 'error'
 
 export default function CVUploadClient() {
   const router = useRouter()
+  const params = useParams()
+  const locale = (params?.locale as string) || 'sk'
   const [status, setStatus] = useState<UploadStatus>('idle')
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -86,7 +89,7 @@ export default function CVUploadClient() {
       setCvId(newCvId)
 
       setTimeout(() => {
-        router.push(`/dashboard/cv/${newCvId}/edit`)
+        router.push(`/${locale}/dashboard/cv/${newCvId}/edit`)
       }, 1500)
     } catch (err) {
       logger.error('Upload error', err)

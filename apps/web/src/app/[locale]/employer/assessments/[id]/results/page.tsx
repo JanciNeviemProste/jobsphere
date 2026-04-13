@@ -15,11 +15,15 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function AssessmentResultsPage({ params }: { params: { id: string } }) {
+export default async function AssessmentResultsPage({
+  params,
+}: {
+  params: { id: string; locale: string }
+}) {
   const session = await auth()
 
   if (!session?.user?.id) {
-    redirect('/login')
+    redirect(`/${params.locale}/login`)
   }
 
   // Get assessment with organization check
@@ -89,7 +93,7 @@ export default async function AssessmentResultsPage({ params }: { params: { id: 
     <div className="container mx-auto py-10">
       {/* Header */}
       <div className="mb-8">
-        <Link href="/employer/assessments">
+        <Link href={`/${params.locale}/employer/assessments`}>
           <Button variant="ghost" size="sm" className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Assessments

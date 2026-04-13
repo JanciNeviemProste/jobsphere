@@ -50,6 +50,19 @@ export const POST = withRateLimit(
         return NextResponse.json({ error: 'User not found' }, { status: 404 })
       }
 
+      // Delete token FIRST to prevent race-condition double-use
+      const deleted = await prisma.verificationToken.deleteMany({
+        where: {
+          token: hashedToken,
+          type: 'PASSWORD_RESET',
+        },
+      })
+
+      // If nothing was deleted, another concurrent request already consumed it
+      if (deleted.count === 0) {
+        return NextResponse.json({ error: 'Invalid or expired reset token' }, { status: 400 })
+      }
+
       // Hash the new password
       const hashedPassword = await bcrypt.hash(password, 12)
 
@@ -58,14 +71,6 @@ export const POST = withRateLimit(
         where: { id: user.id },
         data: {
           password: hashedPassword,
-        },
-      })
-
-      // Delete all reset tokens for this email
-      await prisma.verificationToken.deleteMany({
-        where: {
-          identifier: resetToken.identifier,
-          type: 'PASSWORD_RESET',
         },
       })
 

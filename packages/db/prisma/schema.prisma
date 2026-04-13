@@ -219,6 +219,8 @@ model Job {
   @@unique([orgId, slug])
   @@index([orgId, status])
   @@index([publishedAt, status]) // For public job listings sorted by date
+  @@index([status, seniority]) // For seniority-filtered public listing
+  @@index([status, remote]) // For remote-filtered public listing
   @@index([locale])
   @@index([deletedAt])
 }
@@ -454,8 +456,9 @@ model Application {
   activities    ApplicationActivity[]
 
   @@unique([candidateId, jobId])
+  @@index([candidateId]) // Candidate viewing their own applications
   @@index([jobId, stage])
-  @@index([orgId, createdAt])
+  @@index([orgId, stage, createdAt]) // Employer pipeline queries
   @@index([assignedTo])
   @@index([deletedAt])
 }
