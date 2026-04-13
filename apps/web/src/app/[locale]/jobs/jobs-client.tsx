@@ -138,9 +138,11 @@ export default function JobsClient({ params }: { params: { locale: string } }) {
       }
 
       const data = await response.json()
+      // API returns paginated { data: [...], total, ... } — extract the array
+      const jobsArray: Job[] = Array.isArray(data) ? data : (data.data ?? [])
 
       // If multiple filters selected, filter client-side
-      let filteredData = data
+      let filteredData = jobsArray
       if (selectedWorkModes.length > 1) {
         filteredData = filteredData.filter((job: Job) => selectedWorkModes.includes(job.workMode))
       }

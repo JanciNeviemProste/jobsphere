@@ -87,7 +87,7 @@ export default async function LocaleLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <NextIntlClientProvider messages={messages}>
+            <NextIntlClientProvider locale={locale} messages={messages}>
               <TRPCProvider>
                 <SkipNav />
                 <div className="relative flex min-h-screen flex-col">
