@@ -79,7 +79,22 @@ export const GET = withRateLimit(
       const [jobs, total] = await Promise.all([
         prisma.job.findMany({
           where,
-          include: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            city: true,
+            region: true,
+            remote: true,
+            hybrid: true,
+            employmentType: true,
+            seniority: true,
+            salaryMin: true,
+            salaryMax: true,
+            salaryCurrency: true,
+            status: true,
+            publishedAt: true,
+            createdAt: true,
             organization: {
               select: {
                 name: true,
