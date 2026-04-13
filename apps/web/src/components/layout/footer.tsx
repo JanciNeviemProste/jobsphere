@@ -12,7 +12,7 @@ export function Footer() {
       links: [
         { label: t('browseJobs'), href: `/${locale}/jobs` },
         { label: t('createCV'), href: `/${locale}/create-cv` },
-        { label: t('careerAdvice'), href: `/${locale}/career-advice` },
+        { label: t('careerAdvice'), href: `/${locale}/jobs` },
       ],
     },
     {
@@ -20,23 +20,23 @@ export function Footer() {
       links: [
         { label: t('postJob'), href: `/${locale}/post-job` },
         { label: t('pricing'), href: `/${locale}/pricing` },
-        { label: t('atsFeatures'), href: `/${locale}/features` },
+        { label: t('atsFeatures'), href: `/${locale}/for-employers` },
       ],
     },
     {
       title: t('company'),
       links: [
-        { label: t('about'), href: `/${locale}/about` },
-        { label: t('contact'), href: `/${locale}/contact` },
-        { label: t('blog'), href: `/${locale}/blog` },
+        { label: t('about'), href: `/${locale}/for-employers` },
+        { label: t('contact'), href: `/${locale}` },
+        { label: t('blog'), href: `/${locale}/jobs` },
       ],
     },
     {
       title: t('legal'),
       links: [
-        { label: t('privacy'), href: `/${locale}/privacy` },
-        { label: t('terms'), href: `/${locale}/terms` },
-        { label: t('gdpr'), href: `/${locale}/gdpr` },
+        { label: t('privacy'), href: `/${locale}` },
+        { label: t('terms'), href: `/${locale}` },
+        { label: t('gdpr'), href: `/${locale}` },
       ],
     },
   ]
