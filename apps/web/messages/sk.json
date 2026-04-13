@@ -343,7 +343,8 @@
       "keywordsPlaceholder": "napr. React, TypeScript, Remote",
       "keywordsHint": "Oddeľte kľúčové slová čiarkami",
       "publishing": "Publikuje sa...",
-      "publish": "Publikovať ponuku"
+      "publish": "Publikovať ponuku",
+      "jobPostedSuccess": "Ponuka bola úspešne publikovaná!"
     }
   },
   "common": {
@@ -739,6 +740,13 @@
       "title": "AI Asistent",
       "improve": "Vylepšiť popis",
       "generating": "Generujem..."
+    },
+    "toast": {
+      "successTitle": "Ponuka zverejnená!",
+      "successDescription": "Vaša pracovná ponuka bola úspešne publikovaná.",
+      "errorTitle": "Chyba",
+      "draftSavedTitle": "Koncept uložený",
+      "draftSavedDescription": "Váš koncept pracovnej ponuky bol uložený lokálne."
     }
   },
   "errorPage": {

@@ -342,7 +342,8 @@
       "keywordsPlaceholder": "např. React, TypeScript, Remote",
       "keywordsHint": "Oddělte klíčová slova čárkami",
       "publishing": "Publikuje se...",
-      "publish": "Publikovat nabídku"
+      "publish": "Publikovat nabídku",
+      "jobPostedSuccess": "Nabídka práce byla úspěšně zveřejněna!"
     }
   },
   "common": {
@@ -689,6 +690,13 @@
       "title": "AI asistent",
       "improve": "Vylepšit popis",
       "generating": "Generování..."
+    },
+    "toast": {
+      "successTitle": "Nabídka zveřejněna!",
+      "successDescription": "Vaše pracovní nabídka byla úspěšně zveřejněna.",
+      "errorTitle": "Chyba",
+      "draftSavedTitle": "Koncept uložen",
+      "draftSavedDescription": "Váš koncept pracovní nabídky byl uložen lokálně."
     }
   },
   "jobDetail": {
@@ -755,7 +763,12 @@
     "tips": "Tipy pro přihlášku",
     "tip1": "Přizpůsobte motivační dopis konkrétní roli",
     "tip2": "Zvýrazněte relevantní zkušenosti a dovednosti",
-    "tip3": "Zkontrolujte pravopis a gramatiku"
+    "tip3": "Zkontrolujte pravopis a gramatiku",
+    "cvParsed": "Životopis analyzován",
+    "fieldsAutoFilled": "Pole byla automaticky vyplněna",
+    "parseError": "Chyba při analýze",
+    "parseErrorDescription": "Životopis se nepodařilo analyzovat. Vyplňte prosím formulář ručně.",
+    "parsingCV": "Analyzuji životopis..."
   },
   "errorPage": {
     "title": "Jejda! Něco se pokazilo",

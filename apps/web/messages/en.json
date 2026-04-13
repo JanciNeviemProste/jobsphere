@@ -392,7 +392,8 @@
       "keywordsPlaceholder": "e.g. React, TypeScript, Remote",
       "keywordsHint": "Separate keywords with commas",
       "publishing": "Publishing...",
-      "publish": "Publish Job"
+      "publish": "Publish Job",
+      "jobPostedSuccess": "Job posted successfully!"
     }
   },
   "common": {
@@ -739,6 +740,13 @@
       "title": "AI Assistant",
       "improve": "Improve Description",
       "generating": "Generating..."
+    },
+    "toast": {
+      "successTitle": "Job Posted!",
+      "successDescription": "Your job has been published successfully.",
+      "errorTitle": "Error",
+      "draftSavedTitle": "Draft Saved",
+      "draftSavedDescription": "Your job draft has been saved locally."
     }
   },
   "errorPage": {

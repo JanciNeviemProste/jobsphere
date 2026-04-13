@@ -88,7 +88,7 @@ export default function NewJobClient({ params }: { params: { locale: string } })
         throw new Error(result.error || 'Failed to create job')
       }
 
-      toast.success('Job posted successfully!')
+      toast.success(t('employer.newJob.jobPostedSuccess'))
       router.push(`/${params.locale}/employer`)
     } catch (error) {
       logger.error('Failed to create job', error)

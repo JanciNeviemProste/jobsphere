@@ -342,7 +342,8 @@
       "keywordsPlaceholder": "np. React, TypeScript, Remote",
       "keywordsHint": "Oddziel słowa kluczowe przecinkami",
       "publishing": "Publikowanie...",
-      "publish": "Opublikuj ofertę"
+      "publish": "Opublikuj ofertę",
+      "jobPostedSuccess": "Oferta pracy została pomyślnie opublikowana!"
     }
   },
   "common": {
@@ -689,6 +690,13 @@
       "title": "Asystent AI",
       "improve": "Ulepsz opis",
       "generating": "Generowanie..."
+    },
+    "toast": {
+      "successTitle": "Oferta opublikowana!",
+      "successDescription": "Twoja oferta pracy została pomyślnie opublikowana.",
+      "errorTitle": "Błąd",
+      "draftSavedTitle": "Szkic zapisany",
+      "draftSavedDescription": "Twój szkic oferty pracy został zapisany lokalnie."
     }
   },
   "jobDetail": {
@@ -755,7 +763,12 @@
     "tips": "Wskazówki dotyczące aplikacji",
     "tip1": "Dostosuj list motywacyjny do konkretnej roli",
     "tip2": "Podkreśl istotne doświadczenie i umiejętności",
-    "tip3": "Sprawdź poprawność pisowni i gramatyki"
+    "tip3": "Sprawdź poprawność pisowni i gramatyki",
+    "cvParsed": "CV przeanalizowane",
+    "fieldsAutoFilled": "Pola zostały wypełnione automatycznie",
+    "parseError": "Błąd analizy",
+    "parseErrorDescription": "Nie udało się przeanalizować CV. Proszę wypełnić formularz ręcznie.",
+    "parsingCV": "Analizuję CV..."
   },
   "errorPage": {
     "title": "Ups! Coś poszło nie tak",

@@ -342,7 +342,8 @@
       "keywordsPlaceholder": "z.B. React, TypeScript, Remote",
       "keywordsHint": "Trennen Sie Schlüsselwörter mit Kommas",
       "publishing": "Veröffentliche...",
-      "publish": "Stelle veröffentlichen"
+      "publish": "Stelle veröffentlichen",
+      "jobPostedSuccess": "Stelle erfolgreich veröffentlicht!"
     }
   },
   "common": {
@@ -689,6 +690,13 @@
       "title": "KI-Assistent",
       "improve": "Beschreibung verbessern",
       "generating": "Generiere..."
+    },
+    "toast": {
+      "successTitle": "Stelle veröffentlicht!",
+      "successDescription": "Ihr Stellenangebot wurde erfolgreich veröffentlicht.",
+      "errorTitle": "Fehler",
+      "draftSavedTitle": "Entwurf gespeichert",
+      "draftSavedDescription": "Ihr Stellenangebots-Entwurf wurde lokal gespeichert."
     }
   },
   "jobDetail": {
@@ -755,7 +763,12 @@
     "tips": "Bewerbungstipps",
     "tip1": "Passen Sie Ihr Anschreiben auf die spezifische Rolle an",
     "tip2": "Heben Sie relevante Erfahrungen und Fähigkeiten hervor",
-    "tip3": "Überprüfen Sie auf Rechtschreib- und Grammatikfehler"
+    "tip3": "Überprüfen Sie auf Rechtschreib- und Grammatikfehler",
+    "cvParsed": "Lebenslauf analysiert",
+    "fieldsAutoFilled": "Felder wurden automatisch ausgefüllt",
+    "parseError": "Fehler beim Analysieren",
+    "parseErrorDescription": "Der Lebenslauf konnte nicht analysiert werden. Bitte füllen Sie das Formular manuell aus.",
+    "parsingCV": "Lebenslauf wird analysiert..."
   },
   "errorPage": {
     "title": "Hoppla! Etwas ist schiefgelaufen",
