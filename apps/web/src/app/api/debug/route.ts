@@ -6,40 +6,26 @@ export async function GET() {
   const errors: string[] = []
   const ok: string[] = []
 
-  // Test each import individually
-  try {
-    await import('zod')
-    ok.push('zod')
-  } catch (e: any) {
-    errors.push(`zod: ${e.code || e.message}`)
-  }
+  const tests: [string, () => Promise<unknown>][] = [
+    ['@/lib/prisma', () => import('@/lib/prisma')],
+    ['@/lib/logger', () => import('@/lib/logger')],
+    ['@/lib/errors', () => import('@/lib/errors')],
+    ['@/lib/rate-limit', () => import('@/lib/rate-limit')],
+    ['@/lib/csrf', () => import('@/lib/csrf')],
+    ['@/lib/auth', () => import('@/lib/auth')],
+    ['@/lib/validation', () => import('@/lib/validation')],
+    ['resend', () => import('resend')],
+    ['@sendgrid/mail', () => import('@sendgrid/mail')],
+    ['@/lib/email', () => import('@/lib/email')],
+  ]
 
-  try {
-    await import('@prisma/client')
-    ok.push('@prisma/client')
-  } catch (e: any) {
-    errors.push(`@prisma/client: ${e.code || e.message}`)
-  }
-
-  try {
-    await import('@upstash/redis')
-    ok.push('@upstash/redis')
-  } catch (e: any) {
-    errors.push(`@upstash/redis: ${e.code || e.message}`)
-  }
-
-  try {
-    await import('next-auth')
-    ok.push('next-auth')
-  } catch (e: any) {
-    errors.push(`next-auth: ${e.code || e.message}`)
-  }
-
-  try {
-    await import('bcryptjs')
-    ok.push('bcryptjs')
-  } catch (e: any) {
-    errors.push(`bcryptjs: ${e.code || e.message}`)
+  for (const [name, fn] of tests) {
+    try {
+      await fn()
+      ok.push(name)
+    } catch (e: any) {
+      errors.push(`${name}: ${e.code || ''} ${e.message?.substring(0, 200)}`)
+    }
   }
 
   return NextResponse.json({ ok, errors, node: process.version })
