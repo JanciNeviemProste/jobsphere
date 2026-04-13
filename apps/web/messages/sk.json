@@ -91,6 +91,45 @@
       "signingIn": "Prihlasovanie...",
       "error": "Prihlásenie zlyhalo"
     },
+    "email": "Email",
+    "emailPlaceholder": "vas@email.com",
+    "backToLogin": "Späť na prihlásenie",
+    "goToLogin": "Prejsť na prihlásenie",
+    "rememberPassword": "Pamätáte si heslo?",
+    "signIn": "Prihláste sa",
+    "newPassword": "Nové heslo",
+    "newPasswordPlaceholder": "Zadajte nové heslo",
+    "confirmPassword": "Potvrďte heslo",
+    "confirmPasswordPlaceholder": "Zopakujte nové heslo",
+    "forgotPassword": {
+      "title": "Zabudli ste heslo?",
+      "subtitle": "Zadajte svoj email a pošleme vám odkaz na obnovenie hesla",
+      "sendResetLink": "Poslať odkaz na obnovenie",
+      "sending": "Odosielam...",
+      "successTitle": "Email odoslaný!",
+      "successMessage": "Skontrolujte svoju doručenú poštu a kliknite na odkaz na obnovenie hesla.",
+      "resendEmail": "Odoslať znova",
+      "checkSpam": "Ak email nevidíte, skontrolujte priečinok so spamom."
+    },
+    "resetPassword": {
+      "title": "Obnoviť heslo",
+      "subtitle": "Zadajte nové heslo pre váš účet",
+      "resetButton": "Obnoviť heslo",
+      "resetting": "Obnovovanie...",
+      "successTitle": "Heslo úspešne zmenené!",
+      "successMessage": "Vaše heslo bolo úspešne zmenené. Môžete sa prihlásiť.",
+      "invalidLink": "Neplatný alebo vypršaný odkaz",
+      "invalidLinkMessage": "Tento odkaz na obnovenie hesla je neplatný alebo vypršal. Požiadajte o nový.",
+      "requestNewLink": "Požiadať o nový odkaz"
+    },
+    "passwordRequirements": {
+      "title": "Heslo musí obsahovať:",
+      "length": "Aspoň 8 znakov",
+      "uppercase": "Aspoň jedno veľké písmeno",
+      "lowercase": "Aspoň jedno malé písmeno",
+      "number": "Aspoň jednu číslicu",
+      "special": "Aspoň jeden špeciálny znak (@$!%*?&)"
+    },
     "signup": {
       "title": "Vytvorte si účet",
       "subtitle": "Začnite s JobSphere ešte dnes",

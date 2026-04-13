@@ -140,6 +140,45 @@
       "error": "An error occurred. Please try again.",
       "signingIn": "Signing in..."
     },
+    "email": "Email",
+    "emailPlaceholder": "you@example.com",
+    "backToLogin": "Back to login",
+    "goToLogin": "Go to login",
+    "rememberPassword": "Remember your password?",
+    "signIn": "Sign in",
+    "newPassword": "New password",
+    "newPasswordPlaceholder": "Enter your new password",
+    "confirmPassword": "Confirm password",
+    "confirmPasswordPlaceholder": "Repeat your new password",
+    "forgotPassword": {
+      "title": "Forgot your password?",
+      "subtitle": "Enter your email and we'll send you a reset link",
+      "sendResetLink": "Send reset link",
+      "sending": "Sending...",
+      "successTitle": "Email sent!",
+      "successMessage": "Check your inbox and click the password reset link.",
+      "resendEmail": "Resend email",
+      "checkSpam": "If you don't see the email, check your spam folder."
+    },
+    "resetPassword": {
+      "title": "Reset password",
+      "subtitle": "Enter a new password for your account",
+      "resetButton": "Reset password",
+      "resetting": "Resetting...",
+      "successTitle": "Password changed!",
+      "successMessage": "Your password has been changed successfully. You can now sign in.",
+      "invalidLink": "Invalid or expired link",
+      "invalidLinkMessage": "This password reset link is invalid or has expired. Please request a new one.",
+      "requestNewLink": "Request a new link"
+    },
+    "passwordRequirements": {
+      "title": "Password must contain:",
+      "length": "At least 8 characters",
+      "uppercase": "At least one uppercase letter",
+      "lowercase": "At least one lowercase letter",
+      "number": "At least one number",
+      "special": "At least one special character (@$!%*?&)"
+    },
     "signup": {
       "title": "Create an account",
       "subtitle": "Get started with JobSphere today",

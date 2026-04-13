@@ -123,6 +123,45 @@
       "error": "Wystąpił błąd. Spróbuj ponownie.",
       "signingIn": "Logowanie..."
     },
+    "email": "E-mail",
+    "emailPlaceholder": "twoj@email.com",
+    "backToLogin": "Powrót do logowania",
+    "goToLogin": "Przejdź do logowania",
+    "rememberPassword": "Pamiętasz hasło?",
+    "signIn": "Zaloguj się",
+    "newPassword": "Nowe hasło",
+    "newPasswordPlaceholder": "Wprowadź nowe hasło",
+    "confirmPassword": "Potwierdź hasło",
+    "confirmPasswordPlaceholder": "Powtórz nowe hasło",
+    "forgotPassword": {
+      "title": "Nie pamiętasz hasła?",
+      "subtitle": "Podaj swój e-mail, a wyślemy ci link do resetowania hasła",
+      "sendResetLink": "Wyślij link do resetowania",
+      "sending": "Wysyłanie...",
+      "successTitle": "E-mail wysłany!",
+      "successMessage": "Sprawdź skrzynkę odbiorczą i kliknij link do resetowania hasła.",
+      "resendEmail": "Wyślij ponownie",
+      "checkSpam": "Jeśli nie widzisz e-maila, sprawdź folder ze spamem."
+    },
+    "resetPassword": {
+      "title": "Resetowanie hasła",
+      "subtitle": "Wprowadź nowe hasło dla swojego konta",
+      "resetButton": "Zresetuj hasło",
+      "resetting": "Resetowanie...",
+      "successTitle": "Hasło zmienione!",
+      "successMessage": "Twoje hasło zostało pomyślnie zmienione. Możesz się teraz zalogować.",
+      "invalidLink": "Nieprawidłowy lub wygasły link",
+      "invalidLinkMessage": "Ten link do resetowania hasła jest nieprawidłowy lub wygasł. Poproś o nowy.",
+      "requestNewLink": "Poproś o nowy link"
+    },
+    "passwordRequirements": {
+      "title": "Hasło musi zawierać:",
+      "length": "Co najmniej 8 znaków",
+      "uppercase": "Co najmniej jedną wielką literę",
+      "lowercase": "Co najmniej jedną małą literę",
+      "number": "Co najmniej jedną cyfrę",
+      "special": "Co najmniej jeden znak specjalny (@$!%*?&)"
+    },
     "signup": {
       "title": "Utwórz konto",
       "subtitle": "Rozpocznij z JobSphere już dziś",

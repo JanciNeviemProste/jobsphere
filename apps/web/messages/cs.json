@@ -123,6 +123,45 @@
       "error": "Došlo k chybě. Zkuste to prosím znovu.",
       "signingIn": "Přihlašování..."
     },
+    "email": "E-mail",
+    "emailPlaceholder": "vas@email.com",
+    "backToLogin": "Zpět na přihlášení",
+    "goToLogin": "Přejít na přihlášení",
+    "rememberPassword": "Vzpomínáte si na heslo?",
+    "signIn": "Přihlásit se",
+    "newPassword": "Nové heslo",
+    "newPasswordPlaceholder": "Zadejte nové heslo",
+    "confirmPassword": "Potvrdit heslo",
+    "confirmPasswordPlaceholder": "Zopakujte nové heslo",
+    "forgotPassword": {
+      "title": "Zapomněli jste heslo?",
+      "subtitle": "Zadejte svůj e-mail a pošleme vám odkaz pro obnovení hesla",
+      "sendResetLink": "Odeslat odkaz pro obnovení",
+      "sending": "Odesílám...",
+      "successTitle": "E-mail odeslán!",
+      "successMessage": "Zkontrolujte svou doručenou poštu a klikněte na odkaz pro obnovení hesla.",
+      "resendEmail": "Odeslat znovu",
+      "checkSpam": "Pokud e-mail nevidíte, zkontrolujte složku se spamem."
+    },
+    "resetPassword": {
+      "title": "Obnovit heslo",
+      "subtitle": "Zadejte nové heslo pro váš účet",
+      "resetButton": "Obnovit heslo",
+      "resetting": "Obnovuji...",
+      "successTitle": "Heslo změněno!",
+      "successMessage": "Vaše heslo bylo úspěšně změněno. Nyní se můžete přihlásit.",
+      "invalidLink": "Neplatný nebo expirovaný odkaz",
+      "invalidLinkMessage": "Tento odkaz pro obnovení hesla je neplatný nebo vypršel. Požádejte o nový.",
+      "requestNewLink": "Požádat o nový odkaz"
+    },
+    "passwordRequirements": {
+      "title": "Heslo musí obsahovat:",
+      "length": "Alespoň 8 znaků",
+      "uppercase": "Alespoň jedno velké písmeno",
+      "lowercase": "Alespoň jedno malé písmeno",
+      "number": "Alespoň jednu číslici",
+      "special": "Alespoň jeden speciální znak (@$!%*?&)"
+    },
     "signup": {
       "title": "Vytvořit účet",
       "subtitle": "Začněte s JobSphere ještě dnes",
