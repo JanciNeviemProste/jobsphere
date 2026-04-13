@@ -1,32 +1,32 @@
 import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
+import { errorResponse } from '@/lib/errors'
+import { withRateLimit } from '@/lib/rate-limit'
+import { z } from 'zod'
 
 export const runtime = 'nodejs'
 
-export async function GET() {
-  const errors: string[] = []
-  const ok: string[] = []
-
-  const tests: [string, () => Promise<unknown>][] = [
-    ['@/lib/prisma', () => import('@/lib/prisma')],
-    ['@/lib/logger', () => import('@/lib/logger')],
-    ['@/lib/errors', () => import('@/lib/errors')],
-    ['@/lib/rate-limit', () => import('@/lib/rate-limit')],
-    ['@/lib/csrf', () => import('@/lib/csrf')],
-    ['@/lib/auth', () => import('@/lib/auth')],
-    ['@/lib/validation', () => import('@/lib/validation')],
-    ['resend', () => import('resend')],
-    ['@sendgrid/mail', () => import('@sendgrid/mail')],
-    ['@/lib/email', () => import('@/lib/email')],
-  ]
-
-  for (const [name, fn] of tests) {
+export const GET = withRateLimit(
+  async () => {
     try {
-      await fn()
-      ok.push(name)
+      const count = await prisma.job.count({ where: { status: 'PUBLISHED' } })
+      return NextResponse.json({
+        status: 'ok',
+        jobCount: count,
+        node: process.version,
+      })
     } catch (e: any) {
-      errors.push(`${name}: ${e.code || ''} ${e.message?.substring(0, 200)}`)
+      logger.error('Debug endpoint error', e)
+      return NextResponse.json(
+        {
+          status: 'error',
+          error: e.message?.substring(0, 500),
+          code: e.code,
+        },
+        { status: 500 },
+      )
     }
-  }
-
-  return NextResponse.json({ ok, errors, node: process.version })
-}
+  },
+  { preset: 'public' },
+)
