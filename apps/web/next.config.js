@@ -88,11 +88,9 @@ const nextConfig = {
       }
     }
 
-    // Exclude pdf-parse from client bundle
-    config.externals = config.externals || []
-    if (isServer) {
-      config.externals.push('pdf-parse', 'canvas')
-    }
+    // Note: pdf-parse and canvas are handled via resolve.alias above.
+    // Do NOT add them to config.externals — pdf-parse v2 is ESM-only
+    // and externalizing it causes ERR_REQUIRE_ESM at runtime on Vercel.
 
     return config
   },
