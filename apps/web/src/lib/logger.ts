@@ -45,13 +45,9 @@ class Logger {
     console.error(this.formatMessage('error', message, errorContext))
 
     // In production, send to external logging service
-    if (!this.isDevelopment && process.env.SENTRY_DSN) {
+    if (!this.isDevelopment && process.env.NEXT_PUBLIC_SENTRY_DSN) {
       try {
-        // Dynamically import Sentry to avoid bundling in dev
-        import('@sentry/nextjs').then(({ captureException, setContext }) => {
-          if (context) {
-            setContext('custom', context)
-          }
+        import('./monitoring/sentry').then(({ captureException }) => {
           if (error instanceof Error) {
             captureException(error, { extra: { message, ...context } })
           } else {
