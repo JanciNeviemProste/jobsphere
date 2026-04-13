@@ -608,7 +608,30 @@
       "success": "CV pomyślnie przetworzone!",
       "error": "Nie udało się przetworzyć CV. Spróbuj ponownie.",
       "manual": "Lub wypełnij ręcznie",
-      "uploadButton": "Prześlij CV"
+      "uploadButton": "Prześlij CV",
+      "errors": {
+        "file_too_large": "Plik jest za duży (maksymalnie 10 MB)",
+        "file_invalid_type": "Nieprawidłowy typ pliku. Obsługiwane są tylko pliki PDF, DOCX i TXT",
+        "mime_type_mismatch": "Typ pliku nie zgadza się z rozszerzeniem",
+        "file_malware_detected": "Plik zawiera złośliwe oprogramowanie i został zablokowany",
+        "file_has_macros": "Dokument zawiera makra (kod VBA), które nie są dozwolone",
+        "file_encrypted": "Plik jest chroniony hasłem. Usuń ochronę i spróbuj ponownie.",
+        "file_corrupted": "Plik jest uszkodzony i nie można go otworzyć",
+        "file_no_text_after_ocr": "Nie udało się wyodrębnić tekstu nawet po próbie OCR. Dokument może być pusty lub zawierać tylko obrazy.",
+        "file_empty": "Plik jest pusty lub nie zawiera tekstu",
+        "parse_timeout": "Przetwarzanie trwało zbyt długo (timeout)",
+        "ocr_failed": "Przetwarzanie OCR nie powiodło się. Spróbuj wyeksportować CV jako DOCX lub wypełnić formularz ręcznie.",
+        "ai_provider_failed": "Usługa AI jest obecnie niedostępna. Spróbuj ponownie później.",
+        "antivirus_unavailable": "Sprawdzanie antywirusowe jest niedostępne",
+        "storage_failed": "Nie udało się zapisać pliku",
+        "queue_failed": "Nie udało się dodać zadania do kolejki",
+        "internal_error": "Wewnętrzny błąd serwera. Prosimy skontaktować się z pomocą techniczną."
+      },
+      "hints": {
+        "scanned_pdf": "Twój PDF jest skanowany (zawiera tylko obrazy). Rozwiązania:\n• Wyeksportuj CV jako DOCX z Worda/Google Docs\n• Użyj opcji 'Drukuj do PDF', aby utworzyć tekstowy PDF\n• Wypełnij formularz ręcznie",
+        "try_docx": "Spróbuj formatu DOCX zamiast PDF lub wypełnij formularz ręcznie",
+        "manual_fill": "Proszę wypełnić formularz ręcznie"
+      }
     }
   },
   "postJob": {

@@ -155,18 +155,28 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
     }
   }
 
+  const STAGE_LABELS: Record<string, string> = {
+    NEW: 'New',
+    SCREENING: 'Screening',
+    PHONE_SCREEN: 'Phone Screen',
+    INTERVIEW: 'Interview',
+    OFFER: 'Offer',
+    HIRED: 'Hired',
+    REJECTED: 'Rejected',
+  }
+
   const getApplicantStatusBadge = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return <Badge variant="default">Nový</Badge>
+        return <Badge variant="default">{STAGE_LABELS.NEW}</Badge>
       case 'REVIEWING':
-        return <Badge variant="secondary">Preveruje sa</Badge>
+        return <Badge variant="secondary">{STAGE_LABELS.SCREENING}</Badge>
       case 'INTERVIEWED':
-        return <Badge className="bg-blue-600">Interview</Badge>
+        return <Badge className="bg-blue-600">{STAGE_LABELS.INTERVIEW}</Badge>
       case 'ACCEPTED':
-        return <Badge className="bg-green-600">Prijatý</Badge>
+        return <Badge className="bg-green-600">{STAGE_LABELS.HIRED}</Badge>
       case 'REJECTED':
-        return <Badge variant="destructive">Zamietnutý</Badge>
+        return <Badge variant="destructive">{STAGE_LABELS.REJECTED}</Badge>
       default:
         return <Badge>{status}</Badge>
     }

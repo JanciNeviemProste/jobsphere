@@ -608,7 +608,30 @@
       "success": "Lebenslauf erfolgreich verarbeitet!",
       "error": "Fehler beim Verarbeiten des Lebenslaufs. Bitte versuchen Sie es erneut.",
       "manual": "Oder manuell ausfüllen",
-      "uploadButton": "Lebenslauf hochladen"
+      "uploadButton": "Lebenslauf hochladen",
+      "errors": {
+        "file_too_large": "Datei ist zu groß (maximal 10 MB)",
+        "file_invalid_type": "Ungültiger Dateityp. Nur PDF, DOCX und TXT werden unterstützt",
+        "mime_type_mismatch": "Dateityp stimmt nicht mit der Erweiterung überein",
+        "file_malware_detected": "Datei enthält Malware und wurde blockiert",
+        "file_has_macros": "Dokument enthält Makros (VBA-Code), die nicht erlaubt sind",
+        "file_encrypted": "Datei ist kennwortgeschützt. Entfernen Sie den Schutz und versuchen Sie es erneut.",
+        "file_corrupted": "Datei ist beschädigt und kann nicht geöffnet werden",
+        "file_no_text_after_ocr": "Text konnte auch nach OCR-Versuch nicht extrahiert werden. Das Dokument ist möglicherweise leer oder enthält nur Bilder.",
+        "file_empty": "Datei ist leer oder enthält keinen Text",
+        "parse_timeout": "Verarbeitung hat zu lange gedauert (Timeout)",
+        "ocr_failed": "OCR-Verarbeitung fehlgeschlagen. Versuchen Sie Ihren Lebenslauf als DOCX zu exportieren oder das Formular manuell auszufüllen.",
+        "ai_provider_failed": "KI-Dienst ist derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.",
+        "antivirus_unavailable": "Antivirenprüfung ist nicht verfügbar",
+        "storage_failed": "Datei konnte nicht gespeichert werden",
+        "queue_failed": "Aufgabe konnte nicht zur Warteschlange hinzugefügt werden",
+        "internal_error": "Interner Serverfehler. Bitte kontaktieren Sie den Support."
+      },
+      "hints": {
+        "scanned_pdf": "Ihr PDF ist gescannt (enthält nur Bilder). Lösungen:\n• Exportieren Sie Ihren Lebenslauf als DOCX aus Word/Google Docs\n• Verwenden Sie 'Als PDF drucken', um ein textbasiertes PDF zu erstellen\n• Füllen Sie das Formular manuell aus",
+        "try_docx": "Versuchen Sie das DOCX-Format anstatt PDF, oder füllen Sie das Formular manuell aus",
+        "manual_fill": "Bitte füllen Sie das Formular manuell aus"
+      }
     }
   },
   "postJob": {

@@ -2,6 +2,8 @@ import { getTranslations } from 'next-intl/server'
 import type { Metadata } from 'next'
 import JobsClient from './jobs-client'
 
+export const revalidate = 3600 // Revalidate public job listing every 1 hour
+
 type Props = {
   params: { locale: string }
 }

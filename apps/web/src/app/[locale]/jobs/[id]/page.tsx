@@ -29,6 +29,8 @@ import { formatDistanceToNow } from 'date-fns'
 import { sk, cs, pl, de, enUS } from 'date-fns/locale'
 import { logger } from '@/lib/logger'
 
+export const revalidate = 7200 // Revalidate job detail every 2 hours
+
 export async function generateMetadata({
   params,
 }: {

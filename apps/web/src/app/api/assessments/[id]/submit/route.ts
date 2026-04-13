@@ -4,12 +4,24 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { addAssessmentGradingJob } from '@/lib/queue'
 import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
+
+const submitSchema = z.object({
+  answers: z
+    .array(
+      z.object({
+        questionId: z.string().min(1),
+        response: z.union([z.string(), z.number(), z.array(z.string())]),
+      }),
+    )
+    .min(1),
+})
 
 export const runtime = 'nodejs'
 
@@ -26,11 +38,15 @@ export const POST = withCsrfProtection<NextRequest>(
           return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const { answers } = await request.json()
-
-        if (!answers || !Array.isArray(answers)) {
-          return NextResponse.json({ error: 'Invalid answers' }, { status: 400 })
+        const body = await request.json()
+        const parseResult = submitSchema.safeParse(body)
+        if (!parseResult.success) {
+          return NextResponse.json(
+            { error: 'Invalid answers', details: parseResult.error.flatten() },
+            { status: 400 },
+          )
         }
+        const { answers } = parseResult.data
 
         // Get assessment
         const assessment = await prisma.assessment.findUnique({
@@ -70,9 +86,9 @@ export const POST = withCsrfProtection<NextRequest>(
             startedAt: new Date(),
             submittedAt: new Date(),
             answers: {
-              create: answers.map((ans: any) => ({
+              create: answers.map((ans) => ({
                 questionId: ans.questionId,
-                response: ans.response || ans.answer || {}, // Support both field names, store as JSON
+                response: ans.response ?? {}, // Store as JSON
               })),
             },
           },

@@ -88,22 +88,32 @@ export default async function EmployerApplicationDetailPage({
     redirect(`/${params.locale}/employer/applicants`)
   }
 
+  const STAGE_LABELS: Record<string, string> = {
+    NEW: 'New',
+    SCREENING: 'Screening',
+    PHONE_SCREEN: 'Phone Screen',
+    INTERVIEW: 'Interview',
+    OFFER: 'Offer',
+    HIRED: 'Hired',
+    REJECTED: 'Rejected',
+  }
+
   const getStatusBadge = (stage: string) => {
     switch (stage) {
       case 'NEW':
-        return <Badge variant="secondary">Nová</Badge>
+        return <Badge variant="secondary">{STAGE_LABELS.NEW}</Badge>
       case 'SCREENING':
-        return <Badge>Preveruje sa</Badge>
+        return <Badge>{STAGE_LABELS.SCREENING}</Badge>
       case 'PHONE_SCREEN':
-        return <Badge className="bg-blue-600">Telefonický pohovor</Badge>
+        return <Badge className="bg-blue-600">{STAGE_LABELS.PHONE_SCREEN}</Badge>
       case 'INTERVIEW':
-        return <Badge className="bg-blue-600">Interview</Badge>
+        return <Badge className="bg-blue-600">{STAGE_LABELS.INTERVIEW}</Badge>
       case 'OFFER':
-        return <Badge className="bg-green-600">Ponuka</Badge>
+        return <Badge className="bg-green-600">{STAGE_LABELS.OFFER}</Badge>
       case 'HIRED':
-        return <Badge className="bg-green-600">Prijaté</Badge>
+        return <Badge className="bg-green-600">{STAGE_LABELS.HIRED}</Badge>
       case 'REJECTED':
-        return <Badge variant="destructive">Zamietnuté</Badge>
+        return <Badge variant="destructive">{STAGE_LABELS.REJECTED}</Badge>
       default:
         return <Badge>{stage}</Badge>
     }

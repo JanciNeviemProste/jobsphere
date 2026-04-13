@@ -658,7 +658,30 @@
       "success": "CV successfully processed!",
       "error": "Failed to process CV. Please try again.",
       "manual": "Or fill in manually",
-      "uploadButton": "Upload CV"
+      "uploadButton": "Upload CV",
+      "errors": {
+        "file_too_large": "File is too large (maximum 10 MB)",
+        "file_invalid_type": "Invalid file type. Only PDF, DOCX and TXT are supported",
+        "mime_type_mismatch": "File type does not match the extension",
+        "file_malware_detected": "File contains malware and has been blocked",
+        "file_has_macros": "Document contains macros (VBA code) which are not allowed",
+        "file_encrypted": "File is password-protected. Remove the protection and try again.",
+        "file_corrupted": "File is corrupted and cannot be opened",
+        "file_no_text_after_ocr": "Could not extract text even after OCR attempt. The document may be empty or contain only images.",
+        "file_empty": "File is empty or contains no text",
+        "parse_timeout": "Processing took too long (timeout)",
+        "ocr_failed": "OCR processing failed. Try exporting your CV as DOCX or filling in the form manually.",
+        "ai_provider_failed": "AI service is currently unavailable. Please try again later.",
+        "antivirus_unavailable": "Antivirus check is unavailable",
+        "storage_failed": "Failed to save the file",
+        "queue_failed": "Failed to add task to queue",
+        "internal_error": "Internal server error. Please contact support."
+      },
+      "hints": {
+        "scanned_pdf": "Your PDF is scanned (contains only images). Solutions:\n• Export your CV as DOCX from Word/Google Docs\n• Use 'Print to PDF' to create a text-based PDF\n• Fill in the form manually",
+        "try_docx": "Try DOCX format instead of PDF, or fill in the form manually",
+        "manual_fill": "Please fill in the form manually"
+      }
     }
   },
   "postJob": {
