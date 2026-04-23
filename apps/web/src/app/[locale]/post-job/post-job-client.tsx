@@ -85,7 +85,7 @@ export default function PostJobClient() {
           type: mapEmploymentType(basicInfo.type),
           salaryMin: compensation.salaryMin ? Number(compensation.salaryMin) : undefined,
           salaryMax: compensation.salaryMax ? Number(compensation.salaryMax) : undefined,
-          seniority: 'MEDIOR', // Default seniority (can be made configurable later)
+          seniority: 'MID', // Default seniority (can be made configurable later)
         }),
       })
 

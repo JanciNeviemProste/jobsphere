@@ -45,12 +45,13 @@ export const POST = withRateLimit(
 
       // Create user and organization in a transaction
       const user = await prisma.$transaction(async (tx) => {
-        // Create user
+        // Create user (auto-verify email for MVP so credentials login works immediately)
         const newUser = await tx.user.create({
           data: {
             name: data.name,
             email: data.email,
             password: hashedPassword,
+            emailVerified: new Date(),
           },
         })
 
