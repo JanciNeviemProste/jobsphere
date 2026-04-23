@@ -3,7 +3,7 @@ import { hash } from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { withRateLimit } from '@/lib/rate-limit'
 import { z } from 'zod'
-import { validateRequest, strongPasswordSchema } from '@/lib/validation'
+import { validateRequest, strongPasswordSchema, ValidationError } from '@/lib/validation'
 import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
@@ -101,6 +101,18 @@ export const POST = withRateLimit(
         { status: 201 },
       )
     } catch (error) {
+      if (error instanceof ValidationError) {
+        return NextResponse.json(
+          {
+            error: error.issues[0]?.message || 'Validation failed',
+            issues: error.issues.map((i) => ({
+              path: i.path.join('.'),
+              message: i.message,
+            })),
+          },
+          { status: 400 },
+        )
+      }
       if (error instanceof z.ZodError) {
         return NextResponse.json(
           { error: 'Validation failed', issues: error.issues },
@@ -109,7 +121,8 @@ export const POST = withRateLimit(
       }
 
       logger.error('Signup error:', error)
-      return NextResponse.json({ error: 'An error occurred during signup' }, { status: 500 })
+      const message = error instanceof Error ? error.message : 'An error occurred during signup'
+      return NextResponse.json({ error: message }, { status: 500 })
     }
   },
   { preset: 'strict' }, // 10 requests per 15 minutes

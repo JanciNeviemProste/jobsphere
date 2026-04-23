@@ -8,13 +8,17 @@ import { logger } from './logger'
 
 let redis: Redis | null = null
 
-function getRedis(): Redis {
-  if (!redis) {
-    redis = new Redis({
-      url: process.env.KV_REST_API_URL!,
-      token: process.env.KV_REST_API_TOKEN!,
-    })
-  }
+function hasUpstashConfig(): boolean {
+  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)
+}
+
+function getRedis(): Redis | null {
+  if (redis) return redis
+  if (!hasUpstashConfig()) return null
+  redis = new Redis({
+    url: process.env.KV_REST_API_URL!,
+    token: process.env.KV_REST_API_TOKEN!,
+  })
   return redis
 }
 
@@ -183,9 +187,15 @@ export async function rateLimit(config: RateLimitConfig): Promise<RateLimitResul
 
   const circuitOpen = isCircuitOpen()
 
+  // If Upstash is not configured OR circuit breaker is open, go straight to in-memory
+  const redisClient = getRedis()
+  if (!redisClient || circuitOpen) {
+    return rateLimitInMemory(identifier, limit, window, limit)
+  }
+
   try {
     // Use Redis pipeline for atomic operations
-    const pipeline = getRedis().pipeline()
+    const pipeline = redisClient.pipeline()
 
     // Remove old entries outside window
     pipeline.zremrangebyscore(key, 0, windowStart)
