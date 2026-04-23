@@ -1,219 +1,154 @@
 /**
  * BullMQ Queue Setup
- * Redis-backed job queue for background processing
+ * Redis-backed job queue — lazy singletons so importing this module
+ * does NOT create a Redis connection at module load (important for Vercel).
  */
 
-import { Queue, QueueOptions } from 'bullmq'
-import IORedis from 'ioredis'
+import type { Queue as BullQueue, QueueOptions } from 'bullmq'
+import type IORedisType from 'ioredis'
 import { logger } from '@/lib/logger'
 
-// Redis connection (uses REDIS_URL for consistency)
-// Format: redis://[:password@]host[:port][/db]
-const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379'
+let _connection: IORedisType | null = null
+const _queues = new Map<string, BullQueue>()
 
-// Create Redis connection from URL
-export const connection = new IORedis(redisUrl, {
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-})
-
-connection.on('connect', () => {
-  logger.info('Redis connected successfully')
-})
-
-connection.on('error', (error) => {
-  logger.error('Redis connection error', { error })
-})
-
-// Default queue options
-const defaultQueueOptions: QueueOptions = {
-  connection,
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 2000,
-    },
-    removeOnComplete: {
-      age: 24 * 3600, // Keep completed jobs for 24 hours
-      count: 1000, // Keep max 1000 completed jobs
-    },
-    removeOnFail: {
-      age: 7 * 24 * 3600, // Keep failed jobs for 7 days
-    },
-  },
+function hasRedis(): boolean {
+  return Boolean(process.env.REDIS_URL)
 }
 
-// Email Sequence Queue
-export const emailSequenceQueue = new Queue('email-sequence', {
-  ...defaultQueueOptions,
-  defaultJobOptions: {
-    ...defaultQueueOptions.defaultJobOptions,
-    attempts: 5, // Retry more times for emails
-  },
-})
+export function getConnection(): IORedisType {
+  if (_connection) return _connection
 
-// Embedding Generation Queue
-export const embeddingQueue = new Queue('embeddings', {
-  ...defaultQueueOptions,
-  defaultJobOptions: {
-    ...defaultQueueOptions.defaultJobOptions,
-    priority: 2, // Lower priority
-  },
-})
+  // Lazy require — only loaded if queue API is actually used at runtime.
+  const IORedis = require('ioredis').default || require('ioredis')
+  const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379'
 
-// Assessment Grading Queue
-export const assessmentQueue = new Queue('assessments', {
-  ...defaultQueueOptions,
-  defaultJobOptions: {
-    ...defaultQueueOptions.defaultJobOptions,
-    priority: 1, // High priority
-  },
-})
+  _connection = new IORedis(redisUrl, {
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+  })
 
-// Match Score Cache Queue
-export const matchScoreCacheQueue = new Queue('match-score-cache', {
-  ...defaultQueueOptions,
-  defaultJobOptions: {
-    ...defaultQueueOptions.defaultJobOptions,
-    priority: 3, // Lowest priority (background task)
-  },
-})
+  _connection!.on('connect', () => logger.info('Redis connected successfully'))
+  _connection!.on('error', (error: Error) => logger.error('Redis connection error', { error }))
 
-// Assessment Reminder Queue
-export const assessmentReminderQueue = new Queue('assessment-reminder', {
-  ...defaultQueueOptions,
-  defaultJobOptions: {
-    ...defaultQueueOptions.defaultJobOptions,
-    priority: 2, // Medium priority
-  },
-})
+  return _connection!
+}
 
-/**
- * Email Sequence Job Data
- */
+function buildQueueOptions(extra?: Partial<QueueOptions['defaultJobOptions']>): QueueOptions {
+  return {
+    connection: getConnection(),
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 2000 },
+      removeOnComplete: { age: 24 * 3600, count: 1000 },
+      removeOnFail: { age: 7 * 24 * 3600 },
+      ...extra,
+    },
+  }
+}
+
+function getOrCreateQueue(
+  name: string,
+  extra?: Partial<QueueOptions['defaultJobOptions']>,
+): BullQueue {
+  const existing = _queues.get(name)
+  if (existing) return existing
+  const { Queue } = require('bullmq') as typeof import('bullmq')
+  const q = new Queue(name, buildQueueOptions(extra))
+  _queues.set(name, q)
+  return q
+}
+
+export const getEmailSequenceQueue = () => getOrCreateQueue('email-sequence', { attempts: 5 })
+export const getEmbeddingQueue = () => getOrCreateQueue('embeddings', { priority: 2 })
+export const getAssessmentQueue = () => getOrCreateQueue('assessments', { priority: 1 })
+export const getMatchScoreCacheQueue = () => getOrCreateQueue('match-score-cache', { priority: 3 })
+export const getAssessmentReminderQueue = () =>
+  getOrCreateQueue('assessment-reminder', { priority: 2 })
+
+// Back-compat named exports used by workers. These are Proxies that lazy-instantiate
+// on first property access (so merely importing the symbol is free).
+function lazyProxy<T extends object>(factory: () => T): T {
+  return new Proxy({} as T, {
+    get(_t, prop) {
+      const target = factory() as any
+      const value = target[prop]
+      return typeof value === 'function' ? value.bind(target) : value
+    },
+  })
+}
+
+export const connection = lazyProxy(getConnection)
+export const emailSequenceQueue = lazyProxy(getEmailSequenceQueue)
+export const embeddingQueue = lazyProxy(getEmbeddingQueue)
+export const assessmentQueue = lazyProxy(getAssessmentQueue)
+export const matchScoreCacheQueue = lazyProxy(getMatchScoreCacheQueue)
+export const assessmentReminderQueue = lazyProxy(getAssessmentReminderQueue)
+
 export interface EmailSequenceJobData {
   enrollmentId: string
   stepId: string
 }
-
-/**
- * Embedding Job Data
- */
 export interface EmbeddingJobData {
   resumeId?: string
   jobId?: string
 }
-
-/**
- * Assessment Grading Job Data
- */
 export interface AssessmentJobData {
   attemptId: string
 }
-
-/**
- * Match Score Cache Job Data
- */
 export interface MatchScoreCacheJobData {
   jobId: string
   candidateLimit?: number
 }
-
-/**
- * Assessment Reminder Job Data
- */
 export interface AssessmentReminderJobData {
   inviteId: string
 }
 
 /**
- * Add email sequence job
+ * Guard: if Redis is not configured (e.g. Vercel without REDIS_URL), skip silently.
+ * Returns null so callers can treat "no Redis" as "background job not scheduled".
  */
-export async function addEmailSequenceJob(
-  data: EmailSequenceJobData,
-  delayMs?: number
+async function safeAdd<T>(
+  queueFactory: () => BullQueue,
+  jobName: string,
+  data: T,
+  opts?: Record<string, unknown>,
 ) {
+  if (!hasRedis()) {
+    logger.info('Queue job skipped — REDIS_URL not configured', { jobName })
+    return null
+  }
   try {
-    const job = await emailSequenceQueue.add('send-step', data, {
-      delay: delayMs,
-    })
-    logger.info('Email sequence job added', { jobId: job.id, data })
+    const job = await queueFactory().add(jobName, data as any, opts as any)
+    logger.info('Queue job added', { jobName, jobId: job.id })
     return job
   } catch (error) {
-    logger.error('Failed to add email sequence job', { error, data })
-    throw error
+    logger.error('Failed to add queue job', { error, jobName, data })
+    return null
   }
 }
 
-/**
- * Add embedding generation job
- */
-export async function addEmbeddingJob(data: EmbeddingJobData) {
-  try {
-    const job = await embeddingQueue.add('generate-embedding', data)
-    logger.info('Embedding job added', { jobId: job.id, data })
-    return job
-  } catch (error) {
-    logger.error('Failed to add embedding job', { error, data })
-    throw error
-  }
-}
+export const addEmailSequenceJob = (data: EmailSequenceJobData, delayMs?: number) =>
+  safeAdd(getEmailSequenceQueue, 'send-step', data, { delay: delayMs })
 
-/**
- * Add assessment grading job
- */
-export async function addAssessmentGradingJob(data: AssessmentJobData) {
-  try {
-    const job = await assessmentQueue.add('grade-assessment', data, {
-      priority: 1, // High priority
-    })
-    logger.info('Assessment grading job added', { jobId: job.id, data })
-    return job
-  } catch (error) {
-    logger.error('Failed to add assessment grading job', { error, data })
-    throw error
-  }
-}
+export const addEmbeddingJob = (data: EmbeddingJobData) =>
+  safeAdd(getEmbeddingQueue, 'generate-embedding', data)
 
-/**
- * Add match score cache job
- */
-export async function addMatchScoreCacheJob(data: MatchScoreCacheJobData) {
-  try {
-    const job = await matchScoreCacheQueue.add('cache-scores', data)
-    logger.info('Match score cache job added', { jobId: job.id, data })
-    return job
-  } catch (error) {
-    logger.error('Failed to add match score cache job', { error, data })
-    throw error
-  }
-}
+export const addAssessmentGradingJob = (data: AssessmentJobData) =>
+  safeAdd(getAssessmentQueue, 'grade-assessment', data, { priority: 1 })
 
-/**
- * Add assessment reminder job
- */
-export async function addAssessmentReminderJob(data: AssessmentReminderJobData) {
-  try {
-    const job = await assessmentReminderQueue.add('send-reminder', data)
-    logger.info('Assessment reminder job added', { jobId: job.id, data })
-    return job
-  } catch (error) {
-    logger.error('Failed to add assessment reminder job', { error, data })
-    throw error
-  }
-}
+export const addMatchScoreCacheJob = (data: MatchScoreCacheJobData) =>
+  safeAdd(getMatchScoreCacheQueue, 'cache-scores', data)
 
-/**
- * Get queue stats
- */
+export const addAssessmentReminderJob = (data: AssessmentReminderJobData) =>
+  safeAdd(getAssessmentReminderQueue, 'send-reminder', data)
+
 export async function getQueueStats(queueName: string) {
   const queue =
     queueName === 'email-sequence'
-      ? emailSequenceQueue
+      ? getEmailSequenceQueue()
       : queueName === 'embeddings'
-      ? embeddingQueue
-      : assessmentQueue
+        ? getEmbeddingQueue()
+        : getAssessmentQueue()
 
   const [waiting, active, completed, failed, delayed] = await Promise.all([
     queue.getWaitingCount(),
@@ -234,17 +169,10 @@ export async function getQueueStats(queueName: string) {
   }
 }
 
-/**
- * Close all queues (for graceful shutdown)
- */
 export async function closeQueues() {
-  await Promise.all([
-    emailSequenceQueue.close(),
-    embeddingQueue.close(),
-    assessmentQueue.close(),
-    matchScoreCacheQueue.close(),
-    assessmentReminderQueue.close(),
-    connection.quit(),
-  ])
+  await Promise.all(Array.from(_queues.values()).map((q) => q.close()))
+  if (_connection) await _connection.quit()
+  _queues.clear()
+  _connection = null
   logger.info('All queues closed')
 }
