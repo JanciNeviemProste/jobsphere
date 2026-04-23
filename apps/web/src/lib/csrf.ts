@@ -130,6 +130,42 @@ export async function verifyCsrfFromRequest(headerToken: string | null): Promise
  *   // Your handler code
  * })
  */
+/**
+ * Check whether the request originates from the same site.
+ * Accepts: Origin/Referer host matches the Host header, OR
+ * Sec-Fetch-Site is "same-origin" / "same-site".
+ */
+function isSameSiteRequest(request: Request): boolean {
+  const fetchSite = request.headers.get('sec-fetch-site')
+  if (fetchSite === 'same-origin' || fetchSite === 'same-site' || fetchSite === 'none') {
+    return true
+  }
+
+  const host = request.headers.get('host')
+  if (!host) return false
+
+  const origin = request.headers.get('origin')
+  if (origin) {
+    try {
+      return new URL(origin).host === host
+    } catch {
+      return false
+    }
+  }
+
+  const referer = request.headers.get('referer')
+  if (referer) {
+    try {
+      return new URL(referer).host === host
+    } catch {
+      return false
+    }
+  }
+
+  // No origin/referer on a POST is suspicious — reject
+  return false
+}
+
 export function withCsrfProtection<T extends Request = Request>(
   handler: (request: T, context?: { params?: Record<string, string> }) => Promise<Response>,
 ): (request: T, context?: { params?: Record<string, string> }) => Promise<Response> {
@@ -139,23 +175,27 @@ export function withCsrfProtection<T extends Request = Request>(
       return handler(request, context)
     }
 
+    // Double-submit token path (optional, kept for strict clients)
     const csrfToken = request.headers.get('x-csrf-token')
-
-    const isValid = await verifyCsrfFromRequest(csrfToken)
-
-    if (!isValid) {
-      return new Response(
-        JSON.stringify({
-          error: 'Invalid CSRF token',
-          code: 'CSRF_TOKEN_INVALID',
-        }),
-        {
-          status: 403,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      )
+    if (csrfToken && (await verifyCsrfFromRequest(csrfToken))) {
+      return handler(request, context)
     }
 
-    return handler(request, context)
+    // Fallback: accept same-origin/same-site requests. Combined with
+    // NextAuth's SameSite session cookie this is sufficient for MVP.
+    if (isSameSiteRequest(request)) {
+      return handler(request, context)
+    }
+
+    return new Response(
+      JSON.stringify({
+        error: 'Invalid CSRF token',
+        code: 'CSRF_TOKEN_INVALID',
+      }),
+      {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    )
   }
 }

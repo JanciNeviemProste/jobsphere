@@ -33,8 +33,23 @@ export const GET = withRateLimit(
         limit: searchParams.get('limit'),
       })
 
+      // Resolve Candidate records linked to this user by email across all orgs
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { email: true },
+      })
+      if (!user?.email) {
+        return NextResponse.json({ data: [], total: 0, page, pageSize: limit, hasMore: false })
+      }
+
+      const contacts = await prisma.candidateContact.findMany({
+        where: { email: user.email },
+        select: { candidateId: true },
+      })
+      const candidateIds = contacts.map((c) => c.candidateId)
+
       const where = {
-        candidateId: session.user.id,
+        candidateId: { in: candidateIds },
         ...(validatedStage && { stage: validatedStage }),
         ...(jobId && { jobId }),
       }
@@ -109,12 +124,49 @@ export const POST = withCsrfProtection(
           )
         }
 
+        // Find or create a Candidate record for this user within the job's org.
+        // Matching is done by the user's email via CandidateContact.
+        const user = await prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: { email: true, name: true },
+        })
+        if (!user?.email) {
+          return NextResponse.json(
+            { error: 'User account is missing an email address' },
+            { status: 400 },
+          )
+        }
+
+        const existingContact = await prisma.candidateContact.findFirst({
+          where: {
+            email: user.email,
+            candidate: { orgId: job.orgId, deletedAt: null },
+          },
+          select: { candidateId: true },
+        })
+
+        let candidateId = existingContact?.candidateId
+        if (!candidateId) {
+          const created = await prisma.candidate.create({
+            data: {
+              orgId: job.orgId,
+              source: 'WEBSITE',
+              contacts: {
+                create: {
+                  fullName: user.name || session.user.name || null,
+                  email: user.email,
+                  isPrimary: true,
+                },
+              },
+            },
+            select: { id: true },
+          })
+          candidateId = created.id
+        }
+
         // Check if already applied
         const existingApplication = await prisma.application.findFirst({
-          where: {
-            jobId,
-            candidateId: session.user.id,
-          },
+          where: { jobId, candidateId },
         })
 
         if (existingApplication) {
@@ -128,10 +180,9 @@ export const POST = withCsrfProtection(
         const application = await prisma.application.create({
           data: {
             jobId,
-            candidateId: session.user.id,
+            candidateId,
             orgId: job.orgId,
             coverLetter,
-            // TODO: expectedSalary and availableFrom not in current schema
             stage: 'NEW',
           },
           include: {
