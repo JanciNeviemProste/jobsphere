@@ -242,17 +242,10 @@ export async function consumeEntitlement(
 ): Promise<void> {
   const client = tx ?? prisma
 
-  await client.entitlement.update({
-    where: {
-      orgId_featureKey: {
-        orgId,
-        featureKey: feature,
-      },
-    },
-    data: {
-      remainingInt: {
-        decrement: amount,
-      },
-    },
+  // Tolerate missing entitlement records (new orgs without seeded entitlements):
+  // updateMany returns {count} instead of throwing P2025 when the row is absent.
+  await client.entitlement.updateMany({
+    where: { orgId, featureKey: feature },
+    data: { remainingInt: { decrement: amount } },
   })
 }
