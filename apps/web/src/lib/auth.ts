@@ -6,13 +6,11 @@ import { prisma } from './prisma'
 import { compare } from 'bcryptjs'
 import { getServerSession } from 'next-auth/next'
 import { logger } from './logger'
+import { UnauthorizedError } from './api-helpers'
 
-export class UnauthorizedError extends Error {
-  constructor(message = 'Unauthorized') {
-    super(message)
-    this.name = 'UnauthorizedError'
-  }
-}
+// Re-export so existing importers keep working; the class is defined once in
+// api-helpers.ts to avoid instanceof mismatches in errorResponse().
+export { UnauthorizedError }
 
 /**
  * NextAuth v4 Configuration
