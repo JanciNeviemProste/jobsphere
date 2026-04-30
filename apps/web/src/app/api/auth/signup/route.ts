@@ -122,8 +122,7 @@ export const POST = withRateLimit(
       }
 
       logger.error('Signup error:', error)
-      const message = error instanceof Error ? error.message : 'An error occurred during signup'
-      return NextResponse.json({ error: message }, { status: 500 })
+      return NextResponse.json({ error: 'An error occurred during signup' }, { status: 500 })
     }
   },
   { preset: 'strict' }, // 10 requests per 15 minutes

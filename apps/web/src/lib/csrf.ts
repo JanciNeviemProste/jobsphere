@@ -137,7 +137,7 @@ export async function verifyCsrfFromRequest(headerToken: string | null): Promise
  */
 function isSameSiteRequest(request: Request): boolean {
   const fetchSite = request.headers.get('sec-fetch-site')
-  if (fetchSite === 'same-origin' || fetchSite === 'same-site' || fetchSite === 'none') {
+  if (fetchSite === 'same-origin' || fetchSite === 'same-site') {
     return true
   }
 
