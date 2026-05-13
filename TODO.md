@@ -32,6 +32,20 @@ Open follow-ups z post-MVP code review (commit aa13273) + bulk actions review.
   `prisma.application.count` používa rovnaký `where` ako findMany;
   inak `hasMore` v pagination je nesprávny.
 
+## CI infra
+
+### P1
+
+- **Integration test DB setup detection zlyháva v niektorých invocation
+  patternoch** — `apps/web/tests/integration/setup.ts:28-31`.
+  `process.argv.some(arg => arg.includes('tests/integration'))` neprejde
+  pri `vitest run tests/integration/api/jobs/create.test.ts` (Windows
+  alebo niektorých CI shell variantoch). Setup sa preskočí → žiadny
+  `seedTestData()` → 500 errors keď route hľadá usera/org. Po oprave
+  schema field mismatchu zostali 13× failing tests s 500.
+  Riešenie: spoľahnúť sa na env var (napr. `TEST_TYPE=integration`)
+  alebo na config-level setupFiles routing namiesto argv-based detection.
+
 ## Bulk actions follow-ups (z gstack review)
 
 ### P2

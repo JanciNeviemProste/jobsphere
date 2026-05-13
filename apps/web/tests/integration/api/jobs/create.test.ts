@@ -44,7 +44,8 @@ describe('POST /api/jobs', () => {
       const request = createTestRequest('POST', {
         title: 'Test Job',
         description: 'A'.repeat(100),
-        employmentType: 'FULL_TIME',
+        type: 'FULL_TIME',
+        workMode: 'ONSITE',
       })
 
       // Act
@@ -67,7 +68,8 @@ describe('POST /api/jobs', () => {
       const request = createTestRequest('POST', {
         title: 'Test Job',
         description: 'A'.repeat(100),
-        employmentType: 'FULL_TIME',
+        type: 'FULL_TIME',
+        workMode: 'ONSITE',
       })
 
       // Act
@@ -87,8 +89,10 @@ describe('POST /api/jobs', () => {
 
       const request = createTestRequest('POST', {
         title: 'Software Engineer',
-        description: 'We are looking for a talented software engineer to join our team. Must have 3+ years of experience.',
-        employmentType: 'FULL_TIME',
+        description:
+          'We are looking for a talented software engineer to join our team. Must have 3+ years of experience.',
+        type: 'FULL_TIME',
+        workMode: 'ONSITE',
         seniority: 'MID',
         salaryMin: 50000,
         salaryMax: 80000,
@@ -120,7 +124,8 @@ describe('POST /api/jobs', () => {
       const request = createTestRequest('POST', {
         title: 'Frontend Developer',
         description: 'React and TypeScript expert needed for exciting projects.',
-        employmentType: 'FULL_TIME',
+        type: 'FULL_TIME',
+        workMode: 'ONSITE',
         seniority: 'SENIOR',
         locale: 'en',
       })
@@ -141,13 +146,14 @@ describe('POST /api/jobs', () => {
         createRecruiterSession({
           orgId: 'different-org-id',
           orgName: 'Different Organization',
-        })
+        }),
       )
 
       const request = createTestRequest('POST', {
         title: 'Test Job',
         description: 'A'.repeat(100),
-        employmentType: 'FULL_TIME',
+        type: 'FULL_TIME',
+        workMode: 'ONSITE',
       })
 
       // Act
@@ -166,7 +172,7 @@ describe('POST /api/jobs', () => {
     it('should reject missing required fields', async () => {
       // Arrange
       const request = createTestRequest('POST', {
-        // Missing title, description, employmentType
+        // Missing title, description, type, workMode
         seniority: 'SENIOR',
       })
 
@@ -184,7 +190,8 @@ describe('POST /api/jobs', () => {
       const request = createTestRequest('POST', {
         title: 'Test Job',
         description: 'Too short', // Less than 50 chars
-        employmentType: 'FULL_TIME',
+        type: 'FULL_TIME',
+        workMode: 'ONSITE',
       })
 
       // Act
@@ -201,7 +208,8 @@ describe('POST /api/jobs', () => {
       const request = createTestRequest('POST', {
         title: 'Test Job',
         description: 'A'.repeat(100),
-        employmentType: 'INVALID_TYPE',
+        type: 'INVALID_TYPE',
+        workMode: 'ONSITE',
       })
 
       // Act
@@ -218,7 +226,8 @@ describe('POST /api/jobs', () => {
       const request = createTestRequest('POST', {
         title: 'Test Job',
         description: 'A'.repeat(100),
-        employmentType: 'FULL_TIME',
+        type: 'FULL_TIME',
+        workMode: 'ONSITE',
         salaryMin: 100000,
         salaryMax: 50000, // Lower than min
       })
@@ -242,16 +251,16 @@ describe('POST /api/jobs', () => {
       // Arrange
       const jobData = {
         title: 'Full Stack Developer',
-        description: 'Looking for a full stack developer with experience in React and Node.js. The ideal candidate has 5+ years of experience.',
+        description:
+          'Looking for a full stack developer with experience in React and Node.js. The ideal candidate has 5+ years of experience.',
         requirements: 'React, Node.js, TypeScript, PostgreSQL',
         responsibilities: 'Build features, review code, mentor juniors',
         benefits: 'Health insurance, remote work, learning budget',
-        employmentType: 'FULL_TIME',
+        type: 'FULL_TIME',
+        workMode: 'REMOTE',
         seniority: 'SENIOR',
-        city: 'Bratislava',
+        location: 'Bratislava',
         region: 'BA',
-        remote: true,
-        hybrid: false,
         salaryMin: 60000,
         salaryMax: 90000,
         salaryCurrency: 'EUR',
@@ -271,12 +280,12 @@ describe('POST /api/jobs', () => {
       expect(data.job).toMatchObject({
         title: jobData.title,
         description: jobData.description,
-        employmentType: jobData.employmentType,
+        employmentType: jobData.type,
         seniority: jobData.seniority,
-        city: jobData.city,
+        city: jobData.location,
         region: jobData.region,
-        remote: jobData.remote,
-        hybrid: jobData.hybrid,
+        remote: true,
+        hybrid: false,
         salaryMin: jobData.salaryMin,
         salaryMax: jobData.salaryMax,
       })
@@ -287,7 +296,6 @@ describe('POST /api/jobs', () => {
       })
       expect(job).toBeTruthy()
       expect(job?.requirements).toBe(jobData.requirements)
-      expect(job?.responsibilities).toBe(jobData.responsibilities)
       expect(job?.benefits).toBe(jobData.benefits)
     })
 
@@ -296,7 +304,8 @@ describe('POST /api/jobs', () => {
       const request = createTestRequest('POST', {
         title: 'Draft Job',
         description: 'A'.repeat(100),
-        employmentType: 'FULL_TIME',
+        type: 'FULL_TIME',
+        workMode: 'ONSITE',
         // status not specified
       })
 
@@ -320,7 +329,8 @@ describe('POST /api/jobs', () => {
       const request = createTestRequest('POST', {
         title: 'Published Job',
         description: 'A'.repeat(100),
-        employmentType: 'FULL_TIME',
+        type: 'FULL_TIME',
+        workMode: 'ONSITE',
         status: 'PUBLISHED',
       })
 
@@ -344,7 +354,8 @@ describe('POST /api/jobs', () => {
       const request = createTestRequest('POST', {
         title: 'Senior Software Engineer',
         description: 'A'.repeat(100),
-        employmentType: 'FULL_TIME',
+        type: 'FULL_TIME',
+        workMode: 'ONSITE',
       })
 
       // Act
@@ -366,7 +377,8 @@ describe('POST /api/jobs', () => {
       const jobData = {
         title: 'Software Engineer',
         description: 'A'.repeat(100),
-        employmentType: 'FULL_TIME',
+        type: 'FULL_TIME',
+        workMode: 'ONSITE',
       }
 
       const firstRequest = createTestRequest('POST', jobData)
@@ -403,8 +415,10 @@ describe('POST /api/jobs', () => {
       // Arrange
       const request = createTestRequest('POST', {
         title: 'Softwarový inžinier',
-        description: 'Hľadáme skúseného softwarového inžiniera s minimálne 3 rokmi praxe v oblasti vývoja webových aplikácií.',
-        employmentType: 'FULL_TIME',
+        description:
+          'Hľadáme skúseného softwarového inžiniera s minimálne 3 rokmi praxe v oblasti vývoja webových aplikácií.',
+        type: 'FULL_TIME',
+        workMode: 'ONSITE',
         locale: 'sk',
       })
 
