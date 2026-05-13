@@ -1,6 +1,6 @@
 # TODO
 
-Open follow-ups z post-MVP code review (commit aa13273).
+Open follow-ups z post-MVP code review (commit aa13273) + bulk actions review.
 
 ## P1
 
@@ -31,3 +31,35 @@ Open follow-ups z post-MVP code review (commit aa13273).
   `apps/web/src/app/api/applications/route.ts:36-50`. Skontrolovať že
   `prisma.application.count` používa rovnaký `where` ako findMany;
   inak `hasMore` v pagination je nesprávny.
+
+## Bulk actions follow-ups (z gstack review)
+
+### P2
+
+- **HTML sanitization je obchádzateľná** —
+  `apps/web/src/app/api/applications/bulk/route.ts:129-131` a per-id
+  `send-email/route.ts`. Regex blokuje len `on*="..."` (s úvodzovkami)
+  a `<script>`. Bypass: `<img onerror=fn()>` (bez quotes),
+  `<a href="javascript:">`, `<iframe>`, `<svg onload>`. Email klienti
+  síce sanitizujú, ale platforma by mala použiť DOMPurify (isomorphic)
+  alebo posielať ako `text` namiesto `html`.
+- **Sync SMTP loop v bulk send-email** —
+  `apps/web/src/app/api/applications/bulk/route.ts:113-181`. Pri cap 50
+  emailov × 2-5s SMTP = až 250s wall-clock per HTTP request. Použiť
+  `emailQueue` (BullMQ) — enqueue per-email job, vrátiť 202 hneď,
+  status track cez audit log.
+- **Pipeline/applicants sticky bar positioning v browseri** —
+  `apps/web/src/components/employer/bulk-action-bar.tsx:130`. `sticky
+top-0 z-10` sa môže nesprávne lepiť pod employer header. Otestovať
+  vizuálne po deploy a prípadne pridať `top-[64px]` (offset header
+  výšky) a `z-20`.
+
+### P3
+
+- **`PHONE_SCREEN` vs `PHONE` typ nesúlad** —
+  `apps/web/src/app/api/applications/bulk/route.ts:78,97` má `as`
+  cast na `Parameters<typeof bulkUpdateStage>[1]`. Service signature
+  používa `'PHONE'` ale `APPLICATION_STAGES` má `'PHONE_SCREEN'`.
+  Funguje runtime (`stage String` v Prisma bez enum), ale krehké.
+  Fix: v `apps/web/src/services/application.service.ts` použiť
+  `ApplicationStage` z constants ako typ stage parametra.

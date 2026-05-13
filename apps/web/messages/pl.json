@@ -891,5 +891,21 @@
     "filterAllJobs": "All jobs",
     "emptyStage": "No candidates",
     "moveError": "Failed to move candidate"
+  },
+  "EmployerBulkActions": {
+    "selected_count": "{count} selected",
+    "clear_selection": "Clear",
+    "move_stage": "Move to...",
+    "reject": "Reject",
+    "reject_confirm": "Reject {count} candidates?",
+    "email": "Send email",
+    "email_dialog_title": "Bulk email",
+    "email_subject": "Subject",
+    "email_body": "Body",
+    "export_csv": "Export CSV",
+    "success_moved": "Moved {count}",
+    "success_rejected": "Rejected {count}",
+    "success_emailed": "Sent {sent}, failed {failed}",
+    "error_partial": "Some actions failed"
   }
 }

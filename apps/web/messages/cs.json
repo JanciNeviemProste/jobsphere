@@ -891,5 +891,21 @@
     "filterAllJobs": "All jobs",
     "emptyStage": "No candidates",
     "moveError": "Failed to move candidate"
+  },
+  "EmployerBulkActions": {
+    "selected_count": "{count} vybraných",
+    "clear_selection": "Zrušit výběr",
+    "move_stage": "Přesunout do...",
+    "reject": "Odmítnout",
+    "reject_confirm": "Opravdu odmítnout {count} kandidátů?",
+    "email": "Poslat email",
+    "email_dialog_title": "Hromadný email",
+    "email_subject": "Předmět",
+    "email_body": "Tělo zprávy",
+    "export_csv": "Exportovat CSV",
+    "success_moved": "Přesunuto {count}",
+    "success_rejected": "Odmítnuto {count}",
+    "success_emailed": "Odesláno {sent}, selhalo {failed}",
+    "error_partial": "Některé akce selhaly"
   }
 }

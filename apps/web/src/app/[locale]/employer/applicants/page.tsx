@@ -5,10 +5,9 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Kanban } from 'lucide-react'
 import { ExportCSVButton } from '@/components/ExportCSVButton'
-import { STAGE_LABELS_EN, STAGE_COLORS } from '@/lib/constants/application-stages'
+import { ApplicantsTable } from '@/components/employer/applicants-table'
 
 async function getApplicants(userId: string) {
   // Get user's organization
@@ -84,14 +83,14 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
       .length,
   }
 
-  const getStatusBadge = (stage: string) => {
-    const label = STAGE_LABELS_EN[stage as keyof typeof STAGE_LABELS_EN] ?? stage
-    const colorClass = STAGE_COLORS[stage as keyof typeof STAGE_COLORS]
-    if (colorClass) {
-      return <Badge className={colorClass}>{label}</Badge>
-    }
-    return <Badge>{label}</Badge>
-  }
+  const tableApplications = applications.map((a: ApplicationWithRelations) => ({
+    id: a.id,
+    candidateName: a.candidate.contacts?.[0]?.fullName || a.candidate.contacts?.[0]?.email || '',
+    candidateEmail: a.candidate.contacts?.[0]?.email || '',
+    jobTitle: a.job.title,
+    stage: a.stage,
+    createdAt: a.createdAt,
+  }))
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
@@ -152,69 +151,7 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
         {/* Applicants List */}
         <Card>
           <CardContent className="pt-6">
-            <div className="space-y-4">
-              {applications.map((application: ApplicationWithRelations) => (
-                <div
-                  key={application.id}
-                  className="flex items-center justify-between gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/50"
-                >
-                  <div className="flex-1">
-                    <div className="mb-2 flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <span className="font-semibold text-primary">
-                          {(
-                            application.candidate.contacts?.[0]?.fullName ||
-                            application.candidate.contacts?.[0]?.email ||
-                            ''
-                          )
-                            .split(' ')
-                            .map((n: string) => n[0])
-                            .join('')
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </span>
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">
-                          {application.candidate.contacts?.[0]?.fullName ||
-                            application.candidate.contacts?.[0]?.email ||
-                            'Kandidát'}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {application.candidate.contacts?.[0]?.email}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="ml-13 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                      <span>{application.job.title}</span>
-                      <span>•</span>
-                      <span>
-                        Prihlásený {new Date(application.createdAt).toLocaleDateString('sk-SK')}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {getStatusBadge(application.stage)}
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/${params.locale}/employer/applicants/${application.id}`}>
-                        Detail
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              ))}
-
-              {applications.length === 0 && (
-                <div className="py-12 text-center">
-                  <p className="text-muted-foreground">
-                    Nenašli sa žiadni kandidáti. Vytvorte pracovnú ponuku a počkajte na prihlášky.
-                  </p>
-                  <Button asChild className="mt-4">
-                    <Link href={`/${params.locale}/employer/jobs/new`}>Vytvoriť pozíciu</Link>
-                  </Button>
-                </div>
-              )}
-            </div>
+            <ApplicantsTable applications={tableApplications} locale={params.locale} />
           </CardContent>
         </Card>
       </div>

@@ -900,5 +900,21 @@
     "matchScoreUnavailable": "Match score nedostupné",
     "aiParsingMissing": "AI parsing CV ešte nebol spustený alebo zlyhal",
     "noActivities": "Žiadne aktivity"
+  },
+  "EmployerBulkActions": {
+    "selected_count": "{count} vybraných",
+    "clear_selection": "Zrušiť výber",
+    "move_stage": "Presunúť do...",
+    "reject": "Odmietnuť",
+    "reject_confirm": "Naozaj odmietnuť {count} kandidátov?",
+    "email": "Poslať email",
+    "email_dialog_title": "Hromadný email",
+    "email_subject": "Predmet",
+    "email_body": "Telo správy",
+    "export_csv": "Exportovať CSV",
+    "success_moved": "Presunutých {count}",
+    "success_rejected": "Odmietnutých {count}",
+    "success_emailed": "Odoslaných {sent}, zlyhaných {failed}",
+    "error_partial": "Niektoré akcie zlyhali"
   }
 }
