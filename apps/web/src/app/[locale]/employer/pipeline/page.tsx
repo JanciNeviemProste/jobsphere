@@ -1,0 +1,113 @@
+import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
+import { PipelineBoard } from '@/components/employer/pipeline-board'
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: 'Pipeline | JobSphere',
+    description: 'Kanban board prehľad kandidátov.',
+  }
+}
+
+export default async function PipelinePage({
+  params,
+  searchParams,
+}: {
+  params: { locale: string }
+  searchParams: { jobId?: string }
+}) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    redirect(`/${params.locale}/login`)
+  }
+
+  const userOrgRole = await prisma.userOrgRole.findFirst({
+    where: { userId: session.user.id },
+  })
+  if (!userOrgRole) {
+    redirect(`/${params.locale}/dashboard`)
+  }
+
+  const orgId = userOrgRole.orgId
+  const currentJobId = searchParams.jobId
+
+  const [applications, jobs] = await Promise.all([
+    prisma.application.findMany({
+      where: {
+        job: { orgId },
+        ...(currentJobId ? { jobId: currentJobId } : {}),
+      },
+      include: {
+        job: { select: { id: true, title: true } },
+        candidate: {
+          include: {
+            contacts: { take: 1 },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.job.findMany({
+      where: { orgId },
+      select: { id: true, title: true },
+      orderBy: { createdAt: 'desc' },
+    }),
+  ])
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+      <div className="container mx-auto px-4 py-8">
+        <Button variant="ghost" asChild className="mb-6">
+          <Link href={`/${params.locale}/employer`}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Späť na dashboard
+          </Link>
+        </Button>
+
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Pipeline</h1>
+            <p className="text-muted-foreground">Presúvajte kandidátov medzi fázami</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <form method="GET">
+              <select
+                name="jobId"
+                defaultValue={currentJobId ?? ''}
+                onChange={(e) => {
+                  const form = e.currentTarget.form
+                  if (form) form.submit()
+                }}
+                className="rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Všetky pozície</option>
+                {jobs.map((job) => (
+                  <option key={job.id} value={job.id}>
+                    {job.title}
+                  </option>
+                ))}
+              </select>
+            </form>
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/${params.locale}/employer/applicants`}>Zoznam</Link>
+            </Button>
+          </div>
+        </div>
+
+        <PipelineBoard
+          applications={applications.map((a) => ({
+            ...a,
+            createdAt: a.createdAt.toISOString(),
+          }))}
+          jobs={jobs}
+          currentJobId={currentJobId}
+        />
+      </div>
+    </div>
+  )
+}

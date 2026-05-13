@@ -7,69 +7,162 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, Mail, Phone, Download, MapPin, Euro, Clock, Building2 } from 'lucide-react'
+import {
+  ArrowLeft,
+  Mail,
+  Phone,
+  Download,
+  MapPin,
+  Euro,
+  Clock,
+  Building2,
+  ArrowRight,
+  StickyNote,
+  FileText,
+} from 'lucide-react'
 import { ApplicantActions } from '@/components/applicant-actions'
+import { ApplicantSummaryCard } from '@/components/employer/applicant-summary-card'
+import { STAGE_LABELS_EN, STAGE_COLORS } from '@/lib/constants/application-stages'
+
+// ---- helpers ----
+
+function relativeTime(date: Date): string {
+  const diff = Date.now() - date.getTime()
+  const rtf = new Intl.RelativeTimeFormat('sk', { numeric: 'auto' })
+  const minutes = Math.round(diff / 60_000)
+  if (Math.abs(minutes) < 60) return rtf.format(-minutes, 'minute')
+  const hours = Math.round(diff / 3_600_000)
+  if (Math.abs(hours) < 24) return rtf.format(-hours, 'hour')
+  const days = Math.round(diff / 86_400_000)
+  return rtf.format(-days, 'day')
+}
+
+function dayLabel(date: Date): string {
+  return date.toLocaleDateString('sk-SK', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function activityIcon(type: string) {
+  if (type === 'EMAIL_SENT' || type === 'EMAIL_RECEIVED') return <Mail className="h-4 w-4" />
+  if (type === 'STAGE_CHANGE') return <ArrowRight className="h-4 w-4" />
+  if (type === 'NOTE_ADDED') return <StickyNote className="h-4 w-4" />
+  return <FileText className="h-4 w-4" />
+}
+
+interface ParsedResume {
+  summary?: string
+  skills?: string[]
+  yearsOfExperience?: number
+  experiences?: Array<{
+    title?: string
+    company?: string
+    startDate?: string
+    endDate?: string
+    current?: boolean
+    description?: string
+  }>
+  education?: Array<{
+    institution?: string
+    field?: string
+    degree?: string
+    startDate?: string
+    endDate?: string
+  }>
+}
+
+function safeParseResume(
+  resume: {
+    summary?: string | null
+    skills: string[]
+    yearsOfExperience?: number | null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    experiences: any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    education: any
+  } | null,
+): ParsedResume | null {
+  if (!resume) return null
+  try {
+    const experiences = Array.isArray(resume.experiences) ? resume.experiences : []
+    const education = Array.isArray(resume.education) ? resume.education : []
+    return {
+      summary: resume.summary ?? undefined,
+      skills: Array.isArray(resume.skills) ? resume.skills : [],
+      yearsOfExperience: resume.yearsOfExperience ?? undefined,
+      experiences,
+      education,
+    }
+  } catch {
+    return null
+  }
+}
+
+// ---- data fetching ----
 
 async function getApplicationDetail(applicationId: string, userId: string) {
-  // Get user's organization
   const userOrgRole = await prisma.userOrgRole.findFirst({
     where: { userId },
   })
+  if (!userOrgRole) return null
 
-  if (!userOrgRole) {
-    return null
-  }
-
-  // Get application with all details
   const application = await prisma.application.findFirst({
     where: {
       id: applicationId,
-      job: {
-        orgId: userOrgRole.orgId,
-      },
+      job: { orgId: userOrgRole.orgId },
     },
     include: {
       job: {
-        include: {
-          organization: true,
-        },
+        include: { organization: true },
       },
       candidate: {
         include: {
           contacts: {
-            where: {
-              isPrimary: true,
-            },
+            where: { isPrimary: true },
             take: 1,
           },
           resumes: {
-            orderBy: {
-              createdAt: 'desc',
-            },
+            orderBy: { createdAt: 'desc' },
             take: 1,
-            include: {
-              sourceDocument: true,
-            },
+            include: { sourceDocument: true },
           },
         },
       },
       activities: {
-        orderBy: {
-          createdAt: 'asc',
-        },
+        orderBy: { createdAt: 'asc' },
       },
     },
   })
 
-  return application
+  if (!application) return null
+
+  // Defensive MatchScore fetch — model exists per schema
+  let matchScore: { score0to100: number; evidence: unknown; explanation: string[] } | null = null
+  try {
+    matchScore = await prisma.matchScore.findUnique({
+      where: {
+        jobId_candidateId: {
+          jobId: application.jobId,
+          candidateId: application.candidateId,
+        },
+      },
+      select: { score0to100: true, evidence: true, explanation: true },
+    })
+  } catch {
+    matchScore = null
+  }
+
+  return { application, matchScore, orgId: userOrgRole.orgId }
 }
+
+// ---- metadata ----
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Applicant Detail | JobSphere',
-    description: 'Review applicant details, resume, and application history.',
+    title: 'Detail uchádzača | JobSphere',
+    description: 'Zobraziť detaily uchádzača, životopis a históriu prihlášky.',
   }
 }
+
+// ---- page ----
 
 export default async function EmployerApplicationDetailPage({
   params,
@@ -77,58 +170,102 @@ export default async function EmployerApplicationDetailPage({
   params: { locale: string; id: string }
 }) {
   const session = await auth()
-
   if (!session?.user?.id) {
     redirect(`/${params.locale}/login`)
   }
 
-  const application = await getApplicationDetail(params.id, session.user.id)
-
-  if (!application) {
+  const result = await getApplicationDetail(params.id, session.user.id)
+  if (!result) {
     redirect(`/${params.locale}/employer/applicants`)
   }
 
-  const STAGE_LABELS: Record<string, string> = {
-    NEW: 'New',
-    SCREENING: 'Screening',
-    PHONE_SCREEN: 'Phone Screen',
-    INTERVIEW: 'Interview',
-    OFFER: 'Offer',
-    HIRED: 'Hired',
-    REJECTED: 'Rejected',
-  }
+  const { application, matchScore } = result
+  const contact = application.candidate.contacts?.[0] ?? null
+  const latestResume = application.candidate.resumes?.[0] ?? null
+  const parsedResume = safeParseResume(latestResume)
 
   const getStatusBadge = (stage: string) => {
-    switch (stage) {
-      case 'NEW':
-        return <Badge variant="secondary">{STAGE_LABELS.NEW}</Badge>
-      case 'SCREENING':
-        return <Badge>{STAGE_LABELS.SCREENING}</Badge>
-      case 'PHONE_SCREEN':
-        return <Badge className="bg-blue-600">{STAGE_LABELS.PHONE_SCREEN}</Badge>
-      case 'INTERVIEW':
-        return <Badge className="bg-blue-600">{STAGE_LABELS.INTERVIEW}</Badge>
-      case 'OFFER':
-        return <Badge className="bg-green-600">{STAGE_LABELS.OFFER}</Badge>
-      case 'HIRED':
-        return <Badge className="bg-green-600">{STAGE_LABELS.HIRED}</Badge>
-      case 'REJECTED':
-        return <Badge variant="destructive">{STAGE_LABELS.REJECTED}</Badge>
-      default:
-        return <Badge>{stage}</Badge>
+    const label = STAGE_LABELS_EN[stage as keyof typeof STAGE_LABELS_EN] ?? stage
+    const colorClass = STAGE_COLORS[stage as keyof typeof STAGE_COLORS]
+    if (colorClass) return <Badge className={colorClass}>{label}</Badge>
+    return <Badge>{label}</Badge>
+  }
+
+  // Group activities by day
+  const activitiesByDay: Map<string, typeof application.activities> = new Map()
+  for (const activity of application.activities) {
+    const dayKey = dayLabel(new Date(activity.createdAt))
+    const existing = activitiesByDay.get(dayKey) ?? []
+    existing.push(activity)
+    activitiesByDay.set(dayKey, existing)
+  }
+
+  const hasAiData =
+    parsedResume &&
+    ((parsedResume.summary && parsedResume.summary.length > 0) ||
+      (parsedResume.skills && parsedResume.skills.length > 0) ||
+      (parsedResume.experiences && parsedResume.experiences.length > 0) ||
+      (parsedResume.education && parsedResume.education.length > 0))
+
+  // Parse match score evidence for sub-scores
+  let evidenceBreakdown: Record<string, number> | null = null
+  try {
+    if (matchScore?.evidence && typeof matchScore.evidence === 'object') {
+      const ev = matchScore.evidence as Record<string, unknown>
+      const keys = ['skillsMatch', 'experienceMatch', 'educationMatch']
+      const result: Record<string, number> = {}
+      for (const k of keys) {
+        if (typeof ev[k] === 'number') result[k] = ev[k] as number
+      }
+      if (Object.keys(result).length > 0) evidenceBreakdown = result
     }
+  } catch {
+    evidenceBreakdown = null
+  }
+
+  const breakdownLabels: Record<string, string> = {
+    skillsMatch: 'Zručnosti',
+    experienceMatch: 'Skúsenosti',
+    educationMatch: 'Vzdelanie',
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <div className="container mx-auto px-4 py-8">
-        {/* Back Button */}
         <Button variant="ghost" asChild className="mb-6">
           <Link href={`/${params.locale}/employer/applicants`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Späť na kandidátov
           </Link>
         </Button>
+
+        {/* Summary card — top of page */}
+        <div className="mb-6">
+          <ApplicantSummaryCard
+            contact={
+              contact
+                ? {
+                    fullName: contact.fullName ?? null,
+                    email: contact.email ?? null,
+                    phone: contact.phone ?? null,
+                    location: contact.location ?? null,
+                    city: contact.city ?? null,
+                    country: contact.country ?? null,
+                  }
+                : null
+            }
+            resume={
+              parsedResume
+                ? {
+                    skills: parsedResume.skills ?? [],
+                    yearsOfExperience: parsedResume.yearsOfExperience ?? null,
+                    summary: parsedResume.summary ?? null,
+                  }
+                : null
+            }
+            matchScore={matchScore ? { score0to100: matchScore.score0to100 } : null}
+          />
+        </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main Content */}
@@ -185,61 +322,214 @@ export default async function EmployerApplicationDetailPage({
               </CardContent>
             </Card>
 
+            {/* AI Parsed CV */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Parsed CV (AI)</CardTitle>
+                <CardDescription>Dáta extrahované z životopisu</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {!hasAiData ? (
+                  <p className="text-sm text-muted-foreground">
+                    AI parsing CV ešte nebol spustený alebo zlyhal
+                  </p>
+                ) : (
+                  <>
+                    {parsedResume?.summary && (
+                      <div>
+                        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                          Súhrn
+                        </h3>
+                        <p className="text-sm leading-relaxed">{parsedResume.summary}</p>
+                      </div>
+                    )}
+
+                    {parsedResume?.skills && parsedResume.skills.length > 0 && (
+                      <div>
+                        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                          Zručnosti
+                        </h3>
+                        <div className="flex flex-wrap gap-1.5">
+                          {parsedResume.skills.map((skill) => (
+                            <Badge key={skill} variant="secondary" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {parsedResume?.experiences && parsedResume.experiences.length > 0 && (
+                      <div>
+                        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                          Skúsenosti
+                        </h3>
+                        <div className="space-y-4">
+                          {parsedResume.experiences.map((exp, i) => (
+                            <div key={i} className="border-l-2 border-primary/30 pl-4">
+                              <p className="font-medium">{exp.title ?? 'Pozícia'}</p>
+                              {exp.company && (
+                                <p className="text-sm text-muted-foreground">{exp.company}</p>
+                              )}
+                              {(exp.startDate || exp.endDate) && (
+                                <p className="mt-0.5 text-xs text-muted-foreground">
+                                  {exp.startDate ?? '?'} –{' '}
+                                  {exp.current ? 'súčasnosť' : (exp.endDate ?? '?')}
+                                </p>
+                              )}
+                              {exp.description && <p className="mt-1 text-sm">{exp.description}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {parsedResume?.education && parsedResume.education.length > 0 && (
+                      <div>
+                        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                          Vzdelanie
+                        </h3>
+                        <div className="space-y-3">
+                          {parsedResume.education.map((edu, i) => (
+                            <div key={i} className="border-l-2 border-muted pl-4">
+                              <p className="font-medium">{edu.institution ?? 'Škola'}</p>
+                              {(edu.field || edu.degree) && (
+                                <p className="text-sm text-muted-foreground">
+                                  {[edu.degree, edu.field].filter(Boolean).join(' – ')}
+                                </p>
+                              )}
+                              {(edu.startDate || edu.endDate) && (
+                                <p className="mt-0.5 text-xs text-muted-foreground">
+                                  {edu.startDate ?? '?'} – {edu.endDate ?? '?'}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Match Score Breakdown */}
+            {matchScore && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Zhoda s pozíciou</CardTitle>
+                  <CardDescription>Celkové skóre: {matchScore.score0to100} / 100</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {evidenceBreakdown ? (
+                    Object.entries(evidenceBreakdown).map(([key, value]) => (
+                      <div key={key}>
+                        <div className="mb-1 flex justify-between text-sm">
+                          <span>{breakdownLabels[key] ?? key}</span>
+                          <span className="font-medium">{value}%</span>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full bg-primary transition-all"
+                            style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div>
+                      <div className="mb-1 flex justify-between text-sm">
+                        <span>Celkové skóre</span>
+                        <span className="font-medium">{matchScore.score0to100}%</span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-primary transition-all"
+                          style={{
+                            width: `${Math.min(100, Math.max(0, matchScore.score0to100))}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {matchScore.explanation && matchScore.explanation.length > 0 && (
+                    <ul className="mt-4 space-y-1">
+                      {matchScore.explanation.map((point, i) => (
+                        <li key={i} className="flex gap-2 text-sm text-muted-foreground">
+                          <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                          {point}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Cover Letter */}
             <Card>
               <CardHeader>
                 <CardTitle>Motivačný list</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="whitespace-pre-wrap text-sm">{application.coverLetter}</div>
+                {application.coverLetter ? (
+                  <div className="whitespace-pre-wrap text-sm">{application.coverLetter}</div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Motivačný list nebol priložený.</p>
+                )}
               </CardContent>
             </Card>
 
             {/* Timeline */}
-            {application.activities && application.activities.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Časová os prihlášky</CardTitle>
-                  <CardDescription>História tejto prihlášky</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {application.activities.map(
-                      (
-                        activity: {
-                          id: string
-                          type: string
-                          description: string
-                          createdAt: Date
-                        },
-                        index: number,
-                      ) => (
-                        <div key={activity.id} className="flex gap-4">
-                          <div className="flex flex-col items-center">
-                            <div className="h-3 w-3 rounded-full bg-primary" />
-                            {index !== application.activities.length - 1 && (
-                              <div className="mt-2 w-px flex-1 bg-border" />
-                            )}
-                          </div>
-                          <div className="flex-1 pb-4">
-                            <p className="font-medium">{activity.type.replace('_', ' ')}</p>
-                            <p className="text-sm text-muted-foreground">{activity.description}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {new Date(activity.createdAt).toLocaleDateString('sk-SK')}
-                            </p>
-                          </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Časová os prihlášky</CardTitle>
+                <CardDescription>História tejto prihlášky</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {application.activities.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Žiadne aktivity</p>
+                ) : (
+                  <div className="space-y-6">
+                    {Array.from(activitiesByDay.entries()).map(([day, acts]) => (
+                      <div key={day}>
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          {day}
+                        </p>
+                        <div className="space-y-4">
+                          {acts.map((activity, index) => (
+                            <div key={activity.id} className="flex gap-4">
+                              <div className="flex flex-col items-center">
+                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                  {activityIcon(activity.type)}
+                                </div>
+                                {index !== acts.length - 1 && (
+                                  <div className="mt-2 w-px flex-1 bg-border" />
+                                )}
+                              </div>
+                              <div className="flex-1 pb-2">
+                                <p className="font-medium">{activity.type.replace(/_/g, ' ')}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {activity.description}
+                                </p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  {relativeTime(new Date(activity.createdAt))}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ),
-                    )}
+                      </div>
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Candidate Info */}
+            {/* Candidate Contact */}
             <Card>
               <CardHeader>
                 <CardTitle>Kandidát</CardTitle>
@@ -247,30 +537,25 @@ export default async function EmployerApplicationDetailPage({
               <CardContent className="space-y-4">
                 <div>
                   <p className="text-lg font-semibold">
-                    {application.candidate.contacts?.[0]?.fullName ||
-                      application.candidate.contacts?.[0]?.email ||
-                      'Kandidát'}
+                    {contact?.fullName ?? contact?.email ?? 'Kandidát'}
                   </p>
                   <div className="mt-3 space-y-2">
-                    {application.candidate.contacts?.[0]?.email && (
+                    {contact?.email && (
                       <div className="flex items-center gap-2 text-sm">
                         <Mail className="h-4 w-4 text-muted-foreground" />
                         <a
-                          href={`mailto:${application.candidate.contacts[0].email}`}
+                          href={`mailto:${contact.email}`}
                           className="text-primary hover:underline"
                         >
-                          {application.candidate.contacts[0].email}
+                          {contact.email}
                         </a>
                       </div>
                     )}
-                    {application.candidate.contacts?.[0]?.phone && (
+                    {contact?.phone && (
                       <div className="flex items-center gap-2 text-sm">
                         <Phone className="h-4 w-4 text-muted-foreground" />
-                        <a
-                          href={`tel:${application.candidate.contacts[0].phone}`}
-                          className="hover:underline"
-                        >
-                          {application.candidate.contacts[0].phone}
+                        <a href={`tel:${contact.phone}`} className="hover:underline">
+                          {contact.phone}
                         </a>
                       </div>
                     )}
@@ -280,7 +565,7 @@ export default async function EmployerApplicationDetailPage({
             </Card>
 
             {/* CV Download */}
-            {application.candidate.resumes?.[0]?.sourceDocument && (
+            {latestResume?.sourceDocument && (
               <Card>
                 <CardHeader>
                   <CardTitle>Životopis</CardTitle>
@@ -288,13 +573,13 @@ export default async function EmployerApplicationDetailPage({
                 <CardContent>
                   <Button asChild className="w-full">
                     <a
-                      href={application.candidate.resumes[0].sourceDocument.uri}
+                      href={latestResume.sourceDocument.uri}
                       target="_blank"
                       rel="noopener noreferrer"
-                      download={application.candidate.resumes[0].sourceDocument.filename}
+                      download={latestResume.sourceDocument.filename}
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      {application.candidate.resumes[0].sourceDocument.filename || 'Stiahnuť CV'}
+                      {latestResume.sourceDocument.filename || 'Stiahnuť CV'}
                     </a>
                   </Button>
                 </CardContent>
@@ -309,32 +594,58 @@ export default async function EmployerApplicationDetailPage({
             />
 
             {/* Notes */}
-            {Array.isArray(application.notes) && application.notes.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Poznámky</CardTitle>
-                  <CardDescription>Interné poznámky k uchádzačovi</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {application.notes.map((note: any, index: number) => (
-                      <div key={index} className="border-l-2 border-primary/30 py-2 pl-3">
-                        <p className="whitespace-pre-wrap text-sm">
-                          {typeof note === 'string' ? note : note.text || JSON.stringify(note)}
-                        </p>
-                        {typeof note === 'object' && note.createdAt && (
-                          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>{note.createdByName}</span>
-                            <span>•</span>
-                            <span>{new Date(note.createdAt).toLocaleDateString('sk-SK')}</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {(() => {
+              const n = application.notes
+              const notesArray: Array<{
+                text: string
+                createdByName?: string
+                createdAt?: string
+              }> = (() => {
+                if (!n) return []
+                if (typeof n === 'string') return [{ text: n }]
+                if (Array.isArray(n)) {
+                  return n.map((item) => {
+                    if (typeof item === 'string') return { text: item }
+                    if (item && typeof item === 'object')
+                      return item as { text: string; createdByName?: string; createdAt?: string }
+                    return { text: String(item) }
+                  })
+                }
+                if (typeof n === 'object') {
+                  return [n as { text: string; createdByName?: string; createdAt?: string }]
+                }
+                return []
+              })()
+
+              if (notesArray.length === 0) return null
+
+              return (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Poznámky</CardTitle>
+                    <CardDescription>Interné poznámky k uchádzačovi</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {notesArray.map((note, index) => (
+                        <div key={index} className="border-l-2 border-primary/30 py-2 pl-3">
+                          <p className="whitespace-pre-wrap text-sm">{note.text}</p>
+                          {(note.createdByName || note.createdAt) && (
+                            <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                              {note.createdByName && <span>{note.createdByName}</span>}
+                              {note.createdByName && note.createdAt && <span>•</span>}
+                              {note.createdAt && (
+                                <span>{new Date(note.createdAt).toLocaleDateString('sk-SK')}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })()}
           </div>
         </div>
       </div>

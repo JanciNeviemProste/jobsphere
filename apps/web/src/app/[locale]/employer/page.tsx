@@ -7,7 +7,8 @@ import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Briefcase, Users, Eye, CheckCircle, Clock, XCircle } from 'lucide-react'
+import { Plus, Briefcase, Users, Kanban, CheckCircle, Clock, XCircle } from 'lucide-react'
+import { STAGE_LABELS_EN, STAGE_COLORS } from '@/lib/constants/application-stages'
 
 export async function generateMetadata({
   params: { locale },
@@ -155,31 +156,13 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
     }
   }
 
-  const STAGE_LABELS: Record<string, string> = {
-    NEW: 'New',
-    SCREENING: 'Screening',
-    PHONE_SCREEN: 'Phone Screen',
-    INTERVIEW: 'Interview',
-    OFFER: 'Offer',
-    HIRED: 'Hired',
-    REJECTED: 'Rejected',
-  }
-
   const getApplicantStatusBadge = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return <Badge variant="default">{STAGE_LABELS.NEW}</Badge>
-      case 'REVIEWING':
-        return <Badge variant="secondary">{STAGE_LABELS.SCREENING}</Badge>
-      case 'INTERVIEWED':
-        return <Badge className="bg-blue-600">{STAGE_LABELS.INTERVIEW}</Badge>
-      case 'ACCEPTED':
-        return <Badge className="bg-green-600">{STAGE_LABELS.HIRED}</Badge>
-      case 'REJECTED':
-        return <Badge variant="destructive">{STAGE_LABELS.REJECTED}</Badge>
-      default:
-        return <Badge>{status}</Badge>
+    const label = STAGE_LABELS_EN[status as keyof typeof STAGE_LABELS_EN] ?? status
+    const colorClass = STAGE_COLORS[status as keyof typeof STAGE_COLORS]
+    if (colorClass) {
+      return <Badge className={colorClass}>{label}</Badge>
     }
+    return <Badge>{label}</Badge>
   }
 
   return (
@@ -368,6 +351,12 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
                   <Link href={`/${params.locale}/employer/applicants`}>
                     <Users className="mr-2 h-4 w-4" />
                     Zobraziť všetkých kandidátov
+                  </Link>
+                </Button>
+                <Button className="w-full justify-start" variant="outline" asChild>
+                  <Link href={`/${params.locale}/employer/pipeline`}>
+                    <Kanban className="mr-2 h-4 w-4" />
+                    Pipeline
                   </Link>
                 </Button>
                 <Button className="w-full justify-start" variant="outline" asChild>

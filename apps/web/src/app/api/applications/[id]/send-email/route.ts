@@ -5,6 +5,7 @@ import { sendEmail } from '@/lib/email'
 import { logger } from '@/lib/logger'
 import { withRateLimit } from '@/lib/rate-limit'
 import { withCsrfProtection } from '@/lib/csrf'
+import { createAuditLog } from '@/lib/audit-log'
 import { z } from 'zod'
 
 export const runtime = 'nodejs'
@@ -96,6 +97,18 @@ export const POST = withCsrfProtection(
               to: candidateEmail,
               sentBy: session.user.name || session.user.email,
             },
+          },
+        })
+
+        await createAuditLog({
+          userId: session.user.id,
+          orgId: application.job.orgId,
+          action: 'EMAIL_SENT',
+          resource: 'EMAIL',
+          resourceId: params!.id,
+          metadata: {
+            subject,
+            to: candidateEmail,
           },
         })
 

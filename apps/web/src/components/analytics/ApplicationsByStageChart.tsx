@@ -2,6 +2,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { STAGE_LABELS_EN } from '@/lib/constants/application-stages'
 
 interface ApplicationsByStageChartProps {
   data: Array<{
@@ -20,19 +21,9 @@ const COLORS = {
   REJECTED: '#ef4444',
 }
 
-const STAGE_LABELS: Record<string, string> = {
-  NEW: 'New',
-  SCREENING: 'Screening',
-  PHONE_SCREEN: 'Phone Screen',
-  INTERVIEW: 'Interview',
-  OFFER: 'Offer',
-  HIRED: 'Hired',
-  REJECTED: 'Rejected',
-}
-
 export function ApplicationsByStageChart({ data }: ApplicationsByStageChartProps) {
   const chartData = data.map((item) => ({
-    name: STAGE_LABELS[item.stage] || item.stage,
+    name: STAGE_LABELS_EN[item.stage as keyof typeof STAGE_LABELS_EN] || item.stage,
     value: item.count,
     fill: COLORS[item.stage as keyof typeof COLORS] || '#gray',
   }))

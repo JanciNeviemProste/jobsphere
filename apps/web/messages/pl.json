@@ -849,14 +849,47 @@
     "noApplications": "Brak aplikacji"
   },
   "pageMetadata": {
-    "home": { "title": "Znajdź wymarzoną pracę z AI", "description": "Portal pracy i ATS zasilany przez AI. Przeglądaj tysiące ofert pracy w całej Europie." },
-    "jobs": { "title": "Oferty pracy", "description": "Przeglądaj i wyszukuj oferty pracy w całej Europie. Filtruj według lokalizacji, wynagrodzenia i innych." },
-    "login": { "title": "Logowanie", "description": "Zaloguj się do swojego konta JobSphere." },
-    "signup": { "title": "Utwórz konto", "description": "Zarejestruj się w JobSphere i zacznij szukać wymarzonej pracy." },
-    "pricing": { "title": "Cennik", "description": "Wybierz odpowiedni plan dla swoich potrzeb rekrutacyjnych." },
-    "forEmployers": { "title": "Dla pracodawców", "description": "System ATS zasilany przez AI do szybszego znajdowania i zatrudniania najlepszych kandydatów." },
-    "dashboard": { "title": "Panel", "description": "Zarządzaj swoimi aplikacjami i profilem." },
-    "employer": { "title": "Panel pracodawcy", "description": "Zarządzaj ofertami pracy, kandydatami i rekrutacją." },
-    "academy": { "title": "Akademia kariery", "description": "Porady zawodowe, przygotowanie do rozmów kwalifikacyjnych i umiejętności szukania pracy." }
+    "home": {
+      "title": "Znajdź wymarzoną pracę z AI",
+      "description": "Portal pracy i ATS zasilany przez AI. Przeglądaj tysiące ofert pracy w całej Europie."
+    },
+    "jobs": {
+      "title": "Oferty pracy",
+      "description": "Przeglądaj i wyszukuj oferty pracy w całej Europie. Filtruj według lokalizacji, wynagrodzenia i innych."
+    },
+    "login": {
+      "title": "Logowanie",
+      "description": "Zaloguj się do swojego konta JobSphere."
+    },
+    "signup": {
+      "title": "Utwórz konto",
+      "description": "Zarejestruj się w JobSphere i zacznij szukać wymarzonej pracy."
+    },
+    "pricing": {
+      "title": "Cennik",
+      "description": "Wybierz odpowiedni plan dla swoich potrzeb rekrutacyjnych."
+    },
+    "forEmployers": {
+      "title": "Dla pracodawców",
+      "description": "System ATS zasilany przez AI do szybszego znajdowania i zatrudniania najlepszych kandydatów."
+    },
+    "dashboard": {
+      "title": "Panel",
+      "description": "Zarządzaj swoimi aplikacjami i profilem."
+    },
+    "employer": {
+      "title": "Panel pracodawcy",
+      "description": "Zarządzaj ofertami pracy, kandydatami i rekrutacją."
+    },
+    "academy": {
+      "title": "Akademia kariery",
+      "description": "Porady zawodowe, przygotowanie do rozmów kwalifikacyjnych i umiejętności szukania pracy."
+    }
+  },
+  "EmployerPipeline": {
+    "title": "Pipeline",
+    "filterAllJobs": "All jobs",
+    "emptyStage": "No candidates",
+    "moveError": "Failed to move candidate"
   }
 }

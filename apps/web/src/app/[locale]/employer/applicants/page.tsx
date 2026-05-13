@@ -6,8 +6,9 @@ import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Kanban } from 'lucide-react'
 import { ExportCSVButton } from '@/components/ExportCSVButton'
+import { STAGE_LABELS_EN, STAGE_COLORS } from '@/lib/constants/application-stages'
 
 async function getApplicants(userId: string) {
   // Get user's organization
@@ -83,35 +84,13 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
       .length,
   }
 
-  const STAGE_LABELS: Record<string, string> = {
-    NEW: 'New',
-    SCREENING: 'Screening',
-    PHONE_SCREEN: 'Phone Screen',
-    INTERVIEW: 'Interview',
-    OFFER: 'Offer',
-    HIRED: 'Hired',
-    REJECTED: 'Rejected',
-  }
-
   const getStatusBadge = (stage: string) => {
-    switch (stage) {
-      case 'NEW':
-        return <Badge>{STAGE_LABELS.NEW}</Badge>
-      case 'SCREENING':
-        return <Badge variant="secondary">{STAGE_LABELS.SCREENING}</Badge>
-      case 'PHONE_SCREEN':
-        return <Badge className="bg-blue-600">{STAGE_LABELS.PHONE_SCREEN}</Badge>
-      case 'INTERVIEW':
-        return <Badge className="bg-blue-600">{STAGE_LABELS.INTERVIEW}</Badge>
-      case 'OFFER':
-        return <Badge className="bg-green-600">{STAGE_LABELS.OFFER}</Badge>
-      case 'HIRED':
-        return <Badge className="bg-green-600">{STAGE_LABELS.HIRED}</Badge>
-      case 'REJECTED':
-        return <Badge variant="destructive">{STAGE_LABELS.REJECTED}</Badge>
-      default:
-        return <Badge>{stage}</Badge>
+    const label = STAGE_LABELS_EN[stage as keyof typeof STAGE_LABELS_EN] ?? stage
+    const colorClass = STAGE_COLORS[stage as keyof typeof STAGE_COLORS]
+    if (colorClass) {
+      return <Badge className={colorClass}>{label}</Badge>
     }
+    return <Badge>{label}</Badge>
   }
 
   return (
@@ -131,7 +110,15 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
             <h1 className="mb-2 text-3xl font-bold">Všetci kandidáti</h1>
             <p className="text-muted-foreground">Prehľad všetkých prihlášok</p>
           </div>
-          <ExportCSVButton />
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/${params.locale}/employer/pipeline`}>
+                <Kanban className="mr-2 h-4 w-4" />
+                Zobraziť ako board
+              </Link>
+            </Button>
+            <ExportCSVButton />
+          </div>
         </div>
 
         {/* Stats */}

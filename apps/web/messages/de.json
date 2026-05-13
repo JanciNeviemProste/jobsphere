@@ -849,14 +849,47 @@
     "noApplications": "Noch keine Bewerbungen"
   },
   "pageMetadata": {
-    "home": { "title": "Finden Sie Ihren Traumjob mit KI", "description": "KI-gestützte Jobbörse und ATS-Plattform. Durchsuchen Sie Tausende von Stellenangeboten in ganz Europa." },
-    "jobs": { "title": "Stellenangebote", "description": "Durchsuchen Sie Stellenangebote in ganz Europa. Filtern Sie nach Standort, Gehalt und mehr." },
-    "login": { "title": "Anmelden", "description": "Melden Sie sich bei Ihrem JobSphere-Konto an." },
-    "signup": { "title": "Konto erstellen", "description": "Registrieren Sie sich bei JobSphere und finden Sie Ihren Traumjob." },
-    "pricing": { "title": "Preise", "description": "Wählen Sie den richtigen Plan für Ihre Recruiting-Anforderungen." },
-    "forEmployers": { "title": "Für Arbeitgeber", "description": "KI-gestütztes ATS um die besten Kandidaten schneller zu finden und einzustellen." },
-    "dashboard": { "title": "Dashboard", "description": "Verwalten Sie Ihre Bewerbungen und Ihr Profil." },
-    "employer": { "title": "Arbeitgeber-Dashboard", "description": "Verwalten Sie Stellenanzeigen, Kandidaten und Recruiting." },
-    "academy": { "title": "Karriere-Akademie", "description": "Karrieretipps, Interviewvorbereitung und Jobsuche-Fähigkeiten." }
+    "home": {
+      "title": "Finden Sie Ihren Traumjob mit KI",
+      "description": "KI-gestützte Jobbörse und ATS-Plattform. Durchsuchen Sie Tausende von Stellenangeboten in ganz Europa."
+    },
+    "jobs": {
+      "title": "Stellenangebote",
+      "description": "Durchsuchen Sie Stellenangebote in ganz Europa. Filtern Sie nach Standort, Gehalt und mehr."
+    },
+    "login": {
+      "title": "Anmelden",
+      "description": "Melden Sie sich bei Ihrem JobSphere-Konto an."
+    },
+    "signup": {
+      "title": "Konto erstellen",
+      "description": "Registrieren Sie sich bei JobSphere und finden Sie Ihren Traumjob."
+    },
+    "pricing": {
+      "title": "Preise",
+      "description": "Wählen Sie den richtigen Plan für Ihre Recruiting-Anforderungen."
+    },
+    "forEmployers": {
+      "title": "Für Arbeitgeber",
+      "description": "KI-gestütztes ATS um die besten Kandidaten schneller zu finden und einzustellen."
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "description": "Verwalten Sie Ihre Bewerbungen und Ihr Profil."
+    },
+    "employer": {
+      "title": "Arbeitgeber-Dashboard",
+      "description": "Verwalten Sie Stellenanzeigen, Kandidaten und Recruiting."
+    },
+    "academy": {
+      "title": "Karriere-Akademie",
+      "description": "Karrieretipps, Interviewvorbereitung und Jobsuche-Fähigkeiten."
+    }
+  },
+  "EmployerPipeline": {
+    "title": "Pipeline",
+    "filterAllJobs": "All jobs",
+    "emptyStage": "No candidates",
+    "moveError": "Failed to move candidate"
   }
 }

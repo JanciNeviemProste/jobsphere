@@ -71,7 +71,7 @@ export default async function AnalyticsPage() {
 
   // Fetch all applications for the organization
   const applications = await prisma.application.findMany({
-    where: { orgId },
+    where: { job: { orgId } },
     include: {
       job: {
         select: {

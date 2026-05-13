@@ -6,6 +6,7 @@ import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { APPLICATION_STAGES } from '@/lib/constants/application-stages'
 
 export const runtime = 'nodejs'
 
@@ -78,13 +79,15 @@ export const PATCH = withCsrfProtection(
         }
 
         const body = await req.json()
+        const stageEnum = z.enum(APPLICATION_STAGES)
         const updateSchema = z.object({
-          status: z
-            .enum(['NEW', 'SCREENING', 'PHONE_SCREEN', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED'])
-            .optional(),
+          status: stageEnum.optional(),
+          stage: stageEnum.optional(),
           notes: z.string().max(5000).optional(),
         })
-        const { status, notes } = updateSchema.parse(body)
+        const parsed = updateSchema.parse(body)
+        const status = parsed.stage ?? parsed.status
+        const { notes } = parsed
 
         const application = await prisma.application.findUnique({
           where: { id: params.id },
