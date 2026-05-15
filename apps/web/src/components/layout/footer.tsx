@@ -27,16 +27,15 @@ export function Footer() {
       title: t('company'),
       links: [
         { label: t('about'), href: `/${locale}/for-employers` },
-        { label: t('contact'), href: `/${locale}` },
-        { label: t('blog'), href: `/${locale}/jobs` },
+        { label: t('contact'), href: 'mailto:hello@jobsphere.eu' },
       ],
     },
     {
       title: t('legal'),
       links: [
-        { label: t('privacy'), href: `/${locale}` },
-        { label: t('terms'), href: `/${locale}` },
-        { label: t('gdpr'), href: `/${locale}` },
+        { label: t('privacy'), href: `/${locale}/privacy` },
+        { label: t('terms'), href: `/${locale}/terms` },
+        { label: t('gdpr'), href: `/${locale}/gdpr` },
       ],
     },
   ]

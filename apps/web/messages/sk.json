@@ -916,5 +916,68 @@
     "success_rejected": "Odmietnutých {count}",
     "success_emailed": "Odoslaných {sent}, zlyhaných {failed}",
     "error_partial": "Niektoré akcie zlyhali"
+  },
+  "legal": {
+    "lastUpdated": "Naposledy aktualizované: {date}",
+    "privacy": {
+      "title": "Ochrana súkromia",
+      "intro": "JobSphere rešpektuje vaše súkromie. Tento dokument popisuje, aké osobné údaje spracúvame, na aký účel a ako môžete uplatniť svoje práva.",
+      "dataCollected": {
+        "heading": "Aké údaje zhromažďujeme",
+        "body": "Zhromažďujeme údaje, ktoré nám sami poskytnete pri registrácii (meno, e-mail), pri odoslaní životopisu (kontaktné údaje, prax, vzdelanie) a údaje generované používaním služby (logy, IP adresa, cookies)."
+      },
+      "dataUse": {
+        "heading": "Na aký účel údaje používame",
+        "body": "Údaje používame na sprostredkovanie pracovných ponúk, komunikáciu s vami, zlepšovanie služby (AI matching) a plnenie zákonných povinností. Bez vášho výslovného súhlasu neposielame osobné údaje tretím stranám mimo procesu náboru, do ktorého ste sa prihlásili."
+      },
+      "rights": {
+        "heading": "Vaše práva",
+        "body": "Máte právo na prístup, opravu, výmaz, prenosnosť údajov a namietať proti spracovaniu. Žiadosti vybavujeme v zákonnej lehote 30 dní."
+      },
+      "contact": {
+        "heading": "Kontakt",
+        "body": "Pre uplatnenie práv alebo otázky ohľadom súkromia nás kontaktujte na privacy@jobsphere.eu."
+      }
+    },
+    "terms": {
+      "title": "Podmienky používania",
+      "intro": "Používaním JobSphere súhlasíte s týmito podmienkami. Ak s nimi nesúhlasíte, službu nepoužívajte.",
+      "usage": {
+        "heading": "Používanie služby",
+        "body": "Službu môžete používať len v súlade s platnými právnymi predpismi SR a EÚ. Zakázané sú akékoľvek pokusy o narušenie bezpečnosti, neoprávnený zber dát alebo zneužitie obsahu iných používateľov."
+      },
+      "accounts": {
+        "heading": "Účty a registrácia",
+        "body": "Za bezpečnosť svojich prihlasovacích údajov zodpovedáte vy. Pri podozrení na zneužitie účtu nás bezodkladne kontaktujte."
+      },
+      "content": {
+        "heading": "Obsah",
+        "body": "Za obsah, ktorý nahráte (životopisy, inzeráty, správy), zodpovedáte vy. JobSphere si vyhradzuje právo odstrániť obsah porušujúci zákon alebo tieto podmienky."
+      },
+      "liability": {
+        "heading": "Zodpovednosť",
+        "body": "JobSphere neručí za uzatvorenie pracovného pomeru ani za pravdivosť údajov uvedených inými používateľmi. Služba sa poskytuje 'tak ako je'."
+      }
+    },
+    "gdpr": {
+      "title": "GDPR Compliance",
+      "intro": "JobSphere spracúva osobné údaje v súlade s Nariadením (EÚ) 2016/679 (GDPR) a zákonom č. 18/2018 Z. z.",
+      "controller": {
+        "heading": "Prevádzkovateľ",
+        "body": "Prevádzkovateľom je JobSphere, kontaktný e-mail gdpr@jobsphere.eu."
+      },
+      "rights": {
+        "heading": "Vaše práva podľa GDPR",
+        "access": "Právo na prístup k údajom (čl. 15)",
+        "rectify": "Právo na opravu nepresných údajov (čl. 16)",
+        "erase": "Právo na vymazanie ('právo byť zabudnutý', čl. 17)",
+        "portability": "Právo na prenosnosť údajov (čl. 20)",
+        "object": "Právo namietať proti spracovaniu (čl. 21)"
+      },
+      "exercise": {
+        "heading": "Ako uplatniť práva",
+        "body": "Žiadosť o uplatnenie práva môžete podať e-mailom na gdpr@jobsphere.eu alebo cez DSAR formulár vo vašom účte (Nastavenia → Súkromie). Vybavíme ju do 30 dní."
+      }
+    }
   }
 }
