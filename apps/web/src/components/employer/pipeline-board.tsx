@@ -8,7 +8,6 @@ import {
   type ApplicationStage,
 } from '@/lib/constants/application-stages'
 import { toast } from 'sonner'
-import { getCsrfToken } from '@/lib/csrf'
 
 export interface ApplicationCard {
   id: string
@@ -68,14 +67,9 @@ export function PipelineBoard({ applications, currentJobId }: PipelineBoardProps
     dragId.current = null
 
     try {
-      const csrfToken = await getCsrfToken()
       const res = await fetch(`/api/applications/${id}`, {
         method: 'PATCH',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-csrf-token': csrfToken,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: targetStage }),
       })
 

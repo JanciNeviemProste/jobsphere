@@ -6,23 +6,24 @@ export default defineConfig({
   plugins: [react()] as any,
   test: {
     environment: 'happy-dom',
-    setupFiles: ['./tests/setup.ts', './tests/integration/setup.ts'],
-    exclude: ['**/node_modules/**', '**/dist/**', 'tests/e2e/**', '**/*.e2e.spec.ts'],
+    setupFiles: ['./tests/setup.ts'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      'tests/e2e/**',
+      'tests/integration/**',
+      '**/*.e2e.spec.ts',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
-      exclude: [
-        'node_modules/',
-        'tests/',
-        '**/*.config.{ts,js}',
-        '**/types.ts'
-      ],
+      exclude: ['node_modules/', 'tests/', '**/*.config.{ts,js}', '**/types.ts'],
       thresholds: {
         lines: 80,
         functions: 80,
         branches: 75,
-        statements: 80
-      }
+        statements: 80,
+      },
     },
     globals: true,
   },

@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { getCsrfToken } from '@/lib/csrf'
 import {
   Dialog,
   DialogContent,
@@ -47,14 +46,9 @@ export function BulkEmailDialog({
     setPartialErrors([])
 
     try {
-      const csrfToken = await getCsrfToken()
       const res = await fetch('/api/applications/bulk', {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-csrf-token': csrfToken,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'send-email',
           applicationIds: selectedIds,

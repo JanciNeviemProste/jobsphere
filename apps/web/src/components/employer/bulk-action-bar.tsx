@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { X, ChevronDown, Mail, Download, UserX } from 'lucide-react'
-import { getCsrfToken } from '@/lib/csrf'
 import {
   APPLICATION_STAGES,
   STAGE_LABELS_SK,
@@ -57,14 +56,9 @@ export function BulkActionBar({
   const count = selectedIds.length
 
   const postBulk = async (body: Record<string, unknown>) => {
-    const csrfToken = await getCsrfToken()
     const res = await fetch('/api/applications/bulk', {
       method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-csrf-token': csrfToken,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
     return res
