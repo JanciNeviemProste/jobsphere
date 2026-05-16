@@ -15,8 +15,9 @@ import {
   BarChart3,
   MapPin,
   Briefcase,
-  Clock,
+  Euro,
 } from 'lucide-react'
+import { prisma } from '@/lib/prisma'
 
 export async function generateMetadata({
   params: { locale },
@@ -27,9 +28,16 @@ export async function generateMetadata({
   return { title: t('home.title'), description: t('home.description') }
 }
 
-export default function HomePage({ params }: { params: { locale: string } }) {
+export default async function HomePage({ params }: { params: { locale: string } }) {
   const t = useTranslations()
   const locale = params.locale
+
+  const latestJobs = await prisma.job.findMany({
+    where: { status: 'PUBLISHED', deletedAt: null },
+    take: 3,
+    orderBy: { createdAt: 'desc' },
+    include: { organization: { select: { name: true } } },
+  })
 
   const features = [
     {
@@ -61,36 +69,6 @@ export default function HomePage({ params }: { params: { locale: string } }) {
       icon: BarChart3,
       title: t('features.analytics.title'),
       description: t('features.analytics.description'),
-    },
-  ]
-
-  const sampleJobs = [
-    {
-      id: 1,
-      title: 'Senior Full-Stack Developer',
-      company: 'TechCorp',
-      location: 'Bratislava, Slovakia',
-      type: 'fullTime',
-      remote: true,
-      salary: '€4,000 - €6,000',
-    },
-    {
-      id: 2,
-      title: 'Product Manager',
-      company: 'StartupHub',
-      location: 'Prague, Czech Republic',
-      type: 'fullTime',
-      remote: false,
-      salary: '€3,500 - €5,000',
-    },
-    {
-      id: 3,
-      title: 'UX/UI Designer',
-      company: 'DesignStudio',
-      location: 'Warsaw, Poland',
-      type: 'contract',
-      remote: true,
-      salary: '€3,000 - €4,500',
     },
   ]
 
@@ -183,40 +161,59 @@ export default function HomePage({ params }: { params: { locale: string } }) {
             </Button>
           </div>
 
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {sampleJobs.map((job) => (
-              <Card key={job.id} className="transition-all hover:shadow-lg">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-xl">{job.title}</CardTitle>
-                      <CardDescription className="mt-1 text-base">{job.company}</CardDescription>
+          {latestJobs.length === 0 ? (
+            <div className="mt-12 flex flex-col items-center gap-4 py-12 text-center">
+              <p className="text-lg text-muted-foreground">{t('jobs.noResults')}</p>
+              <Button asChild>
+                <Link href={`/${locale}/post-job`}>Pridať ponuku</Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {latestJobs.map((job) => (
+                <Card key={job.id} className="transition-all hover:shadow-lg">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-xl">{job.title}</CardTitle>
+                        <CardDescription className="mt-1 text-base">
+                          {job.organization.name}
+                        </CardDescription>
+                      </div>
+                      {job.remote && <Badge variant="secondary">{t('jobs.remote')}</Badge>}
                     </div>
-                    {job.remote && <Badge variant="secondary">{t('jobs.remote')}</Badge>}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MapPin className="h-4 w-4" />
-                      {job.location}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {job.city && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <MapPin className="h-4 w-4" />
+                          {job.city}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Briefcase className="h-4 w-4" />
+                        {job.employmentType}
+                      </div>
+                      {(job.salaryMin || job.salaryMax) && (
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Euro className="h-4 w-4" />
+                          {job.salaryMin && job.salaryMax
+                            ? `${job.salaryMin.toLocaleString()} - ${job.salaryMax.toLocaleString()} €`
+                            : job.salaryMin
+                              ? `${job.salaryMin.toLocaleString()}+ €`
+                              : `do ${job.salaryMax?.toLocaleString()} €`}
+                        </div>
+                      )}
+                      <Button className="mt-4 w-full" variant="outline" asChild>
+                        <Link href={`/${locale}/jobs/${job.id}`}>{t('jobs.viewDetails')}</Link>
+                      </Button>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Briefcase className="h-4 w-4" />
-                      {t(`jobs.${job.type}`)}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm font-medium">
-                      <Clock className="h-4 w-4" />
-                      {job.salary}
-                    </div>
-                    <Button className="mt-4 w-full" variant="outline" asChild>
-                      <Link href={`/${locale}/jobs/${job.id}`}>{t('jobs.viewDetails')}</Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

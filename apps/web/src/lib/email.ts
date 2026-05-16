@@ -1,4 +1,5 @@
 import { logger } from './logger'
+import { Resend as ResendClient } from 'resend'
 
 interface EmailData {
   to: string
@@ -140,7 +141,7 @@ async function sendWithRetry(
 }
 
 async function sendResendEmail(data: EmailData): Promise<EmailResult> {
-  const { Resend } = await import('resend')
+  const Resend = ResendClient
   const resend = new Resend(process.env.RESEND_API_KEY)
 
   const result = await resend.emails.send({
@@ -154,7 +155,7 @@ async function sendResendEmail(data: EmailData): Promise<EmailResult> {
     throw new Error(`Resend API error: ${result.error.message || JSON.stringify(result.error)}`)
   }
 
-  return { success: true, id: result.data?.id }
+  return { success: true, id: result.data?.id ?? (result as any).id }
 }
 
 async function sendSendGridEmail(data: EmailData): Promise<EmailResult> {

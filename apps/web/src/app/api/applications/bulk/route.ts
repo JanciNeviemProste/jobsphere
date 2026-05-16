@@ -9,6 +9,7 @@ import { createAuditLog } from '@/lib/audit-log'
 import { ApplicationService } from '@/services/application.service'
 import { APPLICATION_STAGES } from '@/lib/constants/application-stages'
 import { z } from 'zod'
+import DOMPurify from 'isomorphic-dompurify'
 
 export const runtime = 'nodejs'
 
@@ -73,9 +74,9 @@ export const POST = withCsrfProtection(
         const permittedIds = permitted.map((a) => a.id)
 
         if (payload.action === 'move-stage') {
-          const count = await ApplicationService.bulkUpdateStage(
+          const count = await ApplicationService.bulkUpdateStatus(
             permittedIds,
-            payload.stage as Parameters<typeof ApplicationService.bulkUpdateStage>[1],
+            payload.stage,
             session.user.id,
           )
 
@@ -92,9 +93,9 @@ export const POST = withCsrfProtection(
         }
 
         if (payload.action === 'reject') {
-          const count = await ApplicationService.bulkUpdateStage(
+          const count = await ApplicationService.bulkUpdateStatus(
             permittedIds,
-            'REJECTED' as Parameters<typeof ApplicationService.bulkUpdateStage>[1],
+            'REJECTED',
             session.user.id,
           )
 
@@ -126,9 +127,14 @@ export const POST = withCsrfProtection(
             },
           })
 
-          const safeBody = payload.body
-            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-            .replace(/\s*on\w+\s*=\s*(['"])[^'"]*\1/gi, '')
+          const bulkStartTime = Date.now()
+
+          const safeBody = DOMPurify.sanitize(payload.body, {
+            USE_PROFILES: { html: true },
+            FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
+            FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur'],
+            ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+          })
 
           const errors: { applicationId: string; candidateName: string; error: string }[] = []
           const successfulIds: string[] = []
@@ -188,6 +194,14 @@ export const POST = withCsrfProtection(
             await prisma.application.updateMany({
               where: { id: { in: successfulIds } },
               data: { lastContactAt: new Date(), lastContactType: 'EMAIL' },
+            })
+          }
+
+          const bulkElapsed = Date.now() - bulkStartTime
+          if (bulkElapsed > 200_000) {
+            logger.warn('Bulk email loop exceeded 200s — consider migrating to BullMQ queue', {
+              elapsed: bulkElapsed,
+              count: applications.length,
             })
           }
 

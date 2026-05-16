@@ -137,17 +137,18 @@ export const POST = withCsrfProtection(
           )
         }
 
-        const existingContact = await prisma.candidateContact.findFirst({
-          where: {
-            email: user.email,
-            candidate: { orgId: job.orgId, deletedAt: null },
-          },
-          select: { candidateId: true },
-        })
+        const candidateId = await prisma.$transaction(async (tx) => {
+          const existingContact = await tx.candidateContact.findFirst({
+            where: {
+              email: user.email,
+              candidate: { orgId: job.orgId, deletedAt: null },
+            },
+            select: { candidateId: true },
+          })
 
-        let candidateId = existingContact?.candidateId
-        if (!candidateId) {
-          const created = await prisma.candidate.create({
+          if (existingContact?.candidateId) return existingContact.candidateId
+
+          const created = await tx.candidate.create({
             data: {
               orgId: job.orgId,
               source: 'WEBSITE',
@@ -161,8 +162,8 @@ export const POST = withCsrfProtection(
             },
             select: { id: true },
           })
-          candidateId = created.id
-        }
+          return created.id
+        })
 
         // Check if already applied
         const existingApplication = await prisma.application.findFirst({

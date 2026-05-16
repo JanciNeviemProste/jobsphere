@@ -3,14 +3,18 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import GoogleProvider from 'next-auth/providers/google'
 import { prisma } from './prisma'
-import { compare } from 'bcryptjs'
+import * as bcryptjs from 'bcryptjs'
 import { getServerSession } from 'next-auth/next'
 import { logger } from './logger'
-import { UnauthorizedError } from './api-helpers'
 
-// Re-export so existing importers keep working; the class is defined once in
-// api-helpers.ts to avoid instanceof mismatches in errorResponse().
-export { UnauthorizedError }
+// UnauthorizedError — defined here to break circular dep with api-helpers.ts
+// api-helpers.ts re-exports this class for backwards compatibility.
+export class UnauthorizedError extends Error {
+  constructor(message = 'Unauthorized') {
+    super(message)
+    this.name = 'UnauthorizedError'
+  }
+}
 
 /**
  * NextAuth v4 Configuration
@@ -59,7 +63,7 @@ export const authOptions: NextAuthOptions = {
           // even when user doesn't exist, to maintain constant response time
           // and prevent email enumeration via response time analysis
           if (!user || !user.password) {
-            await compare(
+            await bcryptjs.compare(
               credentials.password,
               '$2a$12$UGzP4Z0tFYfNO8YM6g3HE.lN0jC.ueAnEglJpgP.its5zuuMhc7Vm',
             )
@@ -84,7 +88,7 @@ export const authOptions: NextAuthOptions = {
             })
           }
 
-          const isPasswordValid = await compare(credentials.password, user.password)
+          const isPasswordValid = await bcryptjs.compare(credentials.password, user.password)
 
           if (!isPasswordValid) {
             // SECURITY: Increment failed attempts

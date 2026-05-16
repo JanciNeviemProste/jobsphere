@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from './auth'
-import { prisma } from './db'
+import { prisma } from './prisma'
 
 export class UnauthorizedError extends Error {
   constructor(message = 'Unauthorized') {
@@ -42,7 +42,7 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
 
   const orgMember = await prisma.userOrgRole.findFirst({
     where: { userId: session.user.id },
-    include: { organization: true }
+    include: { organization: true },
   })
 
   if (!orgMember) {
@@ -62,7 +62,7 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
  */
 export async function requireRole(
   request: NextRequest,
-  allowedRoles: string[]
+  allowedRoles: string[],
 ): Promise<AuthContext> {
   const ctx = await requireAuth(request)
 

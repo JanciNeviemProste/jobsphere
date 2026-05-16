@@ -108,65 +108,71 @@ export default function JobsClient({ params }: { params: { locale: string } }) {
   const debouncedSearch = useDebounce(searchQuery, 500)
 
   // Fetch jobs from API
-  const fetchJobs = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+  const fetchJobs = useCallback(
+    async (signal?: AbortSignal) => {
+      setLoading(true)
+      setError(null)
 
-    try {
-      // Build query parameters
-      const params = new URLSearchParams()
+      try {
+        // Build query parameters
+        const params = new URLSearchParams()
 
-      if (debouncedSearch) {
-        params.append('search', debouncedSearch)
-      }
+        if (debouncedSearch) {
+          params.append('search', debouncedSearch)
+        }
 
-      // Add single filters (API expects single value for these)
-      if (selectedWorkModes.length === 1) {
-        params.append('workMode', selectedWorkModes[0])
-      }
-      if (selectedJobTypes.length === 1) {
-        params.append('jobType', selectedJobTypes[0])
-      }
-      if (selectedSeniority.length === 1) {
-        params.append('seniority', selectedSeniority[0])
-      }
+        // Add single filters (API expects single value for these)
+        if (selectedWorkModes.length === 1) {
+          params.append('workMode', selectedWorkModes[0])
+        }
+        if (selectedJobTypes.length === 1) {
+          params.append('jobType', selectedJobTypes[0])
+        }
+        if (selectedSeniority.length === 1) {
+          params.append('seniority', selectedSeniority[0])
+        }
 
-      const response = await fetch(`/api/jobs?${params.toString()}`)
+        const response = await fetch(`/api/jobs?${params.toString()}`, { signal })
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch jobs: ${response.statusText}`)
-      }
+        if (!response.ok) {
+          throw new Error(`Failed to fetch jobs: ${response.statusText}`)
+        }
 
-      const data = await response.json()
-      // API returns paginated { data: [...], total, ... } — extract the array
-      const jobsArray: Job[] = Array.isArray(data) ? data : (data.data ?? [])
+        const data = await response.json()
+        // API returns paginated { data: [...], total, ... } — extract the array
+        const jobsArray: Job[] = Array.isArray(data) ? data : (data.data ?? [])
 
-      // If multiple filters selected, filter client-side
-      let filteredData = jobsArray
-      if (selectedWorkModes.length > 1) {
-        filteredData = filteredData.filter((job: Job) => selectedWorkModes.includes(job.workMode))
-      }
-      if (selectedJobTypes.length > 1) {
-        filteredData = filteredData.filter((job: Job) => selectedJobTypes.includes(job.type))
-      }
-      if (selectedSeniority.length > 1) {
-        filteredData = filteredData.filter(
-          (job: Job) => job.seniority && selectedSeniority.includes(job.seniority),
-        )
-      }
+        // If multiple filters selected, filter client-side
+        let filteredData = jobsArray
+        if (selectedWorkModes.length > 1) {
+          filteredData = filteredData.filter((job: Job) => selectedWorkModes.includes(job.workMode))
+        }
+        if (selectedJobTypes.length > 1) {
+          filteredData = filteredData.filter((job: Job) => selectedJobTypes.includes(job.type))
+        }
+        if (selectedSeniority.length > 1) {
+          filteredData = filteredData.filter(
+            (job: Job) => job.seniority && selectedSeniority.includes(job.seniority),
+          )
+        }
 
-      setJobs(filteredData)
-    } catch (err) {
-      logger.error('Error fetching jobs', err)
-      setError(err instanceof Error ? err.message : 'Failed to load jobs')
-    } finally {
-      setLoading(false)
-    }
-  }, [debouncedSearch, selectedWorkModes, selectedJobTypes, selectedSeniority])
+        setJobs(filteredData)
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return
+        logger.error('Error fetching jobs', err)
+        setError(err instanceof Error ? err.message : 'Failed to load jobs')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [debouncedSearch, selectedWorkModes, selectedJobTypes, selectedSeniority],
+  )
 
   // Fetch jobs when filters change
   useEffect(() => {
-    fetchJobs()
+    const ctrl = new AbortController()
+    fetchJobs(ctrl.signal)
+    return () => ctrl.abort()
   }, [fetchJobs])
 
   const toggleFilter = (value: string, selected: string[], setter: (values: string[]) => void) => {

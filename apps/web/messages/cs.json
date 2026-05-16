@@ -836,11 +836,11 @@
     "noSections": "Žádné sekce životopisu nebyly zpracovány"
   },
   "contact": {
-    "noInfo": "Žádné kontaktní informace nejsou k dispozici",
-    "candidate": "Kandidát",
-    "sendEmail": "Odeslat email",
-    "contact": "Kontakt",
-    "portfolio": "Portfolio"
+    "title": "Kontakt",
+    "intro": "Pre otázky, support alebo obchodný kontakt nás kontaktujte na nižšie uvedených adresách.",
+    "general": "Všeobecné otázky",
+    "privacy": "Ochrana súkromia",
+    "gdprDpo": "GDPR / DPO"
   },
   "analytics": {
     "topJobs": "Top pozice podle přihlášek",
@@ -970,5 +970,66 @@
         "body": "Submit a request via email to gdpr@jobsphere.eu or through the DSAR form in your account (Settings → Privacy). We respond within 30 days."
       }
     }
+  },
+  "careerAdvice": {
+    "title": "Kariérne rady",
+    "intro": "Praktické rady pre uchádzačov o prácu — od prípravy CV po nástup do nového zamestnania.",
+    "cv": {
+      "heading": "Ako napísať životopis",
+      "body": "Stručne (max 2 strany), s konkrétnymi výsledkami a číslami. Prispôsobte CV ku každej pozícii — zvýraznite skúsenosti, ktoré sú pre danú rolu relevantné. Použite kľúčové slová z popisu pracovnej ponuky."
+    },
+    "interview": {
+      "heading": "Príprava na pohovor",
+      "body": "Zistite si informácie o firme, pripravte si konkrétne príklady svojich úspechov (metóda STAR — Situation, Task, Action, Result) a 3-5 otázok, ktoré chcete pohovorovi položiť. Otestujte si techniku pred online pohovorom."
+    },
+    "negotiation": {
+      "heading": "Vyjednávanie platu",
+      "body": "Informujte sa o trhových sadzbách pre vašu pozíciu (Profesia salary survey, Glassdoor). Pri ponuke neprijímajte hneď — pýtajte si čas na rozmyslenie. Vyjednávajte nielen plat, ale aj benefity, dovolenku, flexibilitu a remote prácu."
+    }
+  },
+  "featuresPage": {
+    "title": "ATS Funkcie",
+    "intro": "JobSphere je kompletný AI-powered Applicant Tracking System pre moderné HR tímy. Tu je prehľad hlavných funkcií.",
+    "ai": {
+      "heading": "AI matching",
+      "body": "Claude AI od Anthropic vyhodnocuje skill match medzi kandidátom a pozíciou vrátane skúseností, vzdelania a soft skills."
+    },
+    "parsing": {
+      "heading": "CV parsing",
+      "body": "Automatická extrakcia meno, kontakt, skills, experience a vzdelanie z PDF a DOCX. Fallback OCR pre skenované dokumenty."
+    },
+    "pipeline": {
+      "heading": "Pipeline kanban",
+      "body": "Vizuálny board so 7 stagmi (Nové, Posudzovanie, Pohovor, Ponuka, Prijatý, Odmietnutý). Drag-drop presun kandidátov."
+    },
+    "analytics": {
+      "heading": "Recruitment analytics",
+      "body": "Time-to-hire, conversion funnel, source effectiveness, top jobs. Real-time dashboard pre HR manažérov."
+    },
+    "email": {
+      "heading": "Email sekvencie",
+      "body": "Automatizované drip kampane s podmienkami (stage change, opened, replied). Personalizácia per kandidát."
+    },
+    "assessments": {
+      "heading": "Skills assessments",
+      "body": "Online testy zručností s automatickým hodnotením. Štandardizované batérie pre tech, sales, marketing."
+    }
+  },
+  "about": {
+    "title": "O nás",
+    "intro": "JobSphere je AI-powered Applicant Tracking System postavený pre moderné HR tímy v strednej Európe.",
+    "mission": {
+      "heading": "Naša misia",
+      "body": "Robíme nábor rýchlejším, férovejším a transparentnejším. AI eliminuje opakujúce sa úkony, takže HR sa môže venovať tomu najdôležitejšiemu — ľuďom."
+    },
+    "team": {
+      "heading": "Tím",
+      "body": "Sme distribuovaný tím vývojárov a HR expertov s pôsobnosťou v SR a CZ. Stavame technológiu, ktorú by sme sami chceli používať."
+    }
+  },
+  "blog": {
+    "title": "Blog",
+    "comingSoon": "Blog pripravujeme. Medzitým si pozrite aktuálne pracovné ponuky.",
+    "browseJobs": "Prejsť na ponuky"
   }
 }

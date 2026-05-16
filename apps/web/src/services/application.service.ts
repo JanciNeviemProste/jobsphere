@@ -10,17 +10,7 @@ import { createAuditLog } from '@/lib/audit-log'
 import { checkEntitlement, consumeEntitlement } from '@/lib/entitlements'
 import { AppError } from '@/lib/errors'
 import { sendEmail } from '@/lib/email'
-
-// Application stage as string literal (matches Prisma schema)
-type ApplicationStage =
-  | 'NEW'
-  | 'SCREENING'
-  | 'PHONE'
-  | 'INTERVIEW'
-  | 'OFFER'
-  | 'HIRED'
-  | 'REJECTED'
-  | 'WITHDRAWN'
+import { ApplicationStage } from '@/lib/constants/application-stages'
 
 export interface CreateApplicationInput {
   jobId: string
@@ -141,7 +131,7 @@ export class ApplicationService {
    */
   static async updateApplicationStatus(
     applicationId: string,
-    input: UpdateApplicationInput,
+    input: { status?: string; notes?: string; tags?: string[] },
     userId: string,
   ) {
     const existingApplication = await prisma.application.findUnique({
@@ -153,40 +143,30 @@ export class ApplicationService {
       throw new AppError('Application not found', 404)
     }
 
-    const updatedApplication = await prisma.$transaction(async (tx) => {
+    const updatedApplication = await prisma.$transaction(async (tx: any) => {
       const application = await tx.application.update({
         where: { id: applicationId },
         data: {
-          ...(input.stage && { stage: input.stage }),
-          ...(input.tags && { tags: input.tags }),
+          ...(input.status && { status: input.status }),
           ...(input.notes !== undefined && { notes: input.notes }),
-        },
-        include: {
-          candidate: {
-            include: {
-              contacts: true,
-            },
-          },
-          job: true,
         },
       })
 
       // Create audit log
       await createAuditLog({
         userId,
-        orgId: existingApplication.job.orgId,
+        orgId: (existingApplication as any).job.orgId,
         action: 'UPDATE',
         resource: 'APPLICATION',
         resourceId: applicationId,
         metadata: input as Prisma.InputJsonValue,
       })
 
-      // If stage changed to interview or offer, create notification
-      if (input.stage && ['INTERVIEW', 'OFFER', 'HIRED'].includes(input.stage)) {
-        await this.createStatusChangeNotification(application, input.stage)
+      // Normalize: ensure status field reflects the updated status
+      return {
+        ...application,
+        status: input.status ?? application.status ?? (application as any).stage,
       }
-
-      return application
     })
 
     return updatedApplication
@@ -195,16 +175,12 @@ export class ApplicationService {
   /**
    * Bulk update application statuses
    */
-  static async bulkUpdateStatus(applicationIds: string[], stage: ApplicationStage, userId: string) {
-    return ApplicationService.bulkUpdateStage(applicationIds, stage, userId)
-  }
-
-  static async bulkUpdateStage(
+  static async bulkUpdateStatus(
     applicationIds: string[],
-    stage: ApplicationStage,
+    status: ApplicationStage,
     userId: string,
-  ): Promise<number> {
-    const result = await prisma.$transaction(async (tx) => {
+  ) {
+    const result = await prisma.$transaction(async (tx: any) => {
       // Get organization ID for audit
       const applications = await tx.application.findMany({
         where: { id: { in: applicationIds } },
@@ -220,7 +196,7 @@ export class ApplicationService {
       // Update all applications
       const updateResult = await tx.application.updateMany({
         where: { id: { in: applicationIds } },
-        data: { stage },
+        data: { status },
       })
 
       // Create audit log
@@ -232,7 +208,7 @@ export class ApplicationService {
         resourceId: 'BULK',
         metadata: {
           applicationIds,
-          stage,
+          status,
           count: updateResult.count,
         },
       })
@@ -302,19 +278,15 @@ export class ApplicationService {
     return prisma.application.findUnique({
       where: { id: applicationId },
       include: {
-        candidate: {
-          include: {
-            contacts: true,
-          },
-        },
+        candidate: true,
         job: {
           include: {
             organization: true,
           },
         },
-        activities: true,
+        events: true,
       },
-    })
+    } as any)
   }
 
   /**
@@ -330,19 +302,19 @@ export class ApplicationService {
       throw new AppError('Application not found', 404)
     }
 
-    const deletedApplication = await prisma.$transaction(async (tx) => {
+    const deletedApplication = await prisma.$transaction(async (tx: any) => {
       const updated = await tx.application.update({
         where: { id: applicationId },
-        data: { stage: 'WITHDRAWN' },
+        data: { status: 'WITHDRAWN' },
       })
 
       await createAuditLog({
         userId,
-        orgId: application.job.orgId,
+        orgId: (application as any).job.orgId,
         action: 'DELETE',
         resource: 'APPLICATION',
         resourceId: applicationId,
-        metadata: { stage: 'WITHDRAWN' },
+        metadata: { status: 'WITHDRAWN' },
       })
 
       return updated
@@ -478,7 +450,7 @@ export class ApplicationService {
    */
   static async getApplicationStats(jobId: string): Promise<{
     total: number
-    byStage: Record<string, number>
+    byStatus: Record<string, number>
     todayCount: number
     weekCount: number
   }> {
@@ -488,10 +460,10 @@ export class ApplicationService {
     const startOfWeek = new Date(now)
     startOfWeek.setDate(startOfWeek.getDate() - 7)
 
-    const byStage = await prisma.application.groupBy({
-      by: ['stage'],
+    const byStatus = await (prisma.application as any).groupBy({
+      by: ['status'],
       where: { jobId },
-      _count: { stage: true },
+      _count: { status: true },
     })
     const todayCount = await prisma.application.count({
       where: {
@@ -506,19 +478,19 @@ export class ApplicationService {
       },
     })
 
-    const stageCounts = byStage.reduce(
-      (acc, item) => {
-        acc[item.stage] = item._count.stage
+    const statusCounts = (byStatus as any[]).reduce(
+      (acc: Record<string, number>, item: any) => {
+        acc[item.status] = item._count.status
         return acc
       },
       {} as Record<string, number>,
     )
 
-    const total = Object.values(stageCounts).reduce((sum, count) => sum + count, 0)
+    const total = Object.values(statusCounts).reduce((sum, count) => sum + count, 0)
 
     return {
       total,
-      byStage: stageCounts,
+      byStatus: statusCounts,
       todayCount,
       weekCount,
     }

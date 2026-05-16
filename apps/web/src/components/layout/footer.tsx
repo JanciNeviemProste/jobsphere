@@ -12,7 +12,7 @@ export function Footer() {
       links: [
         { label: t('browseJobs'), href: `/${locale}/jobs` },
         { label: t('createCV'), href: `/${locale}/create-cv` },
-        { label: t('careerAdvice'), href: `/${locale}/jobs` },
+        { label: t('careerAdvice'), href: `/${locale}/career-advice` },
       ],
     },
     {
@@ -20,14 +20,15 @@ export function Footer() {
       links: [
         { label: t('postJob'), href: `/${locale}/post-job` },
         { label: t('pricing'), href: `/${locale}/pricing` },
-        { label: t('atsFeatures'), href: `/${locale}/for-employers` },
+        { label: t('atsFeatures'), href: `/${locale}/features` },
       ],
     },
     {
       title: t('company'),
       links: [
-        { label: t('about'), href: `/${locale}/for-employers` },
-        { label: t('contact'), href: 'mailto:hello@jobsphere.eu' },
+        { label: t('about'), href: `/${locale}/about` },
+        { label: t('contact'), href: `/${locale}/contact` },
+        { label: t('blog'), href: `/${locale}/blog` },
       ],
     },
     {

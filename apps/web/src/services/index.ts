@@ -13,11 +13,7 @@ export { ApplicationService } from './application.service'
 export { UserService } from './user.service'
 
 // Re-export types
-export type {
-  CreateJobInput,
-  UpdateJobInput,
-  JobSearchParams,
-} from './job.service'
+export type { CreateJobInput, UpdateJobInput, JobSearchParams } from './job.service'
 
 export type {
   CreateApplicationInput,
@@ -45,7 +41,7 @@ export const services = {
   // Application methods
   createApplication: ApplicationServiceClass.createApplication,
   updateApplicationStatus: ApplicationServiceClass.updateApplicationStatus,
-  bulkUpdateStage: ApplicationServiceClass.bulkUpdateStage,
+  bulkUpdateStatus: ApplicationServiceClass.bulkUpdateStatus,
   searchApplications: ApplicationServiceClass.searchApplications,
   getApplicationById: ApplicationServiceClass.getApplicationById,
   deleteApplication: ApplicationServiceClass.deleteApplication,

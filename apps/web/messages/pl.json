@@ -836,11 +836,11 @@
     "noSections": "Nie przetworzono żadnych sekcji CV"
   },
   "contact": {
-    "noInfo": "Brak dostępnych informacji kontaktowych",
-    "candidate": "Kandydat",
-    "sendEmail": "Wyślij e-mail",
-    "contact": "Kontakt",
-    "portfolio": "Portfolio"
+    "title": "Contact",
+    "intro": "For questions, support, or business inquiries, reach out via the addresses below.",
+    "general": "General inquiries",
+    "privacy": "Privacy",
+    "gdprDpo": "GDPR / DPO"
   },
   "analytics": {
     "topJobs": "Najpopularniejsze oferty według aplikacji",
@@ -970,5 +970,66 @@
         "body": "Submit a request via email to gdpr@jobsphere.eu or through the DSAR form in your account (Settings → Privacy). We respond within 30 days."
       }
     }
+  },
+  "careerAdvice": {
+    "title": "Career Advice",
+    "intro": "Practical tips for job seekers — from CV preparation to your first day at a new job.",
+    "cv": {
+      "heading": "How to write a CV",
+      "body": "Keep it concise (max 2 pages), with concrete results and numbers. Tailor your CV to each role and use keywords from the job posting."
+    },
+    "interview": {
+      "heading": "Interview preparation",
+      "body": "Research the company, prepare concrete examples using the STAR method (Situation, Task, Action, Result), and have 3-5 questions ready to ask. Test your tech before remote interviews."
+    },
+    "negotiation": {
+      "heading": "Salary negotiation",
+      "body": "Know the market rates for your role. Do not accept on the spot — ask for time. Negotiate not just salary but also benefits, vacation, flexibility, and remote work."
+    }
+  },
+  "featuresPage": {
+    "title": "ATS Features",
+    "intro": "JobSphere is a complete AI-powered Applicant Tracking System for modern HR teams.",
+    "ai": {
+      "heading": "AI matching",
+      "body": "Claude AI from Anthropic evaluates skill match between candidate and role including experience, education, and soft skills."
+    },
+    "parsing": {
+      "heading": "CV parsing",
+      "body": "Automatic extraction of name, contact, skills, experience and education from PDF and DOCX. OCR fallback for scanned documents."
+    },
+    "pipeline": {
+      "heading": "Pipeline kanban",
+      "body": "Visual board with 7 stages. Drag-and-drop candidates across the hiring funnel."
+    },
+    "analytics": {
+      "heading": "Recruitment analytics",
+      "body": "Time-to-hire, conversion funnel, source effectiveness, top jobs. Real-time dashboard."
+    },
+    "email": {
+      "heading": "Email sequences",
+      "body": "Automated drip campaigns with conditions (stage change, opened, replied)."
+    },
+    "assessments": {
+      "heading": "Skills assessments",
+      "body": "Online skills tests with automatic grading. Standardized batteries for tech, sales, marketing."
+    }
+  },
+  "about": {
+    "title": "About",
+    "intro": "JobSphere is an AI-powered Applicant Tracking System built for modern HR teams in Central Europe.",
+    "mission": {
+      "heading": "Our mission",
+      "body": "Make hiring faster, fairer, and more transparent. AI removes repetitive tasks so HR can focus on what matters — people."
+    },
+    "team": {
+      "heading": "Team",
+      "body": "Distributed team of developers and HR experts based in Slovakia and Czechia."
+    }
+  },
+  "blog": {
+    "title": "Blog",
+    "comingSoon": "Our blog is coming soon. In the meantime, check out current job openings.",
+    "browseJobs": "Browse jobs"
   }
 }

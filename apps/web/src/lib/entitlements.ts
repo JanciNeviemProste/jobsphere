@@ -4,6 +4,7 @@
  */
 
 import { prisma } from './db'
+import { logger } from './logger'
 
 export type Feature =
   | 'MAX_JOBS'
@@ -244,8 +245,11 @@ export async function consumeEntitlement(
 
   // Tolerate missing entitlement records (new orgs without seeded entitlements):
   // updateMany returns {count} instead of throwing P2025 when the row is absent.
-  await client.entitlement.updateMany({
+  const result = await client.entitlement.updateMany({
     where: { orgId, featureKey: feature },
     data: { remainingInt: { decrement: amount } },
   })
+  if (result.count === 0) {
+    logger.warn('Entitlement consume no-op — no matching record', { orgId, feature })
+  }
 }

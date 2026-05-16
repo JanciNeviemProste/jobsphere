@@ -7,17 +7,39 @@ import { Redis } from '@upstash/redis'
 import { logger } from './logger'
 
 let redis: Redis | null = null
+let redisUrl: string | undefined = undefined
+let redisToken: string | undefined = undefined
 
 function hasUpstashConfig(): boolean {
   return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)
 }
 
+if (
+  process.env.NODE_ENV === 'production' &&
+  (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN)
+) {
+  logger.error(
+    'Upstash KV not configured — rate limit falls back to in-memory which resets on cold start. Configure KV_REST_API_URL + KV_REST_API_TOKEN for production safety.',
+  )
+}
+
 function getRedis(): Redis | null {
+  const currentUrl = process.env.KV_REST_API_URL
+  const currentToken = process.env.KV_REST_API_TOKEN
+
+  // Reset singleton if env vars changed (supports test environments)
+  if (redis && (currentUrl !== redisUrl || currentToken !== redisToken)) {
+    redis = null
+  }
+
   if (redis) return redis
-  if (!hasUpstashConfig()) return null
+  if (!currentUrl || !currentToken) return null
+
+  redisUrl = currentUrl
+  redisToken = currentToken
   redis = new Redis({
-    url: process.env.KV_REST_API_URL!,
-    token: process.env.KV_REST_API_TOKEN!,
+    url: currentUrl,
+    token: currentToken,
   })
   return redis
 }
@@ -38,6 +60,19 @@ let redisFailureCount = 0
 let lastRedisFailure = 0
 const CIRCUIT_BREAKER_THRESHOLD = 5
 const CIRCUIT_BREAKER_TIMEOUT = 60000 // 1 minute
+
+/**
+ * Reset internal state — for use in tests only.
+ * Clears circuit breaker counters, in-memory store, and Redis singleton.
+ */
+export function __resetRateLimitState() {
+  redisFailureCount = 0
+  lastRedisFailure = 0
+  inMemoryStore.clear()
+  redis = null
+  redisUrl = undefined
+  redisToken = undefined
+}
 
 function isCircuitOpen(): boolean {
   const now = Date.now()
@@ -190,7 +225,9 @@ export async function rateLimit(config: RateLimitConfig): Promise<RateLimitResul
   // If Upstash is not configured OR circuit breaker is open, go straight to in-memory
   const redisClient = getRedis()
   if (!redisClient || circuitOpen) {
-    return rateLimitInMemory(identifier, limit, window, limit)
+    // Use conservative limit (50%) when circuit is open or Redis unavailable
+    const conservativeLimit = !redisClient ? limit : Math.ceil(limit / 2)
+    return rateLimitInMemory(identifier, conservativeLimit, window, limit)
   }
 
   try {

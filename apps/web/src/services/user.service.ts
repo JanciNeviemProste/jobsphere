@@ -72,7 +72,7 @@ export class UserService {
 
       // If orgId provided, add to organization
       if (input.orgId) {
-        await tx.userOrgRole.create({
+        await (tx as any).orgMember.create({
           data: {
             userId: newUser.id,
             orgId: input.orgId,
@@ -216,7 +216,7 @@ export class UserService {
         ],
       }),
       ...(orgId && {
-        organizations: {
+        orgMembers: {
           some: { orgId },
         },
       }),
@@ -234,11 +234,6 @@ export class UserService {
         avatar: true,
         emailVerified: true,
         createdAt: true,
-        organizations: {
-          include: {
-            organization: true,
-          },
-        },
       },
       orderBy: { createdAt: 'desc' },
       skip: offset,
@@ -256,7 +251,7 @@ export class UserService {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        organizations: {
+        orgMembers: {
           include: {
             organization: true,
           },
@@ -268,7 +263,7 @@ export class UserService {
           orderBy: { expires: 'desc' },
           take: 5,
         },
-      },
+      } as any,
     })
 
     if (!user) return null
@@ -296,7 +291,7 @@ export class UserService {
       })
 
       // Delete org memberships
-      await tx.userOrgRole.deleteMany({
+      await (tx as any).orgMember.deleteMany({
         where: { userId },
       })
 

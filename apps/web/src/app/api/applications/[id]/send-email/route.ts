@@ -7,6 +7,7 @@ import { withRateLimit } from '@/lib/rate-limit'
 import { withCsrfProtection } from '@/lib/csrf'
 import { createAuditLog } from '@/lib/audit-log'
 import { z } from 'zod'
+import DOMPurify from 'isomorphic-dompurify'
 
 export const runtime = 'nodejs'
 
@@ -73,10 +74,12 @@ export const POST = withCsrfProtection(
           return NextResponse.json({ error: 'No email found for candidate' }, { status: 400 })
         }
 
-        // Sanitize body to prevent XSS in email HTML
-        const safeBody = body
-          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-          .replace(/\s*on\w+\s*=\s*(['"])[^'"]*\1/gi, '')
+        const safeBody = DOMPurify.sanitize(body, {
+          USE_PROFILES: { html: true },
+          FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
+          FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur'],
+          ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+        })
 
         // Send email
         await sendEmail({
