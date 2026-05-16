@@ -8,8 +8,8 @@ import { withCsrfProtection } from '@/lib/csrf'
 import { createAuditLog } from '@/lib/audit-log'
 import { ApplicationService } from '@/services/application.service'
 import { APPLICATION_STAGES } from '@/lib/constants/application-stages'
+import { sanitizeEmailHtml } from '@/lib/sanitize-email'
 import { z } from 'zod'
-import DOMPurify from 'isomorphic-dompurify'
 
 export const runtime = 'nodejs'
 
@@ -129,12 +129,7 @@ export const POST = withCsrfProtection(
 
           const bulkStartTime = Date.now()
 
-          const safeBody = DOMPurify.sanitize(payload.body, {
-            USE_PROFILES: { html: true },
-            FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
-            FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur'],
-            ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
-          })
+          const safeBody = sanitizeEmailHtml(payload.body)
 
           const errors: { applicationId: string; candidateName: string; error: string }[] = []
           const successfulIds: string[] = []

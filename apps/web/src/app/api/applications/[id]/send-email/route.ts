@@ -7,7 +7,7 @@ import { withRateLimit } from '@/lib/rate-limit'
 import { withCsrfProtection } from '@/lib/csrf'
 import { createAuditLog } from '@/lib/audit-log'
 import { z } from 'zod'
-import DOMPurify from 'isomorphic-dompurify'
+import { sanitizeEmailHtml } from '@/lib/sanitize-email'
 
 export const runtime = 'nodejs'
 
@@ -74,12 +74,7 @@ export const POST = withCsrfProtection(
           return NextResponse.json({ error: 'No email found for candidate' }, { status: 400 })
         }
 
-        const safeBody = DOMPurify.sanitize(body, {
-          USE_PROFILES: { html: true },
-          FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
-          FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur'],
-          ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
-        })
+        const safeBody = sanitizeEmailHtml(body)
 
         // Send email
         await sendEmail({
