@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from './auth'
+import { auth, UnauthorizedError } from './auth'
 import { prisma } from './prisma'
 
-export class UnauthorizedError extends Error {
-  constructor(message = 'Unauthorized') {
-    super(message)
-    this.name = 'UnauthorizedError'
-  }
-}
+export { UnauthorizedError }
 
 export class ForbiddenError extends Error {
   constructor(message = 'Forbidden') {

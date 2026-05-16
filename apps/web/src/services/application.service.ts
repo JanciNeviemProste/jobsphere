@@ -147,12 +147,11 @@ export class ApplicationService {
       const application = await tx.application.update({
         where: { id: applicationId },
         data: {
-          ...(input.status && { status: input.status }),
+          ...(input.status && { stage: input.status }),
           ...(input.notes !== undefined && { notes: input.notes }),
         },
       })
 
-      // Create audit log
       await createAuditLog({
         userId,
         orgId: (existingApplication as any).job.orgId,
@@ -162,10 +161,9 @@ export class ApplicationService {
         metadata: input as Prisma.InputJsonValue,
       })
 
-      // Normalize: ensure status field reflects the updated status
       return {
         ...application,
-        status: input.status ?? application.status ?? (application as any).stage,
+        status: input.status ?? (application as any).stage,
       }
     })
 
@@ -193,10 +191,9 @@ export class ApplicationService {
 
       const orgId = applications[0].job.orgId
 
-      // Update all applications
       const updateResult = await tx.application.updateMany({
         where: { id: { in: applicationIds } },
-        data: { status },
+        data: { stage: status },
       })
 
       // Create audit log
@@ -305,7 +302,7 @@ export class ApplicationService {
     const deletedApplication = await prisma.$transaction(async (tx: any) => {
       const updated = await tx.application.update({
         where: { id: applicationId },
-        data: { status: 'WITHDRAWN' },
+        data: { stage: 'WITHDRAWN' },
       })
 
       await createAuditLog({
@@ -461,9 +458,9 @@ export class ApplicationService {
     startOfWeek.setDate(startOfWeek.getDate() - 7)
 
     const byStatus = await (prisma.application as any).groupBy({
-      by: ['status'],
+      by: ['stage'],
       where: { jobId },
-      _count: { status: true },
+      _count: { stage: true },
     })
     const todayCount = await prisma.application.count({
       where: {
@@ -480,7 +477,7 @@ export class ApplicationService {
 
     const statusCounts = (byStatus as any[]).reduce(
       (acc: Record<string, number>, item: any) => {
-        acc[item.status] = item._count.status
+        acc[item.stage] = item._count.stage
         return acc
       },
       {} as Record<string, number>,

@@ -587,9 +587,9 @@ describe('ApplicationService', () => {
   describe('getApplicationStats', () => {
     it('should return correct statistics', async () => {
       vi.mocked(prisma.application.groupBy).mockResolvedValue([
-        { status: 'PENDING', _count: { status: 5 } },
-        { status: 'REVIEWING', _count: { status: 3 } },
-        { status: 'ACCEPTED', _count: { status: 2 } },
+        { stage: 'PENDING', _count: { stage: 5 } },
+        { stage: 'REVIEWING', _count: { stage: 3 } },
+        { stage: 'ACCEPTED', _count: { stage: 2 } },
       ] as any)
       vi.mocked(prisma.application.count)
         .mockResolvedValueOnce(2) // todayCount
