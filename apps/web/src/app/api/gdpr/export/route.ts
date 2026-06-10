@@ -1,6 +1,8 @@
 /**
- * GDPR Data Export API
- * Export all user data in machine-readable format
+ * GDPR Data Export API (Art. 15 — Right of Access)
+ * Export ALL of a user's personal data in machine-readable form, including the
+ * candidate-side PII (profiles, contacts, resumes, applications, documents) that
+ * is linked to the user via the canonical identity resolver.
  */
 
 import { NextResponse } from 'next/server'
@@ -8,6 +10,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { withRateLimit } from '@/lib/rate-limit'
+import { getCandidateIdsForUser } from '@/lib/identity'
 
 export const runtime = 'nodejs'
 
@@ -31,13 +34,13 @@ export const GET = withRateLimit(
           email: true,
           name: true,
           avatar: true,
+          phone: true,
+          locale: true,
+          timezone: true,
           emailVerified: true,
           createdAt: true,
           updatedAt: true,
-          // SECURITY: Explicitly exclude sensitive fields (password, totpSecret, sessions)
-          // password: false, // Never export
-          // totpSecret: false, // Never export (2FA bypass risk)
-          // sessions: false, // Never export (contains tokens)
+          // SECURITY: Explicitly exclude sensitive fields (password, totpSecret, sessions, accounts)
           organizations: {
             select: {
               orgId: true,
@@ -56,13 +59,125 @@ export const GET = withRateLimit(
         return NextResponse.json({ error: 'User not found' }, { status: 404 })
       }
 
-      // Get candidate data if exists - candidates are not linked to users via userId
-      // They're linked via applications, so we skip this for now
-      const candidate = null
+      // Resolve the candidate rows linked to this user across all orgs (canonical
+      // identity resolver — do NOT treat session.user.id as a Candidate id).
+      const candidateIds = await getCandidateIdsForUser(session.user.id)
 
-      // Get consent records
+      const candidates =
+        candidateIds.length > 0
+          ? await prisma.candidate.findMany({
+              where: { id: { in: candidateIds } },
+              select: {
+                id: true,
+                orgId: true,
+                source: true,
+                tags: true,
+                createdAt: true,
+                updatedAt: true,
+                organization: { select: { name: true } },
+                contacts: {
+                  select: {
+                    fullName: true,
+                    email: true,
+                    phone: true,
+                    linkedIn: true,
+                    github: true,
+                    portfolio: true,
+                    location: true,
+                    city: true,
+                    country: true,
+                    primaryLocale: true,
+                    availableFrom: true,
+                    salaryExpectation: true,
+                    isPrimary: true,
+                  },
+                },
+                resumes: {
+                  where: { deletedAt: null },
+                  select: {
+                    id: true,
+                    language: true,
+                    summary: true,
+                    yearsOfExperience: true,
+                    personalInfo: true,
+                    experiences: true,
+                    education: true,
+                    skills: true,
+                    languages: true,
+                    certifications: true,
+                    projects: true,
+                    createdAt: true,
+                  },
+                },
+                documents: {
+                  where: { deletedAt: null },
+                  select: {
+                    id: true,
+                    type: true,
+                    filename: true,
+                    mime: true,
+                    size: true,
+                    createdAt: true,
+                    // SECURITY: never expose the raw blob `uri`; expose the
+                    // authenticated download path instead.
+                  },
+                },
+                applications: {
+                  where: { deletedAt: null },
+                  select: {
+                    id: true,
+                    stage: true,
+                    source: true,
+                    coverLetter: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    job: { select: { title: true } },
+                  },
+                },
+              },
+            })
+          : []
+
+      // Shape candidate data for export, replacing raw blob URIs with the
+      // authenticated download endpoint.
+      const candidateExport = candidates.map((c) => ({
+        id: c.id,
+        organizationId: c.orgId,
+        organizationName: c.organization?.name ?? null,
+        source: c.source,
+        tags: c.tags,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+        contacts: c.contacts,
+        resumes: c.resumes,
+        documents: c.documents.map((d) => ({
+          id: d.id,
+          type: d.type,
+          filename: d.filename,
+          mime: d.mime,
+          size: d.size,
+          createdAt: d.createdAt,
+          downloadUrl: `/api/cv/${d.id}/download`,
+        })),
+        applications: c.applications.map((a) => ({
+          id: a.id,
+          jobTitle: a.job?.title ?? null,
+          stage: a.stage,
+          source: a.source,
+          coverLetter: a.coverLetter,
+          createdAt: a.createdAt,
+          updatedAt: a.updatedAt,
+        })),
+      }))
+
+      // Get consent records (both user-linked and candidate-linked)
       const consents = await prisma.consentRecord.findMany({
-        where: { userId: session.user.id },
+        where: {
+          OR: [
+            { userId: session.user.id },
+            ...(candidateIds.length > 0 ? [{ candidateId: { in: candidateIds } }] : []),
+          ],
+        },
       })
 
       // Get DSAR requests (Data Subject Access Requests)
@@ -85,6 +200,9 @@ export const GET = withRateLimit(
           email: user.email,
           name: user.name,
           avatar: user.avatar,
+          phone: user.phone,
+          locale: user.locale,
+          timezone: user.timezone,
           emailVerified: user.emailVerified,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
@@ -94,7 +212,7 @@ export const GET = withRateLimit(
           organizationName: om.organization.name,
           role: om.role,
         })),
-        candidate: null,
+        candidates: candidateExport,
         consents: consents,
         dsarRequests: dsarRequests,
         auditLogs: auditLogs.map((log) => ({

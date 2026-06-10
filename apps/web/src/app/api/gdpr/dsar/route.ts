@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { withRateLimit } from '@/lib/rate-limit'
 import { withCsrfProtection } from '@/lib/csrf'
+import { GdprService } from '@/services/gdpr.service'
 
 export const runtime = 'nodejs'
 
@@ -44,6 +45,89 @@ export const POST = withCsrfProtection(
             userAgent: req.headers.get('user-agent') || 'unknown',
           },
         })
+
+        // Execute the Right to Erasure (Art. 17) immediately for self-service
+        // DELETE requests: the caller is authenticated as themselves, so identity
+        // is already verified. This hard-deletes the user + all candidate PII.
+        if (type === 'DELETE') {
+          const userId = session.user.id
+          const requesterEmail = session.user.email || dsarRequest.email
+          const requesterName = session.user.name
+          try {
+            const result = await GdprService.eraseUserData(userId)
+
+            // The user row is gone now, so the DSARRequest FK (onDelete SetNull)
+            // detaches userId; re-mark this request as completed by its id.
+            await prisma.dSARRequest.update({
+              where: { id: dsarRequest.id },
+              data: {
+                status: 'COMPLETED',
+                completedAt: new Date(),
+                responseData: {
+                  candidateIds: result.candidateIds,
+                  documentsDeleted: result.documentsDeleted,
+                  blobsDeleted: result.blobsDeleted,
+                  applicationsDeleted: result.applicationsDeleted,
+                  resumesDeleted: result.resumesDeleted,
+                },
+              },
+            })
+
+            // Best-effort notifications (user account is deleted; email still valid).
+            try {
+              const { sendEmail } = await import('@/lib/email')
+              const adminEmail =
+                process.env.GDPR_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@jobsphere.com'
+              await sendEmail({
+                to: adminEmail,
+                subject: 'GDPR DELETE Request Executed',
+                html: `
+                <h2>GDPR Right to Erasure executed</h2>
+                <p><strong>User ID:</strong> ${userId}</p>
+                <p><strong>Email:</strong> ${requesterEmail}</p>
+                <p><strong>Request ID:</strong> ${dsarRequest.id}</p>
+                <p>All personal data has been deleted.</p>
+                <hr />
+                <p style="color: #666; font-size: 12px;">JobSphere ATS - GDPR Compliance</p>
+              `,
+              })
+              if (requesterEmail) {
+                await sendEmail({
+                  to: requesterEmail,
+                  subject: 'Your data has been deleted - JobSphere',
+                  html: `
+                  <h2>Account deleted</h2>
+                  <p>Hi ${requesterName || 'there'},</p>
+                  <p>Your GDPR erasure request has been completed and all of your
+                  personal data has been removed from JobSphere.</p>
+                  <hr />
+                  <p style="color: #666; font-size: 12px;">JobSphere ATS - GDPR Compliance</p>
+                `,
+                })
+              }
+            } catch (emailError) {
+              logger.error('Failed to send DSAR completion notification', emailError)
+            }
+
+            return NextResponse.json({
+              success: true,
+              request: { id: dsarRequest.id, status: 'COMPLETED', requestType: 'DELETE' },
+              message: 'Your account and all associated data have been permanently deleted.',
+            })
+          } catch (eraseError) {
+            logger.error('DSAR erasure execution failed', eraseError)
+            // Leave the DSARRequest PENDING so an admin can process it manually.
+            return NextResponse.json(
+              {
+                success: false,
+                request: dsarRequest,
+                error:
+                  'Your deletion request was recorded but could not be completed automatically. It will be processed manually within 30 days.',
+              },
+              { status: 500 },
+            )
+          }
+        }
 
         // Send email notifications
         try {

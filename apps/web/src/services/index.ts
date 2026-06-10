@@ -6,11 +6,14 @@
 import { JobService as JobServiceClass } from './job.service'
 import { ApplicationService as ApplicationServiceClass } from './application.service'
 import { UserService as UserServiceClass } from './user.service'
+import { GdprService as GdprServiceClass } from './gdpr.service'
 
 // Re-export service classes
 export { JobService } from './job.service'
 export { ApplicationService } from './application.service'
 export { UserService } from './user.service'
+export { GdprService, eraseCandidatesPII } from './gdpr.service'
+export type { EraseUserResult } from './gdpr.service'
 
 // Re-export types
 export type { CreateJobInput, UpdateJobInput, JobSearchParams } from './job.service'
@@ -57,4 +60,7 @@ export const services = {
   verifyEmail: UserServiceClass.verifyEmail,
   createPasswordResetToken: UserServiceClass.createPasswordResetToken,
   resetPassword: UserServiceClass.resetPassword,
+
+  // GDPR methods
+  eraseUserData: GdprServiceClass.eraseUserData,
 } as const
