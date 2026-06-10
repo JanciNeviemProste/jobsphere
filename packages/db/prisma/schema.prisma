@@ -178,6 +178,7 @@ model Job {
   // Location - Slovak cities
   city           String?
   region         String?  // BA, ZA, KE
+  country        String?  // ISO 3166-1 alpha-2, defaults to 'SK' at app layer
   remote         Boolean  @default(false)
   hybrid         Boolean  @default(false)
 

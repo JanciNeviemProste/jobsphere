@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSession } from 'next-auth/react'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -15,9 +16,18 @@ import {
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
-import { MapPin, Briefcase, Clock, Euro, Search, Filter, Loader2 } from 'lucide-react'
+import {
+  MapPin,
+  Briefcase,
+  Clock,
+  Euro,
+  Search,
+  Filter,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +45,7 @@ import { logger } from '@/lib/logger'
 interface Job {
   id: string
   title: string
-  location: string
+  location: string | null
   description?: string | null
   salaryMin?: number | null
   salaryMax?: number | null
@@ -44,6 +54,7 @@ interface Job {
   seniority?: string | null
   status: string
   createdAt: string
+  publishedAt?: string | null
   organization: {
     name: string
     logo?: string | null
@@ -83,80 +94,123 @@ function getDateLocale(locale: string) {
   }
 }
 
-// Constants
-
 const WORK_MODES = ['REMOTE', 'HYBRID', 'ONSITE']
 const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT']
 const SENIORITY_LEVELS = ['JUNIOR', 'MEDIOR', 'SENIOR', 'LEAD']
 
-export default function JobsClient({ params }: { params: { locale: string } }) {
+interface Props {
+  params: { locale: string }
+  initialJobs: Job[]
+  initialTotal: number
+  initialPage: number
+  totalPages: number
+  pageSize: number
+  initialFilters?: {
+    search?: string
+    workMode?: string
+    jobType?: string
+    seniority?: string
+  }
+}
+
+export default function JobsClient({
+  params,
+  initialJobs,
+  initialTotal,
+  initialPage,
+  totalPages: initialTotalPages,
+  pageSize,
+  initialFilters = {},
+}: Props) {
   const t = useTranslations()
   const { data: session } = useSession()
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const locale = params.locale
   const dateLocale = getDateLocale(locale)
+  const [isPending, startTransition] = useTransition()
 
-  // State
-  const [jobs, setJobs] = useState<Job[]>([])
-  const [loading, setLoading] = useState(true)
+  // State — initialised from SSR data
+  const [jobs, setJobs] = useState<Job[]>(initialJobs)
+  const [total, setTotal] = useState(initialTotal)
+  const [totalPages, setTotalPages] = useState(initialTotalPages)
+  const [currentPage, setCurrentPage] = useState(initialPage)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedWorkModes, setSelectedWorkModes] = useState<string[]>([])
-  const [selectedJobTypes, setSelectedJobTypes] = useState<string[]>([])
-  const [selectedSeniority, setSelectedSeniority] = useState<string[]>([])
+  const [searchQuery, setSearchQuery] = useState(initialFilters.search ?? '')
+  const [selectedWorkModes, setSelectedWorkModes] = useState<string[]>(
+    initialFilters.workMode ? [initialFilters.workMode] : [],
+  )
+  const [selectedJobTypes, setSelectedJobTypes] = useState<string[]>(
+    initialFilters.jobType ? [initialFilters.jobType] : [],
+  )
+  const [selectedSeniority, setSelectedSeniority] = useState<string[]>(
+    initialFilters.seniority ? [initialFilters.seniority] : [],
+  )
 
-  // Debounce search query
   const debouncedSearch = useDebounce(searchQuery, 500)
 
-  // Fetch jobs from API
+  // Build URL search params for navigation & API calls
+  function buildParams(page: number, overrides?: Record<string, string | undefined>) {
+    const p = new URLSearchParams()
+    const s = overrides?.search ?? debouncedSearch
+    const wm =
+      overrides?.workMode ?? (selectedWorkModes.length === 1 ? selectedWorkModes[0] : undefined)
+    const jt =
+      overrides?.jobType ?? (selectedJobTypes.length === 1 ? selectedJobTypes[0] : undefined)
+    const sen =
+      overrides?.seniority ?? (selectedSeniority.length === 1 ? selectedSeniority[0] : undefined)
+    if (s) p.set('search', s)
+    if (wm) p.set('workMode', wm)
+    if (jt) p.set('jobType', jt)
+    if (sen) p.set('seniority', sen)
+    if (page > 1) p.set('page', String(page))
+    return p
+  }
+
+  // Fetch jobs from API (client-side after filter/page change)
   const fetchJobs = useCallback(
-    async (signal?: AbortSignal) => {
+    async (page: number, signal?: AbortSignal) => {
       setLoading(true)
       setError(null)
 
       try {
-        // Build query parameters
-        const params = new URLSearchParams()
+        const p = new URLSearchParams()
+        if (debouncedSearch) p.set('search', debouncedSearch)
+        if (selectedWorkModes.length === 1) p.set('workMode', selectedWorkModes[0])
+        if (selectedJobTypes.length === 1) p.set('jobType', selectedJobTypes[0])
+        if (selectedSeniority.length === 1) p.set('seniority', selectedSeniority[0])
+        p.set('page', String(page))
+        p.set('limit', String(pageSize))
 
-        if (debouncedSearch) {
-          params.append('search', debouncedSearch)
-        }
-
-        // Add single filters (API expects single value for these)
-        if (selectedWorkModes.length === 1) {
-          params.append('workMode', selectedWorkModes[0])
-        }
-        if (selectedJobTypes.length === 1) {
-          params.append('jobType', selectedJobTypes[0])
-        }
-        if (selectedSeniority.length === 1) {
-          params.append('seniority', selectedSeniority[0])
-        }
-
-        const response = await fetch(`/api/jobs?${params.toString()}`, { signal })
+        const response = await fetch(`/api/jobs?${p.toString()}`, { signal })
 
         if (!response.ok) {
           throw new Error(`Failed to fetch jobs: ${response.statusText}`)
         }
 
         const data = await response.json()
-        // API returns paginated { data: [...], total, ... } — extract the array
-        const jobsArray: Job[] = Array.isArray(data) ? data : (data.data ?? [])
+        let jobsArray: Job[] = Array.isArray(data) ? data : (data.data ?? [])
+        const serverTotal: number = data.total ?? jobsArray.length
 
-        // If multiple filters selected, filter client-side
-        let filteredData = jobsArray
+        // Client-side multi-filter when multiple values selected
         if (selectedWorkModes.length > 1) {
-          filteredData = filteredData.filter((job: Job) => selectedWorkModes.includes(job.workMode))
+          jobsArray = jobsArray.filter((job) => selectedWorkModes.includes(job.workMode))
         }
         if (selectedJobTypes.length > 1) {
-          filteredData = filteredData.filter((job: Job) => selectedJobTypes.includes(job.type))
+          jobsArray = jobsArray.filter((job) => selectedJobTypes.includes(job.type))
         }
         if (selectedSeniority.length > 1) {
-          filteredData = filteredData.filter(
-            (job: Job) => job.seniority && selectedSeniority.includes(job.seniority),
+          jobsArray = jobsArray.filter(
+            (job) => job.seniority && selectedSeniority.includes(job.seniority),
           )
         }
 
-        setJobs(filteredData)
+        setJobs(jobsArray)
+        setTotal(serverTotal)
+        setTotalPages(Math.ceil(serverTotal / pageSize))
+        setCurrentPage(page)
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return
         logger.error('Error fetching jobs', err)
@@ -165,15 +219,31 @@ export default function JobsClient({ params }: { params: { locale: string } }) {
         setLoading(false)
       }
     },
-    [debouncedSearch, selectedWorkModes, selectedJobTypes, selectedSeniority],
+    [debouncedSearch, selectedWorkModes, selectedJobTypes, selectedSeniority, pageSize],
   )
 
-  // Fetch jobs when filters change
+  // Re-fetch when filters change (reset to page 1)
   useEffect(() => {
+    // Skip on initial mount — we already have SSR data
     const ctrl = new AbortController()
-    fetchJobs(ctrl.signal)
+    fetchJobs(1, ctrl.signal)
+    // Update URL so the page is shareable / history works
+    startTransition(() => {
+      const p = buildParams(1)
+      router.replace(`${pathname}${p.toString() ? `?${p.toString()}` : ''}`, { scroll: false })
+    })
     return () => ctrl.abort()
-  }, [fetchJobs])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, selectedWorkModes, selectedJobTypes, selectedSeniority])
+
+  const goToPage = (page: number) => {
+    const ctrl = new AbortController()
+    fetchJobs(page, ctrl.signal)
+    startTransition(() => {
+      const p = buildParams(page)
+      router.push(`${pathname}${p.toString() ? `?${p.toString()}` : ''}`, { scroll: true })
+    })
+  }
 
   const toggleFilter = (value: string, selected: string[], setter: (values: string[]) => void) => {
     if (selected.includes(value)) {
@@ -209,6 +279,12 @@ export default function JobsClient({ params }: { params: { locale: string } }) {
     }
   }
 
+  // Build crawlable href for a page number
+  function pageHref(page: number) {
+    const p = buildParams(page)
+    return `${pathname}${p.toString() ? `?${p.toString()}` : ''}`
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <div className="container mx-auto px-4 py-12">
@@ -216,15 +292,14 @@ export default function JobsClient({ params }: { params: { locale: string } }) {
         <div className="mb-8">
           <h1 className="mb-2 text-4xl font-bold">{t('jobs.title')}</h1>
           <p className="text-muted-foreground">
-            {loading ? (
+            {loading || isPending ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 {t('jobs.loading')}
               </span>
             ) : (
               <>
-                {jobs.length} {jobs.length === 1 ? t('jobs.offer') : t('jobs.offers')}{' '}
-                {t('jobs.found')}
+                {total} {total === 1 ? t('jobs.offer') : t('jobs.offers')} {t('jobs.found')}
               </>
             )}
           </p>
@@ -342,7 +417,7 @@ export default function JobsClient({ params }: { params: { locale: string } }) {
         {error ? (
           <div className="py-12 text-center">
             <p className="mb-4 text-lg text-destructive">{error}</p>
-            <Button variant="outline" onClick={() => fetchJobs()}>
+            <Button variant="outline" onClick={() => fetchJobs(currentPage)}>
               {t('jobs.retry')}
             </Button>
           </div>
@@ -386,7 +461,7 @@ export default function JobsClient({ params }: { params: { locale: string } }) {
                 <CardContent className="flex-1 space-y-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <MapPin className="h-4 w-4" />
-                    {job.location}
+                    {job.location ?? (job.workMode === 'REMOTE' ? t('jobs.remote') : '')}
                   </div>
                   {(job.salaryMin || job.salaryMax) && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -409,7 +484,7 @@ export default function JobsClient({ params }: { params: { locale: string } }) {
                 </CardContent>
                 <CardFooter className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(job.createdAt), {
+                    {formatDistanceToNow(new Date(job.publishedAt ?? job.createdAt), {
                       addSuffix: true,
                       locale: dateLocale,
                     })}
@@ -439,6 +514,93 @@ export default function JobsClient({ params }: { params: { locale: string } }) {
               {t('jobs.resetFilters')}
             </Button>
           </div>
+        )}
+
+        {/* Crawlable pagination — real <a> links for search engines */}
+        {totalPages > 1 && (
+          <nav
+            aria-label="Job listings pagination"
+            className="mt-10 flex items-center justify-center gap-2"
+          >
+            {currentPage > 1 && (
+              <a
+                href={pageHref(currentPage - 1)}
+                rel="prev"
+                onClick={(e) => {
+                  e.preventDefault()
+                  goToPage(currentPage - 1)
+                }}
+                className="inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted"
+                aria-label="Previous page"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Prev
+              </a>
+            )}
+
+            {/* Page number links */}
+            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+              // Show first, last, current ±2, and ellipsis
+              const first = 1
+              const last = totalPages
+              const near = [
+                currentPage - 2,
+                currentPage - 1,
+                currentPage,
+                currentPage + 1,
+                currentPage + 2,
+              ]
+              const pages = [...new Set([first, ...near, last])].filter(
+                (p) => p >= 1 && p <= totalPages,
+              )
+              return pages
+            })[0]
+              .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis')
+                acc.push(p)
+                return acc
+              }, [])
+              .map((item, idx) =>
+                item === 'ellipsis' ? (
+                  <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">
+                    …
+                  </span>
+                ) : (
+                  <a
+                    key={item}
+                    href={pageHref(item)}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      goToPage(item)
+                    }}
+                    aria-current={item === currentPage ? 'page' : undefined}
+                    className={`inline-flex h-9 w-9 items-center justify-center rounded-md border text-sm font-medium hover:bg-muted ${
+                      item === currentPage
+                        ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
+                        : ''
+                    }`}
+                  >
+                    {item}
+                  </a>
+                ),
+              )}
+
+            {currentPage < totalPages && (
+              <a
+                href={pageHref(currentPage + 1)}
+                rel="next"
+                onClick={(e) => {
+                  e.preventDefault()
+                  goToPage(currentPage + 1)
+                }}
+                className="inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted"
+                aria-label="Next page"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </a>
+            )}
+          </nav>
         )}
       </div>
     </div>

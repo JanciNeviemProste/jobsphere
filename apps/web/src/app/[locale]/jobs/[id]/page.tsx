@@ -198,12 +198,28 @@ function generateJobPostingJsonLd(job: any, locale: string) {
     TEMPORARY: 'TEMPORARY',
   }
 
+  // addressCountry: use stored job.country; fallback to 'SK' (Slovak-focused platform)
+  const addressCountry: string = job.country ?? 'SK'
+
+  // validThrough: use closedAt if set, otherwise publishedAt + 30 days, or createdAt + 30 days
+  const baseDate = job.publishedAt ? new Date(job.publishedAt) : new Date(job.createdAt)
+  const validThroughDate = job.closedAt
+    ? new Date(job.closedAt)
+    : new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000)
+  const validThrough = validThroughDate.toISOString().split('T')[0]
+
+  // datePosted: prefer publishedAt over createdAt for accuracy
+  const datePosted = job.publishedAt
+    ? new Date(job.publishedAt).toISOString().split('T')[0]
+    : new Date(job.createdAt).toISOString().split('T')[0]
+
   const jsonLd: Record<string, any> = {
     '@context': 'https://schema.org/',
     '@type': 'JobPosting',
     title: job.title,
     description: job.description || '',
-    datePosted: new Date(job.createdAt).toISOString().split('T')[0],
+    datePosted,
+    validThrough,
     employmentType: employmentTypeMap[job.employmentType] || job.employmentType,
     hiringOrganization: {
       '@type': 'Organization',
@@ -217,10 +233,7 @@ function generateJobPostingJsonLd(job: any, locale: string) {
         '@type': 'PostalAddress',
         ...(job.city && { addressLocality: job.city }),
         ...(job.region && { addressRegion: job.region }),
-        addressCountry:
-          ({ sk: 'SK', de: 'DE', cs: 'CZ', pl: 'PL', en: 'GB' } as Record<string, string>)[
-            locale
-          ] || 'SK',
+        addressCountry,
       },
     },
     directApply: true,
@@ -228,11 +241,12 @@ function generateJobPostingJsonLd(job: any, locale: string) {
   }
 
   if (job.remote) {
+    // Google for Jobs: TELECOMMUTE flag + applicant location requirements
     jsonLd.jobLocationType = 'TELECOMMUTE'
-  }
-
-  if (job.closedAt) {
-    jsonLd.validThrough = new Date(job.closedAt).toISOString().split('T')[0]
+    jsonLd.applicantLocationRequirements = {
+      '@type': 'Country',
+      name: addressCountry,
+    }
   }
 
   if (job.salaryMin || job.salaryMax) {
