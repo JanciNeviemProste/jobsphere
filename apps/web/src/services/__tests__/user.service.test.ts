@@ -28,9 +28,15 @@ vi.mock('@/lib/prisma', () => ({
       findUnique: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
+      deleteMany: vi.fn(),
     },
     $transaction: vi.fn(),
   },
+}))
+
+// Email is dynamically imported inside createEmailVerificationToken
+vi.mock('@/lib/email', () => ({
+  sendEmail: vi.fn().mockResolvedValue({ success: true }),
 }))
 
 vi.mock('@/lib/audit-log', () => ({
@@ -560,6 +566,49 @@ describe('UserService', () => {
     })
   })
 
+  describe('createEmailVerificationToken (AUTH-009)', () => {
+    const email = 'newuser@example.com'
+
+    it('should create a verification token and send email for an unverified user', async () => {
+      const mockUser = createMockUser({ email, emailVerified: null })
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser)
+      vi.mocked(prisma.verificationToken.deleteMany).mockResolvedValue({ count: 0 } as any)
+      vi.mocked(prisma.verificationToken.create).mockResolvedValue({} as any)
+
+      await UserService.createEmailVerificationToken(email)
+
+      // A hashed token is stored, not the raw token from the email link
+      expect(prisma.verificationToken.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            identifier: email,
+            type: 'EMAIL_VERIFICATION',
+            token: expect.any(String),
+            expires: expect.any(Date),
+          }),
+        }),
+      )
+    })
+
+    it('should NOT create a token when the user does not exist (no enumeration)', async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+
+      await UserService.createEmailVerificationToken('ghost@example.com')
+
+      expect(prisma.verificationToken.create).not.toHaveBeenCalled()
+    })
+
+    it('should NOT create a token when the user is already verified', async () => {
+      const verifiedUser = createMockUser({ email, emailVerified: new Date() })
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(verifiedUser)
+
+      await UserService.createEmailVerificationToken(email)
+
+      expect(prisma.verificationToken.create).not.toHaveBeenCalled()
+    })
+  })
+
   describe('createPasswordResetToken', () => {
     const email = 'user@example.com'
 
@@ -597,18 +646,24 @@ describe('UserService', () => {
     const token = 'reset-token-123'
     const newPassword = 'NewSecurePassword456'
 
-    it('should reset password successfully', async () => {
+    it('should reset password successfully and revoke active sessions (AUTH-001)', async () => {
       const mockToken = {
         token,
         identifier: 'user@example.com',
         expires: new Date(Date.now() + 3600000),
       }
 
+      let capturedUpdate: any
       vi.mocked(prisma.verificationToken.findUnique).mockResolvedValue(mockToken)
       vi.mocked(hash).mockResolvedValue('hashedNewPassword')
       vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
         const tx = {
-          user: { update: vi.fn() },
+          user: {
+            update: vi.fn().mockImplementation((opts) => {
+              capturedUpdate = opts
+              return {}
+            }),
+          },
           verificationToken: { delete: vi.fn() },
         }
         return callback(tx as any)
@@ -617,6 +672,13 @@ describe('UserService', () => {
       await UserService.resetPassword(token, newPassword)
 
       expect(hash).toHaveBeenCalledWith(newPassword, 12)
+      // Password reset must bump sessionEpoch to invalidate existing JWTs
+      expect(capturedUpdate.data).toEqual(
+        expect.objectContaining({
+          password: 'hashedNewPassword',
+          sessionEpoch: { increment: 1 },
+        }),
+      )
     })
 
     it('should throw error when token is invalid', async () => {

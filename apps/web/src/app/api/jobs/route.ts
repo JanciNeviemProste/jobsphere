@@ -182,14 +182,24 @@ export const POST = withCsrfProtection(
           },
         })
 
-        if (!userWithOrg?.organizations?.[0]?.organization) {
+        const membership = userWithOrg?.organizations?.[0]
+
+        if (!membership?.organization) {
           return NextResponse.json(
             { error: 'You must belong to an organization to create jobs' },
             { status: 403 },
           )
         }
 
-        const organizationId = userWithOrg.organizations[0].organization.id
+        // AUTH-006: only admins and recruiters may create jobs
+        if (!['ORG_ADMIN', 'RECRUITER'].includes(membership.role)) {
+          return NextResponse.json(
+            { error: 'You do not have permission to create jobs' },
+            { status: 403 },
+          )
+        }
+
+        const organizationId = membership.organization.id
 
         // Check MAX_JOBS entitlement before creating
         const canCreate = await checkEntitlement(organizationId, 'MAX_JOBS')

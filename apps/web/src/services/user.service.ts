@@ -312,12 +312,83 @@ export class UserService {
   }
 
   /**
-   * Verify email with token
+   * Create an email-verification token and email the verification link.
+   * (AUTH-009) The raw token is sent in the email; only a SHA-256 hash is
+   * persisted so a DB read cannot be replayed as a valid link.
+   *
+   * No-ops silently when the email does not belong to a real account so callers
+   * can stay generic (AUTH-008, no user enumeration).
+   */
+  static async createEmailVerificationToken(email: string): Promise<void> {
+    const normalizedEmail = email.toLowerCase()
+
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      select: { id: true, email: true, name: true, emailVerified: true },
+    })
+
+    // Don't reveal whether the account exists or is already verified
+    if (!user || user.emailVerified) {
+      return
+    }
+
+    const rawToken = crypto.randomBytes(32).toString('hex')
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex')
+    const expires = new Date(Date.now() + 3600000) // 1 hour
+
+    // Replace any outstanding verification tokens for this email
+    await prisma.verificationToken.deleteMany({
+      where: { identifier: user.email, type: 'EMAIL_VERIFICATION' },
+    })
+
+    await prisma.verificationToken.create({
+      data: {
+        identifier: user.email,
+        token: hashedToken,
+        type: 'EMAIL_VERIFICATION',
+        expires,
+      },
+    })
+
+    try {
+      const { sendEmail } = await import('@/lib/email')
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      const verifyUrl = `${appUrl}/verify-email?token=${rawToken}`
+
+      await sendEmail({
+        to: user.email,
+        subject: 'Verify Your Email - JobSphere',
+        html: `
+          <h2>Verify your email</h2>
+          <p>Hi ${user.name || 'there'},</p>
+          <p>Thanks for signing up. Please confirm your email address to activate your account:</p>
+          <p><a href="${verifyUrl}" style="display: inline-block; padding: 12px 24px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
+          <p>Or paste this link into your browser:</p>
+          <p style="word-break: break-all; color: #4F46E5;">${verifyUrl}</p>
+          <p>This link will expire in 1 hour. If you didn't create an account, you can ignore this email.</p>
+          <hr />
+          <p style="color: #666; font-size: 12px;">JobSphere ATS - Modern recruitment platform</p>
+        `,
+      })
+    } catch (emailError) {
+      logger.error('Failed to send verification email:', emailError)
+      // Don't fail the caller if the email provider hiccups
+    }
+  }
+
+  /**
+   * Verify email with token.
+   * Accepts the raw token from the verification link and matches it against the
+   * stored SHA-256 hash. The legacy plaintext-token shape is still supported for
+   * backwards compatibility with previously issued tokens.
    */
   static async verifyEmail(token: string): Promise<User> {
-    const verificationToken = await prisma.verificationToken.findUnique({
-      where: { token },
-    })
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
+
+    // Prefer the hashed (current) token; fall back to a legacy plaintext token
+    const verificationToken =
+      (await prisma.verificationToken.findUnique({ where: { token: hashedToken } })) ??
+      (await prisma.verificationToken.findUnique({ where: { token } }))
 
     if (!verificationToken) {
       throw new AppError('Invalid verification token', 400)
@@ -336,7 +407,7 @@ export class UserService {
 
       // Delete token
       await tx.verificationToken.delete({
-        where: { token },
+        where: { token: verificationToken.token },
       })
 
       return updatedUser
@@ -421,10 +492,11 @@ export class UserService {
     const hashedPassword = await hash(newPassword, 12)
 
     await prisma.$transaction(async (tx) => {
-      // Update password
+      // Update password and bump sessionEpoch (AUTH-001) so any active sessions
+      // (e.g. an attacker who knew the old password) are revoked on reset.
       await tx.user.update({
         where: { email: resetToken.identifier },
-        data: { password: hashedPassword },
+        data: { password: hashedPassword, sessionEpoch: { increment: 1 } },
       })
 
       // Delete token

@@ -46,26 +46,33 @@ async function patchHandler(request: Request, context?: { params?: Record<string
     const body = await request.json()
     const { role } = updateRoleSchema.parse(body)
 
-    // Update the member's role
-    const updated = await prisma.userOrgRole.update({
-      where: {
-        userId_orgId: {
-          userId: params.userId,
-          orgId: userOrgRole.orgId,
-        },
-      },
-      data: { role },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            avatar: true,
+    // Update the member's role and revoke their active sessions (AUTH-001) so the
+    // new role takes effect immediately instead of after the JWT naturally expires.
+    const [updated] = await prisma.$transaction([
+      prisma.userOrgRole.update({
+        where: {
+          userId_orgId: {
+            userId: params.userId,
+            orgId: userOrgRole.orgId,
           },
         },
-      },
-    })
+        data: { role },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatar: true,
+            },
+          },
+        },
+      }),
+      prisma.user.update({
+        where: { id: params.userId },
+        data: { sessionEpoch: { increment: 1 } },
+      }),
+    ])
 
     return NextResponse.json(updated)
   } catch (error) {

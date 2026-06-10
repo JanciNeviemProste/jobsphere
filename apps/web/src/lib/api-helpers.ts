@@ -26,9 +26,11 @@ export interface AuthContext {
 }
 
 /**
- * Require authentication and organization membership
+ * Require authentication and organization membership.
+ * The request argument is accepted for call-site ergonomics but unused — auth
+ * comes from the NextAuth session — so it is optional.
  */
-export async function requireAuth(request: NextRequest): Promise<AuthContext> {
+export async function requireOrgAuth(request?: NextRequest): Promise<AuthContext> {
   const session = await auth()
 
   if (!session?.user?.id) {
@@ -53,13 +55,22 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
 }
 
 /**
- * Require specific role
+ * Require authentication and organization membership.
+ * @deprecated prefer {@link requireOrgAuth}; kept for backwards compatibility.
+ */
+export const requireAuth = requireOrgAuth
+
+/**
+ * Require the caller to hold one of the allowed org roles (AUTH-006).
+ * Throws ForbiddenError (403) when authenticated but under-privileged.
+ *
+ * Roles: ORG_ADMIN, RECRUITER, HIRING_MANAGER, AGENCY
  */
 export async function requireRole(
-  request: NextRequest,
   allowedRoles: string[],
+  request?: NextRequest,
 ): Promise<AuthContext> {
-  const ctx = await requireAuth(request)
+  const ctx = await requireOrgAuth(request)
 
   if (!allowedRoles.includes(ctx.role)) {
     throw new ForbiddenError(`Role ${ctx.role} not allowed`)

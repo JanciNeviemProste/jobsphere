@@ -71,6 +71,10 @@ export function handleApiError(error: unknown): NextResponse {
 export function errorResponse(error: unknown): { error: string; statusCode: number } {
   logger.error('Error:', error)
 
+  if (error instanceof AppError) {
+    return { error: error.message, statusCode: error.statusCode }
+  }
+
   if (error instanceof UnauthorizedError) {
     return { error: error.message, statusCode: 401 }
   }

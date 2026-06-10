@@ -22,5 +22,9 @@ declare module 'next-auth/jwt' {
     orgId?: string | null
     orgName?: string | null
     isGlobalAdmin?: boolean
+    // AUTH-001 session revocation
+    sessionEpoch?: number
+    epochCheckedAt?: number
+    invalid?: boolean
   }
 }

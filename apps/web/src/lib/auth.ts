@@ -17,6 +17,15 @@ export class UnauthorizedError extends Error {
 }
 
 /**
+ * AUTH-001 — how often (ms) to re-check the DB sessionEpoch on a JWT refresh.
+ * Bounds the revocation window: a banned/demoted user keeps access for at most
+ * this long. Kept short (60s) because correctness matters more than the extra
+ * read, and the read is a single indexed lookup. The JWT `updateAge` (1h) does
+ * NOT trigger our callback often enough on its own, so we throttle here instead.
+ */
+const SESSION_EPOCH_CHECK_INTERVAL_MS = 60 * 1000
+
+/**
  * NextAuth v4 Configuration
  * Downgraded from v5 beta.4 due to constructor bug on Vercel production
  */
@@ -175,7 +184,7 @@ export const authOptions: NextAuthOptions = {
         if (user?.id) {
           token.id = user.id
 
-          // Load user's organization, role and global admin flag
+          // Load user's organization, role, global admin flag and session epoch
           const [userOrg, dbUser] = await Promise.all([
             prisma.userOrgRole.findFirst({
               where: { userId: user.id },
@@ -183,7 +192,7 @@ export const authOptions: NextAuthOptions = {
             }),
             prisma.user.findUnique({
               where: { id: user.id },
-              select: { isGlobalAdmin: true },
+              select: { isGlobalAdmin: true, sessionEpoch: true },
             }),
           ])
 
@@ -191,6 +200,35 @@ export const authOptions: NextAuthOptions = {
           token.orgId = userOrg?.orgId || null
           token.orgName = userOrg?.organization?.name || null
           token.isGlobalAdmin = dbUser?.isGlobalAdmin ?? false
+          // AUTH-001: pin the session epoch at sign-in so we can detect revocation later
+          token.sessionEpoch = dbUser?.sessionEpoch ?? 0
+          token.epochCheckedAt = Date.now()
+          token.invalid = false
+
+          return token
+        }
+
+        // AUTH-001 — Session revocation check on every refresh.
+        // Re-read the user's current sessionEpoch (throttled) and if it no longer
+        // matches the value pinned at sign-in, mark the token invalid so the
+        // session callback strips the user identity (effectively logged out).
+        if (token.id) {
+          const lastChecked = (token.epochCheckedAt as number | undefined) ?? 0
+          const shouldCheck = Date.now() - lastChecked >= SESSION_EPOCH_CHECK_INTERVAL_MS
+
+          if (shouldCheck) {
+            const current = await prisma.user.findUnique({
+              where: { id: token.id as string },
+              select: { sessionEpoch: true },
+            })
+
+            // User deleted, or epoch bumped (ban / demote / role change / password reset)
+            if (!current || current.sessionEpoch !== (token.sessionEpoch ?? 0)) {
+              token.invalid = true
+            }
+
+            token.epochCheckedAt = Date.now()
+          }
         }
 
         return token
@@ -202,6 +240,15 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       try {
+        // AUTH-001: a revoked/stale token yields a session with no user identity,
+        // so every downstream `auth()` / `requireAuth()` check fails closed.
+        if (token.invalid) {
+          if (session.user) {
+            session.user.id = undefined as unknown as string
+          }
+          return session
+        }
+
         if (session.user) {
           session.user.id = token.id as string
           session.user.role = token.role as string | undefined

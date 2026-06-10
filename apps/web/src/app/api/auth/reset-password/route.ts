@@ -66,11 +66,13 @@ export const POST = withRateLimit(
       // Hash the new password
       const hashedPassword = await bcrypt.hash(password, 12)
 
-      // Update user password
+      // Update user password and bump sessionEpoch (AUTH-001) to revoke any
+      // active sessions on a successful password reset.
       await prisma.user.update({
         where: { id: user.id },
         data: {
           password: hashedPassword,
+          sessionEpoch: { increment: 1 },
         },
       })
 

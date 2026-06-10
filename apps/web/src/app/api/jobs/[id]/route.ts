@@ -120,6 +120,15 @@ export const PUT = withCsrfProtection(
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
         }
 
+        // AUTH-006: only admins and recruiters may modify jobs
+        const memberRole = job.organization.users[0].role
+        if (!['ORG_ADMIN', 'RECRUITER'].includes(memberRole)) {
+          return NextResponse.json(
+            { error: 'You do not have permission to update jobs' },
+            { status: 403 },
+          )
+        }
+
         // Validate and update job
         const rawData = await req.json()
         const data = updateJobSchema.parse(rawData)
@@ -197,6 +206,15 @@ export const DELETE = withCsrfProtection(
 
         if (!job || job.organization.users.length === 0) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+
+        // AUTH-006: only admins and recruiters may delete jobs
+        const memberRole = job.organization.users[0].role
+        if (!['ORG_ADMIN', 'RECRUITER'].includes(memberRole)) {
+          return NextResponse.json(
+            { error: 'You do not have permission to delete jobs' },
+            { status: 403 },
+          )
         }
 
         // Soft delete - set status to CLOSED

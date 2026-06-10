@@ -136,7 +136,8 @@ export const PATCH = async (req: Request) => {
 
     switch (action) {
       case 'ban':
-        updateData = { lockedUntil: BAN_DATE }
+        // AUTH-001: bump sessionEpoch to immediately revoke the banned user's active JWTs
+        updateData = { lockedUntil: BAN_DATE, sessionEpoch: { increment: 1 } }
         break
       case 'unban':
         updateData = { lockedUntil: null, failedAttempts: 0 }
@@ -145,7 +146,8 @@ export const PATCH = async (req: Request) => {
         updateData = { isGlobalAdmin: true }
         break
       case 'demote_admin':
-        updateData = { isGlobalAdmin: false }
+        // AUTH-001: revoke active sessions so the demoted admin loses elevated access now
+        updateData = { isGlobalAdmin: false, sessionEpoch: { increment: 1 } }
         break
     }
 

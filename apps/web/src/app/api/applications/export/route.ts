@@ -20,11 +20,20 @@ export const GET = withRateLimit(
       // Get user's organization
       const membership = await prisma.userOrgRole.findFirst({
         where: { userId: session.user.id },
-        select: { orgId: true },
+        select: { orgId: true, role: true },
       })
 
       if (!membership) {
         return NextResponse.json({ error: 'No organization found' }, { status: 403 })
+      }
+
+      // AUTH-006: PII export is restricted to admins and recruiters.
+      // Hiring managers and external agencies must not bulk-export candidate PII.
+      if (!['ORG_ADMIN', 'RECRUITER'].includes(membership.role)) {
+        return NextResponse.json(
+          { error: 'You do not have permission to export applicant data' },
+          { status: 403 },
+        )
       }
 
       // Get all applications for organization

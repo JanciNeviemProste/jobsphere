@@ -35,6 +35,14 @@ export const POST = withCsrfProtection(
           return NextResponse.json({ error: 'No organization' }, { status: 400 })
         }
 
+        // AUTH-006: only organization admins may manage billing
+        if (userOrgRole.role !== 'ORG_ADMIN') {
+          return NextResponse.json(
+            { error: 'Only organization admins can manage billing' },
+            { status: 403 },
+          )
+        }
+
         // Get customer
         const customer = await prisma.orgCustomer.findUnique({
           where: { orgId: userOrgRole.orgId },

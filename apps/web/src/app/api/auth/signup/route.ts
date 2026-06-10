@@ -5,6 +5,7 @@ import { withRateLimit } from '@/lib/rate-limit'
 import { z } from 'zod'
 import { validateRequest, strongPasswordSchema, ValidationError } from '@/lib/validation'
 import { logger } from '@/lib/logger'
+import { UserService } from '@/services/user.service'
 
 export const runtime = 'nodejs'
 
@@ -15,6 +16,15 @@ const signupSchema = z.object({
   role: z.enum(['candidate', 'employer']).optional().default('candidate'),
   companyName: z.string().optional(),
 })
+
+// AUTH-008: identical response for every successful-path outcome (new account
+// created OR email already registered) so the endpoint never reveals whether an
+// account exists for a given email.
+const GENERIC_SIGNUP_RESPONSE = {
+  success: true,
+  message:
+    'If this email is available, your account has been created. Please check your inbox to verify your email address.',
+}
 
 export const POST = withRateLimit(
   async (req: Request) => {
@@ -31,27 +41,30 @@ export const POST = withRateLimit(
         )
       }
 
-      // Check if user already exists
+      // AUTH-008: do NOT branch the response on whether the email exists.
+      // If it's already taken, silently return the generic success response so
+      // an attacker cannot enumerate registered emails.
       const existingUser = await prisma.user.findUnique({
         where: { email: data.email },
       })
 
       if (existingUser) {
-        return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 })
+        logger.info('Signup attempt for existing email (generic response returned)')
+        return NextResponse.json(GENERIC_SIGNUP_RESPONSE, { status: 201 })
       }
 
       // Hash password
       const hashedPassword = await hash(data.password, 12)
 
       // Create user and organization in a transaction
-      const user = await prisma.$transaction(async (tx) => {
-        // Create user (auto-verify email for MVP so credentials login works immediately)
+      await prisma.$transaction(async (tx) => {
+        // AUTH-009: create the user UNVERIFIED. emailVerified is set only after
+        // the user clicks the verification link (see /api/auth/verify-email).
         const newUser = await tx.user.create({
           data: {
             name: data.name,
             email: data.email,
             password: hashedPassword,
-            emailVerified: new Date(),
           },
         })
 
@@ -90,17 +103,10 @@ export const POST = withRateLimit(
         return newUser
       })
 
-      return NextResponse.json(
-        {
-          user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: data.role,
-          },
-        },
-        { status: 201 },
-      )
+      // AUTH-009: issue a verification token + email outside the create txn.
+      await UserService.createEmailVerificationToken(data.email)
+
+      return NextResponse.json(GENERIC_SIGNUP_RESPONSE, { status: 201 })
     } catch (error) {
       if (error instanceof ValidationError) {
         return NextResponse.json(
