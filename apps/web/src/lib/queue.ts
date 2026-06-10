@@ -101,6 +101,15 @@ export interface MatchScoreCacheJobData {
   jobId: string
   candidateLimit?: number
 }
+/**
+ * Per-candidate cache fill: compute + upsert MatchScore for one candidate
+ * against a bounded set of jobs. Used by the candidate match-scores endpoint
+ * to refresh missing/stale cache entries without blocking the request.
+ */
+export interface CandidateMatchScoreCacheJobData {
+  candidateId: string
+  jobIds: string[]
+}
 export interface AssessmentReminderJobData {
   inviteId: string
 }
@@ -140,6 +149,9 @@ export const addAssessmentGradingJob = (data: AssessmentJobData) =>
 
 export const addMatchScoreCacheJob = (data: MatchScoreCacheJobData) =>
   safeAdd(getMatchScoreCacheQueue, 'cache-scores', data)
+
+export const addCandidateMatchScoreCacheJob = (data: CandidateMatchScoreCacheJobData) =>
+  safeAdd(getMatchScoreCacheQueue, 'cache-candidate-scores', data)
 
 export const addAssessmentReminderJob = (data: AssessmentReminderJobData) =>
   safeAdd(getAssessmentReminderQueue, 'send-reminder', data)
