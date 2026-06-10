@@ -10,6 +10,7 @@ import { extractCvFromText } from '@jobsphere/ai'
 import { addEmbeddingJob } from '@/lib/queue'
 import { logger } from '@/lib/logger'
 import { withRateLimit } from '@/lib/rate-limit'
+import { getOrCreateCandidateForUser } from '@/lib/identity'
 
 export const runtime = 'nodejs'
 
@@ -19,8 +20,25 @@ export const POST = withRateLimit(
       // 1. Optional authentication - allow anonymous users
       const session = await auth()
 
-      // 2. Get raw text from body
-      const { rawText } = await request.json()
+      // 2. Get raw text (and optional uploaded-file metadata) from body.
+      // The file metadata is produced by /api/cv/upload and forwarded by the
+      // client so we can persist the stored file as a CandidateDocument and link
+      // it to the created Resume (SEC-001).
+      const {
+        rawText,
+        fileUrl,
+        filename,
+        mime,
+        size,
+        hash,
+      }: {
+        rawText?: string
+        fileUrl?: string
+        filename?: string
+        mime?: string
+        size?: number
+        hash?: string
+      } = await request.json()
 
       if (!rawText || rawText.length < 20) {
         return NextResponse.json(
@@ -64,24 +82,37 @@ export const POST = withRateLimit(
           return NextResponse.json({ error: 'User organization not found' }, { status: 404 })
         }
 
-        // Find or create Candidate record
-        let candidate = await prisma.candidate.findFirst({
-          where: { orgId: userOrg.orgId },
-        })
+        // Resolve the Candidate that represents THIS user in this org (creates/links
+        // as needed). Avoids grabbing an unrelated candidate that happens to share
+        // the org.
+        const candidate = await getOrCreateCandidateForUser(session.user.id, userOrg.orgId)
 
-        if (!candidate) {
-          candidate = await prisma.candidate.create({
+        // If the upload step provided the stored file reference, persist it as a
+        // CandidateDocument so the CV is no longer orphaned and can be served via
+        // the authenticated download route (SEC-001).
+        let sourceDocumentId: string | undefined
+        if (fileUrl && filename && mime && typeof size === 'number') {
+          const document = await prisma.candidateDocument.create({
             data: {
-              orgId: userOrg.orgId,
-              source: 'MANUAL',
+              candidateId: candidate.id,
+              type: 'CV',
+              uri: fileUrl,
+              filename,
+              mime,
+              size,
+              hash: hash || null,
+              parsedAt: new Date(),
             },
           })
+          sourceDocumentId = document.id
         }
 
-        // Create Resume record with basic info from parsed CV
+        // Create Resume record with basic info from parsed CV, linking the source
+        // document when available.
         const resume = await prisma.resume.create({
           data: {
             candidateId: candidate.id,
+            sourceDocumentId,
             language: locale,
             summary: extractedCV.summary || null,
           },
@@ -175,6 +206,7 @@ export const POST = withRateLimit(
         return NextResponse.json({
           resumeId: resume.id,
           candidateId: candidate.id,
+          documentId: sourceDocumentId ?? null,
           success: true,
           parsed: extractedCV,
           sectionsCreated: sections.length,

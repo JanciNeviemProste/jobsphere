@@ -32,7 +32,19 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
             },
           },
         },
-        candidate: true,
+        candidate: {
+          include: {
+            // Latest CV document, surfaced so the client can build an
+            // authenticated download link (/api/cv/{id}/download) instead of
+            // exposing the raw storage URL (SEC-001).
+            documents: {
+              where: { type: 'CV', deletedAt: null },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+              select: { id: true, filename: true },
+            },
+          },
+        },
         activities: {
           orderBy: {
             createdAt: 'asc',

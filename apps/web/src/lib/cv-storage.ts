@@ -39,8 +39,17 @@ export async function uploadCV(
   if (provider === 'vercel-blob') {
     // Production: Use Vercel Blob
     try {
+      // NOTE (SEC-001): @vercel/blob@0.22.3 only supports access:'public' (private
+      // blobs are "planned" in this version). Access control is enforced at the
+      // application layer instead: the stored URL is NEVER returned to browsers as
+      // an access path — files are served exclusively via the authenticated
+      // /api/cv/{documentId}/download route, which authorizes the caller and streams
+      // the bytes server-side. `addRandomSuffix` makes the URL unguessable.
+      // FOLLOW-UP: upgrade @vercel/blob and switch to access:'private' for
+      // defense-in-depth (privacy at rest), then have the download route fetch via
+      // the SDK's authenticated get() instead of a plain fetch.
       const blob = await put(blobPath, file, {
-        access: 'public', // Public access - consider implementing signed URLs for enhanced security
+        access: 'public',
         addRandomSuffix: true,
         token: process.env.BLOB_READ_WRITE_TOKEN,
       })

@@ -573,10 +573,9 @@ export default async function EmployerApplicationDetailPage({
                 <CardContent>
                   <Button asChild className="w-full">
                     <a
-                      href={latestResume.sourceDocument.uri}
+                      href={`/api/cv/${latestResume.sourceDocument.id}/download`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      download={latestResume.sourceDocument.filename}
                     >
                       <Download className="mr-2 h-4 w-4" />
                       {latestResume.sourceDocument.filename || 'Stiahnuť CV'}

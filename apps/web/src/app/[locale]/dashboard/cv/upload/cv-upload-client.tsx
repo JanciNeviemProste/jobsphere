@@ -67,15 +67,16 @@ export default function CVUploadClient() {
         throw new Error('Failed to upload file')
       }
 
-      const { blobUrl, rawText } = await uploadResponse.json()
+      const { url, rawText, filename, mime, size, hash } = await uploadResponse.json()
 
-      // 2. Parse CV with Claude
+      // 2. Parse CV with Claude (forward the stored-file reference so the parse
+      // step can persist a CandidateDocument and link it to the Resume).
       setStatus('parsing')
 
       const parseResponse = await fetch('/api/cv/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rawText }),
+        body: JSON.stringify({ rawText, fileUrl: url, filename, mime, size, hash }),
       })
 
       if (!parseResponse.ok) {

@@ -176,13 +176,14 @@ export default function ApplyClient({ params }: { params: { id: string; locale: 
         throw new Error('Failed to upload CV')
       }
 
-      const { rawText } = await uploadResponse.json()
+      const { url, rawText, filename, mime, size, hash } = await uploadResponse.json()
 
-      // Then parse CV with AI
+      // Then parse CV with AI (forward the stored-file reference so the parse step
+      // can persist a CandidateDocument and link it to the Resume).
       const parseResponse = await fetch('/api/cv/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rawText }),
+        body: JSON.stringify({ rawText, fileUrl: url, filename, mime, size, hash }),
       })
 
       if (!parseResponse.ok) {

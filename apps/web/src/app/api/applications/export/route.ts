@@ -45,9 +45,10 @@ export const GET = withRateLimit(
                 take: 1,
               },
               documents: {
-                where: { type: 'CV' },
+                where: { type: 'CV', deletedAt: null },
                 orderBy: { createdAt: 'desc' },
                 take: 1,
+                select: { id: true },
               },
             },
           },
@@ -69,6 +70,11 @@ export const GET = withRateLimit(
         'Location',
       ]
 
+      // Build an absolute base URL so the CV link works when the CSV is opened
+      // outside the app. The link points at the authenticated download route
+      // (SEC-001) — never the raw storage URL.
+      const origin = new URL(req.url).origin
+
       const csvRows = applications.map((app) => {
         const contact = app.candidate.contacts?.[0]
         const cvDoc = app.candidate.documents?.[0]
@@ -80,7 +86,7 @@ export const GET = withRateLimit(
           app.job.title,
           app.stage,
           new Date(app.createdAt).toLocaleDateString(),
-          cvDoc?.uri || '',
+          cvDoc?.id ? `${origin}/api/cv/${cvDoc.id}/download` : '',
           contact?.linkedIn || '',
           contact?.github || '',
           contact?.location || '',

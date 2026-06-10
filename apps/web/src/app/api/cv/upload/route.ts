@@ -14,6 +14,7 @@ import { securityCheck } from '@/lib/antivirus'
 import { uploadCV } from '@/lib/cv-storage'
 import { CVParseException } from '@jobsphere/ai'
 import { logger } from '@/lib/logger'
+import { createHash } from 'crypto'
 
 export const POST = withCsrfProtection<NextRequest>(
   withRateLimit<NextRequest>(
@@ -54,6 +55,10 @@ export const POST = withCsrfProtection<NextRequest>(
         // 4. Get file buffer
         const arrayBuffer = await file.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
+
+        // Compute a content hash so the parse step can persist a CandidateDocument
+        // with integrity metadata (and to support dedupe by hash).
+        const fileHash = createHash('sha256').update(buffer).digest('hex')
 
         // 5. Security check (antivirus, MIME verification, size check)
         try {
@@ -114,7 +119,9 @@ export const POST = withCsrfProtection<NextRequest>(
             storageProvider: uploadResult.provider,
             rawText: parseResult.text,
             filename: file.name,
+            mime: file.type,
             size: file.size,
+            hash: fileHash,
             extractedLength: parseResult.extractedLength,
             parseMethod: parseResult.method,
             confidence: parseResult.confidence,

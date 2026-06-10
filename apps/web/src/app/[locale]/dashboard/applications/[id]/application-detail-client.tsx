@@ -246,7 +246,7 @@ export default function ApplicationDetailClient({
             </Card>
 
             {/* CV Download */}
-            {application.candidate.cvUrl && (
+            {application.candidate.documents?.[0]?.id && (
               <Card>
                 <CardHeader>
                   <CardTitle>Priložené dokumenty</CardTitle>
@@ -254,13 +254,12 @@ export default function ApplicationDetailClient({
                 <CardContent>
                   <Button variant="outline" className="w-full justify-start" asChild>
                     <a
-                      href={application.candidate.cvUrl}
+                      href={`/api/cv/${application.candidate.documents[0].id}/download`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      download
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      Stiahnuť CV
+                      {application.candidate.documents[0].filename || 'Stiahnuť CV'}
                     </a>
                   </Button>
                 </CardContent>
