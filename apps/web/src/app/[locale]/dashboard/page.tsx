@@ -37,9 +37,9 @@ async function getDashboardData() {
     },
   })
 
-  // Get recent applications
+  // Get recent applications (Candidate is org-scoped; resolve via the user link)
   const applications = await prisma.application.findMany({
-    where: { candidateId: session.user.id },
+    where: { candidate: { userId: session.user.id } },
     include: {
       job: {
         include: {
@@ -59,7 +59,7 @@ async function getDashboardData() {
   // Get first resume (since isDefault field doesn't exist)
   const resume = await prisma.resume.findFirst({
     where: {
-      candidateId: session.user.id,
+      candidate: { userId: session.user.id },
     },
     orderBy: {
       createdAt: 'desc',

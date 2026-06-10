@@ -17,10 +17,11 @@ export const GET = withRateLimit(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
 
-      // Fetch user's applications with job and organization details
+      // Fetch user's applications with job and organization details.
+      // Applications are owned via Candidate.userId (NOT candidateId == user.id).
       const applications = await prisma.application.findMany({
         where: {
-          candidateId: session.user.id,
+          candidate: { userId: session.user.id },
         },
         include: {
           job: {

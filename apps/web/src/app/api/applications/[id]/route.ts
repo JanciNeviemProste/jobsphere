@@ -45,8 +45,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ error: 'Application not found' }, { status: 404 })
     }
 
-    // Check authorization - only candidate or employer can view
-    const isCandidate = application.candidateId === session.user.id
+    // Check authorization - only candidate or employer can view.
+    // Candidate ownership is via Candidate.userId, not candidateId == user.id.
+    const isCandidate = application.candidate?.userId === session.user.id
     const isEmployer = await prisma.userOrgRole.findFirst({
       where: {
         userId: session.user.id,
@@ -187,14 +188,15 @@ export const DELETE = withCsrfProtection(
 
         const application = await prisma.application.findUnique({
           where: { id: params.id },
+          include: { candidate: { select: { userId: true } } },
         })
 
         if (!application) {
           return NextResponse.json({ error: 'Application not found' }, { status: 404 })
         }
 
-        // Only candidate can delete their own application
-        if (application.candidateId !== session.user.id) {
+        // Only the candidate who owns this application (via Candidate.userId) can withdraw it
+        if (application.candidate.userId !== session.user.id) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
         }
 

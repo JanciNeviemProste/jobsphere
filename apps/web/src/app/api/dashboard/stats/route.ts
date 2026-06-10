@@ -19,25 +19,21 @@ export const GET = withRateLimit(
 
       // Fetch user, candidate (with resume count and first resume skills),
       // and applications in parallel to avoid sequential N+1 queries
+      // Candidate is org-scoped (one per org per person); a user may have several.
+      // Resolve everything via the canonical Candidate.userId link / relation filters.
       const user = await prisma.user.findUnique({
         where: { id: session.user.id },
       })
-      const candidate = await prisma.candidate.findFirst({
-        where: { id: session.user.id },
-        include: {
-          _count: {
-            select: {
-              resumes: true,
-            },
-          },
-          resumes: {
-            select: { skills: true },
-            take: 1,
-          },
-        },
+      const resumeCount = await prisma.resume.count({
+        where: { candidate: { userId: session.user.id } },
+      })
+      const firstResume = await prisma.resume.findFirst({
+        where: { candidate: { userId: session.user.id } },
+        select: { skills: true },
+        orderBy: { createdAt: 'desc' },
       })
       const applications = await prisma.application.findMany({
-        where: { candidateId: session.user.id },
+        where: { candidate: { userId: session.user.id } },
         select: { stage: true },
       })
 
@@ -66,13 +62,13 @@ export const GET = withRateLimit(
       }
 
       // Check CV uploaded
-      if (candidate?._count.resumes && candidate._count.resumes > 0) {
+      if (resumeCount > 0) {
         profileSteps.cvUploaded = true
         profileCompletion += 25
       }
 
-      // Check skills (already fetched via include above)
-      const resume = candidate?.resumes?.[0] ?? null
+      // Check skills (most recent resume across the user's candidates)
+      const resume = firstResume
 
       if (resume?.skills && resume.skills.length > 0) {
         profileSteps.skills = true

@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
+import { getOrCreateCandidateForUser } from '@/lib/identity'
 import { z } from 'zod'
 
 const stageEnum = z
@@ -124,46 +125,19 @@ export const POST = withCsrfProtection(
           )
         }
 
-        // Find or create a Candidate record for this user within the job's org.
-        // Matching is done by the user's email via CandidateContact.
-        const user = await prisma.user.findUnique({
-          where: { id: session.user.id },
-          select: { email: true, name: true },
-        })
-        if (!user?.email) {
+        // Find or create the org-scoped Candidate for this user, linking it to
+        // the User account (Candidate.userId) so candidate self-service flows work.
+        let candidateId: string
+        try {
+          const candidate = await getOrCreateCandidateForUser(session.user.id, job.orgId)
+          candidateId = candidate.id
+        } catch (resolveError) {
+          logger.error('Failed to resolve candidate for application', resolveError)
           return NextResponse.json(
             { error: 'User account is missing an email address' },
             { status: 400 },
           )
         }
-
-        const candidateId = await prisma.$transaction(async (tx) => {
-          const existingContact = await tx.candidateContact.findFirst({
-            where: {
-              email: user.email,
-              candidate: { orgId: job.orgId, deletedAt: null },
-            },
-            select: { candidateId: true },
-          })
-
-          if (existingContact?.candidateId) return existingContact.candidateId
-
-          const created = await tx.candidate.create({
-            data: {
-              orgId: job.orgId,
-              source: 'WEBSITE',
-              contacts: {
-                create: {
-                  fullName: user.name || session.user.name || null,
-                  email: user.email,
-                  isPrimary: true,
-                },
-              },
-            },
-            select: { id: true },
-          })
-          return created.id
-        })
 
         // Check if already applied
         const existingApplication = await prisma.application.findFirst({

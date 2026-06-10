@@ -62,11 +62,12 @@ export const POST = withCsrfProtection<NextRequest>(
           return NextResponse.json({ error: 'Assessment not found' }, { status: 404 })
         }
 
-        // Find assessment invite for this assessment linked to the authenticated user
+        // Find assessment invite for this assessment linked to the authenticated user.
+        // Ownership is resolved via Candidate.userId, not candidateId == user.id.
         const invite = await prisma.assessmentInvite.findFirst({
           where: {
             assessmentId: params.id,
-            candidateId: session.user.id,
+            candidate: { userId: session.user.id },
           },
           select: {
             id: true,

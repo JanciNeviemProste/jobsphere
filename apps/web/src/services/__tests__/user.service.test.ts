@@ -17,7 +17,7 @@ vi.mock('@/lib/prisma', () => ({
       delete: vi.fn(),
       count: vi.fn(),
     },
-    orgMember: {
+    userOrgRole: {
       create: vi.fn(),
       deleteMany: vi.fn(),
     },
@@ -116,7 +116,7 @@ describe('UserService', () => {
       vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
         const tx = {
           user: { create: vi.fn().mockResolvedValue(mockUser) },
-          orgMember: { create: vi.fn().mockResolvedValue({}) },
+          userOrgRole: { create: vi.fn().mockResolvedValue({}) },
         }
         return callback(tx as any)
       })
@@ -488,7 +488,7 @@ describe('UserService', () => {
       vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
         const tx = {
           session: { deleteMany: vi.fn() },
-          orgMember: { deleteMany: vi.fn() },
+          userOrgRole: { deleteMany: vi.fn() },
           user: { delete: vi.fn() },
         }
         return callback(tx as any)

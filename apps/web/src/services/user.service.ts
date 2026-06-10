@@ -72,7 +72,7 @@ export class UserService {
 
       // If orgId provided, add to organization
       if (input.orgId) {
-        await (tx as any).orgMember.create({
+        await tx.userOrgRole.create({
           data: {
             userId: newUser.id,
             orgId: input.orgId,
@@ -291,7 +291,7 @@ export class UserService {
       })
 
       // Delete org memberships
-      await (tx as any).orgMember.deleteMany({
+      await tx.userOrgRole.deleteMany({
         where: { userId },
       })
 

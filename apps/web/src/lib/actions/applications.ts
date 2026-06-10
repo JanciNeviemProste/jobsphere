@@ -4,7 +4,17 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { logger } from '@/lib/logger'
+import { z } from 'zod'
+import { getOrCreateCandidateForUser } from '@/lib/identity'
 import type { Application, ApplicationActivity, EmailStep } from '@prisma/client'
+
+const createApplicationSchema = z.object({
+  jobId: z.string().cuid(),
+  coverLetter: z.string().max(5000),
+  cvUrl: z.string().optional(),
+  expectedSalary: z.string().optional(),
+  availableFrom: z.string().optional(),
+})
 
 export async function createApplication(formData: {
   jobId: string
@@ -19,11 +29,25 @@ export async function createApplication(formData: {
     throw new Error('Unauthorized')
   }
 
+  const { jobId, coverLetter } = createApplicationSchema.parse(formData)
+
+  // Look up the job to obtain its org so we can resolve the correct Candidate.
+  const job = await prisma.job.findUnique({
+    where: { id: jobId },
+    select: { orgId: true },
+  })
+  if (!job) {
+    throw new Error('Job not found')
+  }
+
+  // Resolve the org-scoped Candidate for this user (creating/linking as needed).
+  const candidate = await getOrCreateCandidateForUser(session.user.id, job.orgId)
+
   // Check if already applied
   const existingApplication = await prisma.application.findFirst({
     where: {
-      jobId: formData.jobId,
-      candidateId: session.user.id,
+      jobId,
+      candidateId: candidate.id,
     },
   })
 
@@ -33,14 +57,11 @@ export async function createApplication(formData: {
 
   const application = await prisma.application.create({
     data: {
-      jobId: formData.jobId,
-      candidateId: session.user.id,
-      coverLetter: formData.coverLetter,
+      jobId,
+      candidateId: candidate.id,
+      coverLetter,
       stage: 'NEW',
-      orgId: (await prisma.job.findUnique({
-        where: { id: formData.jobId },
-        select: { orgId: true },
-      }))!.orgId,
+      orgId: job.orgId,
     },
   })
 
@@ -201,14 +222,15 @@ export async function deleteApplication(applicationId: string): Promise<{ succes
 
   const application = await prisma.application.findUnique({
     where: { id: applicationId },
+    include: { candidate: { select: { userId: true } } },
   })
 
   if (!application) {
     throw new Error('Application not found')
   }
 
-  // Only candidate can delete their own application
-  if (application.candidateId !== session.user.id) {
+  // Only the candidate who owns this application (via Candidate.userId) can delete it
+  if (application.candidate.userId !== session.user.id) {
     throw new Error('Forbidden')
   }
 
