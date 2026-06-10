@@ -49,6 +49,20 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      # Workspace packages (e.g. @jobsphere/ai) emit their dist/ via tsup and are
+      # gitignored, so a fresh CI checkout has no build output. apps/web resolves
+      # @jobsphere/ai types from ./dist/index.d.ts — build packages BEFORE any
+      # typecheck/test/build step or every consumer fails to resolve them (QA-001).
+      - name: Build workspace packages
+        run: npx turbo run build --filter='./packages/*'
+
+      # Generate the Prisma client so tsc/vitest can resolve @prisma/client types
+      # independently of the later build step (which also generates it).
+      - name: Generate Prisma client
+        run: |
+          cd apps/web
+          yarn db:generate
+
       - name: Type check
         run: |
           cd apps/web
@@ -127,6 +141,11 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
+
+      # Same reason as quality-checks: the Playwright webServer builds apps/web,
+      # which imports @jobsphere/ai — build the gitignored package dist first.
+      - name: Build workspace packages
+        run: npx turbo run build --filter='./packages/*'
 
       - name: Install Playwright
         run: |
