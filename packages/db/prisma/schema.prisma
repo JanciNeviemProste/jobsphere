@@ -89,6 +89,7 @@ model User {
   savedJobs        SavedJob[]
   consents         ConsentRecord[]
   dsarRequests     DSARRequest[]
+  candidates       Candidate[]      @relation("UserCandidates")
 
   @@index([email])
   @@index([deletedAt])
@@ -247,6 +248,11 @@ model Candidate {
   id        String   @id @default(cuid())
   orgId     String
 
+  // Canonical link to the User account of the job-seeker this candidate represents.
+  // Nullable: recruiter-imported candidates have no user account. Used by the Stream A
+  // identity resolver to power "my applications", withdraw, assessment submit, GDPR export.
+  userId    String?
+
   // Source
   source    String?  // MANUAL, IMPORT, API, WEBSITE
   sourceId  String?
@@ -264,6 +270,7 @@ model Candidate {
 
   // Relations
   organization  Organization       @relation(fields: [orgId], references: [id])
+  user          User?              @relation("UserCandidates", fields: [userId], references: [id], onDelete: SetNull)
   contacts      CandidateContact[]
   documents     CandidateDocument[]
   resumes       Resume[]
@@ -272,8 +279,10 @@ model Candidate {
   invites       AssessmentInvite[]
   attempts      Attempt[]
   sequenceRuns  EmailSequenceRun[]
+  consents      ConsentRecord[]
 
   @@index([orgId])
+  @@index([userId])
   @@index([duplicateOf])
   @@index([deletedAt])
 }
@@ -1297,7 +1306,8 @@ model ConsentRecord {
   grantedAt   DateTime @default(now())
   revokedAt   DateTime?
   expiresAt   DateTime?
-  user        User?    @relation(fields: [userId], references: [id])
+  user        User?      @relation(fields: [userId], references: [id])
+  candidate   Candidate? @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
   @@index([userId, consentType])
   @@index([candidateId, consentType])
