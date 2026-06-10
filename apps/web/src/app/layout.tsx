@@ -1,24 +1,19 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import '@/styles/globals.css'
-
-const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'JobSphere',
   description: 'AI-Powered Applicant Tracking System',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        {children}
-      </body>
-    </html>
-  )
+/**
+ * Root layout — intentionally does NOT render <html>/<body>.
+ * The [locale]/layout.tsx nested layout owns the full document structure
+ * (including <html lang={locale}>) so the document lang is always set to
+ * the active locale rather than a hardcoded "en".
+ * Next.js 14 supports this pattern when a nested layout provides the
+ * html/body elements.
+ */
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return <>{children}</>
 }

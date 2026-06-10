@@ -127,6 +127,16 @@ export function CVUploadZone({ onCVParsed, onManualClick }: CVUploadZoneProps) {
     fileInputRef.current?.click()
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      handleClick()
+    }
+  }
+
+  const inputId = 'cv-file-upload'
+  const isDisabled = status === 'uploading' || status === 'parsing'
+
   return (
     <Card className="mb-8">
       <CardContent className="pt-6">
@@ -136,25 +146,33 @@ export function CVUploadZone({ onCVParsed, onManualClick }: CVUploadZoneProps) {
           <p className="text-muted-foreground">{t('subtitle')}</p>
         </div>
 
-        {/* Upload Area */}
-        <div
+        {/* Upload Area — keyboard + screen-reader operable */}
+        <label
+          htmlFor={inputId}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          onClick={handleClick}
-          className={`cursor-pointer rounded-lg border-2 border-dashed p-12 text-center transition-all ${
+          role="button"
+          tabIndex={isDisabled ? -1 : 0}
+          aria-disabled={isDisabled}
+          aria-label={t('dragDrop')}
+          onKeyDown={handleKeyDown}
+          className={`block cursor-pointer rounded-lg border-2 border-dashed p-12 text-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
             isDragging
               ? 'scale-[1.02] border-primary bg-primary/5'
               : 'border-gray-300 hover:border-primary hover:bg-muted/50'
-          } ${status === 'uploading' || status === 'parsing' ? 'pointer-events-none opacity-60' : ''}`}
+          } ${isDisabled ? 'pointer-events-none opacity-60' : ''}`}
         >
           <input
             ref={fileInputRef}
+            id={inputId}
             type="file"
-            className="hidden"
+            className="sr-only"
             accept=".pdf,.doc,.docx,.txt"
             onChange={handleFileChange}
-            disabled={status === 'uploading' || status === 'parsing'}
+            disabled={isDisabled}
+            aria-hidden="true"
+            tabIndex={-1}
           />
 
           {/* Icon */}
@@ -175,12 +193,16 @@ export function CVUploadZone({ onCVParsed, onManualClick }: CVUploadZoneProps) {
             {status === 'error' && t('error')}
           </p>
           <p className="text-sm text-gray-500">{t('supportedFormats')}</p>
-        </div>
+        </label>
 
-        {/* Error Message */}
+        {/* Error Message — announced immediately to screen readers */}
         {error && (
-          <div className="mt-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
-            <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mt-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4"
+          >
+            <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" aria-hidden="true" />
             <div className="flex-1 whitespace-pre-line text-sm text-red-800">{error}</div>
           </div>
         )}

@@ -126,8 +126,12 @@ export default function ForgotPasswordClient({ params }: { params: { locale: str
                   />
                 </div>
                 {errors.email && (
-                  <p className="flex items-center gap-1 text-sm text-destructive">
-                    <AlertCircle className="h-3 w-3" />
+                  <p
+                    role="alert"
+                    aria-live="assertive"
+                    className="flex items-center gap-1 text-sm text-destructive"
+                  >
+                    <AlertCircle className="h-3 w-3" aria-hidden="true" />
                     {errors.email.message}
                   </p>
                 )}

@@ -185,8 +185,12 @@ export default function ResetPasswordClient({ params }: { params: { locale: stri
                 </button>
               </div>
               {errors.password && (
-                <p className="flex items-start gap-1 text-sm text-destructive">
-                  <AlertCircle className="mt-0.5 h-3 w-3 flex-shrink-0" />
+                <p
+                  role="alert"
+                  aria-live="assertive"
+                  className="flex items-start gap-1 text-sm text-destructive"
+                >
+                  <AlertCircle className="mt-0.5 h-3 w-3 flex-shrink-0" aria-hidden="true" />
                   <span>{errors.password.message}</span>
                 </p>
               )}
@@ -216,8 +220,12 @@ export default function ResetPasswordClient({ params }: { params: { locale: stri
                 </button>
               </div>
               {errors.confirmPassword && (
-                <p className="flex items-center gap-1 text-sm text-destructive">
-                  <AlertCircle className="h-3 w-3" />
+                <p
+                  role="alert"
+                  aria-live="assertive"
+                  className="flex items-center gap-1 text-sm text-destructive"
+                >
+                  <AlertCircle className="h-3 w-3" aria-hidden="true" />
                   {errors.confirmPassword.message}
                 </p>
               )}

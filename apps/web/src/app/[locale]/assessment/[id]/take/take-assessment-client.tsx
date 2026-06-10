@@ -41,6 +41,9 @@ export default function TakeAssessmentClient({ params }: { params: { id: string 
   const [timeRemaining, setTimeRemaining] = useState(0)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  // Tracks the last minute boundary at which we announced remaining time to
+  // screen readers (polite live region fires at whole-minute intervals only).
+  const [announcedMinute, setAnnouncedMinute] = useState<number | null>(null)
 
   const timerRef = useRef<NodeJS.Timeout>()
 
@@ -60,7 +63,14 @@ export default function TakeAssessmentClient({ params }: { params: { id: string 
           handleSubmit()
           return 0
         }
-        return prev - 1
+        const next = prev - 1
+        // Announce remaining time once per whole minute so screen readers
+        // get periodic updates without firing on every second.
+        const nextMinute = Math.floor(next / 60)
+        setAnnouncedMinute((prevAnnounced) =>
+          prevAnnounced !== nextMinute ? nextMinute : prevAnnounced,
+        )
+        return next
       })
     }, 1000)
 
@@ -163,14 +173,24 @@ export default function TakeAssessmentClient({ params }: { params: { id: string 
               </p>
             </div>
 
-            {/* Timer */}
+            {/* Timer — accessible with role="timer", aria-label, and a polite
+                live region that announces remaining time once per minute. */}
             <div
+              role="timer"
+              aria-label={`Time remaining: ${formatTime(timeRemaining)}`}
               className={`flex items-center gap-2 rounded-lg px-4 py-2 font-mono font-bold ${
                 timeRemaining < 300 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-900'
               }`}
             >
-              <Clock className="h-5 w-5" />
-              {formatTime(timeRemaining)}
+              <Clock className="h-5 w-5" aria-hidden="true" />
+              {/* Visible display — not announced on every tick */}
+              <span aria-hidden="true">{formatTime(timeRemaining)}</span>
+              {/* Hidden live region fires once per minute via announcedMinute state */}
+              <span className="sr-only" aria-live="polite" aria-atomic="true">
+                {announcedMinute !== null
+                  ? `${announcedMinute} minute${announcedMinute !== 1 ? 's' : ''} remaining`
+                  : ''}
+              </span>
             </div>
           </div>
 
@@ -284,10 +304,14 @@ export default function TakeAssessmentClient({ params }: { params: { id: string 
           )}
         </div>
 
-        {/* Warning */}
+        {/* Warning — role="alert" so screen readers announce it immediately
+            when the threshold is first crossed (less than 5 minutes). */}
         {timeRemaining < 300 && (
-          <div className="mt-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
-            <AlertCircle className="mt-0.5 h-5 w-5 text-red-600" />
+          <div
+            role="alert"
+            className="mt-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4"
+          >
+            <AlertCircle className="mt-0.5 h-5 w-5 text-red-600" aria-hidden="true" />
             <div>
               <p className="font-medium text-red-800">Time is running out!</p>
               <p className="text-sm text-red-700">
