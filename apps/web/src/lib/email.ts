@@ -43,9 +43,10 @@ function validateEmailHeaders(data: Pick<EmailData, 'to' | 'subject'>): void {
 }
 
 /**
- * Escape HTML special characters to prevent XSS in HTML email content
+ * Escape HTML special characters to prevent XSS in HTML email content.
+ * Exported for unit testing; prefer using the template helpers instead of calling directly.
  */
-function escapeHtml(str: string): string {
+export function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -182,6 +183,9 @@ export async function sendApplicationNotification(params: {
   recipientEmail: string
 }): Promise<EmailResult> {
   const { candidateName, jobTitle, companyName, recipientEmail } = params
+  const safeCandidateName = escapeHtml(candidateName)
+  const safeJobTitle = escapeHtml(jobTitle)
+  const safeCompanyName = escapeHtml(companyName)
 
   return sendEmail({
     to: recipientEmail,
@@ -189,10 +193,10 @@ export async function sendApplicationNotification(params: {
     html: `
       <div>
         <h1>Application Received</h1>
-        <p>Dear ${candidateName},</p>
-        <p>Thank you for applying to <strong>${jobTitle}</strong> at <strong>${companyName}</strong>.</p>
+        <p>Dear ${safeCandidateName},</p>
+        <p>Thank you for applying to <strong>${safeJobTitle}</strong> at <strong>${safeCompanyName}</strong>.</p>
         <p>We have received your application and will review it shortly.</p>
-        <p>Best regards,<br>The ${companyName} Team</p>
+        <p>Best regards,<br>The ${safeCompanyName} Team</p>
       </div>
     `,
   })
@@ -208,6 +212,9 @@ export async function sendStatusChangeEmail(params: {
   recipientEmail: string
 }): Promise<EmailResult> {
   const { candidateName, jobTitle, newStatus, recipientEmail } = params
+  const safeCandidateName = escapeHtml(candidateName)
+  const safeJobTitle = escapeHtml(jobTitle)
+  const safeNewStatus = escapeHtml(newStatus)
 
   return sendEmail({
     to: recipientEmail,
@@ -215,9 +222,9 @@ export async function sendStatusChangeEmail(params: {
     html: `
       <div>
         <h1>Application Update</h1>
-        <p>Dear ${candidateName},</p>
-        <p>Your application for <strong>${jobTitle}</strong> has been updated.</p>
-        <p>New status: <strong>${newStatus}</strong></p>
+        <p>Dear ${safeCandidateName},</p>
+        <p>Your application for <strong>${safeJobTitle}</strong> has been updated.</p>
+        <p>New status: <strong>${safeNewStatus}</strong></p>
         <p>Best regards,<br>The JobSphere Team</p>
       </div>
     `,
@@ -233,6 +240,9 @@ export function getApplicationReceivedEmail(
   jobTitle: string,
   companyName: string,
 ): string {
+  const safeCandidateName = escapeHtml(candidateName)
+  const safeJobTitle = escapeHtml(jobTitle)
+  const safeCompanyName = escapeHtml(companyName)
   return `
     <!DOCTYPE html>
     <html>
@@ -253,8 +263,8 @@ export function getApplicationReceivedEmail(
             <h1>Application Received</h1>
           </div>
           <div class="content">
-            <p>Hi ${candidateName},</p>
-            <p>Thank you for applying to <strong>${jobTitle}</strong> at <strong>${companyName}</strong>.</p>
+            <p>Hi ${safeCandidateName},</p>
+            <p>Thank you for applying to <strong>${safeJobTitle}</strong> at <strong>${safeCompanyName}</strong>.</p>
             <p>We have received your application and our team will review it shortly. You will hear from us within 5 business days.</p>
             <p>In the meantime, you can track your application status in your dashboard:</p>
             <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard" class="button">View Application</a>
@@ -276,6 +286,11 @@ export function getNewApplicationEmail(
   jobTitle: string,
   applicationId: string,
 ): string {
+  const safeEmployerName = escapeHtml(employerName)
+  const safeCandidateName = escapeHtml(candidateName)
+  const safeJobTitle = escapeHtml(jobTitle)
+  // applicationId is an internal UUID — escape defensively
+  const safeApplicationId = escapeHtml(applicationId)
   return `
     <!DOCTYPE html>
     <html>
@@ -296,11 +311,11 @@ export function getNewApplicationEmail(
             <h1>New Application Received</h1>
           </div>
           <div class="content">
-            <p>Hi ${employerName},</p>
-            <p>You have received a new application for <strong>${jobTitle}</strong>.</p>
-            <p><strong>Candidate:</strong> ${candidateName}</p>
+            <p>Hi ${safeEmployerName},</p>
+            <p>You have received a new application for <strong>${safeJobTitle}</strong>.</p>
+            <p><strong>Candidate:</strong> ${safeCandidateName}</p>
             <p>Review the application and respond to the candidate:</p>
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/employer/applicants/${applicationId}" class="button">Review Application</a>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL}/employer/applicants/${safeApplicationId}" class="button">Review Application</a>
             <p>Best regards,<br>The JobSphere Team</p>
           </div>
           <div class="footer">
@@ -326,6 +341,14 @@ export function getApplicationStatusChangeEmail(
       'Unfortunately, we have decided not to move forward with your application at this time.',
   }
 
+  const safeCandidateName = escapeHtml(candidateName)
+  const safeJobTitle = escapeHtml(jobTitle)
+  const safeStatus = escapeHtml(status)
+  // applicationId is an internal UUID — escape defensively
+  const safeApplicationId = escapeHtml(applicationId)
+  // statusMessages values are hardcoded strings — no escaping needed
+  const statusMessage = statusMessages[status] || 'Your application status has changed.'
+
   return `
     <!DOCTYPE html>
     <html>
@@ -346,11 +369,11 @@ export function getApplicationStatusChangeEmail(
             <h1>Application Status Update</h1>
           </div>
           <div class="content">
-            <p>Hi ${candidateName},</p>
-            <p>Your application for <strong>${jobTitle}</strong> has been updated.</p>
-            <p><strong>Status:</strong> ${status}</p>
-            <p>${statusMessages[status] || 'Your application status has changed.'}</p>
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/applications/${applicationId}" class="button">View Application</a>
+            <p>Hi ${safeCandidateName},</p>
+            <p>Your application for <strong>${safeJobTitle}</strong> has been updated.</p>
+            <p><strong>Status:</strong> ${safeStatus}</p>
+            <p>${statusMessage}</p>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/applications/${safeApplicationId}" class="button">View Application</a>
             <p>Best regards,<br>The JobSphere Team</p>
           </div>
           <div class="footer">

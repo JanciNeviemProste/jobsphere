@@ -14,11 +14,16 @@ const nextConfig = {
   },
 
   async headers() {
-    // Allow unsafe-eval in dev for Next.js HMR
+    // These static headers are applied to all paths (including API routes and
+    // _next/static assets) that do NOT go through middleware.  For page routes,
+    // middleware overwrites the CSP with a per-request nonce-based policy.
+    //
+    // In production we omit 'unsafe-inline' — API routes and static files never
+    // need to execute inline scripts, so 'strict-dynamic' is sufficient there.
     const isDev = process.env.NODE_ENV === 'development'
     const scriptSrc = isDev
       ? "'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://browser.sentry-cdn.com https://js.sentry-cdn.com https://accounts.google.com https://vercel.live"
-      : "'self' 'unsafe-inline' https://js.stripe.com https://browser.sentry-cdn.com https://js.sentry-cdn.com https://accounts.google.com https://vercel.live"
+      : "'self' 'strict-dynamic' https://js.stripe.com https://browser.sentry-cdn.com https://js.sentry-cdn.com https://accounts.google.com https://vercel.live"
 
     return [
       {

@@ -9,6 +9,17 @@ const intlMiddleware = createMiddleware({
   localeDetection: true,
 })
 
+/**
+ * Generate a cryptographically random nonce for Content-Security-Policy.
+ * Uses the Web Crypto API which is available in the Edge runtime and Node.js 16+.
+ */
+function generateNonce(): string {
+  const array = new Uint8Array(16)
+  crypto.getRandomValues(array)
+  // btoa is available in Edge; for Node.js environments Buffer works too
+  return Buffer.from(array).toString('base64')
+}
+
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -32,8 +43,21 @@ export default async function middleware(request: NextRequest) {
     }
   }
 
-  // Apply internationalization middleware
-  const response = intlMiddleware(request)
+  // Generate a per-request nonce for CSP.
+  // Next.js 14 App Router reads the `x-nonce` request header and automatically
+  // injects it into its own bootstrap <script> tags when a CSP with a nonce is
+  // present on the response — see https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
+  const nonce = generateNonce()
+
+  // Inject the nonce into the request so Server Components can read it via
+  // `headers().get('x-nonce')` and pass it to any <Script nonce={nonce}> elements.
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-nonce', nonce)
+
+  // Apply internationalization middleware with the mutated request headers
+  const response = intlMiddleware(
+    new NextRequest(request.url, { headers: requestHeaders, method: request.method }),
+  )
 
   // Security headers
   response.headers.set('X-Frame-Options', 'DENY')
@@ -49,11 +73,17 @@ export default async function middleware(request: NextRequest) {
     )
   }
 
-  // Content Security Policy - allow unsafe-eval in dev for Next.js HMR
+  // Content Security Policy
+  // - Development: permissive script-src so Next.js HMR / fast-refresh work.
+  // - Production: nonce-based script-src with 'strict-dynamic'.
+  //   'unsafe-inline' is intentionally OMITTED in production — browsers that
+  //   understand nonces/strict-dynamic will ignore it anyway, so there is no
+  //   need to include it.  Older browsers that don't support nonces would fall
+  //   back to 'unsafe-inline', but we explicitly do not want that fallback.
   const isDev = process.env.NODE_ENV === 'development'
   const scriptSrc = isDev
     ? "'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://browser.sentry-cdn.com https://js.sentry-cdn.com https://accounts.google.com https://vercel.live"
-    : "'self' 'unsafe-inline' https://js.stripe.com https://browser.sentry-cdn.com https://js.sentry-cdn.com https://accounts.google.com https://vercel.live"
+    : `'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://browser.sentry-cdn.com https://js.sentry-cdn.com https://accounts.google.com https://vercel.live`
 
   const csp = [
     "default-src 'self'",

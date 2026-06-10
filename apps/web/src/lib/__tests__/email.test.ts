@@ -4,7 +4,15 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { sendEmail, sendApplicationNotification, sendStatusChangeEmail } from '../email'
+import {
+  sendEmail,
+  sendApplicationNotification,
+  sendStatusChangeEmail,
+  escapeHtml,
+  getApplicationReceivedEmail,
+  getNewApplicationEmail,
+  getApplicationStatusChangeEmail,
+} from '../email'
 
 // Mock Resend
 vi.mock('resend', () => ({
@@ -45,7 +53,7 @@ describe('Email Service', () => {
         () =>
           ({
             emails: { send: mockSend },
-          }) as any
+          }) as any,
       )
 
       await sendEmail({
@@ -103,7 +111,7 @@ describe('Email Service', () => {
         expect.objectContaining({
           to: 'dev@example.com',
           subject: 'Dev Email',
-        })
+        }),
       )
 
       process.env.EMAIL_SERVICE = 'resend'
@@ -117,7 +125,7 @@ describe('Email Service', () => {
           to: 'test@example.com',
           subject: 'Test',
           html: '<p>Test</p>',
-        })
+        }),
       ).rejects.toThrow()
 
       process.env.EMAIL_SERVICE = 'resend'
@@ -133,7 +141,7 @@ describe('Email Service', () => {
         () =>
           ({
             emails: { send: mockSend },
-          }) as any
+          }) as any,
       )
 
       await sendApplicationNotification({
@@ -147,7 +155,7 @@ describe('Email Service', () => {
         expect.objectContaining({
           subject: expect.stringContaining('Application Received'),
           html: expect.stringContaining('John Doe'),
-        })
+        }),
       )
     })
 
@@ -159,7 +167,7 @@ describe('Email Service', () => {
         () =>
           ({
             emails: { send: mockSend },
-          }) as any
+          }) as any,
       )
 
       await sendStatusChangeEmail({
@@ -173,7 +181,7 @@ describe('Email Service', () => {
         expect.objectContaining({
           subject: expect.stringContaining('Application Update'),
           html: expect.stringContaining('Interview Scheduled'),
-        })
+        }),
       )
     })
 
@@ -185,7 +193,7 @@ describe('Email Service', () => {
         () =>
           ({
             emails: { send: mockSend },
-          }) as any
+          }) as any,
       )
 
       await sendEmail({
@@ -202,7 +210,7 @@ describe('Email Service', () => {
         expect.objectContaining({
           subject: 'Hello Alice',
           html: '<p>Welcome Alice to JobSphere</p>',
-        })
+        }),
       )
     })
 
@@ -214,7 +222,7 @@ describe('Email Service', () => {
         () =>
           ({
             emails: { send: mockSend },
-          }) as any
+          }) as any,
       )
 
       await sendEmail({
@@ -227,7 +235,7 @@ describe('Email Service', () => {
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
           html: expect.stringContaining('unsubscribe'),
-        })
+        }),
       )
     })
   })
@@ -244,7 +252,7 @@ describe('Email Service', () => {
         () =>
           ({
             emails: { send: mockSend },
-          }) as any
+          }) as any,
       )
 
       await sendEmail({
@@ -265,7 +273,7 @@ describe('Email Service', () => {
         () =>
           ({
             emails: { send: mockSend },
-          }) as any
+          }) as any,
       )
 
       const logger = await import('../logger')
@@ -276,12 +284,12 @@ describe('Email Service', () => {
           subject: 'Fail',
           html: '<p>Fail</p>',
           retryAttempts: 0,
-        })
+        }),
       ).rejects.toThrow()
 
       expect(logger.logger.error).toHaveBeenCalledWith(
         expect.stringContaining('Failed to send email'),
-        expect.any(Object)
+        expect.any(Object),
       )
     })
 
@@ -293,7 +301,7 @@ describe('Email Service', () => {
         () =>
           ({
             emails: { send: mockSend },
-          }) as any
+          }) as any,
       )
 
       const result = await sendEmail({
@@ -314,7 +322,7 @@ describe('Email Service', () => {
         () =>
           ({
             emails: { send: mockSend },
-          }) as any
+          }) as any,
       )
 
       const result = await sendEmail({
@@ -327,6 +335,100 @@ describe('Email Service', () => {
     })
   })
 
+  describe('HTML Escaping (SEC-003)', () => {
+    describe('escapeHtml helper', () => {
+      it('escapes ampersands', () => {
+        expect(escapeHtml('H&M')).toBe('H&amp;M')
+      })
+
+      it('escapes less-than and greater-than', () => {
+        expect(escapeHtml('<script>alert(1)</script>')).toBe(
+          '&lt;script&gt;alert(1)&lt;/script&gt;',
+        )
+      })
+
+      it('escapes double quotes', () => {
+        expect(escapeHtml('"quoted"')).toBe('&quot;quoted&quot;')
+      })
+
+      it('escapes single quotes', () => {
+        expect(escapeHtml("it's")).toBe('it&#x27;s')
+      })
+
+      it('returns plain strings unchanged', () => {
+        expect(escapeHtml('John Doe')).toBe('John Doe')
+      })
+
+      it('handles empty string', () => {
+        expect(escapeHtml('')).toBe('')
+      })
+    })
+
+    it('escapes malicious candidateName in getApplicationReceivedEmail', () => {
+      const html = getApplicationReceivedEmail('<img src=x onerror=alert(1)>', 'Engineer', 'ACME')
+      expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;')
+      expect(html).not.toContain('<img src=x')
+    })
+
+    it('escapes malicious employerName in getNewApplicationEmail', () => {
+      const html = getNewApplicationEmail(
+        '<script>steal()</script>',
+        'Alice',
+        'Developer',
+        'app-id-123',
+      )
+      expect(html).toContain('&lt;script&gt;steal()&lt;/script&gt;')
+      expect(html).not.toContain('<script>')
+    })
+
+    it('escapes malicious candidateName in getApplicationStatusChangeEmail', () => {
+      const html = getApplicationStatusChangeEmail(
+        '"><svg/onload=alert(1)>',
+        'Software Engineer',
+        'REVIEWING',
+        'app-id-456',
+      )
+      expect(html).toContain('&quot;&gt;&lt;svg/onload=alert(1)&gt;')
+      expect(html).not.toContain('<svg')
+    })
+
+    it('escapes malicious companyName in sendApplicationNotification', async () => {
+      const { Resend } = await import('resend')
+      const mockSend = vi.fn().mockResolvedValueOnce({ id: 'xss1' })
+      vi.mocked(Resend).mockImplementation(() => ({ emails: { send: mockSend } }) as any)
+      process.env.EMAIL_SERVICE = 'resend'
+
+      await sendApplicationNotification({
+        candidateName: 'Alice',
+        jobTitle: 'Dev',
+        companyName: '<b onmouseover=alert(1)>CorpName</b>',
+        recipientEmail: 'alice@example.com',
+      })
+
+      const callArg = mockSend.mock.calls[0][0]
+      expect(callArg.html).toContain('&lt;b onmouseover=alert(1)&gt;CorpName&lt;/b&gt;')
+      expect(callArg.html).not.toContain('<b onmouseover')
+    })
+
+    it('escapes malicious newStatus in sendStatusChangeEmail', async () => {
+      const { Resend } = await import('resend')
+      const mockSend = vi.fn().mockResolvedValueOnce({ id: 'xss2' })
+      vi.mocked(Resend).mockImplementation(() => ({ emails: { send: mockSend } }) as any)
+      process.env.EMAIL_SERVICE = 'resend'
+
+      await sendStatusChangeEmail({
+        candidateName: 'Bob',
+        jobTitle: 'Manager',
+        newStatus: '<script>phish()</script>',
+        recipientEmail: 'bob@example.com',
+      })
+
+      const callArg = mockSend.mock.calls[0][0]
+      expect(callArg.html).toContain('&lt;script&gt;phish()&lt;/script&gt;')
+      expect(callArg.html).not.toContain('<script>')
+    })
+  })
+
   describe('Rate Limiting', () => {
     it('should respect rate limits', async () => {
       const { Resend } = await import('resend')
@@ -336,7 +438,7 @@ describe('Email Service', () => {
         () =>
           ({
             emails: { send: mockSend },
-          }) as any
+          }) as any,
       )
 
       // Send multiple emails rapidly
@@ -370,7 +472,7 @@ describe('Email Service', () => {
         () =>
           ({
             emails: { send: mockSend },
-          }) as any
+          }) as any,
       )
 
       // Send 100 emails (exceeds rate limit)
@@ -382,7 +484,7 @@ describe('Email Service', () => {
             subject: `Test ${i}`,
             html: `<p>${i}</p>`,
             useQueue: true,
-          })
+          }),
         )
       }
 
@@ -405,7 +507,7 @@ describe('Email Service', () => {
         () =>
           ({
             emails: { send: mockSend },
-          }) as any
+          }) as any,
       )
 
       // Queue emails in order
