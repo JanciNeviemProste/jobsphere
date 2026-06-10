@@ -64,6 +64,7 @@ export const getAssessmentQueue = () => getOrCreateQueue('assessments', { priori
 export const getMatchScoreCacheQueue = () => getOrCreateQueue('match-score-cache', { priority: 3 })
 export const getAssessmentReminderQueue = () =>
   getOrCreateQueue('assessment-reminder', { priority: 2 })
+export const getRetentionQueue = () => getOrCreateQueue('retention', { priority: 3 })
 
 // Back-compat named exports used by workers. These are Proxies that lazy-instantiate
 // on first property access (so merely importing the symbol is free).
@@ -83,6 +84,7 @@ export const embeddingQueue = lazyProxy(getEmbeddingQueue)
 export const assessmentQueue = lazyProxy(getAssessmentQueue)
 export const matchScoreCacheQueue = lazyProxy(getMatchScoreCacheQueue)
 export const assessmentReminderQueue = lazyProxy(getAssessmentReminderQueue)
+export const retentionQueue = lazyProxy(getRetentionQueue)
 
 export interface EmailSequenceJobData {
   enrollmentId: string

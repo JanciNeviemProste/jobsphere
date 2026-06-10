@@ -8,8 +8,26 @@ import { connection, emailSequenceQueue, EmailSequenceJobData } from '@/lib/queu
 import { prisma } from '@/lib/db'
 import { logger } from '@/lib/logger'
 import { sendEmail } from '@/lib/email'
+import { runEmailSequenceJob } from '@/lib/cron'
 
 const WORKER_CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || '5')
+
+/**
+ * Job-name dispatcher for the `email-sequence` queue.
+ *
+ * Two distinct job kinds land on this queue:
+ *  - `'process-sequences'` — enqueued by the cron (cron.ts, every 15 min). It carries
+ *    NO { enrollmentId, stepId }; it triggers a scan of all ACTIVE runs which in turn
+ *    enqueues individual `'send-step'` jobs. Handled by runEmailSequenceJob().
+ *  - `'send-step'` (and any ad-hoc job) — a single step send for one enrollment.
+ *    Handled by processEmailStep().
+ */
+async function dispatchEmailSequenceJob(job: Job) {
+  if (job.name === 'process-sequences') {
+    return runEmailSequenceJob()
+  }
+  return processEmailStep(job as Job<EmailSequenceJobData>)
+}
 
 /**
  * Process email sequence step
@@ -38,8 +56,8 @@ export async function processEmailStep(job: Job<EmailSequenceJobData>) {
       include: {
         contacts: {
           where: { isPrimary: true },
-          take: 1
-        }
+          take: 1,
+        },
       },
     })
 
@@ -116,7 +134,7 @@ export async function processEmailStep(job: Job<EmailSequenceJobData>) {
 
       if (nextStepCandidates.length > 1) {
         // Check if these are A/B test variants
-        const variants = nextStepCandidates.filter(s => s.abGroup)
+        const variants = nextStepCandidates.filter((s) => s.abGroup)
 
         if (variants.length > 1) {
           // Random selection with equal distribution
@@ -127,7 +145,7 @@ export async function processEmailStep(job: Job<EmailSequenceJobData>) {
             enrollmentId,
             selectedGroup: selectedNextStep.abGroup,
             totalVariants: variants.length,
-            variantId: selectedNextStep.id
+            variantId: selectedNextStep.id,
           })
         }
       }
@@ -143,7 +161,7 @@ export async function processEmailStep(job: Job<EmailSequenceJobData>) {
         },
         {
           delay: delayMs,
-        }
+        },
       )
 
       logger.info('Scheduled next email step', {
@@ -177,18 +195,14 @@ export async function processEmailStep(job: Job<EmailSequenceJobData>) {
 /**
  * Create and start the worker
  */
-export const emailSequenceWorker = new Worker<EmailSequenceJobData>(
-  'email-sequence',
-  processEmailStep,
-  {
-    connection,
-    concurrency: WORKER_CONCURRENCY,
-    limiter: {
-      max: 100, // Max 100 jobs per window
-      duration: 60000, // 1 minute
-    },
-  }
-)
+export const emailSequenceWorker = new Worker('email-sequence', dispatchEmailSequenceJob, {
+  connection,
+  concurrency: WORKER_CONCURRENCY,
+  limiter: {
+    max: 100, // Max 100 jobs per window
+    duration: 60000, // 1 minute
+  },
+})
 
 // Worker event handlers
 emailSequenceWorker.on('completed', (job) => {

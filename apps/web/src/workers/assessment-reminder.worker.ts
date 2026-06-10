@@ -8,9 +8,26 @@ import { connection } from '@/lib/queue'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
+import { runAssessmentReminderJob } from '@/lib/cron'
 
 export interface AssessmentReminderJobData {
   inviteId: string
+}
+
+/**
+ * Job-name dispatcher for the `assessment-reminder` queue.
+ *
+ *  - `'daily-scan'` — enqueued by the cron (cron.ts, daily 9 AM). Carries no inviteId;
+ *    it scans for invites needing a reminder and enqueues individual `'send-reminder'`
+ *    jobs. Handled by runAssessmentReminderJob().
+ *  - `'send-reminder'` (and any ad-hoc job) — sends one reminder for one invite.
+ *    Handled by processAssessmentReminder().
+ */
+async function dispatchAssessmentReminderJob(job: Job) {
+  if (job.name === 'daily-scan') {
+    return runAssessmentReminderJob()
+  }
+  return processAssessmentReminder(job as Job<AssessmentReminderJobData>)
 }
 
 /**
@@ -160,9 +177,9 @@ async function processAssessmentReminder(job: Job<AssessmentReminderJobData>) {
 /**
  * Create and start the worker
  */
-export const assessmentReminderWorker = new Worker<AssessmentReminderJobData>(
+export const assessmentReminderWorker = new Worker(
   'assessment-reminder',
-  processAssessmentReminder,
+  dispatchAssessmentReminderJob,
   {
     connection,
     concurrency: 5, // Can process multiple reminders in parallel
