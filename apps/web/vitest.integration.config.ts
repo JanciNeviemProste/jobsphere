@@ -16,8 +16,12 @@ export default defineConfig({
     // Load integration test setup
     setupFiles: ['./tests/integration/setup.ts'],
 
-    // Only run integration tests
-    include: ['tests/integration/**/*.test.ts'],
+    // Run integration tests (DB-bound) including security tests that need a real DB
+    include: [
+      'tests/integration/**/*.test.ts',
+      'tests/security/xss-protection.test.ts',
+      'tests/security/sql-injection.test.ts',
+    ],
     exclude: ['**/node_modules/**', '**/dist/**', 'tests/e2e/**', 'tests/setup.ts'],
 
     // Longer timeout for database operations

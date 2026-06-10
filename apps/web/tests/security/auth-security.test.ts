@@ -13,11 +13,17 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { GET as GetOrganization } from '@/app/api/organizations/current/route'
-import { GET as GetMembers, POST as InviteMember } from '@/app/api/organizations/current/members/route'
+import {
+  GET as GetMembers,
+  POST as InviteMember,
+} from '@/app/api/organizations/current/members/route'
 import { GET as GetBilling } from '@/app/api/organizations/current/billing/route'
 import { POST as CreateJob } from '@/app/api/jobs/route'
 import { DELETE as DeleteJob, PUT as UpdateJob } from '@/app/api/jobs/[id]/route'
-import { GET as GetApplication, PATCH as UpdateApplication } from '@/app/api/applications/[id]/route'
+import {
+  GET as GetApplication,
+  PATCH as UpdateApplication,
+} from '@/app/api/applications/[id]/route'
 import { verifyCsrfToken, generateCsrfToken } from '@/lib/csrf'
 import { hash, compare } from 'bcryptjs'
 import { NextRequest } from 'next/server'
@@ -44,7 +50,7 @@ function createTestRequest(
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT',
   body?: any,
   headers?: Record<string, string>,
-  url: string = 'http://localhost:3000/test'
+  url: string = 'http://localhost:3000/test',
 ): NextRequest {
   const options: RequestInit = {
     method,
@@ -173,6 +179,7 @@ vi.mock('@/lib/prisma', () => ({
       findFirst: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn(),
+      count: vi.fn().mockResolvedValue(2),
       create: vi.fn(),
     },
     job: {
@@ -280,7 +287,7 @@ describe('Authentication & Authorization Security Tests', () => {
       const request = createTestRequest('DELETE')
 
       // Act: Attempt to delete job
-      const response = await DeleteJob(request, { params: Promise.resolve({ id: 'job-1' }) } as any)
+      const response = await DeleteJob(request, { params: { id: 'job-1' } } as any)
 
       // Assert: Job deletion should be prevented
       // Accepting 400 (bad request) or 403 (forbidden) - both prevent unauthorized access
@@ -306,7 +313,9 @@ describe('Authentication & Authorization Security Tests', () => {
       const request = createTestRequest('GET')
 
       // Act: Attempt to get organization
-      const response = await GetOrganization()
+      const response = await GetOrganization(
+        createTestRequest('GET', undefined, {}, 'http://localhost:3000/api/organizations/current'),
+      )
       const data = await parseResponse(response)
 
       // Assert: Should return 404 (org not found for candidate)
@@ -365,7 +374,7 @@ describe('Authentication & Authorization Security Tests', () => {
       })
 
       // Act: Attempt to update job from different org
-      const response = await UpdateJob(request, { params: Promise.resolve({ id: 'job-org-b' }) } as any)
+      const response = await UpdateJob(request, { params: { id: 'job-org-b' } } as any)
       const data = await parseResponse(response)
 
       // Assert: Should be forbidden (or 400 if params handling fails - still prevents access)
@@ -401,7 +410,7 @@ describe('Authentication & Authorization Security Tests', () => {
       })
 
       // Act: Attempt to update application from different org
-      const response = await UpdateApplication(request, { params: Promise.resolve({ id: 'app-org-b' }) } as any)
+      const response = await UpdateApplication(request, { params: { id: 'app-org-b' } } as any)
       const data = await parseResponse(response)
 
       // Assert: Should be forbidden
@@ -432,7 +441,7 @@ describe('Authentication & Authorization Security Tests', () => {
       const request = createTestRequest('GET')
 
       // Act
-      const response = await GetApplication(request, { params: Promise.resolve({ id: 'app-org-b' }) } as any)
+      const response = await GetApplication(request, { params: { id: 'app-org-b' } } as any)
       const data = await parseResponse(response)
 
       // Assert: Should return 403 (don't leak existence)
@@ -451,7 +460,7 @@ describe('Authentication & Authorization Security Tests', () => {
       const request = createTestRequest('PUT', { title: 'Test' })
 
       // Act
-      const response = await UpdateJob(request, { params: Promise.resolve({ id: 'non-existent-job' }) } as any)
+      const response = await UpdateJob(request, { params: { id: 'non-existent-job' } } as any)
 
       // Assert: Should return generic error (400, 403, or 404)
       // IMPORTANT: Don't leak whether resource exists in another org
@@ -492,7 +501,9 @@ describe('Authentication & Authorization Security Tests', () => {
       const request = createTestRequest('GET')
 
       // Act: Attempt to get organization info
-      const response = await GetOrganization()
+      const response = await GetOrganization(
+        createTestRequest('GET', undefined, {}, 'http://localhost:3000/api/organizations/current'),
+      )
       const data = await parseResponse(response)
 
       // Assert: Should be unauthorized
@@ -547,10 +558,15 @@ describe('Authentication & Authorization Security Tests', () => {
       // Arrange: JWT with invalid signature (NextAuth returns null)
       mockAuthFn.mockResolvedValue(null)
 
-      const request = createTestRequest('GET')
+      const request = createTestRequest(
+        'GET',
+        undefined,
+        {},
+        'http://localhost:3000/api/organizations/current/members',
+      )
 
       // Act
-      const response = await GetMembers()
+      const response = await GetMembers(request)
       const data = await parseResponse(response)
 
       // Assert
@@ -571,7 +587,9 @@ describe('Authentication & Authorization Security Tests', () => {
       const request = createTestRequest('GET')
 
       // Act
-      const response = await GetOrganization()
+      const response = await GetOrganization(
+        createTestRequest('GET', undefined, {}, 'http://localhost:3000/api/organizations/current'),
+      )
       const data = await parseResponse(response)
 
       // Assert: NextAuth validates expiration
@@ -697,7 +715,7 @@ describe('Authentication & Authorization Security Tests', () => {
       const request = createTestRequest('DELETE')
 
       // Act: Attempt to delete job from different org
-      const response = await DeleteJob(request, { params: Promise.resolve({ id: 'job-org-b-secret' }) } as any)
+      const response = await DeleteJob(request, { params: { id: 'job-org-b-secret' } } as any)
       const data = await parseResponse(response)
 
       // Assert: Access denied (400 or 403 both prevent IDOR attack)
@@ -775,7 +793,14 @@ describe('Authentication & Authorization Security Tests', () => {
       const request = createTestRequest('GET')
 
       // Act
-      const response = await GetBilling()
+      const response = await GetBilling(
+        createTestRequest(
+          'GET',
+          undefined,
+          {},
+          'http://localhost:3000/api/organizations/current/billing',
+        ),
+      )
       const data = await parseResponse(response)
 
       // Assert: Unauthorized
@@ -801,10 +826,15 @@ describe('Authentication & Authorization Security Tests', () => {
         { userId: 'user-2', orgId: 'org-a', user: { email: 'user2@orga.com' } },
       ])
 
-      const request = createTestRequest('GET')
+      const request = createTestRequest(
+        'GET',
+        undefined,
+        {},
+        'http://localhost:3000/api/organizations/current/members',
+      )
 
       // Act: Get members
-      const response = await GetMembers()
+      const response = await GetMembers(request)
       const data = await parseResponse(response)
 
       // Assert: Should only return members from Org A

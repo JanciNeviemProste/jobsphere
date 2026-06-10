@@ -25,7 +25,13 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vites
 import { ApplicationService } from '@/services/application.service'
 import { searchCandidates, getJobCandidateMatchScore } from '@/lib/semantic-search'
 import { Prisma } from '@prisma/client'
-import { prisma, TEST_IDS, seedTestData, cleanupDynamicData, cleanupAllTestData } from '../integration/helpers/test-db'
+import {
+  prisma,
+  TEST_IDS,
+  seedTestData,
+  cleanupDynamicData,
+  cleanupAllTestData,
+} from '../integration/helpers/test-db'
 
 /**
  * Test Utilities
@@ -58,7 +64,7 @@ const SQL_INJECTION_PAYLOADS = {
     "' UNION SELECT NULL, NULL, NULL--",
     "' UNION SELECT password FROM users--",
     "' UNION ALL SELECT NULL,NULL,NULL--",
-    "1' UNION SELECT email, password FROM \"User\"--",
+    '1\' UNION SELECT email, password FROM "User"--',
     "1' UNION SELECT table_name FROM information_schema.tables--",
   ],
 
@@ -69,7 +75,7 @@ const SQL_INJECTION_PAYLOADS = {
     "' AND 1=1--",
     "' AND 1=2--",
     "' AND (SELECT COUNT(*) FROM users) > 0--",
-    "' AND EXISTS(SELECT * FROM \"User\")--",
+    '\' AND EXISTS(SELECT * FROM "User")--',
   ],
 
   // Time-based blind SQL injection
@@ -83,20 +89,14 @@ const SQL_INJECTION_PAYLOADS = {
 
   // Stacked queries
   stacked: [
-    "'; DROP TABLE \"User\"--",
-    "'; DELETE FROM \"User\"--",
+    '\'; DROP TABLE "User"--',
+    '\'; DELETE FROM "User"--',
     "'; UPDATE \"User\" SET email='hacked@example.com'--",
     "1'; INSERT INTO \"User\" (email) VALUES ('injected@example.com')--",
   ],
 
   // Comment injection
-  comment: [
-    "admin'--",
-    "admin'/*",
-    "admin'#",
-    "/* comment */ admin",
-    "admin -- comment",
-  ],
+  comment: ["admin'--", "admin'/*", "admin'#", '/* comment */ admin', 'admin -- comment'],
 
   // PostgreSQL-specific
   postgres: [
@@ -107,13 +107,7 @@ const SQL_INJECTION_PAYLOADS = {
   ],
 
   // NoSQL injection patterns (for filter objects)
-  nosql: [
-    { $gt: "" },
-    { $ne: null },
-    { $regex: ".*" },
-    { $where: "1==1" },
-    { email: { $gt: "" } },
-  ],
+  nosql: [{ $gt: '' }, { $ne: null }, { $regex: '.*' }, { $where: '1==1' }, { email: { $gt: '' } }],
 }
 
 /**
@@ -129,8 +123,10 @@ let testApplication: any
 vi.mock('@/lib/embeddings', () => ({
   generateEmbedding: vi.fn(() => {
     // Return a mock embedding (1536 dimensions for OpenAI)
-    return Array(1536).fill(0).map((_, i) => Math.random())
-  })
+    return Array(1536)
+      .fill(0)
+      .map((_, i) => Math.random())
+  }),
 }))
 
 describe('SQL Injection Prevention Tests', () => {
@@ -259,8 +255,8 @@ describe('SQL Injection Prevention Tests', () => {
     it('should prevent SQL injection in stage filters', async () => {
       const maliciousStages = [
         "NEW' OR '1'='1",
-        "NEW'; DROP TABLE \"Application\"--",
-        "NEW' UNION SELECT * FROM \"User\"--",
+        'NEW\'; DROP TABLE "Application"--',
+        'NEW\' UNION SELECT * FROM "User"--',
       ]
 
       for (const payload of maliciousStages) {
@@ -324,10 +320,7 @@ describe('SQL Injection Prevention Tests', () => {
 
       const results = await prisma.user.findMany({
         where: {
-          OR: [
-            { email: maliciousEmail },
-            { name: maliciousName },
-          ],
+          OR: [{ email: maliciousEmail }, { name: maliciousName }],
         },
       })
 
@@ -364,7 +357,7 @@ describe('SQL Injection Prevention Tests', () => {
 
   describe('Raw SQL Parameterization ($queryRaw)', () => {
     it('should prevent SQL injection in $queryRaw with template literals', async () => {
-      const maliciousId = "1'; DROP TABLE \"User\"--"
+      const maliciousId = '1\'; DROP TABLE "User"--'
 
       // Prisma $queryRaw with template literals automatically parameterizes
       await expect(async () => {
@@ -379,7 +372,7 @@ describe('SQL Injection Prevention Tests', () => {
 
     it('should prevent SQL injection in vector similarity queries', async () => {
       // Test the semantic search which uses $queryRaw
-      const maliciousJobDescription = "' UNION SELECT * FROM \"User\"--"
+      const maliciousJobDescription = '\' UNION SELECT * FROM "User"--'
 
       // Should either throw validation error or return safe results
       await expect(async () => {
@@ -395,7 +388,7 @@ describe('SQL Injection Prevention Tests', () => {
     })
 
     it('should safely handle numeric parameters in $queryRaw', async () => {
-      const maliciousLimit = "10; DROP TABLE \"User\"--"
+      const maliciousLimit = '10; DROP TABLE "User"--'
 
       await expect(async () => {
         await prisma.$queryRaw<any[]>`
@@ -405,7 +398,7 @@ describe('SQL Injection Prevention Tests', () => {
     })
 
     it('should prevent UNION attacks in $queryRaw', async () => {
-      const unionPayload = "1 UNION SELECT email, password FROM \"User\"--"
+      const unionPayload = '1 UNION SELECT email, password FROM "User"--'
 
       const result = await prisma.$queryRaw<any[]>`
         SELECT id, title FROM "Job" WHERE id = ${unionPayload}
@@ -424,7 +417,7 @@ describe('SQL Injection Prevention Tests', () => {
         await prisma.user.findMany({
           where: {
             // @ts-expect-error - Testing invalid input
-            email: { $gt: "" },
+            email: { $gt: '' },
           },
         })
       }).rejects.toThrow()
@@ -446,7 +439,7 @@ describe('SQL Injection Prevention Tests', () => {
         await prisma.user.findMany({
           where: {
             // @ts-expect-error - Testing invalid input
-            email: { $regex: ".*" },
+            email: { $regex: '.*' },
           },
         })
       }).rejects.toThrow()
@@ -457,7 +450,7 @@ describe('SQL Injection Prevention Tests', () => {
         await prisma.user.findMany({
           where: {
             // @ts-expect-error - Testing invalid input
-            $where: "1==1",
+            $where: '1==1',
           },
         })
       }).rejects.toThrow()
@@ -498,7 +491,7 @@ describe('SQL Injection Prevention Tests', () => {
     })
 
     it('should not expose existence of records via boolean conditions', async () => {
-      const existsPayload = "' AND EXISTS(SELECT * FROM \"User\")--"
+      const existsPayload = '\' AND EXISTS(SELECT * FROM "User")--'
 
       const result = await prisma.user.findFirst({
         where: { email: existsPayload },
@@ -509,7 +502,7 @@ describe('SQL Injection Prevention Tests', () => {
     })
 
     it('should not allow count-based information disclosure', async () => {
-      const countPayload = "' AND (SELECT COUNT(*) FROM \"User\") > 0--"
+      const countPayload = '\' AND (SELECT COUNT(*) FROM "User") > 0--'
 
       const result = await prisma.user.findFirst({
         where: { email: countPayload },
@@ -553,7 +546,7 @@ describe('SQL Injection Prevention Tests', () => {
 
   describe('Stacked Queries Prevention', () => {
     it('should prevent DROP TABLE via stacked queries', async () => {
-      const payload = "test@example.com'; DROP TABLE \"User\"--"
+      const payload = 'test@example.com\'; DROP TABLE "User"--'
 
       await prisma.user.findFirst({
         where: { email: payload },
@@ -565,7 +558,7 @@ describe('SQL Injection Prevention Tests', () => {
     })
 
     it('should prevent DELETE via stacked queries', async () => {
-      const payload = "test@example.com'; DELETE FROM \"User\"--"
+      const payload = 'test@example.com\'; DELETE FROM "User"--'
 
       const userCountBefore = await prisma.user.count()
 
@@ -596,7 +589,8 @@ describe('SQL Injection Prevention Tests', () => {
     it('should prevent INSERT via stacked queries', async () => {
       const userCountBefore = await prisma.user.count()
 
-      const payload = "test@example.com'; INSERT INTO \"User\" (email, name, password) VALUES ('injected@example.com', 'Hacker', 'pass')--"
+      const payload =
+        "test@example.com'; INSERT INTO \"User\" (email, name, password) VALUES ('injected@example.com', 'Hacker', 'pass')--"
 
       await prisma.user.findFirst({
         where: { email: payload },
@@ -720,7 +714,7 @@ describe('SQL Injection Prevention Tests', () => {
 
   describe('Input Sanitization Edge Cases', () => {
     it('should handle null bytes in input', async () => {
-      const payload = "test\x00@example.com"
+      const payload = 'test\x00@example.com'
 
       const result = await prisma.user.findFirst({
         where: { email: payload },
@@ -730,7 +724,7 @@ describe('SQL Injection Prevention Tests', () => {
     })
 
     it('should handle Unicode escaping attempts', async () => {
-      const payload = "test@example.com\\u0027 OR 1=1--"
+      const payload = 'test@example.com\\u0027 OR 1=1--'
 
       const result = await prisma.user.findFirst({
         where: { email: payload },
@@ -750,7 +744,7 @@ describe('SQL Injection Prevention Tests', () => {
     })
 
     it('should handle hex-encoded payloads', async () => {
-      const payload = "0x27 OR 1=1--"
+      const payload = '0x27 OR 1=1--'
 
       const result = await prisma.user.findFirst({
         where: { email: payload },
@@ -760,7 +754,7 @@ describe('SQL Injection Prevention Tests', () => {
     })
 
     it('should handle extremely long payloads', async () => {
-      const longPayload = "a".repeat(10000) + "' OR '1'='1"
+      const longPayload = 'a'.repeat(10000) + "' OR '1'='1"
 
       const result = await prisma.user.findFirst({
         where: { email: longPayload },
@@ -774,8 +768,8 @@ describe('SQL Injection Prevention Tests', () => {
     it('should validate and reject malicious IDs in route parameters', async () => {
       const maliciousIds = [
         "123' OR '1'='1",
-        "'; DROP TABLE \"User\"--",
-        "../../../etc/passwd",
+        '\'; DROP TABLE "User"--',
+        '../../../etc/passwd',
         "<script>alert('xss')</script>",
       ]
 
@@ -791,18 +785,15 @@ describe('SQL Injection Prevention Tests', () => {
     })
 
     it('should validate enum values and reject injection attempts', async () => {
-      const maliciousStages = [
-        "NEW' OR '1'='1",
-        "NEW'; DROP TABLE \"Application\"--",
-      ]
+      const maliciousStages = ["NEW' OR '1'='1", 'NEW\'; DROP TABLE "Application"--']
 
       for (const stage of maliciousStages) {
         await expect(async () => {
-          await ApplicationService.bulkUpdateStage(
+          await ApplicationService.bulkUpdateStatus(
             [testApplication.id],
             // @ts-expect-error - Testing invalid enum
             stage,
-            testUser.id
+            testUser.id,
           )
         }).rejects.toThrow()
       }
@@ -835,12 +826,10 @@ describe('SQL Injection Prevention Tests', () => {
     })
 
     it('should use Prisma.sql for safe raw queries', async () => {
-      const email = "test@example.com'; DROP TABLE \"User\"--"
+      const email = 'test@example.com\'; DROP TABLE "User"--'
 
       // Prisma.sql with tagged template provides safe parameterization
-      const result = await prisma.$queryRaw(
-        Prisma.sql`SELECT * FROM "User" WHERE email = ${email}`
-      )
+      const result = await prisma.$queryRaw(Prisma.sql`SELECT * FROM "User" WHERE email = ${email}`)
 
       expect(Array.isArray(result)).toBe(true)
       // Should not execute DROP TABLE
@@ -851,7 +840,7 @@ describe('SQL Injection Prevention Tests', () => {
     it('should combine multiple security layers', async () => {
       // Test that even with multiple injection points, the query is safe
       const maliciousEmail = "admin@example.com' OR '1'='1--"
-      const maliciousName = "Admin' UNION SELECT * FROM \"User\"--"
+      const maliciousName = 'Admin\' UNION SELECT * FROM "User"--'
       const maliciousStage = "NEW' OR '1'='1"
 
       const { applications } = await ApplicationService.searchApplications({
@@ -869,7 +858,7 @@ describe('SQL Injection Prevention Tests', () => {
     it('should log suspicious activity without exposing data', async () => {
       // While we can't easily test logging in unit tests,
       // we verify that malicious queries don't expose sensitive info
-      const payload = "' UNION SELECT password FROM \"User\"--"
+      const payload = '\' UNION SELECT password FROM "User"--'
 
       const result = await prisma.user.findFirst({
         where: { email: payload },

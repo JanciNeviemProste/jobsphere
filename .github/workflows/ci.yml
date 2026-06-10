@@ -83,6 +83,29 @@ jobs:
           cd apps/web
           yarn test:coverage
 
+      # Security integration tests (IDOR/multi-tenant/XSS/SQLi) require a live DB.
+      # Routed here via vitest.integration.config.ts rather than the unit run so they
+      # do not break `yarn test:run` when no DB is present.
+      - name: Push database schema (security integration tests)
+        run: |
+          cd apps/web
+          yarn db:push
+        env:
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
+
+      - name: Run security integration tests
+        run: |
+          cd apps/web
+          yarn test:integration:run
+        env:
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
+          NEXTAUTH_SECRET: 'test-secret-at-least-32-characters-long'
+          NEXTAUTH_URL: 'http://localhost:3000'
+          REDIS_URL: 'redis://localhost:6379'
+          NEXT_PUBLIC_APP_URL: 'http://localhost:3000'
+          ENCRYPTION_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+          ANTHROPIC_API_KEY: 'test-key'
+
       - name: Build
         run: |
           cd apps/web

@@ -13,9 +13,10 @@ export default defineConfig({
       'tests/e2e/**',
       'tests/integration/**',
       '**/*.e2e.spec.ts',
-      // Security tests require live DB + ClamAV. Run via `yarn test:integration` after migration.
-      // Tracked in TODO.md.
-      'tests/security/**',
+      // xss-protection and sql-injection require a live PostgreSQL DB — routed to
+      // vitest.integration.config.ts and the CI `security-integration` job.
+      'tests/security/xss-protection.test.ts',
+      'tests/security/sql-injection.test.ts',
       // Performance tests require live Lighthouse CI. Run separately.
       'tests/performance/**',
       // A11y tests require live browser/Playwright. Run separately.

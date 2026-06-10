@@ -72,8 +72,12 @@ async function checkForMacros(buffer: ArrayBuffer): Promise<boolean> {
     const JSZip = await import('jszip')
     const zip = await JSZip.default.loadAsync(buffer)
 
-    // Check for vbaProject.bin (indicates VBA macros)
-    const hasMacros = Object.keys(zip.files).some((filename) => filename.includes('vbaProject.bin'))
+    // Check for vbaProject.bin (indicates VBA macros) — case-insensitive: the OOXML part
+    // name is conventionally "word/vbaProject.bin" but a crafted file can vary the casing
+    // (VBAProject.bin / vbaproject.bin) to evade a case-sensitive match (SEC-VBA-002).
+    const hasMacros = Object.keys(zip.files).some((filename) =>
+      filename.toLowerCase().includes('vbaproject.bin'),
+    )
 
     return hasMacros
   } catch (error) {
@@ -137,8 +141,11 @@ export async function parseCV(
     throw new CVParseException(CVErrors.fileTooLarge(fileSize, MAX_FILE_SIZE))
   }
 
-  // Stage 0: Security checks (macros)
-  if (metadata.mimeType.includes('wordprocessing')) {
+  // Stage 0: Security checks (macros). Both DOCX (wordprocessingml) and DOCM
+  // (vnd.ms-word.document.macroEnabled.12) are zip-based OOXML that can carry VBA;
+  // a DOCM previously bypassed this because its MIME has no "wordprocessing" (SEC-VBA-001).
+  const macroScanMime = metadata.mimeType.toLowerCase()
+  if (macroScanMime.includes('wordprocessing') || macroScanMime.includes('macroenabled')) {
     const hasMacros = await checkForMacros(buffer)
     if (hasMacros) {
       logger.warn('DOCX contains macros - rejected', { traceId })
