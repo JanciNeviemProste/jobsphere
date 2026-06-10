@@ -17,6 +17,30 @@ export type Feature =
   | 'API_ACCESS'
 
 /**
+ * STARTER (free) plan defaults.
+ *
+ * These are the limits applied when an organization has NO entitlement record
+ * for a feature (e.g. every new/free org that never went through Stripe
+ * checkout). Without this, a missing record would either grant unlimited
+ * access (revenue leak) or block everything.
+ *
+ * Semantics for limit values everywhere in this module:
+ *   - `null`            => UNLIMITED (e.g. ENTERPRISE)
+ *   - a positive number => quota / capacity limit
+ *   - `0`               => feature disabled / no access
+ */
+export const STARTER_LIMITS: Record<Feature, number | null> = {
+  MAX_JOBS: 5,
+  MAX_CANDIDATES: 50,
+  MAX_TEAM_MEMBERS: 2,
+  EMAIL_SEQUENCES: 0,
+  ASSESSMENTS: 0,
+  AI_MATCHING: 0,
+  CUSTOM_BRANDING: 0,
+  API_ACCESS: 0,
+}
+
+/**
  * Check if organization has access to a feature
  */
 export async function hasFeature(orgId: string, feature: Feature): Promise<boolean> {
@@ -29,8 +53,14 @@ export async function hasFeature(orgId: string, feature: Feature): Promise<boole
     },
   })
 
-  // For boolean features, limitInt > 0 means enabled
-  return (entitlement?.limitInt ?? 0) > 0
+  // Missing record => fall back to the STARTER default for this feature.
+  if (!entitlement) {
+    return STARTER_LIMITS[feature] === null || (STARTER_LIMITS[feature] ?? 0) > 0
+  }
+
+  // limitInt === null => unlimited (enabled). Otherwise limitInt > 0 => enabled.
+  if (entitlement.limitInt === null) return true
+  return entitlement.limitInt > 0
 }
 
 /**
@@ -46,10 +76,11 @@ export async function getFeatureLimit(orgId: string, feature: Feature): Promise<
     },
   })
 
-  // If no entitlement found, return 0
-  if (!entitlement) return 0
+  // Missing record => apply the STARTER default (NOT 0, which would lock free
+  // orgs out entirely, and NOT unlimited, which would leak revenue).
+  if (!entitlement) return STARTER_LIMITS[feature]
 
-  // Preserve null for unlimited limits
+  // Preserve null for unlimited limits (e.g. ENTERPRISE).
   return entitlement.limitInt
 }
 
@@ -101,7 +132,8 @@ export async function getCurrentPlan(
   const subscription = await prisma.subscription.findFirst({
     where: {
       orgId,
-      status: { in: ['ACTIVE', 'TRIALING'] },
+      // Subscription.status stores Stripe's lowercase vocabulary (see webhook).
+      status: { in: ['active', 'trialing'] },
     },
     include: {
       product: {
@@ -210,21 +242,33 @@ export async function checkEntitlement(orgId: string, feature: Feature): Promise
     },
   })
 
-  // If no entitlement exists, default to starter plan limits
+  // No record => fall back to the STARTER default for this feature.
+  //   STARTER null  => unlimited        => allow
+  //   STARTER 0     => disabled         => deny
+  //   STARTER > 0   => has a quota      => allow (capacity is enforced by the
+  //                                        count-based canCreateJob/canAddCandidate
+  //                                        gates; a missing record has no
+  //                                        remaining counter to consult).
   if (!entitlement) {
-    return true // Or false depending on your default policy
+    const starter = STARTER_LIMITS[feature]
+    return starter === null || starter > 0
   }
 
-  // Check if there's remaining capacity
-  const remaining = entitlement.remainingInt ?? 0
-  const limit = entitlement.limitInt ?? 0
+  // limitInt === null => UNLIMITED. Must come BEFORE the `?? 0` coercion that
+  // previously mis-read unlimited as "limit 0 => deny" and blocked ENTERPRISE.
+  if (entitlement.limitInt === null) {
+    return true
+  }
 
-  // If limit is 0, it might mean unlimited (depending on your logic)
-  // Or it might mean no access
-  if (limit === 0) {
+  // limit 0 => feature disabled / no access.
+  if (entitlement.limitInt === 0) {
     return false
   }
 
+  // Positive limit => allow while there is remaining capacity. A null
+  // remainingInt on a positive limit means the counter was never initialized;
+  // treat that as full capacity rather than blocked.
+  const remaining = entitlement.remainingInt ?? entitlement.limitInt
   return remaining > 0
 }
 

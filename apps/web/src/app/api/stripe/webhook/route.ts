@@ -43,10 +43,11 @@ export const POST = withRateLimit(
       eventId = event.id
       logger.info(`Stripe webhook received: ${event.type}`, { eventId: event.id })
 
-      // Atomic idempotency: upsert to prevent race conditions on concurrent retries
-      let providerEvent
+      // Idempotency, step 1 — record the event (idempotent insert). The unique
+      // primary key guarantees one row per Stripe event id regardless of how
+      // many concurrent retries arrive.
       try {
-        providerEvent = await prisma.providerEvent.upsert({
+        await prisma.providerEvent.upsert({
           where: { id: event.id },
           update: {},
           create: {
@@ -66,7 +67,17 @@ export const POST = withRateLimit(
         throw e
       }
 
-      if (providerEvent.processed) {
+      // Idempotency, step 2 — atomically CLAIM the event. Flipping processed
+      // false->true in a single conditional updateMany means exactly one of N
+      // concurrent deliveries gets count === 1; everyone else sees count === 0
+      // and bails. This closes the check-then-act race (LOGIC-015). On handler
+      // failure we reset processed=false below so Stripe retries can re-claim.
+      const claim = await prisma.providerEvent.updateMany({
+        where: { id: event.id, processed: false },
+        data: { processed: true },
+      })
+
+      if (claim.count === 0) {
         logger.warn('Duplicate Stripe webhook event skipped', {
           eventId: event.id,
           type: event.type,
@@ -111,22 +122,18 @@ export const POST = withRateLimit(
           logger.warn(`Unhandled Stripe event type: ${event.type}`, { eventId: event.id })
       }
 
-      // Mark the event as successfully processed
-      await prisma.providerEvent.update({
-        where: { id: event.id },
-        data: { processed: true },
-      })
-
+      // The event was claimed (processed=true) before the handler ran, so a
+      // successful run needs no further write.
       return NextResponse.json({ received: true })
     } catch (error) {
       logger.error('Webhook error', error)
 
-      // Record the error against the event for observability
+      // Release the claim and record the error so Stripe's retry can re-process.
       if (eventId) {
         try {
           await prisma.providerEvent.updateMany({
             where: { id: eventId, provider: 'stripe' },
-            data: { error: String(error) },
+            data: { processed: false, error: String(error) },
           })
         } catch {
           // Ignore errors in error recording - don't mask the original error
@@ -166,6 +173,78 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 }
 
 /**
+ * Map a Stripe subscription status to our canonical lowercase status string.
+ * The Subscription.status column stores Stripe's own vocabulary 1:1
+ * (trialing, active, past_due, canceled, unpaid, incomplete, ...).
+ */
+function mapStripeStatus(status: Stripe.Subscription.Status): string {
+  return status
+}
+
+/**
+ * Resolve the local Product + plan key for a Stripe subscription.
+ *
+ * Mapping strategy (DB-driven, not env/string parsing):
+ *   Stripe price id  ->  Price.providerPriceId (unique)  ->  Price.productId  ->  Product
+ *   Product.plans[0].key  ->  plan key (starter/pro/enterprise)
+ *
+ * ASSUMPTION: The local catalog is seeded so that every Stripe price has a
+ * matching Price row (providerPriceId) and the owning Product has a Plan whose
+ * `key` is one of starter/pro/professional/enterprise. There is no Stripe-id
+ * field on Product itself, so the price row is the only reliable join.
+ */
+async function resolvePlanFromSubscription(subscription: Stripe.Subscription): Promise<{
+  productId: string
+  plan: 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE'
+} | null> {
+  const priceId = subscription.items.data[0]?.price.id
+
+  if (!priceId) {
+    logger.error('No price ID in subscription', { subscriptionId: subscription.id })
+    return null
+  }
+
+  const price = await prisma.price.findFirst({
+    where: { providerPriceId: priceId },
+    include: {
+      product: {
+        include: { plans: true },
+      },
+    },
+  })
+
+  if (!price) {
+    logger.error('No local Price found for Stripe price ID', { priceId })
+    return null
+  }
+
+  return {
+    productId: price.productId,
+    plan: derivePlanKey(price.product),
+  }
+}
+
+/**
+ * Derive a normalized plan key from the local Product (plan relation first,
+ * then product name as a fallback). Mirrors getCurrentPlan() in entitlements.ts.
+ */
+function derivePlanKey(product: {
+  name: string
+  plans: { key: string }[]
+}): 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE' {
+  const planKey = product.plans[0]?.key?.toUpperCase()
+  if (planKey === 'ENTERPRISE') return 'ENTERPRISE'
+  if (planKey === 'PROFESSIONAL' || planKey === 'PRO') return 'PROFESSIONAL'
+  if (planKey === 'STARTER') return 'STARTER'
+
+  const name = product.name.toLowerCase()
+  if (name.includes('enterprise')) return 'ENTERPRISE'
+  if (name.includes('professional') || name.includes('pro')) return 'PROFESSIONAL'
+
+  return 'STARTER'
+}
+
+/**
  * Handle subscription created/updated
  */
 async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
@@ -181,85 +260,42 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     return
   }
 
-  // Get price ID
-  const priceId = subscription.items.data[0]?.price.id
+  // Map the Stripe price/product to a local Product + plan key via DB.
+  const resolved = await resolvePlanFromSubscription(subscription)
 
-  if (!priceId) {
-    logger.error('No price ID in subscription')
-    return
+  if (!resolved) {
+    // Missing catalog mapping — surface so Stripe retries rather than silently
+    // leaving the customer without a plan.
+    throw new Error(`No local Product mapping for Stripe subscription ${subscription.id}`)
   }
 
-  // Determine plan based on price ID
-  let plan: 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE' = 'STARTER'
+  const { productId, plan } = resolved
 
-  if (priceId === process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY) {
-    plan = 'PROFESSIONAL'
-  } else if (priceId === process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY) {
-    plan = 'ENTERPRISE'
-  }
-
-  // Get product ID from price lookup
-  const price = await prisma.price.findFirst({
-    where: {
-      providerPriceId: priceId,
-    },
-    include: {
-      product: true,
-    },
-  })
-
-  if (!price) {
-    logger.error('No price found for price ID', { priceId })
-    return
-  }
-
-  // Determine plan name based on product
-  let planName = 'FREE'
-  if (price.product.name.includes('Professional')) {
-    planName = 'PROFESSIONAL'
-  } else if (price.product.name.includes('Enterprise')) {
-    planName = 'ENTERPRISE'
-  } else if (price.product.name.includes('Starter')) {
-    planName = 'STARTER'
-  }
-
-  // Find existing subscription or create new one
-  const existingSubscription = await prisma.subscription.findFirst({
-    where: { orgId: customer.orgId },
-  })
-
-  const subscriptionData = {
-    plan: planName,
-    status:
-      subscription.status === 'active'
-        ? 'ACTIVE'
-        : subscription.status === 'trialing'
-          ? 'TRIALING'
-          : subscription.status === 'past_due'
-            ? 'PAST_DUE'
-            : 'CANCELED',
+  // Build a payload containing ONLY real Subscription columns. The plan key is
+  // persisted in metadata (there is no `plan` column) so getCurrentPlan() can
+  // read it back via Strategy 2.
+  const data = {
+    orgId: customer.orgId,
+    productId,
+    status: mapStripeStatus(subscription.status),
     currentPeriodStart: new Date(subscription.current_period_start * 1000),
     currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-    cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+    cancelAt: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
+    canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
+    trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
+    trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+    metadata: { planKey: plan, cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false },
   }
 
-  if (existingSubscription) {
-    await prisma.subscription.update({
-      where: { id: existingSubscription.id },
-      data: subscriptionData,
-    })
-  } else {
-    await prisma.subscription.create({
-      data: {
-        orgId: customer.orgId,
-        productId: price.productId,
-        providerSubId: subscription.id,
-        ...subscriptionData,
-      },
-    })
-  }
+  // Key on the unique providerSubId so create/update target the SAME row and
+  // out-of-order/concurrent deliveries converge instead of clobbering siblings.
+  await prisma.subscription.upsert({
+    where: { providerSubId: subscription.id },
+    create: { providerSubId: subscription.id, ...data },
+    update: data,
+  })
 
-  // Update entitlements based on plan
+  // Update entitlements based on the DB-resolved plan.
   await updateEntitlements(customer.orgId, plan)
 
   logger.info('Stripe subscription updated', {
@@ -282,17 +318,20 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
   if (!customer) return
 
-  // Update subscription status
+  // Cancel only the specific subscription (keyed on providerSubId), never every
+  // subscription of the org — an upgrade deletes the old sub while the new one
+  // must stay active.
+  const now = new Date()
   await prisma.subscription.updateMany({
-    where: {
-      orgId: customer.orgId,
-    },
+    where: { providerSubId: subscription.id },
     data: {
-      status: 'CANCELED',
+      status: mapStripeStatus(subscription.status), // 'canceled'
+      canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : now,
+      endedAt: subscription.ended_at ? new Date(subscription.ended_at * 1000) : now,
     },
   })
 
-  // Revert to free plan entitlements
+  // Revert to free plan entitlements.
   await updateEntitlements(customer.orgId, 'STARTER')
 
   logger.info('Stripe subscription canceled', {
@@ -397,14 +436,14 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
     const subscription = await prisma.subscription.findFirst({
       where: {
         orgId: customer.orgId,
-        status: 'ACTIVE',
+        status: 'active',
       },
     })
 
     if (subscription) {
       await prisma.subscription.update({
         where: { id: subscription.id },
-        data: { status: 'PAST_DUE' },
+        data: { status: 'past_due' },
       })
     }
 

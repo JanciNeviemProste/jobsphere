@@ -6,6 +6,7 @@ import {
   canAddCandidate,
   canAddTeamMember,
   getCurrentPlan,
+  checkEntitlement,
 } from '../entitlements'
 import { createMockEntitlement } from '../../../tests/helpers/factories'
 
@@ -126,12 +127,14 @@ describe('Entitlements', () => {
       expect(result).toBe(10)
     })
 
-    it('should return 0 when entitlement not found', async () => {
+    it('should return the STARTER default when entitlement not found', async () => {
       vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(null)
 
       const result = await getFeatureLimit('org-123', 'MAX_JOBS')
 
-      expect(result).toBe(0)
+      // Missing record => STARTER default (5), not 0 (would lock out free orgs)
+      // and not null/unlimited (would leak revenue).
+      expect(result).toBe(5)
     })
 
     it('should return null for unlimited', async () => {
@@ -217,6 +220,94 @@ describe('Entitlements', () => {
       const result = await getCurrentPlan('org-123')
 
       expect(result).toBe('STARTER')
+    })
+  })
+
+  // LOGIC-003: missing record => STARTER default; limitInt === null => unlimited.
+  describe('checkEntitlement — LOGIC-003 gate semantics', () => {
+    it('missing record falls back to STARTER limited (deny a STARTER-disabled feature)', async () => {
+      vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(null)
+
+      // AI_MATCHING is disabled on STARTER => missing record must DENY,
+      // NOT grant unlimited free access (the previous revenue-leak bug).
+      const result = await checkEntitlement('org-123', 'AI_MATCHING')
+
+      expect(result).toBe(false)
+    })
+
+    it('missing record allows a feature that STARTER includes (MAX_JOBS)', async () => {
+      vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(null)
+
+      // STARTER allows MAX_JOBS (limit 5) => missing record allows (capacity is
+      // enforced separately by canCreateJob's count check).
+      const result = await checkEntitlement('org-123', 'MAX_JOBS')
+
+      expect(result).toBe(true)
+    })
+
+    it('limitInt === null is treated as UNLIMITED (ENTERPRISE not blocked)', async () => {
+      vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(
+        createMockEntitlement({
+          featureKey: 'MAX_JOBS',
+          limitInt: null,
+          remainingInt: null,
+        }) as any,
+      )
+
+      // The previous bug coerced null -> 0 and returned false, blocking the most
+      // expensive customer. null must mean unlimited => allow.
+      const result = await checkEntitlement('org-123', 'MAX_JOBS')
+
+      expect(result).toBe(true)
+    })
+
+    it('limitInt === 0 means the feature is disabled (deny)', async () => {
+      vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(
+        createMockEntitlement({ featureKey: 'AI_MATCHING', limitInt: 0, remainingInt: 0 }) as any,
+      )
+
+      const result = await checkEntitlement('org-123', 'AI_MATCHING')
+
+      expect(result).toBe(false)
+    })
+
+    it('positive limit denies when no remaining capacity', async () => {
+      vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(
+        createMockEntitlement({ featureKey: 'MAX_JOBS', limitInt: 5, remainingInt: 0 }) as any,
+      )
+
+      const result = await checkEntitlement('org-123', 'MAX_JOBS')
+
+      expect(result).toBe(false)
+    })
+
+    it('positive limit allows while remaining capacity exists', async () => {
+      vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(
+        createMockEntitlement({ featureKey: 'MAX_JOBS', limitInt: 5, remainingInt: 3 }) as any,
+      )
+
+      const result = await checkEntitlement('org-123', 'MAX_JOBS')
+
+      expect(result).toBe(true)
+    })
+  })
+
+  describe('hasFeature — LOGIC-003 semantics', () => {
+    it('missing record uses STARTER default (enabled feature)', async () => {
+      vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(null)
+
+      // MAX_JOBS has a positive STARTER limit => enabled.
+      expect(await hasFeature('org-123', 'MAX_JOBS')).toBe(true)
+      // AI_MATCHING is 0 on STARTER => disabled.
+      expect(await hasFeature('org-123', 'AI_MATCHING')).toBe(false)
+    })
+
+    it('limitInt === null means unlimited => enabled', async () => {
+      vi.mocked(prisma.entitlement.findUnique).mockResolvedValue(
+        createMockEntitlement({ featureKey: 'AI_MATCHING', limitInt: null }) as any,
+      )
+
+      expect(await hasFeature('org-123', 'AI_MATCHING')).toBe(true)
     })
   })
 })
