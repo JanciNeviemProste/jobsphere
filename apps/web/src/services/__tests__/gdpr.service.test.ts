@@ -42,7 +42,9 @@ function makeTxStub(order: string[]) {
     application: {
       findMany: vi.fn().mockResolvedValue([{ id: 'app1' }]),
       deleteMany: vi.fn(rec('application')),
+      updateMany: vi.fn(),
     },
+    job: { count: vi.fn().mockResolvedValue(0) },
     resume: {
       findMany: vi.fn().mockResolvedValue([{ id: 'res1' }]),
       deleteMany: vi.fn(rec('resume')),
@@ -72,7 +74,7 @@ function makeTxStub(order: string[]) {
     session: { deleteMany: vi.fn(rec('session')) },
     account: { deleteMany: vi.fn(rec('account')) },
     userOrgRole: { deleteMany: vi.fn(rec('userOrgRole')) },
-    user: { delete: vi.fn(rec('user', {})) },
+    user: { delete: vi.fn(rec('user', {})), update: vi.fn(rec('userAnonymize', {})) },
   }
 }
 
@@ -148,5 +150,30 @@ describe('GdprService.eraseUserData', () => {
     expect(order[order.length - 1]).toBe('user')
     expect(result.candidateIds).toEqual([])
     expect(result.blobsDeleted).toBe(0)
+  })
+
+  it('anonymizes (not hard-deletes) a user who authored jobs, and detaches assignments (F3)', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'u3', email: 'boss@org.z' } as any)
+    vi.mocked(getCandidateIdsForUser).mockResolvedValue([])
+
+    const order: string[] = []
+    const tx = makeTxStub(order)
+    tx.job.count.mockResolvedValue(2) // this user created jobs (Restrict FK)
+    vi.mocked(prisma.$transaction).mockImplementation(async (cb: any) => cb(tx))
+
+    await GdprService.eraseUserData('u3')
+
+    // assignedTo applications detached, user anonymized via update, NOT hard-deleted.
+    expect(tx.application.updateMany).toHaveBeenCalledWith({
+      where: { assignedTo: 'u3' },
+      data: { assignedTo: null },
+    })
+    expect(tx.user.update).toHaveBeenCalledTimes(1)
+    expect(tx.user.delete).not.toHaveBeenCalled()
+    const anonData = tx.user.update.mock.calls[0][0].data
+    expect(anonData.email).toBe('erased-u3@deleted.invalid')
+    expect(anonData.name).toBeNull()
+    expect(anonData.password).toBeNull()
+    expect(anonData.deletedAt).toBeInstanceOf(Date)
   })
 })

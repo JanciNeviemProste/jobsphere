@@ -14,6 +14,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { withRateLimit } from '@/lib/rate-limit'
+import { isAllowedCvUrl } from '@/lib/cv-url'
 
 export const runtime = 'nodejs'
 
@@ -53,6 +54,13 @@ export const GET = withRateLimit(
 
       if (!authorized) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      }
+
+      // Defense-in-depth SSRF guard (F1): only fetch URLs we produced, in case a
+      // pre-guard / legacy CandidateDocument holds an attacker-controlled uri.
+      if (!isAllowedCvUrl(doc.uri)) {
+        logger.error('Refusing to fetch non-allowlisted CV uri', { documentId })
+        return NextResponse.json({ error: 'Failed to retrieve file' }, { status: 502 })
       }
 
       // Fetch the file server-side and stream it back. Never redirect to doc.uri.

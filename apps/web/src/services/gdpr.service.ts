@@ -160,7 +160,37 @@ export class GdprService {
       await tx.session.deleteMany({ where: { userId } })
       await tx.account.deleteMany({ where: { userId } })
       await tx.userOrgRole.deleteMany({ where: { userId } })
-      await tx.user.delete({ where: { id: userId } })
+
+      // Detach the user from org resources whose FKs would otherwise block deletion (F3).
+      // Application.assignedTo is nullable → null it.
+      await tx.application.updateMany({
+        where: { assignedTo: userId },
+        data: { assignedTo: null },
+      })
+
+      // Job.createdBy is a REQUIRED FK (Restrict): if this user authored jobs we cannot
+      // hard-delete the row without orphaning them. Anonymize instead — all PII is erased
+      // and the row is kept as an empty tombstone so the FK stays valid (GDPR Art.17 still
+      // satisfied: no personal data remains). Pure job-seekers (no authored jobs) are hard-deleted.
+      const authoredJobs = await tx.job.count({ where: { createdBy: userId } })
+      if (authoredJobs > 0) {
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            email: `erased-${userId}@deleted.invalid`,
+            name: null,
+            phone: null,
+            avatar: null,
+            password: null,
+            totpSecret: null,
+            totpEnabled: false,
+            sessionEpoch: { increment: 1 },
+            deletedAt: new Date(),
+          },
+        })
+      } else {
+        await tx.user.delete({ where: { id: userId } })
+      }
 
       return candidateCounts
     })

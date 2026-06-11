@@ -139,7 +139,14 @@ async function safeAdd<T>(
 }
 
 export const addEmailSequenceJob = (data: EmailSequenceJobData, delayMs?: number) =>
-  safeAdd(getEmailSequenceQueue, 'send-step', data, { delay: delayMs })
+  safeAdd(getEmailSequenceQueue, 'send-step', data, {
+    delay: delayMs,
+    // Deterministic job id so concurrent re-enqueues of the SAME (run, step) —
+    // the 15-min cron re-scan, the enroll kick, retries — dedupe in BullMQ and
+    // can't run two jobs for one step at once → no double-send (F4). The SENT-event
+    // check in the worker still guards sequential re-runs.
+    jobId: `seq:${data.enrollmentId}:${data.stepId}`,
+  })
 
 export const addEmbeddingJob = (data: EmbeddingJobData) =>
   safeAdd(getEmbeddingQueue, 'generate-embedding', data)

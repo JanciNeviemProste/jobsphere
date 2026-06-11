@@ -38,6 +38,11 @@ export default defineConfig({
       },
     },
     globals: true,
+    // Use the forks pool: the default threads pool segfaults at teardown on
+    // Windows when native modules (clamscan / file-type in the CV security
+    // tests) are loaded across worker threads. Forks isolate per-process and
+    // avoid the crash; harmless on CI/Linux.
+    pool: 'forks',
   },
   resolve: {
     alias: {

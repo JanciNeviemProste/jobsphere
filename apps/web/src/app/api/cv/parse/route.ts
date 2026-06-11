@@ -11,6 +11,7 @@ import { addEmbeddingJob } from '@/lib/queue'
 import { logger } from '@/lib/logger'
 import { withRateLimit } from '@/lib/rate-limit'
 import { getOrCreateCandidateForUser } from '@/lib/identity'
+import { isAllowedCvUrl } from '@/lib/cv-url'
 
 export const runtime = 'nodejs'
 
@@ -47,6 +48,13 @@ export const POST = withRateLimit(
           },
           { status: 400 },
         )
+      }
+
+      // SSRF guard (F1): the file reference is later fetched server-side by the CV
+      // download route, so reject any client-provided fileUrl that isn't one we
+      // produced (Vercel Blob / local uploads). Checked before the costly AI call.
+      if (fileUrl && !isAllowedCvUrl(fileUrl)) {
+        return NextResponse.json({ error: 'Invalid file reference' }, { status: 400 })
       }
 
       logger.info('Parsing CV', { textLength: rawText.length })
