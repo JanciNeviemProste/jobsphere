@@ -224,22 +224,32 @@ export async function runEmailSequenceJob() {
 
     let processed = 0
     let failed = 0
+    let completed = 0
+
+    // Import once (dynamic to avoid circular deps with the worker).
+    const { addEmailSequenceJob } = await import('@/lib/queue')
 
     for (const run of activeRuns) {
       try {
-        const currentStep = run.sequence.steps[run.currentStep]
+        const steps = run.sequence.steps
 
-        if (!currentStep) {
-          logger.warn('Current step not found', {
-            runId: run.id,
-            stepIndex: run.currentStep,
+        // No steps, or currentStep already past the last step → finalize the run
+        // here so it doesn't linger ACTIVE forever (the worker also self-heals,
+        // but this keeps the scan list bounded).
+        if (steps.length === 0 || run.currentStep >= steps.length) {
+          await prisma.emailSequenceRun.update({
+            where: { id: run.id },
+            data: { status: 'COMPLETED', completedAt: new Date() },
           })
+          completed++
           continue
         }
 
-        // Import dynamically to avoid circular dependencies
-        const { addEmailSequenceJob } = await import('@/lib/queue')
+        const currentStep = steps[run.currentStep]
 
+        // Enqueue the run's CURRENT step. The worker is idempotent and enforces
+        // due-date/conditions/dedupe before actually sending, so re-enqueuing the
+        // same step every 15 min is safe (it will hold until due, then send once).
         await addEmailSequenceJob({
           enrollmentId: run.id,
           stepId: currentStep.id,
@@ -259,9 +269,10 @@ export async function runEmailSequenceJob() {
       total: activeRuns.length,
       processed,
       failed,
+      completed,
     })
 
-    return { total: activeRuns.length, processed, failed }
+    return { total: activeRuns.length, processed, failed, completed }
   } catch (error) {
     logger.error('Email sequence cron job failed', { error })
     throw error

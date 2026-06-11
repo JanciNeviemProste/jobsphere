@@ -39,6 +39,14 @@ vi.mock('../logger', () => ({
   },
 }))
 
+// sendEmail now performs a suppression-list lookup before sending (LOGIC-011).
+// Mock prisma so these tests don't hit a real DB; default = not suppressed.
+vi.mock('../prisma', () => ({
+  prisma: {
+    emailSuppressionList: { findUnique: vi.fn().mockResolvedValue(null) },
+  },
+}))
+
 describe('Email Service', () => {
   beforeEach(() => {
     vi.clearAllMocks()

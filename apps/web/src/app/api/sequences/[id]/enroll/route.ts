@@ -8,9 +8,11 @@ import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
+// IDs in this app are cuids (Prisma @default(cuid())), not UUIDs — validating
+// with .uuid() rejected every real id and made enroll return 400 (LOGIC-012).
 const enrollSchema = z.object({
-  candidateId: z.string().uuid(),
-  jobId: z.string().uuid().optional(),
+  candidateId: z.string().cuid(),
+  jobId: z.string().cuid().optional(),
 })
 
 export const POST = withRateLimit(
@@ -78,7 +80,9 @@ export const POST = withRateLimit(
         return NextResponse.json({ error: 'Candidate not found or access denied' }, { status: 403 })
       }
 
-      // Check if already enrolled
+      // Idempotency: if the candidate already has a non-terminal run for this
+      // sequence, return it instead of creating a duplicate ACTIVE run.
+      // (A DB unique constraint on [sequenceId, candidateId] also backstops this.)
       const existing = await prisma.emailSequenceRun.findFirst({
         where: {
           sequenceId: params.id,
@@ -88,46 +92,54 @@ export const POST = withRateLimit(
       })
 
       if (existing) {
-        return NextResponse.json(
-          { error: 'Candidate is already enrolled in this sequence' },
-          { status: 409 },
-        )
+        return NextResponse.json({
+          success: true,
+          runId: existing.id,
+          alreadyEnrolled: true,
+          message: 'Candidate is already enrolled in this sequence',
+        })
       }
 
-      // Create sequence run
-      const run = await prisma.emailSequenceRun.create({
-        data: {
-          sequenceId: params.id,
-          candidateId,
-          status: 'ACTIVE',
-        },
-      })
-
-      // Queue first email with first step (with A/B testing support)
-      const firstStepCandidates = sequence.steps.filter((s: any) => s.order === 1)
-      let selectedFirstStep = firstStepCandidates[0]
-
-      // A/B Testing: Select variant if multiple steps with order 1 exist
-      if (firstStepCandidates.length > 1) {
-        const variants = firstStepCandidates.filter((s: any) => s.abGroup)
-
-        if (variants.length > 1) {
-          // Random selection with equal distribution
-          const randomIndex = Math.floor(Math.random() * variants.length)
-          selectedFirstStep = variants[randomIndex]
-
-          logger.info('A/B test variant selected for enrollment', {
-            runId: run.id,
-            selectedVariant: selectedFirstStep.abGroup,
-            totalVariants: variants.length,
+      // Create sequence run. The engine (worker + cron) drives sending from
+      // currentStep=0, honoring each step's dayOffset/conditions, so we do NOT
+      // pre-queue the first step here (avoids the previous orphan-run bug where
+      // a missing order===1 step left an ACTIVE run that never sent anything).
+      let run
+      try {
+        run = await prisma.emailSequenceRun.create({
+          data: {
+            sequenceId: params.id,
+            candidateId,
+            status: 'ACTIVE',
+            currentStep: 0,
+          },
+        })
+      } catch (createError) {
+        // Unique [sequenceId, candidateId] race → treat as idempotent success.
+        const dup = await prisma.emailSequenceRun.findFirst({
+          where: { sequenceId: params.id, candidateId },
+        })
+        if (dup) {
+          return NextResponse.json({
+            success: true,
+            runId: dup.id,
+            alreadyEnrolled: true,
+            message: 'Candidate is already enrolled in this sequence',
           })
         }
+        throw createError
       }
 
-      await addEmailSequenceJob({
-        enrollmentId: run.id,
-        stepId: selectedFirstStep.id,
-      })
+      // Kick the engine immediately for this run so a due first step (dayOffset 0,
+      // conditions met) goes out without waiting for the next 15-min cron scan.
+      // The worker is idempotent and honors due-date/conditions, so this is safe.
+      const firstStep = sequence.steps[0]
+      if (firstStep) {
+        await addEmailSequenceJob({
+          enrollmentId: run.id,
+          stepId: firstStep.id,
+        })
+      }
 
       return NextResponse.json({
         success: true,

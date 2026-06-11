@@ -1,4 +1,6 @@
 import { logger } from './logger'
+import { prisma } from './prisma'
+import { unsubscribeFooterHtml } from './unsubscribe'
 import { Resend as ResendClient } from 'resend'
 
 interface EmailData {
@@ -23,6 +25,32 @@ interface EmailResult {
   success: boolean
   id?: string
   error?: string
+  /** True when the send was skipped because the recipient is on the suppression list. */
+  suppressed?: boolean
+}
+
+/**
+ * Look up the recipient on the email suppression list (LOGIC-011).
+ *
+ * Returns the suppression reason if the address is suppressed, otherwise null.
+ * The DB lookup is wrapped defensively: if the suppression table cannot be
+ * queried (e.g. DB unavailable in a unit-test context), we treat the recipient
+ * as NOT suppressed rather than blocking all outbound mail.
+ */
+async function getSuppressionReason(email: string): Promise<string | null> {
+  try {
+    const normalized = email.trim().toLowerCase()
+    const entry = await prisma.emailSuppressionList.findUnique({
+      where: { email: normalized },
+      select: { reason: true },
+    })
+    return entry?.reason ?? null
+  } catch (error) {
+    logger.warn('Suppression list lookup failed; proceeding without suppression check', {
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return null
+  }
 }
 
 /**
@@ -76,14 +104,31 @@ export async function sendEmail(data: EmailData): Promise<EmailResult> {
   // Guard against email header injection
   validateEmailHeaders(data)
 
+  // Suppression guard (LOGIC-011): never send to a suppressed address.
+  // Skip + return a non-throwing suppressed result so callers (sequences, bulk,
+  // transactional) all honor unsubscribes/bounces/complaints uniformly.
+  const suppressionReason = await getSuppressionReason(data.to)
+  if (suppressionReason) {
+    logger.info('Email send skipped — recipient suppressed', {
+      to: data.to,
+      reason: suppressionReason,
+    })
+    return { success: true, suppressed: true }
+  }
+
   // Apply template variables (subject is plain text — no HTML escaping; html is HTML — escape values)
   let subject = applyVariables(data.subject, data.variables, false)
   let html = applyVariables(data.html, data.variables, true)
 
-  // Append unsubscribe link if requested
+  // Append unsubscribe link if requested (token-signed, per-recipient)
   if (data.includeUnsubscribe) {
-    const unsubscribeUrl = `${process.env.NEXT_PUBLIC_APP_URL || ''}/unsubscribe`
-    html += `<p style="font-size:12px;color:#999;text-align:center;margin-top:20px;">If you no longer wish to receive these emails, <a href="${unsubscribeUrl}" style="color:#999;">unsubscribe</a>.</p>`
+    try {
+      html += unsubscribeFooterHtml(data.to)
+    } catch (error) {
+      logger.warn('Failed to build unsubscribe footer; sending without it', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
   }
 
   const processedData = { ...data, subject, html }
