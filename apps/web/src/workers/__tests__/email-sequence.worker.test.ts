@@ -15,7 +15,7 @@ vi.mock('@/lib/logger', () => ({
 }))
 
 const { sendEmail } = vi.hoisted(() => ({ sendEmail: vi.fn() }))
-vi.mock('@/lib/email', () => ({ sendEmail }))
+vi.mock('@/lib/email', () => ({ sendEmail, escapeHtml: (s: string) => s }))
 
 vi.mock('@/lib/unsubscribe', () => ({
   unsubscribeFooterHtml: () => '<p>unsubscribe</p>',

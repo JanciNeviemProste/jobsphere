@@ -7,7 +7,7 @@ import { Worker, Job } from 'bullmq'
 import { connection, emailSequenceQueue, EmailSequenceJobData } from '@/lib/queue'
 import { prisma } from '@/lib/db'
 import { logger } from '@/lib/logger'
-import { sendEmail } from '@/lib/email'
+import { sendEmail, escapeHtml } from '@/lib/email'
 import { unsubscribeFooterHtml } from '@/lib/unsubscribe'
 import { runEmailSequenceJob } from '@/lib/cron'
 
@@ -277,8 +277,9 @@ export async function processEmailStep(job: Job<EmailSequenceJobData>) {
     let subject = step.subject.replace(/{{candidateName}}/g, candidateName)
     subject = subject.replace(/{{companyName}}/g, companyName)
 
-    let bodyHtml = step.bodyTemplate.replace(/{{candidateName}}/g, candidateName)
-    bodyHtml = bodyHtml.replace(/{{companyName}}/g, companyName)
+    // HTML body: escape the user/org-controlled values to avoid HTML injection (m1).
+    let bodyHtml = step.bodyTemplate.replace(/{{candidateName}}/g, escapeHtml(candidateName))
+    bodyHtml = bodyHtml.replace(/{{companyName}}/g, escapeHtml(companyName))
 
     // Sequence emails are marketing-style → always include an unsubscribe footer.
     try {

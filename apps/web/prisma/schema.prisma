@@ -224,6 +224,9 @@ model Job {
 
   @@unique([orgId, slug])
   @@index([orgId, status])
+  @@index([publishedAt, status]) // For public job listings sorted by date
+  @@index([status, seniority]) // For seniority-filtered public listing
+  @@index([status, remote]) // For remote-filtered public listing
   @@index([locale])
   @@index([deletedAt])
 }
@@ -442,6 +445,10 @@ model Application {
   referredBy    String?
   coverLetter   String?
 
+  // Candidate preferences
+  expectedSalary Int?      // Annual salary expectation
+  availableFrom  DateTime? // Earliest start date
+
   // Communication tracking
   lastContactAt DateTime?
   lastContactType String?
@@ -463,8 +470,9 @@ model Application {
   activities    ApplicationActivity[]
 
   @@unique([candidateId, jobId])
+  @@index([candidateId]) // Candidate viewing their own applications
   @@index([jobId, stage])
-  @@index([orgId, createdAt])
+  @@index([orgId, stage, createdAt]) // Employer pipeline queries
   @@index([assignedTo])
   @@index([deletedAt])
 }
@@ -1249,6 +1257,7 @@ model AuditLog {
   @@index([orgId])
   @@index([entityType, entityId])
   @@index([createdAt])
+  @@index([orgId, entityType, createdAt]) // For org audit logs filtered by type, sorted by date
 }
 
 model FeatureFlag {
