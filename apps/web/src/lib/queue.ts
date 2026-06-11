@@ -146,6 +146,10 @@ export const addEmailSequenceJob = (data: EmailSequenceJobData, delayMs?: number
     // can't run two jobs for one step at once → no double-send (F4). The SENT-event
     // check in the worker still guards sequential re-runs.
     jobId: `seq:${data.enrollmentId}:${data.stepId}`,
+    // Remove a permanently-failed step job so its deterministic id is freed and the
+    // next cron scan can re-enqueue/retry it — otherwise a hard-failed step would be
+    // blocked by its own id until removeOnFail age (review F4 follow-up).
+    removeOnFail: true,
   })
 
 export const addEmbeddingJob = (data: EmbeddingJobData) =>

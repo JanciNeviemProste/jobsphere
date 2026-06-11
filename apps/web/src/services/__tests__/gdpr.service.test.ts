@@ -175,5 +175,9 @@ describe('GdprService.eraseUserData', () => {
     expect(anonData.name).toBeNull()
     expect(anonData.password).toBeNull()
     expect(anonData.deletedAt).toBeInstanceOf(Date)
+    // No PII left on the tombstone (F3): IP/login/verification all erased.
+    expect(anonData.lastLoginIp).toBeNull()
+    expect(anonData.lastLoginAt).toBeNull()
+    expect(anonData.emailVerified).toBeNull()
   })
 })

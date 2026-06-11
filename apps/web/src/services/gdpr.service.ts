@@ -184,6 +184,11 @@ export class GdprService {
             password: null,
             totpSecret: null,
             totpEnabled: false,
+            // PII that must also be erased on the tombstone (an IP is personal data
+            // under GDPR Recital 30 / Breyer) — review F3 follow-up.
+            lastLoginIp: null,
+            lastLoginAt: null,
+            emailVerified: null,
             sessionEpoch: { increment: 1 },
             deletedAt: new Date(),
           },
