@@ -6,6 +6,10 @@ import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { PipelineBoard } from '@/components/employer/pipeline-board'
+import { APPLICATION_STAGES } from '@/lib/constants/application-stages'
+
+// Maximum cards to show per Kanban column — keeps the DOM manageable
+const PER_STAGE_CAP = 50
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -36,28 +40,44 @@ export default async function PipelinePage({
   const orgId = userOrgRole.orgId
   const currentJobId = searchParams.jobId
 
-  const [applications, jobs] = await Promise.all([
-    prisma.application.findMany({
-      where: {
-        job: { orgId },
-        ...(currentJobId ? { jobId: currentJobId } : {}),
-      },
-      include: {
-        job: { select: { id: true, title: true } },
-        candidate: {
-          include: {
-            contacts: { take: 1 },
+  // Load capped card sets per stage + job list in parallel — all scoped to orgId
+  const [stageResults, jobs] = await Promise.all([
+    // One bounded query per stage (all filtered to org + optional job)
+    Promise.all(
+      APPLICATION_STAGES.map((stage) =>
+        prisma.application.findMany({
+          where: {
+            job: { orgId },
+            stage,
+            ...(currentJobId ? { jobId: currentJobId } : {}),
           },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    }),
+          select: {
+            id: true,
+            stage: true,
+            createdAt: true,
+            job: { select: { id: true, title: true } },
+            candidate: {
+              select: {
+                contacts: {
+                  take: 1,
+                  select: { fullName: true, email: true },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: PER_STAGE_CAP,
+        }),
+      ),
+    ),
     prisma.job.findMany({
       where: { orgId },
       select: { id: true, title: true },
       orderBy: { createdAt: 'desc' },
     }),
   ])
+
+  const applications = stageResults.flat()
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">

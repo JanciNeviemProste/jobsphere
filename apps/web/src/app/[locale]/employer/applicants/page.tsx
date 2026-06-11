@@ -5,11 +5,13 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Kanban } from 'lucide-react'
+import { ArrowLeft, Kanban, ChevronLeft, ChevronRight } from 'lucide-react'
 import { ExportCSVButton } from '@/components/ExportCSVButton'
 import { ApplicantsTable } from '@/components/employer/applicants-table'
 
-async function getApplicants(userId: string) {
+const PAGE_SIZE = 20
+
+async function getApplicants(userId: string, page: number) {
   // Get user's organization
   const userOrgRole = await prisma.userOrgRole.findFirst({
     where: { userId },
@@ -19,36 +21,46 @@ async function getApplicants(userId: string) {
     return null
   }
 
-  // Get all applications for this organization's jobs
-  const applications = await prisma.application.findMany({
-    where: {
-      job: {
-        orgId: userOrgRole.orgId,
-      },
+  const where = {
+    job: {
+      orgId: userOrgRole.orgId,
     },
-    include: {
-      job: {
-        select: {
-          title: true,
+  }
+
+  // Paginated query + total count — both scoped to the caller's org
+  const [applications, total] = await Promise.all([
+    prisma.application.findMany({
+      where,
+      select: {
+        id: true,
+        stage: true,
+        createdAt: true,
+        job: {
+          select: {
+            title: true,
+          },
         },
-      },
-      candidate: {
-        include: {
-          contacts: {
-            where: {
-              isPrimary: true,
+        candidate: {
+          select: {
+            contacts: {
+              where: { isPrimary: true },
+              take: 1,
+              select: {
+                fullName: true,
+                email: true,
+              },
             },
-            take: 1,
           },
         },
       },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  })
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.application.count({ where }),
+  ])
 
-  return applications
+  return { applications, total, orgId: userOrgRole.orgId }
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -58,32 +70,50 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function ApplicantsPage({ params }: { params: { locale: string } }) {
+export default async function ApplicantsPage({
+  params,
+  searchParams,
+}: {
+  params: { locale: string }
+  searchParams?: { page?: string }
+}) {
   const session = await auth()
 
   if (!session?.user?.id) {
     redirect(`/${params.locale}/login`)
   }
 
-  const applications = await getApplicants(session.user.id)
+  const page = Math.max(1, parseInt(searchParams?.page ?? '1', 10) || 1)
+  const result = await getApplicants(session.user.id, page)
 
-  if (!applications) {
+  if (!result) {
     redirect(`/${params.locale}/dashboard`)
   }
 
-  type ApplicationWithRelations = typeof applications extends (infer T)[] ? T : never
+  const { applications, total } = result
+  const totalPages = Math.ceil(total / PAGE_SIZE)
+
+  // Stats require DB-side aggregation — use groupBy so we don't load extra rows
+  const stageCounts = await prisma.application.groupBy({
+    by: ['stage'],
+    where: {
+      job: {
+        orgId: result.orgId,
+      },
+    },
+    _count: { stage: true },
+  })
+
+  const stageMap = Object.fromEntries(stageCounts.map((s) => [s.stage, s._count.stage]))
 
   const stats = {
-    total: applications.length,
-    new: applications.filter((a: ApplicationWithRelations) => a.stage === 'NEW').length,
-    reviewing: applications.filter(
-      (a: ApplicationWithRelations) => a.stage === 'SCREENING' || a.stage === 'PHONE_SCREEN',
-    ).length,
-    interviewed: applications.filter((a: ApplicationWithRelations) => a.stage === 'INTERVIEW')
-      .length,
+    total,
+    new: stageMap['NEW'] ?? 0,
+    reviewing: (stageMap['SCREENING'] ?? 0) + (stageMap['PHONE_SCREEN'] ?? 0),
+    interviewed: stageMap['INTERVIEW'] ?? 0,
   }
 
-  const tableApplications = applications.map((a: ApplicationWithRelations) => ({
+  const tableApplications = applications.map((a) => ({
     id: a.id,
     candidateName: a.candidate.contacts?.[0]?.fullName || a.candidate.contacts?.[0]?.email || '',
     candidateEmail: a.candidate.contacts?.[0]?.email || '',
@@ -91,6 +121,11 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
     stage: a.stage,
     createdAt: a.createdAt,
   }))
+
+  // Build a page href preserving any future filters
+  function pageHref(p: number) {
+    return `/${params.locale}/employer/applicants${p > 1 ? `?page=${p}` : ''}`
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
@@ -154,6 +189,69 @@ export default async function ApplicantsPage({ params }: { params: { locale: str
             <ApplicantsTable applications={tableApplications} locale={params.locale} />
           </CardContent>
         </Card>
+
+        {/* Crawlable pagination */}
+        {totalPages > 1 && (
+          <nav
+            aria-label="Applicants pagination"
+            className="mt-8 flex items-center justify-center gap-2"
+          >
+            {page > 1 && (
+              <a
+                href={pageHref(page - 1)}
+                rel="prev"
+                className="inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted"
+                aria-label="Previous page"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Predošlá
+              </a>
+            )}
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((p) => {
+                const near = [page - 2, page - 1, page, page + 1, page + 2]
+                return p === 1 || p === totalPages || near.includes(p)
+              })
+              .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis')
+                acc.push(p)
+                return acc
+              }, [])
+              .map((item, idx) =>
+                item === 'ellipsis' ? (
+                  <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">
+                    …
+                  </span>
+                ) : (
+                  <a
+                    key={item}
+                    href={pageHref(item)}
+                    aria-current={item === page ? 'page' : undefined}
+                    className={`inline-flex h-9 w-9 items-center justify-center rounded-md border text-sm font-medium hover:bg-muted ${
+                      item === page
+                        ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
+                        : ''
+                    }`}
+                  >
+                    {item}
+                  </a>
+                ),
+              )}
+
+            {page < totalPages && (
+              <a
+                href={pageHref(page + 1)}
+                rel="next"
+                className="inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted"
+                aria-label="Next page"
+              >
+                Ďalšia
+                <ChevronRight className="h-4 w-4" />
+              </a>
+            )}
+          </nav>
+        )}
       </div>
     </div>
   )

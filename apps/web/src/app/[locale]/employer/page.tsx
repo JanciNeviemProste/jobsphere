@@ -37,8 +37,14 @@ async function getEmployerData(userId: string) {
     where: {
       orgId: userOrgRole.orgId,
     },
-    include: {
-      applications: true,
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      createdAt: true,
+      _count: {
+        select: { applications: true },
+      },
     },
     orderBy: {
       createdAt: 'desc',
@@ -123,7 +129,7 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
   const stats = {
     activeJobs: jobs.filter((j: JobWithApplications) => j.status === 'PUBLISHED').length,
     totalApplicants: jobs.reduce(
-      (sum: number, job: JobWithApplications) => sum + job.applications.length,
+      (sum: number, job: JobWithApplications) => sum + job._count.applications,
       0,
     ),
     newApplicants: recentApplications.filter((a: ApplicationWithRelations) => a.stage === 'NEW')
@@ -238,7 +244,7 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Users className="h-4 w-4" />
-                            {job.applications.length} prihlášok
+                            {job._count.applications} prihlášok
                           </span>
                           <span>
                             Vytvorené {new Date(job.createdAt).toLocaleDateString('sk-SK')}

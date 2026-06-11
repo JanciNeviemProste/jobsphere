@@ -68,48 +68,44 @@ export default async function AnalyticsPage() {
   }
 
   const orgId = membership.orgId
+  const orgScope = { job: { orgId } }
 
-  // Fetch all applications for the organization
-  const applications = await prisma.application.findMany({
-    where: { job: { orgId } },
-    include: {
-      job: {
-        select: {
-          title: true,
-          id: true,
-        },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
+  // ── DB-side aggregations — no full row scan in JS ──────────────────────────
+
+  // 1. Stage distribution + total count
+  const stageCounts = await prisma.application.groupBy({
+    by: ['stage'],
+    where: orgScope,
+    _count: { stage: true },
   })
 
-  // Calculate stats
-  const total = applications.length
-  const newApplications = applications.filter((a) => a.stage === 'NEW').length
-  const screening = applications.filter((a) => a.stage === 'SCREENING').length
-  const interview = applications.filter((a) =>
-    ['PHONE_SCREEN', 'INTERVIEW'].includes(a.stage),
-  ).length
-  const offer = applications.filter((a) => a.stage === 'OFFER').length
-  const hired = applications.filter((a) => a.stage === 'HIRED').length
+  const stageMap = Object.fromEntries(stageCounts.map((s) => [s.stage, s._count.stage]))
+  const total = stageCounts.reduce((sum, s) => sum + s._count.stage, 0)
 
-  // Group by stage for pie chart
-  const stageGroups = applications.reduce(
-    (acc, app) => {
-      const stage = app.stage
-      acc[stage] = (acc[stage] || 0) + 1
-      return acc
+  const newApplications = stageMap['NEW'] ?? 0
+  const screening = stageMap['SCREENING'] ?? 0
+  const interview = (stageMap['PHONE_SCREEN'] ?? 0) + (stageMap['INTERVIEW'] ?? 0)
+  const offer = stageMap['OFFER'] ?? 0
+  const hired = stageMap['HIRED'] ?? 0
+
+  const stageData = stageCounts.map((s) => ({ stage: s.stage, count: s._count.stage }))
+
+  // 2. Application trend — count per calendar day, last 30 days
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+  // groupBy date requires raw query; fetch minimal rows (id + createdAt) instead —
+  // bounded to 30 days so at most a few thousand rows even for large orgs.
+  const recentApps = await prisma.application.findMany({
+    where: {
+      ...orgScope,
+      createdAt: { gte: thirtyDaysAgo },
     },
-    {} as Record<string, number>,
-  )
+    select: { createdAt: true },
+    orderBy: { createdAt: 'asc' },
+  })
 
-  const stageData = Object.entries(stageGroups).map(([stage, count]) => ({
-    stage,
-    count,
-  }))
-
-  // Group by date for trend chart
-  const dateGroups = applications.reduce(
+  const dateGroups = recentApps.reduce(
     (acc, app) => {
       const date = new Date(app.createdAt).toLocaleDateString()
       acc[date] = (acc[date] || 0) + 1
@@ -121,28 +117,29 @@ export default async function AnalyticsPage() {
   const trendData = Object.entries(dateGroups)
     .map(([date, count]) => ({ date, count }))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(-30) // Last 30 days
 
-  // Group by job for top jobs table
-  const jobGroups = applications.reduce(
-    (acc, app) => {
-      const jobId = app.jobId
-      if (!acc[jobId]) {
-        acc[jobId] = {
-          title: app.job.title,
-          count: 0,
-          jobId: app.jobId,
-        }
-      }
-      acc[jobId].count++
-      return acc
-    },
-    {} as Record<string, { title: string; count: number; jobId: string }>,
-  )
+  // 3. Top jobs by application count — DB aggregation, limit 10
+  const jobCounts = await prisma.application.groupBy({
+    by: ['jobId'],
+    where: orgScope,
+    _count: { jobId: true },
+    orderBy: { _count: { jobId: 'desc' } },
+    take: 10,
+  })
 
-  const topJobs = Object.values(jobGroups)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10)
+  // Resolve job titles in a single IN query (max 10 rows)
+  const jobIds = jobCounts.map((j) => j.jobId)
+  const jobTitles = await prisma.job.findMany({
+    where: { id: { in: jobIds }, orgId },
+    select: { id: true, title: true },
+  })
+  const titleMap = Object.fromEntries(jobTitles.map((j) => [j.id, j.title]))
+
+  const topJobs = jobCounts.map((j) => ({
+    jobId: j.jobId,
+    title: titleMap[j.jobId] ?? j.jobId,
+    count: j._count.jobId,
+  }))
 
   return (
     <div className="container mx-auto space-y-8 py-10">
