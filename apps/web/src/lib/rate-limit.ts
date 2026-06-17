@@ -23,6 +23,12 @@ if (
   )
 }
 
+if (process.env.NODE_ENV === 'production' && process.env.DISABLE_RATE_LIMIT === 'true') {
+  logger.error(
+    'DISABLE_RATE_LIMIT=true is set in production and is being IGNORED — rate limiting stays active (SEC-011). Remove this env var; it only takes effect in development/test.',
+  )
+}
+
 function getRedis(): Redis | null {
   const currentUrl = process.env.KV_REST_API_URL
   const currentToken = process.env.KV_REST_API_TOKEN
@@ -210,8 +216,10 @@ export async function rateLimit(config: RateLimitConfig): Promise<RateLimitResul
   const now = Date.now()
   const windowStart = now - window * 1000
 
-  // Skip rate limiting when explicitly disabled
-  if (process.env.DISABLE_RATE_LIMIT === 'true') {
+  // Skip rate limiting when explicitly disabled — but NEVER in production, so a
+  // stray DISABLE_RATE_LIMIT=true on a live deployment can't silently strip all
+  // rate limiting (SEC-011). Honored only in development/test.
+  if (process.env.DISABLE_RATE_LIMIT === 'true' && process.env.NODE_ENV !== 'production') {
     return {
       success: true,
       limit,

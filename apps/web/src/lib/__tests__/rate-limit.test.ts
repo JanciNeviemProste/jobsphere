@@ -77,6 +77,30 @@ describe('Rate Limit Library', () => {
       expect(result.reset).toBeGreaterThan(Date.now())
     })
 
+    // SEC-011: DISABLE_RATE_LIMIT must only take effect outside production.
+    it('honors DISABLE_RATE_LIMIT outside production (short-circuits, no Redis call)', async () => {
+      process.env.NODE_ENV = 'development'
+      process.env.DISABLE_RATE_LIMIT = 'true'
+
+      const result = await rateLimit({ identifier: '127.0.0.1', limit: 10, window: 60 })
+
+      expect(result.success).toBe(true)
+      expect(result.remaining).toBe(10) // full remaining = short-circuited
+      expect(mockPipeline.zadd).not.toHaveBeenCalled()
+    })
+
+    it('IGNORES DISABLE_RATE_LIMIT in production (limiter stays active)', async () => {
+      process.env.NODE_ENV = 'production'
+      process.env.DISABLE_RATE_LIMIT = 'true'
+      mockPipeline.exec.mockResolvedValue([null, 3, null, null])
+
+      const result = await rateLimit({ identifier: '127.0.0.1', limit: 10, window: 60 })
+
+      // Not short-circuited: it consulted Redis and consumed a slot.
+      expect(mockPipeline.zadd).toHaveBeenCalled()
+      expect(result.remaining).toBe(6) // 10 - 3 - 1
+    })
+
     it('should deny request when at limit', async () => {
       // Mock 10 existing requests (at limit)
       mockPipeline.exec.mockResolvedValue([null, 10, null, null])

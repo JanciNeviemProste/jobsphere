@@ -15,6 +15,16 @@ const paginationSchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(20),
 })
 
+// Validate the apply payload server-side (SEC-009/010): bound coverLetter length
+// and require a cuid jobId, matching the createApplication server action. Without
+// this the POST accepted an unbounded coverLetter and an unvalidated jobId.
+const createApplicationBodySchema = z.object({
+  jobId: z.string().cuid(),
+  coverLetter: z.string().min(1).max(5000),
+  expectedSalary: z.string().max(100).optional(),
+  availableFrom: z.string().max(100).optional(),
+})
+
 export const runtime = 'nodejs'
 
 export const GET = withRateLimit(
@@ -100,12 +110,14 @@ export const POST = withCsrfProtection(
         }
 
         const body = await req.json()
-        const { jobId, coverLetter, expectedSalary, availableFrom } = body
-
-        // Validation
-        if (!jobId || !coverLetter) {
-          return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+        const parsed = createApplicationBodySchema.safeParse(body)
+        if (!parsed.success) {
+          return NextResponse.json(
+            { error: 'Invalid application data', details: parsed.error.flatten().fieldErrors },
+            { status: 400 },
+          )
         }
+        const { jobId, coverLetter } = parsed.data
 
         // Get job to fetch orgId and verify it's published
         const job = await prisma.job.findUnique({
