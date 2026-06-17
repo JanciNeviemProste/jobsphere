@@ -15,15 +15,22 @@ const nextConfig = {
 
   async headers() {
     // These static headers are applied to all paths (including API routes and
-    // _next/static assets) that do NOT go through middleware.  For page routes,
-    // middleware overwrites the CSP with a per-request nonce-based policy.
+    // _next/static assets). Page routes ALSO pass through middleware, which sets
+    // its own Content-Security-Policy. The two CSP sources MUST agree on
+    // `script-src` — when they disagree the browser combines them (most
+    // restrictive wins), and a stray `'strict-dynamic'` here would override the
+    // middleware's `'unsafe-inline'` on page documents, stripping the nonce-less
+    // bootstrap scripts of permission to run → blank production app (SEC-005 / F2).
     //
-    // In production we omit 'unsafe-inline' — API routes and static files never
-    // need to execute inline scripts, so 'strict-dynamic' is sufficient there.
+    // SEC-005 is deferred: a correctly-propagated, preview-verified nonce policy
+    // has not landed yet (next-intl middleware does not forward the per-request
+    // nonce to the App Router render). Until it does, BOTH this header and
+    // middleware.ts keep `'unsafe-inline'` for scripts in production. Do not
+    // reintroduce `'strict-dynamic'` in only one of the two places.
     const isDev = process.env.NODE_ENV === 'development'
     const scriptSrc = isDev
       ? "'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://browser.sentry-cdn.com https://js.sentry-cdn.com https://accounts.google.com https://vercel.live"
-      : "'self' 'strict-dynamic' https://js.stripe.com https://browser.sentry-cdn.com https://js.sentry-cdn.com https://accounts.google.com https://vercel.live"
+      : "'self' 'unsafe-inline' https://js.stripe.com https://browser.sentry-cdn.com https://js.sentry-cdn.com https://accounts.google.com https://vercel.live"
 
     return [
       {
