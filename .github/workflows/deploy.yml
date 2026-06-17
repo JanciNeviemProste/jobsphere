@@ -1,5 +1,15 @@
 name: Deploy to Production
 
+# ⚠️ DATABASE MIGRATIONS ARE NOT RUN HERE.
+# This pipeline only gates on tests + typecheck and then triggers a Vercel build.
+# Schema changes ship via `prisma db push` (migrations dir is a dev-only workflow),
+# so the production DB must be synced MANUALLY *before* merging schema-dependent
+# code to main — otherwise the new build queries columns that don't exist and 500s.
+# Procedure: remediation/wave1-migration-runbook.md  (yarn db:push + backfill SQL).
+# Required runtime env on Vercel: remediation/production-env-checklist.md.
+# Background workers do NOT run on Vercel — deploy them separately:
+# remediation/worker-deploy-runbook.md.
+
 on:
   push:
     branches: [main, master]
@@ -22,6 +32,17 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
+
+      # Workspace packages (e.g. @jobsphere/ai) emit gitignored dist/, and apps/web
+      # resolves @prisma/client types from a generated client. Both MUST exist before
+      # typecheck/test or every consumer fails to resolve them (QA-001) — mirrors ci.yml.
+      - name: Build workspace packages
+        run: npx turbo run build --filter='./packages/*'
+
+      - name: Generate Prisma client
+        run: |
+          cd apps/web
+          yarn db:generate
 
       - name: Run tests
         run: |

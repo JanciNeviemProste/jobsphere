@@ -1,0 +1,63 @@
+# syntax=docker/dockerfile:1
+#
+# JobSphere — background WORKER image.
+#
+# Runs the canonical BullMQ workers + cron scheduler defined in
+#   apps/web/src/workers/index.ts   (started via `yarn workers` -> tsx)
+# as a SINGLE long-lived process.
+#
+# WHY THIS EXISTS: Vercel is serverless and cannot run a persistent process, so
+# on Vercel NONE of the background jobs run. Without this image deployed to an
+# always-on host, the following silently never execute in production:
+#   - GDPR retention + Art.17 erasure cron        (legal exposure)
+#   - email sequences / drip campaigns
+#   - CV embeddings (semantic search/matching backfill)
+#   - assessment grading + assessment reminders
+#   - match-score cache fill
+#
+# Deploy THIS image to any always-on container host (Railway, Render, Fly.io, a
+# VM, ECS, ...) pointed at the SAME REDIS_URL and DATABASE_URL as the web app.
+# Full instructions: remediation/worker-deploy-runbook.md
+#
+# NOTE: this is intentionally separate from the legacy root ./Dockerfile, which
+# targets the dead apps/api + apps/workers trees. The canonical workers live in
+# apps/web/src/workers and run through tsx (no compile step).
+
+FROM node:20-slim AS base
+
+# Prisma's query engine needs openssl; ca-certificates for outbound TLS to
+# Postgres/Redis (managed, TLS), Resend/SendGrid, Anthropic/OpenAI/OpenRouter.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+# Copy the whole monorepo. node_modules / dist / .next / .env are excluded by
+# .dockerignore so the install + builds below run against a clean tree.
+COPY . .
+
+# Install ALL deps (NOT --production): the worker runs through `tsx` and uses the
+# Prisma CLI, both of which live in apps/web devDependencies.
+RUN yarn install --frozen-lockfile
+
+# Build the gitignored workspace packages (@jobsphere/ai, @jobsphere/db emit
+# dist/ via tsup) and generate the Prisma client — the exact same prerequisites
+# CI relies on before any typecheck/test/run step (QA-001).
+RUN npx turbo run build --filter='./packages/*'
+RUN cd apps/web && yarn db:generate
+
+WORKDIR /app/apps/web
+
+# Workers run via tsx (TypeScript at runtime) — no Next build required.
+#
+# REQUIRED ENV AT RUNTIME: the SAME variables the web app validates in
+# apps/web/src/lib/env.ts (validated at import — the process will refuse to
+# start if any is missing):
+#   DATABASE_URL, REDIS_URL, NEXTAUTH_SECRET, NEXTAUTH_URL, ENCRYPTION_KEY,
+#   OPENROUTER_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY,
+#   NEXT_PUBLIC_APP_URL, NEXT_PUBLIC_API_URL
+# Plus, for actual side effects: RESEND_API_KEY/SENDGRID_API_KEY (email),
+# BLOB_READ_WRITE_TOKEN (CV blob deletion on GDPR erase). See the runbook.
+CMD ["yarn", "workers"]
