@@ -13,23 +13,26 @@
 const requiredEnvVars = {
   // Public (client-side)
   public: ['NEXT_PUBLIC_APP_URL', 'NEXT_PUBLIC_API_URL'],
-  // Server-only
+  // Server-only.
+  // MUST stay in sync with the required (non-.optional()) fields in src/lib/env.ts —
+  // env.ts is validated at import and fails the build/cold-start, so anything it
+  // requires must be flagged here too, otherwise this pre-build gate gives a false
+  // "all good" and the failure surfaces later with a less obvious error.
   server: [
     'NEXTAUTH_SECRET',
     'NEXTAUTH_URL',
     'DATABASE_URL',
+    // Redis — required by env.ts (BullMQ queues + rate limiting).
+    'REDIS_URL',
     // Security Keys
     'ENCRYPTION_KEY',
-    // AI API Keys (Anthropic is the primary provider)
-    'ANTHROPIC_API_KEY',
+    // AI API Keys — all three required by env.ts:
+    'OPENROUTER_API_KEY', // CV parsing (primary)
+    'ANTHROPIC_API_KEY', // CV parsing fallback
+    'OPENAI_API_KEY', // embeddings
   ],
-  // Optional (warnings only)
+  // Optional (warnings only) — these are .optional() in env.ts.
   optional: [
-    // Redis has in-memory fallback in rate-limit.ts
-    'REDIS_URL',
-    // Alternative LLM providers (Anthropic is primary)
-    'OPENROUTER_API_KEY',
-    'OPENAI_API_KEY',
     'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY',
     'NEXT_PUBLIC_POSTHOG_KEY',
     'NEXT_PUBLIC_SENTRY_DSN',
