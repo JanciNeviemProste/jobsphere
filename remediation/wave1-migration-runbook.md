@@ -2,6 +2,7 @@
 
 **Status:** schémy upravené (Claude), **migráciu spúšťaš ty** (potrebuje bežiacu Postgres+pgvector DB).
 **Odomyká:** Stream A (identity resolver → „moje prihlášky", withdraw, assessment submit), GDPR export, perzistenciu CV (CandidateDocument), GDPR delete integritu.
+**Nadväzuje (voliteľné, PO tomto db push):** ďalšie spevnenie DB integrity (LOGIC-006 unikátnosť emailov, LOGIC-014 onDelete) je rozpísané ako vedomá, odmeraná migrácia v [`db-integrity-followups.md`](./db-integrity-followups.md) — NErob ho slepo v tomto kroku (unique by mohol zhodiť db push, kaskády môžu mazať dáta).
 
 ---
 
