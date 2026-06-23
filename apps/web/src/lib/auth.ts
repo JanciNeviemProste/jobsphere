@@ -134,8 +134,17 @@ export const authOptions: NextAuthOptions = {
             return null
           }
 
-          // SECURITY: Email must be verified before login (production only)
-          if (!user.emailVerified && process.env.NODE_ENV === 'production') {
+          // SECURITY: Email must be verified before login (production only).
+          // A preview/demo deployment that has no email provider configured can
+          // opt out with PREVIEW_SKIP_EMAIL_VERIFICATION=true so stakeholders can
+          // sign up and log in without a verification email. NEVER set this in real
+          // production — it disables the email-ownership check.
+          const skipEmailVerification = process.env.PREVIEW_SKIP_EMAIL_VERIFICATION === 'true'
+          if (
+            !user.emailVerified &&
+            process.env.NODE_ENV === 'production' &&
+            !skipEmailVerification
+          ) {
             throw new Error('EMAIL_NOT_VERIFIED')
           }
 
