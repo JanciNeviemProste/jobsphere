@@ -11,6 +11,9 @@ export default getRequestConfig(async ({ requestLocale }) => {
   if (!locale || !locales.includes(locale as any)) notFound()
 
   return {
+    // next-intl 3.22+ requires `locale` to be returned here; omitting it triggers
+    // a "suspended thenable" render crash (500) on locale-rendered pages.
+    locale,
     messages: (await import(`../messages/${locale}.json`)).default,
   }
 })
