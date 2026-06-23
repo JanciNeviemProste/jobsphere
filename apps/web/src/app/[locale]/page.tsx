@@ -1,4 +1,3 @@
-import { useTranslations } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -29,7 +28,9 @@ export async function generateMetadata({
 }
 
 export default async function HomePage({ params }: { params: { locale: string } }) {
-  const t = useTranslations()
+  // This is an async Server Component — must use the async getTranslations(),
+  // NOT the useTranslations() hook (calling a hook here crashes the render).
+  const t = await getTranslations()
   const locale = params.locale
 
   const latestJobs = await prisma.job.findMany({
