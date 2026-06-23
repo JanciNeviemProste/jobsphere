@@ -149,11 +149,23 @@ export const POST = withRateLimit(
 /**
  * Handle checkout session completed
  */
-async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+export async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const organizationId = session.metadata?.organizationId
 
   if (!organizationId) {
     logger.error('No organizationId in checkout session metadata')
+    return
+  }
+
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: { id: true },
+  })
+  if (!org) {
+    logger.error('Stripe checkout: unknown organizationId in metadata', {
+      organizationId,
+      sessionId: session.id,
+    })
     return
   }
 

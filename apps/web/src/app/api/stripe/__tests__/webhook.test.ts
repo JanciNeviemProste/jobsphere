@@ -50,6 +50,9 @@ vi.mock('@/lib/prisma', () => ({
       findUnique: vi.fn(),
       upsert: vi.fn(),
     },
+    organization: {
+      findUnique: vi.fn(),
+    },
     price: {
       findFirst: vi.fn(),
     },
@@ -70,7 +73,7 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 import { prisma } from '@/lib/prisma'
-import { POST } from '../webhook/route'
+import { POST, handleCheckoutCompleted } from '../webhook/route'
 
 const ORG_ID = 'org-123'
 
@@ -229,5 +232,39 @@ describe('Stripe webhook — subscription sync', () => {
       .mocked(prisma.providerEvent.updateMany)
       .mock.calls.find((c: any) => c[0].data?.processed === false)
     expect(releaseCall).toBeDefined()
+  })
+})
+
+describe('handleCheckoutCompleted — org existence guard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.orgCustomer.upsert).mockResolvedValue({} as any)
+  })
+
+  it('does NOT call orgCustomer.upsert when organization does not exist', async () => {
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue(null)
+
+    await handleCheckoutCompleted({
+      id: 'cs_test_1',
+      metadata: { organizationId: 'org-ghost' },
+      customer: 'cus_ghost',
+    } as any)
+
+    expect(prisma.orgCustomer.upsert).not.toHaveBeenCalled()
+  })
+
+  it('calls orgCustomer.upsert when organization exists', async () => {
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({ id: 'org-real' } as any)
+
+    await handleCheckoutCompleted({
+      id: 'cs_test_2',
+      metadata: { organizationId: 'org-real' },
+      customer: 'cus_real',
+    } as any)
+
+    expect(prisma.orgCustomer.upsert).toHaveBeenCalledTimes(1)
+    const arg = vi.mocked(prisma.orgCustomer.upsert).mock.calls[0][0] as any
+    expect(arg.where).toEqual({ orgId: 'org-real' })
+    expect(arg.create.providerCustomerId).toBe('cus_real')
   })
 })

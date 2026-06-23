@@ -44,6 +44,10 @@ export const GET = withRateLimit(
         return NextResponse.json({ error: 'Resume not found' }, { status: 404 })
       }
 
+      if (resume.candidate.deletedAt) {
+        return NextResponse.json({ error: 'Resume not found' }, { status: 404 })
+      }
+
       // Verify user has access: must belong to the same organization as the candidate
       const membership = await prisma.userOrgRole.findFirst({
         where: { userId: session.user.id, orgId: resume.candidate.orgId },
