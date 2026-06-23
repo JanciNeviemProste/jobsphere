@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
@@ -6,6 +7,7 @@ import { hash } from 'bcryptjs'
 import { logger } from '@/lib/logger'
 import { withRateLimit } from '@/lib/rate-limit'
 import { withCsrfProtection } from '@/lib/csrf'
+import { sendEmail, getInvitationEmail } from '@/lib/email'
 
 export const runtime = 'nodejs'
 
@@ -99,6 +101,9 @@ export const POST = withCsrfProtection(
             userId: session.user.id,
             role: 'ORG_ADMIN',
           },
+          include: {
+            organization: { select: { name: true } },
+          },
         })
 
         if (!userOrgRole) {
@@ -111,15 +116,21 @@ export const POST = withCsrfProtection(
         const body = await request.json()
         const { email, role } = inviteMemberSchema.parse(body)
 
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        const orgName = userOrgRole.organization?.name || 'your organization'
+
         // Check if user already exists
         let user = await prisma.user.findUnique({
           where: { email },
         })
+        const isNewUser = !user
 
         // If user doesn't exist, create a new user account
         if (!user) {
-          // Generate a random temporary password
-          const tempPassword = require('crypto').randomBytes(16).toString('hex')
+          // Generate a random temporary password (the account still needs a
+          // password hash). The user sets their real password via the invite
+          // link below.
+          const tempPassword = crypto.randomBytes(16).toString('hex')
           const hashedPassword = await hash(tempPassword, 12)
 
           user = await prisma.user.create({
@@ -130,8 +141,29 @@ export const POST = withCsrfProtection(
             },
           })
 
-          // TODO: Send invitation email with temporary password or magic link
-          // This would be implemented with your email service
+          // Issue a set-password (reset-password) token so the invited user can
+          // choose their own password and log in. resetPassword() looks this up
+          // by plaintext token value, so a plaintext UUID is a valid link.
+          const inviteToken = crypto.randomUUID()
+          await prisma.verificationToken.create({
+            data: {
+              identifier: email,
+              token: inviteToken,
+              expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            },
+          })
+          const actionUrl = `${appUrl}/reset-password?token=${inviteToken}`
+
+          // Best-effort invite email — never fail the request if email fails.
+          try {
+            await sendEmail({
+              to: email,
+              subject: `You're invited to join ${orgName} on JobSphere`,
+              html: getInvitationEmail({ isNewUser: true, orgName, role, actionUrl }),
+            })
+          } catch (emailError) {
+            logger.error('Failed to send invitation email to new user:', emailError)
+          }
         }
 
         // Check if user is already a member
@@ -170,8 +202,21 @@ export const POST = withCsrfProtection(
           },
         })
 
-        // TODO: Send notification email to the invited user
-        // You would implement this with your email service configured in the project
+        // Best-effort notification email for users who already had an account.
+        // New users were already emailed the set-password invite above, so we
+        // do not double-send. Never fail the request if email fails.
+        if (!isNewUser) {
+          try {
+            const actionUrl = `${appUrl}/login`
+            await sendEmail({
+              to: user.email,
+              subject: `You've been added to ${orgName}`,
+              html: getInvitationEmail({ isNewUser: false, orgName, role, actionUrl }),
+            })
+          } catch (emailError) {
+            logger.error('Failed to send notification email to existing user:', emailError)
+          }
+        }
 
         return NextResponse.json({
           member: newMember,

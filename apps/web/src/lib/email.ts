@@ -372,6 +372,73 @@ export function getNewApplicationEmail(
   `
 }
 
+/**
+ * Org member invitation / notification email.
+ *
+ * Two variants:
+ *  - isNewUser=true: the recipient has no account yet. The CTA links to the
+ *    set-password (reset-password) flow so they can choose a password and join.
+ *  - isNewUser=false: the recipient already had an account and was simply added
+ *    to the organization. The CTA links to login / the app.
+ *
+ * Every interpolated value (orgName, role) is HTML-escaped to prevent XSS.
+ * actionUrl is a server-built URL (app origin + token/path) — escaped
+ * defensively as well.
+ */
+export function getInvitationEmail({
+  isNewUser,
+  orgName,
+  role,
+  actionUrl,
+}: {
+  isNewUser: boolean
+  orgName: string
+  role: string
+  actionUrl: string
+}): string {
+  const safeOrgName = escapeHtml(orgName)
+  const safeRole = escapeHtml(role)
+  const safeActionUrl = escapeHtml(actionUrl)
+
+  const heading = isNewUser ? "You've been invited" : "You've been added"
+  const intro = isNewUser
+    ? `<p>You've been invited to join <strong>${safeOrgName}</strong> on JobSphere.</p>
+            <p>To get started, set your password and join the team:</p>`
+    : `<p>You've been added to <strong>${safeOrgName}</strong> as <strong>${safeRole}</strong>.</p>`
+  const buttonLabel = isNewUser ? 'Set your password &amp; join' : 'Open JobSphere'
+  const extras = isNewUser
+    ? `<p>Or copy and paste this link into your browser:</p>
+            <p style="word-break:break-all;font-size:13px;color:#6b7280;">${safeActionUrl}</p>
+            <p style="font-size:13px;color:#6b7280;">This invitation link expires in 7 days.</p>`
+    : ''
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 8px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="content">
+            <h1>${heading}</h1>
+            ${intro}
+            <a href="${safeActionUrl}" style="display:inline-block;padding:12px 24px;background-color:#4F46E5;color:white;text-decoration:none;border-radius:5px;margin:16px 0;">${buttonLabel}</a>
+            ${extras}
+          </div>
+          <hr/>
+          <p style="text-align:center;color:#6b7280;font-size:12px;">JobSphere ATS</p>
+        </div>
+      </body>
+    </html>
+  `
+}
+
 export function getApplicationStatusChangeEmail(
   candidateName: string,
   jobTitle: string,
