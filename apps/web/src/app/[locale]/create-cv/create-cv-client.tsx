@@ -149,7 +149,7 @@ export default function CreateCVClient() {
     if (parsedData.skills && Array.isArray(parsedData.skills)) {
       const mappedSkills = parsedData.skills.map((skill: string) => ({
         name: skill,
-        level: 'Intermediate',
+        level: 'Pokročilý',
       }))
       setSkills(mappedSkills)
     }
@@ -163,7 +163,7 @@ export default function CreateCVClient() {
     if (parsedData.languages && Array.isArray(parsedData.languages)) {
       const mappedLanguages = parsedData.languages.map((lang: any) => ({
         name: lang.name || '',
-        proficiency: lang.level || 'Intermediate',
+        proficiency: lang.level || 'Pokročilý',
       }))
       setLanguages(mappedLanguages)
     }
@@ -285,10 +285,20 @@ export default function CreateCVClient() {
   }
 
   const handleDownloadPdf = async () => {
-    const el = printRef.current
-    if (!el || downloading) return
+    if (downloading) return
     setDownloading(true)
     try {
+      // html2canvas only captures elements that are actually laid out on screen — an
+      // off-screen element renders blank. So open the preview, let it render, then
+      // capture the (visible) preview content.
+      if (!showPreview) {
+        setShowPreview(true)
+        await new Promise((r) => setTimeout(r, 450))
+      } else {
+        await new Promise((r) => setTimeout(r, 50))
+      }
+      const el = printRef.current
+      if (!el) return
       // Client-side, on demand — keeps html2pdf/html2canvas out of the SSR bundle.
       // @ts-ignore - html2pdf.js ships no type declarations
       const html2pdf = (await import('html2pdf.js')).default
@@ -649,7 +659,7 @@ export default function CreateCVClient() {
                           newSkills[index].level = e.target.value
                           setSkills(newSkills)
                         }}
-                        placeholder="Beginner, Intermediate, Advanced"
+                        placeholder="Začiatočník, Pokročilý, Expert"
                       />
                     </div>
                     <Button onClick={() => removeSkill(index)} size="sm" variant="ghost">
@@ -785,17 +795,7 @@ export default function CreateCVClient() {
         </div>
       </div>
 
-      {/* Off-screen CV rendered for PDF generation — needs real layout (NOT display:none),
-          so html2canvas can capture it. Positioned off-screen instead. */}
-      <div
-        ref={printRef}
-        aria-hidden="true"
-        style={{ position: 'absolute', left: '-10000px', top: 0, width: '800px' }}
-      >
-        <CVPreview data={cvData} />
-      </div>
-
-      {/* On-screen preview modal */}
+      {/* On-screen preview modal — also the source for PDF generation (must be visible). */}
       {showPreview && (
         <div
           className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/60 p-4 print:hidden"
@@ -824,7 +824,9 @@ export default function CreateCVClient() {
                 </Button>
               </div>
             </div>
-            <CVPreview data={cvData} />
+            <div ref={printRef}>
+              <CVPreview data={cvData} />
+            </div>
           </div>
         </div>
       )}
