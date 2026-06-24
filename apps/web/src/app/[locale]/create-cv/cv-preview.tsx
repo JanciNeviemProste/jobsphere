@@ -58,6 +58,7 @@ export function CVPreview({ data }: { data: CVPreviewData }) {
           <img
             src={p.photo}
             alt={p.fullName || 'Foto'}
+            crossOrigin="anonymous"
             className="h-28 w-28 flex-shrink-0 rounded-full border object-cover"
           />
         )}

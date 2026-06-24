@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -81,6 +81,8 @@ export default function CreateCVClient() {
   // Preview / draft state
   const [showPreview, setShowPreview] = useState(false)
   const [draftSaved, setDraftSaved] = useState(false)
+  const [downloading, setDownloading] = useState(false)
+  const printRef = useRef<HTMLDivElement>(null)
 
   const DRAFT_KEY = 'jobsphere-cv-draft'
 
@@ -282,9 +284,30 @@ export default function CreateCVClient() {
     }
   }
 
-  const handleDownloadPdf = () => {
-    // Use the browser's print dialog → "Save as PDF" (prints only the #cv-print block).
-    window.print()
+  const handleDownloadPdf = async () => {
+    const el = printRef.current
+    if (!el || downloading) return
+    setDownloading(true)
+    try {
+      // Client-side, on demand — keeps html2pdf/html2canvas out of the SSR bundle.
+      // @ts-ignore - html2pdf.js ships no type declarations
+      const html2pdf = (await import('html2pdf.js')).default
+      const safeName = (personalInfo.fullName || 'CV').replace(/[^a-zA-Z0-9._-]+/g, '_') || 'CV'
+      await html2pdf()
+        .set({
+          margin: 0,
+          filename: `${safeName}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        })
+        .from(el)
+        .save()
+    } catch {
+      // best-effort; the on-screen preview still works
+    } finally {
+      setDownloading(false)
+    }
   }
 
   const handleGenerate = () => {
@@ -736,9 +759,9 @@ export default function CreateCVClient() {
                   <Eye className="mr-2 h-4 w-4" />
                   {t('actions.preview')}
                 </Button>
-                <Button className="w-full" onClick={handleDownloadPdf}>
+                <Button className="w-full" onClick={handleDownloadPdf} disabled={downloading}>
                   <Download className="mr-2 h-4 w-4" />
-                  {t('actions.download')}
+                  {downloading ? 'Sťahujem…' : t('actions.download')}
                 </Button>
                 <Button className="w-full" variant="secondary" onClick={handleSaveDraft}>
                   {draftSaved ? '✓ Uložené' : t('actions.save')}
@@ -762,8 +785,13 @@ export default function CreateCVClient() {
         </div>
       </div>
 
-      {/* Print-only CV — window.print() turns this into a PDF ("Save as PDF"). */}
-      <div id="cv-print">
+      {/* Off-screen CV rendered for PDF generation — needs real layout (NOT display:none),
+          so html2canvas can capture it. Positioned off-screen instead. */}
+      <div
+        ref={printRef}
+        aria-hidden="true"
+        style={{ position: 'absolute', left: '-10000px', top: 0, width: '800px' }}
+      >
         <CVPreview data={cvData} />
       </div>
 
@@ -782,9 +810,9 @@ export default function CreateCVClient() {
             <div className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-lg border-b bg-white px-4 py-3">
               <h3 className="text-lg font-semibold">{t('actions.preview')}</h3>
               <div className="flex items-center gap-2">
-                <Button size="sm" onClick={handleDownloadPdf}>
+                <Button size="sm" onClick={handleDownloadPdf} disabled={downloading}>
                   <Download className="mr-2 h-4 w-4" />
-                  {t('actions.download')}
+                  {downloading ? 'Sťahujem…' : t('actions.download')}
                 </Button>
                 <Button
                   size="sm"
@@ -800,15 +828,6 @@ export default function CreateCVClient() {
           </div>
         </div>
       )}
-
-      <style>{`
-        @media screen { #cv-print { display: none; } }
-        @media print {
-          body * { visibility: hidden !important; }
-          #cv-print, #cv-print * { visibility: visible !important; }
-          #cv-print { position: absolute; left: 0; top: 0; width: 100%; }
-        }
-      `}</style>
     </div>
   )
 }
