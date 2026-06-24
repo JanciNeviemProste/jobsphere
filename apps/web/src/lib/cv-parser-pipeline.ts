@@ -31,11 +31,15 @@ export interface ParseResult {
  */
 async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
   try {
-    // pdf-parse v2 exposes a named `pdf()` function. The old v1 default export
-    // (`pdfParse.default(...)`) was removed in v2, so calling it threw a TypeError
-    // for EVERY PDF and silently dropped extraction to the metadata fallback.
-    const { pdf } = (await import('pdf-parse')) as any
-    const data = await pdf(Buffer.from(buffer))
+    // Import pdf-parse v1 via its inner lib entry (NOT the package index): the index
+    // runs debug code that reads a bundled test PDF and throws under webpack, and v2's
+    // pdf.js loads external worker/font assets that aren't present in the Vercel
+    // serverless bundle (extraction silently returned empty -> metadata fallback).
+    // v1's self-contained pdf.js works in the bundle and via this entry.
+    // @ts-ignore - v1 inner lib entry ships no type declarations
+    const mod: any = await import('pdf-parse/lib/pdf-parse.js')
+    const pdfParse = mod.default || mod
+    const data = await pdfParse(Buffer.from(buffer))
     return data?.text || ''
   } catch (error) {
     logger.warn('PDF parsing error', { error })
