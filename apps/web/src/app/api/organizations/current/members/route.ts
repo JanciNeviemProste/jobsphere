@@ -13,7 +13,9 @@ export const runtime = 'nodejs'
 
 const inviteMemberSchema = z.object({
   email: z.string().email(),
-  role: z.enum(['ORG_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'AGENCY']),
+  // SUB_HR = a sub-HR member managed by the main HR (ORG_ADMIN): works with
+  // candidates/applications/pipeline but not billing, members or org settings.
+  role: z.enum(['ORG_ADMIN', 'RECRUITER', 'SUB_HR', 'HIRING_MANAGER', 'AGENCY']),
 })
 
 export const GET = withRateLimit(

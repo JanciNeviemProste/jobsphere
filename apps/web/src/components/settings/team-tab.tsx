@@ -59,15 +59,17 @@ interface TeamMember {
 const ROLE_LABELS = {
   ORG_ADMIN: 'Admin',
   RECRUITER: 'Recruiter',
+  SUB_HR: 'Sub-HR',
   HIRING_MANAGER: 'Hiring Manager',
-  AGENCY: 'Agency'
+  AGENCY: 'Agency',
 }
 
 const ROLE_COLORS = {
   ORG_ADMIN: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
   RECRUITER: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  SUB_HR: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
   HIRING_MANAGER: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  AGENCY: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300'
+  AGENCY: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
 }
 
 export function TeamTab() {
@@ -107,9 +109,9 @@ export function TeamTab() {
       const response = await fetch(`/api/organizations/current/members/${member.userId}`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ role: newRole })
+        body: JSON.stringify({ role: newRole }),
       })
 
       if (!response.ok) {
@@ -118,9 +120,7 @@ export function TeamTab() {
       }
 
       // Update local state
-      setMembers(members.map(m =>
-        m.userId === member.userId ? { ...m, role: newRole } : m
-      ))
+      setMembers(members.map((m) => (m.userId === member.userId ? { ...m, role: newRole } : m)))
 
       toast.success('Team member role updated')
     } catch (error) {
@@ -133,7 +133,7 @@ export function TeamTab() {
 
     try {
       const response = await fetch(`/api/organizations/current/members/${memberToDelete.userId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
 
       if (!response.ok) {
@@ -142,7 +142,7 @@ export function TeamTab() {
       }
 
       // Update local state
-      setMembers(members.filter(m => m.userId !== memberToDelete.userId))
+      setMembers(members.filter((m) => m.userId !== memberToDelete.userId))
 
       toast.success('Team member removed')
     } catch (error) {
@@ -158,7 +158,7 @@ export function TeamTab() {
   }
 
   // Filter members
-  const filteredMembers = members.filter(member => {
+  const filteredMembers = members.filter((member) => {
     const matchesSearch =
       member.user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       member.user.email.toLowerCase().includes(searchQuery.toLowerCase())
@@ -188,9 +188,7 @@ export function TeamTab() {
                 <Users className="h-5 w-5" />
                 Team Members
               </CardTitle>
-              <CardDescription>
-                Manage your organization team and their permissions
-              </CardDescription>
+              <CardDescription>Manage your organization team and their permissions</CardDescription>
             </div>
             {isAdmin && (
               <Button onClick={() => setInviteDialogOpen(true)}>
@@ -202,7 +200,7 @@ export function TeamTab() {
         </CardHeader>
         <CardContent>
           {/* Filters */}
-          <div className="flex items-center gap-4 mb-6">
+          <div className="mb-6 flex items-center gap-4">
             <div className="flex-1">
               <Input
                 placeholder="Search by name or email..."
@@ -218,6 +216,7 @@ export function TeamTab() {
                 <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="ORG_ADMIN">Admin</SelectItem>
                 <SelectItem value="RECRUITER">Recruiter</SelectItem>
+                <SelectItem value="SUB_HR">Sub-HR</SelectItem>
                 <SelectItem value="HIRING_MANAGER">Hiring Manager</SelectItem>
                 <SelectItem value="AGENCY">Agency</SelectItem>
               </SelectContent>
@@ -239,7 +238,10 @@ export function TeamTab() {
               <TableBody>
                 {filteredMembers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={isAdmin ? 5 : 4} className="text-center py-8 text-muted-foreground">
+                    <TableCell
+                      colSpan={isAdmin ? 5 : 4}
+                      className="py-8 text-center text-muted-foreground"
+                    >
                       No team members found
                     </TableCell>
                   </TableRow>
@@ -255,7 +257,7 @@ export function TeamTab() {
                               className="h-8 w-8 rounded-full"
                             />
                           ) : (
-                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
                               <span className="text-sm font-medium">
                                 {(member.user.name || member.user.email)[0].toUpperCase()}
                               </span>
@@ -263,7 +265,9 @@ export function TeamTab() {
                           )}
                           <span>{member.user.name || 'No name'}</span>
                           {member.userId === session?.user?.id && (
-                            <Badge variant="outline" className="text-xs">You</Badge>
+                            <Badge variant="outline" className="text-xs">
+                              You
+                            </Badge>
                           )}
                         </div>
                       </TableCell>
@@ -285,14 +289,14 @@ export function TeamTab() {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <Badge className={ROLE_COLORS[member.role as keyof typeof ROLE_COLORS] || ''}>
+                          <Badge
+                            className={ROLE_COLORS[member.role as keyof typeof ROLE_COLORS] || ''}
+                          >
                             {ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] || member.role}
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell>
-                        {new Date(member.createdAt).toLocaleDateString()}
-                      </TableCell>
+                      <TableCell>{new Date(member.createdAt).toLocaleDateString()}</TableCell>
                       {isAdmin && (
                         <TableCell className="text-right">
                           {member.userId !== session?.user?.id && (
@@ -344,13 +348,17 @@ export function TeamTab() {
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Team Member?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove <strong>{memberToDelete?.user.name || memberToDelete?.user.email}</strong> from your organization?
-              This action cannot be undone.
+              Are you sure you want to remove{' '}
+              <strong>{memberToDelete?.user.name || memberToDelete?.user.email}</strong> from your
+              organization? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteMember} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDeleteMember}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Remove
             </AlertDialogAction>
           </AlertDialogFooter>

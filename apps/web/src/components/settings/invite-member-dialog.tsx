@@ -32,7 +32,7 @@ export function InviteMemberDialog({ open, onOpenChange, onSuccess }: InviteMemb
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
-    role: 'RECRUITER'
+    role: 'RECRUITER',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,9 +43,9 @@ export function InviteMemberDialog({ open, onOpenChange, onSuccess }: InviteMemb
       const response = await fetch('/api/organizations/current/members', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       })
 
       if (!response.ok) {
@@ -75,7 +75,8 @@ export function InviteMemberDialog({ open, onOpenChange, onSuccess }: InviteMemb
         <DialogHeader>
           <DialogTitle>Invite Team Member</DialogTitle>
           <DialogDescription>
-            Send an invitation to join your organization. They will receive an email with instructions.
+            Send an invitation to join your organization. They will receive an email with
+            instructions.
           </DialogDescription>
         </DialogHeader>
 
@@ -116,6 +117,15 @@ export function InviteMemberDialog({ open, onOpenChange, onSuccess }: InviteMemb
                     <div className="font-medium">Recruiter</div>
                     <div className="text-xs text-muted-foreground">
                       Manage jobs, candidates, and applications
+                    </div>
+                  </div>
+                </SelectItem>
+                <SelectItem value="SUB_HR">
+                  <div className="space-y-0.5">
+                    <div className="font-medium">Sub-HR</div>
+                    <div className="text-xs text-muted-foreground">
+                      Pomocný HR: kandidáti, prihlášky a pipeline — bez fakturácie, členov a
+                      nastavení
                     </div>
                   </div>
                 </SelectItem>

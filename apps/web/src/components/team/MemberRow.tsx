@@ -47,6 +47,7 @@ interface MemberRowProps {
 const roleBadgeVariant: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   ORG_ADMIN: 'default',
   RECRUITER: 'secondary',
+  SUB_HR: 'secondary',
   HIRING_MANAGER: 'outline',
   AGENCY: 'destructive',
 }
@@ -54,6 +55,7 @@ const roleBadgeVariant: Record<string, 'default' | 'secondary' | 'outline' | 'de
 const roleLabels: Record<string, string> = {
   ORG_ADMIN: 'Organization Admin',
   RECRUITER: 'Recruiter',
+  SUB_HR: 'Sub-HR',
   HIRING_MANAGER: 'Hiring Manager',
   AGENCY: 'Agency',
 }
@@ -148,6 +150,7 @@ export function MemberRow({ member, currentUserId, currentUserRole, onUpdate }: 
             <SelectContent>
               <SelectItem value="ORG_ADMIN">Organization Admin</SelectItem>
               <SelectItem value="RECRUITER">Recruiter</SelectItem>
+              <SelectItem value="SUB_HR">Sub-HR</SelectItem>
               <SelectItem value="HIRING_MANAGER">Hiring Manager</SelectItem>
               <SelectItem value="AGENCY">Agency</SelectItem>
             </SelectContent>

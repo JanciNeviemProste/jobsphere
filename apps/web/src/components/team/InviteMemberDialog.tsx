@@ -35,7 +35,7 @@ import { UserPlus } from 'lucide-react'
 
 const inviteSchema = z.object({
   email: z.string().email('Invalid email address'),
-  role: z.enum(['ORG_ADMIN', 'RECRUITER', 'HIRING_MANAGER', 'AGENCY'], {
+  role: z.enum(['ORG_ADMIN', 'RECRUITER', 'SUB_HR', 'HIRING_MANAGER', 'AGENCY'], {
     required_error: 'Please select a role',
   }),
 })
@@ -132,6 +132,7 @@ export function InviteMemberDialog({ onSuccess }: InviteMemberDialogProps) {
                     <SelectContent>
                       <SelectItem value="ORG_ADMIN">Organization Admin</SelectItem>
                       <SelectItem value="RECRUITER">Recruiter</SelectItem>
+                      <SelectItem value="SUB_HR">Sub-HR</SelectItem>
                       <SelectItem value="HIRING_MANAGER">Hiring Manager</SelectItem>
                       <SelectItem value="AGENCY">Agency</SelectItem>
                     </SelectContent>
