@@ -57,7 +57,8 @@ interface DashboardClientProps {
 
 export default function DashboardClient({ locale, initialData }: DashboardClientProps) {
   const t = useTranslations()
-  const { user, stats, profileCompletion, profileSteps, applications, recommendedJobs } = initialData
+  const { user, stats, profileCompletion, profileSteps, applications, recommendedJobs } =
+    initialData
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -108,14 +109,12 @@ export default function DashboardClient({ locale, initialData }: DashboardClient
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">
-            {t('dashboard.welcome', { name: user.name })}
-          </h1>
+          <h1 className="mb-2 text-3xl font-bold">{t('dashboard.welcome', { name: user.name })}</h1>
           <p className="text-muted-foreground">{t('dashboard.subtitle')}</p>
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4 mb-8">
+        <div className="mb-8 grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>{t('dashboard.stats.total')}</CardDescription>
@@ -144,7 +143,7 @@ export default function DashboardClient({ locale, initialData }: DashboardClient
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6 lg:col-span-2">
             {/* Applications */}
             <Card>
               <CardHeader>
@@ -163,10 +162,10 @@ export default function DashboardClient({ locale, initialData }: DashboardClient
                   {applications.map((app) => (
                     <div
                       key={app.id}
-                      className="flex items-start justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                      className="flex items-start justify-between gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/50"
                     >
                       <div className="flex-1">
-                        <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="mb-2 flex items-start justify-between gap-2">
                           <div>
                             <h3 className="font-semibold">{app.jobTitle}</h3>
                             <p className="text-sm text-muted-foreground">{app.company}</p>
@@ -178,7 +177,7 @@ export default function DashboardClient({ locale, initialData }: DashboardClient
                           <span>•</span>
                           <span>
                             {t('dashboard.applications.appliedOn', {
-                              date: formatDate(app.appliedAt)
+                              date: formatDate(app.appliedAt),
                             })}
                           </span>
                         </div>
@@ -192,13 +191,15 @@ export default function DashboardClient({ locale, initialData }: DashboardClient
                   ))}
 
                   {applications.length === 0 && (
-                    <div className="text-center py-8">
-                      <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
-                      <p className="text-muted-foreground mb-4">
+                    <div className="py-8 text-center">
+                      <Briefcase className="mx-auto mb-3 h-12 w-12 text-muted-foreground" />
+                      <p className="mb-4 text-muted-foreground">
                         {t('dashboard.applications.empty')}
                       </p>
                       <Button asChild>
-                        <Link href={`/${locale}/jobs`}>{t('dashboard.applications.browseJobs')}</Link>
+                        <Link href={`/${locale}/jobs`}>
+                          {t('dashboard.applications.browseJobs')}
+                        </Link>
                       </Button>
                     </div>
                   )}
@@ -221,9 +222,9 @@ export default function DashboardClient({ locale, initialData }: DashboardClient
                     <span>{t('dashboard.profile.completion')}</span>
                     <span className="font-semibold">{profileCompletion}%</span>
                   </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-2 overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full bg-primary rounded-full transition-all"
+                      className="h-full rounded-full bg-primary transition-all"
                       style={{ width: `${profileCompletion}%` }}
                     />
                   </div>
@@ -270,6 +271,9 @@ export default function DashboardClient({ locale, initialData }: DashboardClient
                     </span>
                   </div>
                 </div>
+                <Button className="w-full" asChild>
+                  <Link href={`/${locale}/dashboard/cv`}>Moje CV</Link>
+                </Button>
                 <Button className="w-full" variant="outline" asChild>
                   <Link href={`/${locale}/dashboard/profile`}>
                     {t('dashboard.profile.complete')}
@@ -286,10 +290,10 @@ export default function DashboardClient({ locale, initialData }: DashboardClient
               </CardHeader>
               <CardContent className="space-y-4">
                 {recommendedJobs.map((job) => (
-                  <div key={job.id} className="space-y-2 pb-4 border-b last:border-0 last:pb-0">
+                  <div key={job.id} className="space-y-2 border-b pb-4 last:border-0 last:pb-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
-                        <h4 className="font-semibold text-sm">{job.title}</h4>
+                        <h4 className="text-sm font-semibold">{job.title}</h4>
                         <p className="text-xs text-muted-foreground">{job.company}</p>
                       </div>
                       <Badge variant="secondary" className="text-xs">
@@ -308,7 +312,7 @@ export default function DashboardClient({ locale, initialData }: DashboardClient
                 ))}
 
                 {recommendedJobs.length === 0 && (
-                  <div className="text-center py-4">
+                  <div className="py-4 text-center">
                     <p className="text-sm text-muted-foreground">
                       {t('dashboard.recommended.empty')}
                     </p>

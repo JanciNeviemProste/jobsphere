@@ -94,6 +94,52 @@ export async function getOrCreateCandidateForUser(
 }
 
 /**
+ * Slug of the sentinel organization that owns every job-seeker's PERSONAL
+ * candidate profile (their own CVs), independent of any employer. Employer
+ * queries are always scoped to their own `orgId`, so this org and its candidates
+ * are never visible to employers.
+ */
+export const PERSONAL_ORG_SLUG = '__personal_profiles__'
+
+/**
+ * Ensure the sentinel "personal profiles" organization exists and return its id.
+ * Idempotent and race-safe (unique slug; falls back to a read on a create race).
+ */
+export async function ensurePersonalOrg(): Promise<string> {
+  try {
+    const org = await prisma.organization.upsert({
+      where: { slug: PERSONAL_ORG_SLUG },
+      update: {},
+      create: { name: 'Personal Profiles', slug: PERSONAL_ORG_SLUG },
+      select: { id: true },
+    })
+    return org.id
+  } catch {
+    // Lost a create race — the row now exists, just read it.
+    const org = await prisma.organization.findUniqueOrThrow({
+      where: { slug: PERSONAL_ORG_SLUG },
+      select: { id: true },
+    })
+    return org.id
+  }
+}
+
+/**
+ * Resolve (create/link) the PERSONAL `Candidate` that holds THIS user's own
+ * profile and saved CVs — the "my CV in my profile" anchor, independent of any
+ * employer organization. Job-seekers have no `UserOrgRole`, so this is where
+ * their profile data lives (vs. the per-employer candidate copies created when
+ * they apply to a job).
+ */
+export async function getPersonalCandidateForUser(
+  userId: string,
+  tx?: Prisma.TransactionClient,
+): Promise<Candidate> {
+  const orgId = await ensurePersonalOrg()
+  return getOrCreateCandidateForUser(userId, orgId, tx)
+}
+
+/**
  * Return the ids of every `Candidate` linked to this user across all orgs.
  *
  * Prefer relation filters (`where: { candidate: { userId } }`) on related models

@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useParams } from 'next/navigation'
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,6 +20,7 @@ import {
   Image as ImageIcon,
   Heart,
   X,
+  Save,
 } from 'lucide-react'
 
 interface Experience {
@@ -47,6 +50,15 @@ interface Language {
 
 export default function CreateCVClient() {
   const t = useTranslations('createCV')
+  const params = useParams()
+  const locale = (params?.locale as string) || 'sk'
+
+  // Save-to-profile state ("my CV in my profile", Profesia-style)
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [profileMsg, setProfileMsg] = useState<{
+    type: 'ok' | 'login' | 'err'
+    text: string
+  } | null>(null)
 
   // Personal Info State
   const [personalInfo, setPersonalInfo] = useState({
@@ -272,6 +284,34 @@ export default function CreateCVClient() {
     skills,
     interests,
     languages,
+  }
+
+  // Persist the built CV into the signed-in user's profile (a real Resume),
+  // so it lives in their account like on Profesia — not just a browser draft.
+  const handleSaveToProfile = async () => {
+    setSavingProfile(true)
+    setProfileMsg(null)
+    try {
+      const res = await fetch('/api/cv/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cvData),
+      })
+      if (res.status === 401) {
+        setProfileMsg({ type: 'login', text: 'Pre uloženie do profilu sa prihlás.' })
+        return
+      }
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setProfileMsg({ type: 'err', text: d.error || 'Uloženie do profilu zlyhalo.' })
+        return
+      }
+      setProfileMsg({ type: 'ok', text: '✓ Uložené do tvojho profilu' })
+    } catch {
+      setProfileMsg({ type: 'err', text: 'Uloženie do profilu zlyhalo. Skús znova.' })
+    } finally {
+      setSavingProfile(false)
+    }
   }
 
   const handleSaveDraft = () => {
@@ -773,6 +813,38 @@ export default function CreateCVClient() {
                   <Download className="mr-2 h-4 w-4" />
                   {downloading ? 'Sťahujem…' : t('actions.download')}
                 </Button>
+                <Button
+                  className="w-full"
+                  variant="default"
+                  onClick={handleSaveToProfile}
+                  disabled={savingProfile}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  {savingProfile ? 'Ukladám…' : 'Uložiť do profilu'}
+                </Button>
+                {profileMsg && (
+                  <p
+                    className={
+                      profileMsg.type === 'ok'
+                        ? 'text-sm text-green-600'
+                        : profileMsg.type === 'err'
+                          ? 'text-sm text-destructive'
+                          : 'text-sm text-muted-foreground'
+                    }
+                  >
+                    {profileMsg.text}{' '}
+                    {profileMsg.type === 'login' && (
+                      <Link href={`/${locale}/login`} className="text-primary underline">
+                        Prihlásiť sa
+                      </Link>
+                    )}
+                    {profileMsg.type === 'ok' && (
+                      <Link href={`/${locale}/dashboard/cv`} className="text-primary underline">
+                        Zobraziť moje CV
+                      </Link>
+                    )}
+                  </p>
+                )}
                 <Button className="w-full" variant="secondary" onClick={handleSaveDraft}>
                   {draftSaved ? '✓ Uložené' : t('actions.save')}
                 </Button>

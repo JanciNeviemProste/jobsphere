@@ -10,7 +10,7 @@ import { extractCvFromText } from '@jobsphere/ai'
 import { addEmbeddingJob } from '@/lib/queue'
 import { logger } from '@/lib/logger'
 import { withRateLimit } from '@/lib/rate-limit'
-import { getOrCreateCandidateForUser } from '@/lib/identity'
+import { getOrCreateCandidateForUser, getPersonalCandidateForUser } from '@/lib/identity'
 import { isAllowedCvUrl } from '@/lib/cv-url'
 
 export const runtime = 'nodejs'
@@ -80,20 +80,18 @@ export const POST = withRateLimit(
 
       // 5. If user is logged in, save to database
       if (session?.user?.id) {
-        // Get user's organization membership to find orgId
+        // Resolve the Candidate to attach this CV to. Employer-side members get
+        // their org candidate; a plain job-seeker (no org membership) gets their
+        // PERSONAL candidate so the uploaded CV lands in their own profile
+        // instead of failing — the "my CV in my profile" model.
         const userOrg = await prisma.userOrgRole.findFirst({
           where: { userId: session.user.id },
           select: { orgId: true },
         })
 
-        if (!userOrg) {
-          return NextResponse.json({ error: 'User organization not found' }, { status: 404 })
-        }
-
-        // Resolve the Candidate that represents THIS user in this org (creates/links
-        // as needed). Avoids grabbing an unrelated candidate that happens to share
-        // the org.
-        const candidate = await getOrCreateCandidateForUser(session.user.id, userOrg.orgId)
+        const candidate = userOrg
+          ? await getOrCreateCandidateForUser(session.user.id, userOrg.orgId)
+          : await getPersonalCandidateForUser(session.user.id)
 
         // If the upload step provided the stored file reference, persist it as a
         // CandidateDocument so the CV is no longer orphaned and can be served via
