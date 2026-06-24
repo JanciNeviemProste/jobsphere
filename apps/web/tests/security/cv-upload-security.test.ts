@@ -44,6 +44,27 @@ vi.mock('@/lib/cv-storage', () => ({
   }),
 }))
 
+// Mock pdf-parse (both the package and the v1 inner lib entry the pipeline imports)
+// so the valid-CV integration test extracts text via the fast node_pdf path and never
+// falls through to the (network-bound) OCR stages.
+const { pdfParseMock } = vi.hoisted(() => ({
+  pdfParseMock: vi.fn().mockResolvedValue({
+    text: 'John Doe — Software Engineer with 10 years of experience in TypeScript, React and Node.js.',
+    numpages: 1,
+  }),
+}))
+vi.mock('pdf-parse', () => ({ default: pdfParseMock }))
+vi.mock('pdf-parse/lib/pdf-parse.js', () => ({ default: pdfParseMock }))
+
+// Mock Vision OCR (Stage 2a) + Python OCR (Stage 2b) so the pipeline never makes a
+// real network call in unit tests (defense-in-depth for any test that hits OCR).
+vi.mock('@/lib/vision-ocr', () => ({
+  visionExtractText: vi.fn().mockResolvedValue({ success: false }),
+}))
+vi.mock('@/lib/ocr-client', () => ({
+  callPythonOCR: vi.fn().mockResolvedValue({ success: false }),
+}))
+
 // Mock logger
 vi.mock('@/lib/logger', () => ({
   logger: {

@@ -45,7 +45,8 @@ Return ONLY valid JSON in this exact format:
       "description": "string"
     }
   ],
-  "skills": ["string - technical and soft skills"],
+  "skills": ["string - PROFESSIONAL skills ONLY: technical skills, tools, technologies, methodologies, soft work skills"],
+  "interests": ["string - hobbies and personal interests (e.g. hiking, football, reading, travel, photography). NOT professional skills."],
   "languages": [
     {
       "name": "string",
@@ -78,6 +79,7 @@ Important:
 - Use null for missing fields
 - Normalize dates to YYYY-MM format
 - Extract skills from experience descriptions
+- CRITICAL: hobbies / personal interests (hiking, sports, reading, travel, gaming, music, cooking...) go in "interests", NEVER in "skills". "skills" is strictly professional/technical/tooling/soft-work competencies.
 - Be thorough and accurate
 - Return ONLY the JSON, no explanation`
 
@@ -88,7 +90,7 @@ export async function extractCvFromText(
     openRouterApiKey?: string
     model?: string
     locale?: string
-  }
+  },
 ): Promise<ExtractedCV> {
   const errors: string[] = []
 
@@ -126,7 +128,7 @@ export async function extractCvFromText(
 // OpenRouter implementation (FREE Gemini Flash)
 async function extractWithOpenRouter(
   rawText: string,
-  config: { openRouterApiKey?: string; model?: string; locale?: string }
+  config: { openRouterApiKey?: string; model?: string; locale?: string },
 ): Promise<ExtractedCV> {
   const openai = new OpenAI({
     apiKey: config.openRouterApiKey,
@@ -140,7 +142,8 @@ async function extractWithOpenRouter(
       messages: [
         {
           role: 'system',
-          content: 'You are a precise CV parser. You MUST respond with valid JSON only. Do not include any text before or after the JSON object.',
+          content:
+            'You are a precise CV parser. You MUST respond with valid JSON only. Do not include any text before or after the JSON object.',
         },
         {
           role: 'user',
@@ -179,14 +182,16 @@ async function extractWithOpenRouter(
   } catch (error) {
     console.error('OpenRouter parsing error:', error)
     console.error('Raw content:', content)
-    throw new Error(`Failed to parse CV JSON from OpenRouter: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    throw new Error(
+      `Failed to parse CV JSON from OpenRouter: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    )
   }
 }
 
 // Anthropic Claude implementation (fallback)
 async function extractWithAnthropic(
   rawText: string,
-  config: { apiKey?: string; model?: string; locale?: string }
+  config: { apiKey?: string; model?: string; locale?: string },
 ): Promise<ExtractedCV> {
   if (!config.apiKey) {
     throw new Error('Anthropic API key required')
@@ -223,7 +228,7 @@ async function extractWithAnthropic(
  */
 export async function summarizeCv(
   cv: ExtractedCV,
-  config: { apiKey: string; locale?: string }
+  config: { apiKey: string; locale?: string },
 ): Promise<string[]> {
   const anthropic = new Anthropic({ apiKey: config.apiKey })
 
@@ -293,7 +298,7 @@ export async function generateJobDescription(
     niceToHaveSkills?: string[]
     responsibilities?: string[]
   },
-  config: { apiKey: string; locale?: string }
+  config: { apiKey: string; locale?: string },
 ): Promise<string> {
   const anthropic = new Anthropic({ apiKey: config.apiKey })
 

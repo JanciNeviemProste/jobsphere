@@ -7,7 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CVUploadZone } from '@/components/cv-upload-zone'
-import { FileText, Sparkles, Download, Eye, Plus, Trash2 } from 'lucide-react'
+import {
+  FileText,
+  Sparkles,
+  Download,
+  Eye,
+  Plus,
+  Trash2,
+  Image as ImageIcon,
+  Heart,
+} from 'lucide-react'
 
 interface Experience {
   company: string
@@ -45,7 +54,12 @@ export default function CreateCVClient() {
     location: '',
     linkedin: '',
     website: '',
+    photo: '',
   })
+
+  // Photo upload state
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoError, setPhotoError] = useState('')
 
   // Experience State
   const [experiences, setExperiences] = useState<Experience[]>([])
@@ -56,6 +70,9 @@ export default function CreateCVClient() {
   // Skills State
   const [skills, setSkills] = useState<Skill[]>([])
 
+  // Interests / hobbies State (kept separate from professional skills)
+  const [interests, setInterests] = useState<string[]>([])
+
   // Languages State
   const [languages, setLanguages] = useState<Language[]>([])
 
@@ -63,14 +80,15 @@ export default function CreateCVClient() {
   const handleCVParsed = (parsedData: any) => {
     // Map personal info
     if (parsedData.personal) {
-      setPersonalInfo({
+      setPersonalInfo((prev) => ({
+        ...prev, // keep an already-uploaded photo
         fullName: parsedData.personal.fullName || '',
         email: parsedData.personal.email || '',
         phone: parsedData.personal.phone || '',
         location: parsedData.personal.location || '',
         linkedin: parsedData.personal.linkedIn || '',
         website: parsedData.personal.portfolio || parsedData.personal.github || '',
-      })
+      }))
     }
 
     // Map experiences
@@ -106,6 +124,11 @@ export default function CreateCVClient() {
         level: 'Intermediate',
       }))
       setSkills(mappedSkills)
+    }
+
+    // Map interests / hobbies (separate from professional skills)
+    if (parsedData.interests && Array.isArray(parsedData.interests)) {
+      setInterests(parsedData.interests.map((i: string) => String(i)).filter(Boolean))
     }
 
     // Map languages
@@ -172,6 +195,47 @@ export default function CreateCVClient() {
     setSkills(skills.filter((_, i) => i !== index))
   }
 
+  const addInterest = () => {
+    setInterests([...interests, ''])
+  }
+
+  const updateInterest = (index: number, value: string) => {
+    setInterests(interests.map((it, i) => (i === index ? value : it)))
+  }
+
+  const removeInterest = (index: number) => {
+    setInterests(interests.filter((_, i) => i !== index))
+  }
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPhotoError('')
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setPhotoError('Nepodporovaný formát. Použite JPG, PNG alebo WEBP.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError('Fotka je príliš veľká (max 5 MB).')
+      return
+    }
+    setPhotoUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/upload/photo', { method: 'POST', body: formData })
+      if (!res.ok) throw new Error('upload failed')
+      const { url } = await res.json()
+      setPersonalInfo((prev) => ({ ...prev, photo: url }))
+    } catch {
+      setPhotoError('Nahratie fotky zlyhalo. Skúste znova.')
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
+  const removePhoto = () => setPersonalInfo((prev) => ({ ...prev, photo: '' }))
+
   const addLanguage = () => {
     setLanguages([...languages, { name: '', proficiency: '' }])
   }
@@ -207,6 +271,53 @@ export default function CreateCVClient() {
                 <CardTitle>{t('form.personalInfo.title')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Profile photo */}
+                <div className="flex items-center gap-4">
+                  {personalInfo.photo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={personalInfo.photo}
+                      alt="Profilová fotka"
+                      className="h-20 w-20 rounded-full border object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full border bg-muted text-muted-foreground">
+                      <ImageIcon className="h-8 w-8" />
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="cv-photo"
+                      className="inline-flex cursor-pointer items-center rounded-md border px-3 py-2 text-sm font-normal hover:bg-muted"
+                    >
+                      {photoUploading
+                        ? 'Nahrávam…'
+                        : personalInfo.photo
+                          ? 'Zmeniť fotku'
+                          : 'Nahrať fotku'}
+                    </Label>
+                    <input
+                      id="cv-photo"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="sr-only"
+                      onChange={handlePhotoChange}
+                      disabled={photoUploading}
+                    />
+                    {personalInfo.photo && (
+                      <Button type="button" variant="ghost" size="sm" onClick={removePhoto}>
+                        <Trash2 className="mr-1 h-4 w-4" /> Odstrániť
+                      </Button>
+                    )}
+                    <p className="text-xs text-muted-foreground">JPG, PNG alebo WEBP · max 5 MB</p>
+                    {photoError && (
+                      <p role="alert" className="text-xs text-destructive">
+                        {photoError}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <Label htmlFor="fullName">{t('form.personalInfo.fullName')}</Label>
@@ -462,6 +573,41 @@ export default function CreateCVClient() {
                       />
                     </div>
                     <Button onClick={() => removeSkill(index)} size="sm" variant="ghost">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Interests / Hobbies */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Heart className="h-5 w-5 text-primary" /> Záujmy a záľuby
+                  </CardTitle>
+                  <Button onClick={addInterest} size="sm">
+                    <Plus className="mr-2 h-4 w-4" /> Pridať
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {interests.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Napr. turistika, čítanie, futbal… (oddelené od profesijných zručností)
+                  </p>
+                )}
+                {interests.map((interest, index) => (
+                  <div key={index} className="flex items-end gap-4">
+                    <div className="flex-1">
+                      <Input
+                        value={interest}
+                        onChange={(e) => updateInterest(index, e.target.value)}
+                        placeholder="Záujem / hobby"
+                      />
+                    </div>
+                    <Button onClick={() => removeInterest(index)} size="sm" variant="ghost">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>

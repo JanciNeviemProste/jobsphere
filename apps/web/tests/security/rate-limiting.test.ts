@@ -824,11 +824,11 @@ describe('Rate Limiting Security Tests', () => {
       })
     })
 
-    describe('Upload Rate Limiting (Upload Preset: 10 req/5min)', () => {
-      it('should allow 10 uploads within 5 minutes', async () => {
+    describe('Upload Rate Limiting (Upload Preset: 30 req/5min)', () => {
+      it('should allow 30 uploads within 5 minutes', async () => {
         const ip = '192.168.1.100'
 
-        mockPipeline.exec.mockResolvedValue([null, 9, null, null])
+        mockPipeline.exec.mockResolvedValue([null, 29, null, null])
 
         const result = await rateLimit({
           identifier: ip,
@@ -838,7 +838,7 @@ describe('Rate Limiting Security Tests', () => {
         })
 
         expect(result.success).toBe(true)
-        expect(result.limit).toBe(10)
+        expect(result.limit).toBe(30)
         expect(result.remaining).toBe(0)
       })
 

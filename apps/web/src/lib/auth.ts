@@ -2,6 +2,7 @@ import NextAuth, { NextAuthOptions } from 'next-auth'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import GoogleProvider from 'next-auth/providers/google'
+import AppleProvider from 'next-auth/providers/apple'
 import { prisma } from './prisma'
 import * as bcryptjs from 'bcryptjs'
 import { getServerSession } from 'next-auth/next'
@@ -45,6 +46,16 @@ export const authOptions: NextAuthOptions = {
           GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          }),
+        ]
+      : []),
+    // Apple Sign In — active only when configured. APPLE_ID = Service ID (client id),
+    // APPLE_SECRET = the Apple client-secret JWT (generated from Team ID + Key ID + .p8).
+    ...(process.env.APPLE_ID && process.env.APPLE_SECRET
+      ? [
+          AppleProvider({
+            clientId: process.env.APPLE_ID,
+            clientSecret: process.env.APPLE_SECRET,
           }),
         ]
       : []),

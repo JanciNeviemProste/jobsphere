@@ -16,6 +16,8 @@ export interface ExtractedCV {
   experiences: Experience[]
   education: Education[]
   skills: string[]
+  /** Hobbies / personal interests (e.g. sport, hiking, reading) — NOT professional skills. */
+  interests?: string[]
   languages?: Language[]
   certifications?: Certification[]
   projects?: Project[]

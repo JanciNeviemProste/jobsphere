@@ -47,6 +47,11 @@ vi.mock('@/lib/cv-storage', () => ({
   }),
 }))
 
+// Mock Vision OCR (Stage 2a) so the pipeline never makes a real network call in unit tests
+vi.mock('@/lib/vision-ocr', () => ({
+  visionExtractText: vi.fn().mockResolvedValue({ success: false }),
+}))
+
 // Mock logger
 vi.mock('@/lib/logger', () => ({
   logger: {

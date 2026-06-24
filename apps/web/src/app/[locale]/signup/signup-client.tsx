@@ -147,6 +147,11 @@ export default function SignupClient({ params }: { params: { locale: string } })
     await signIn('google', { callbackUrl: `/${locale}/dashboard` })
   }
 
+  const handleAppleSignIn = async () => {
+    setLoading(true)
+    await signIn('apple', { callbackUrl: `/${locale}/dashboard` })
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-12">
       <Card className="w-full max-w-md">
@@ -180,6 +185,23 @@ export default function SignupClient({ params }: { params: { locale: string } })
               />
             </svg>
             {t('orContinueWith')} {t('google')}
+          </Button>
+
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleAppleSignIn}
+            disabled={loading}
+          >
+            <svg
+              className="mr-2 h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M16.365 1.43c0 1.14-.42 2.2-1.12 2.98-.76.84-1.96 1.49-3.05 1.4-.13-1.09.42-2.24 1.1-2.97.76-.83 2.05-1.45 3.07-1.41zM20.5 17.2c-.55 1.27-.82 1.84-1.53 2.96-.99 1.57-2.39 3.52-4.12 3.53-1.54.02-1.94-1-4.03-.99-2.09.01-2.53 1.01-4.07.99-1.73-.02-3.05-1.78-4.04-3.34C-.07 16.6-.36 11.42 1.6 8.7c1.16-1.62 2.99-2.57 4.71-2.57 1.75 0 2.85 1 4.3 1 1.4 0 2.26-1 4.29-1 1.53 0 3.16.84 4.32 2.28-3.79 2.08-3.18 7.49.28 8.79z" />
+            </svg>
+            {t('orContinueWith')} Apple
           </Button>
 
           <div className="relative">

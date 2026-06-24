@@ -7,9 +7,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { parseCV } from '../cv-parser-pipeline'
 import type { ParseResult } from '../cv-parser-pipeline'
 
-// Mock dependencies
-vi.mock('pdf-parse', () => ({
-  default: vi.fn(),
+// Mock dependencies.
+// cv-parser-pipeline imports pdf-parse via its v1 inner lib entry
+// ('pdf-parse/lib/pdf-parse.js'); share one mock fn across both specifiers so the
+// tests can keep setting `pdfParse.default.mockResolvedValueOnce(...)` via 'pdf-parse'.
+const { pdfParseMock } = vi.hoisted(() => ({ pdfParseMock: vi.fn() }))
+vi.mock('pdf-parse', () => ({ default: pdfParseMock }))
+vi.mock('pdf-parse/lib/pdf-parse.js', () => ({ default: pdfParseMock }))
+
+// Vision OCR (Stage 2a) — default to "no usable text" so the pipeline falls through
+// to the Python OCR mock exactly like before this stage existed.
+vi.mock('../vision-ocr', () => ({
+  visionExtractText: vi.fn().mockResolvedValue({ success: false }),
 }))
 
 vi.mock('mammoth', () => ({
