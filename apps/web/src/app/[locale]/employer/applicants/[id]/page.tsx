@@ -371,10 +371,11 @@ export default async function EmployerApplicationDetailPage({
                               {exp.company && (
                                 <p className="text-sm text-muted-foreground">{exp.company}</p>
                               )}
-                              {(exp.startDate || exp.endDate) && (
+                              {(exp.startDate || exp.endDate || exp.current) && (
                                 <p className="mt-0.5 text-xs text-muted-foreground">
-                                  {exp.startDate ?? '?'} –{' '}
-                                  {exp.current ? 'súčasnosť' : (exp.endDate ?? '?')}
+                                  {[exp.startDate, exp.current ? 'súčasnosť' : exp.endDate]
+                                    .filter(Boolean)
+                                    .join(' – ')}
                                 </p>
                               )}
                               {exp.description && <p className="mt-1 text-sm">{exp.description}</p>}
@@ -400,7 +401,7 @@ export default async function EmployerApplicationDetailPage({
                               )}
                               {(edu.startDate || edu.endDate) && (
                                 <p className="mt-0.5 text-xs text-muted-foreground">
-                                  {edu.startDate ?? '?'} – {edu.endDate ?? '?'}
+                                  {[edu.startDate, edu.endDate].filter(Boolean).join(' – ')}
                                 </p>
                               )}
                             </div>

@@ -127,14 +127,22 @@ export default function ApplyClient({ params }: { params: { id: string; locale: 
       if (status !== 'authenticated') return
 
       try {
-        const response = await fetch('/api/user/cvs')
+        // The applicant's saved profile CVs (their own Resumes).
+        const response = await fetch('/api/cv/profile')
         if (response.ok) {
-          const data = await response.json()
-          setUserCVs(data)
-          // Set default CV if exists
-          const defaultCV = data.find((cv: UserCV) => cv.isDefault)
-          if (defaultCV) {
-            form.setValue('cvId', defaultCV.id)
+          const { cvs } = await response.json()
+          const mapped: UserCV[] = (cvs ?? []).map(
+            (cv: { id: string; title: string; updatedAt: string }, i: number) => ({
+              id: cv.id,
+              title: cv.title,
+              uploadedAt: new Date(cv.updatedAt).toLocaleDateString('sk-SK'),
+              isDefault: i === 0,
+            }),
+          )
+          setUserCVs(mapped)
+          // Pre-select the most recent saved CV.
+          if (mapped[0]) {
+            form.setValue('cvId', mapped[0].id)
           }
         }
       } catch (error) {
@@ -190,7 +198,13 @@ export default function ApplyClient({ params }: { params: { id: string; locale: 
         throw new Error('Failed to parse CV')
       }
 
-      const { parsed } = await parseResponse.json()
+      const { parsed, resumeId } = await parseResponse.json()
+
+      // The parse step saved the uploaded CV to the applicant's profile — attach
+      // that saved CV to this application so the employer receives it.
+      if (resumeId) {
+        form.setValue('cvId', resumeId)
+      }
 
       // Auto-fill form fields from parsed CV
       if (parsed?.personal) {
@@ -268,7 +282,9 @@ export default function ApplyClient({ params }: { params: { id: string; locale: 
         body.linkedin = values.linkedin
       }
 
-      if (values.cvSource === 'existing' && values.cvId) {
+      // Attach the selected/saved CV (profile pick or freshly uploaded) so the
+      // employer receives it with the application.
+      if (values.cvId) {
         body.cvId = values.cvId
       }
 
@@ -403,8 +419,8 @@ export default function ApplyClient({ params }: { params: { id: string; locale: 
                       )}
                     />
 
-                    {/* Existing CV Selection */}
-                    {form.watch('cvSource') === 'existing' && userCVs.length > 0 && (
+                    {/* Saved profile CV selection (for both "existing" and "profile") */}
+                    {form.watch('cvSource') !== 'upload' && userCVs.length > 0 && (
                       <FormField
                         control={form.control}
                         name="cvId"

@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth'
 import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
-import { getOrCreateCandidateForUser } from '@/lib/identity'
+import { getOrCreateCandidateForUser, getPersonalCandidateForUser } from '@/lib/identity'
 import { z } from 'zod'
 
 const stageEnum = z
@@ -23,7 +23,86 @@ const createApplicationBodySchema = z.object({
   coverLetter: z.string().min(1).max(5000),
   expectedSalary: z.string().max(100).optional(),
   availableFrom: z.string().max(100).optional(),
+  // Optional id of one of the applicant's saved profile CVs (a Resume on their
+  // personal candidate). When present we copy it onto the employer-org candidate
+  // so the company actually sees the CV with the application.
+  cvId: z.string().cuid().optional(),
 })
+
+/**
+ * Copy the applicant's chosen profile CV (a Resume on their personal candidate)
+ * onto the employer-org Candidate so the company sees it on the applicant detail.
+ * Builder-shaped experience/education fields are normalized to the shape the
+ * employer view expects. Best-effort: never throws (the application still stands).
+ */
+export async function copyProfileCvToCandidate(
+  userId: string,
+  employerCandidateId: string,
+  cvId: string,
+): Promise<void> {
+  try {
+    const personal = await getPersonalCandidateForUser(userId)
+    const src = await prisma.resume.findFirst({
+      where: { id: cvId, candidateId: personal.id, deletedAt: null },
+      include: { sourceDocument: true },
+    })
+    if (!src) return // not the user's CV, or deleted — silently skip
+
+    // Copy the uploaded source file (if any) so the employer can download it.
+    let sourceDocumentId: string | undefined
+    if (src.sourceDocument) {
+      const d = src.sourceDocument
+      const copy = await prisma.candidateDocument.create({
+        data: {
+          candidateId: employerCandidateId,
+          type: d.type,
+          filename: d.filename,
+          uri: d.uri,
+          mime: d.mime,
+          size: d.size,
+          hash: d.hash,
+          parsedAt: d.parsedAt,
+          parsedText: d.parsedText,
+        },
+        select: { id: true },
+      })
+      sourceDocumentId = copy.id
+    }
+
+    const exps = (Array.isArray(src.experiences) ? src.experiences : []).map((e: any) => ({
+      title: e.position || e.title || '',
+      company: e.company || '',
+      startDate: e.period || e.startDate || '',
+      endDate: e.endDate || '',
+      current: !!e.current,
+      description: e.description || '',
+    }))
+    const edus = (Array.isArray(src.education) ? src.education : []).map((e: any) => ({
+      institution: e.school || e.institution || '',
+      field: e.field || '',
+      degree: e.degree || '',
+      startDate: e.startDate || '',
+      endDate: e.year || e.endDate || '',
+    }))
+
+    await prisma.resume.create({
+      data: {
+        candidateId: employerCandidateId,
+        sourceDocumentId,
+        language: src.language,
+        summary: src.summary,
+        yearsOfExperience: src.yearsOfExperience,
+        personalInfo: src.personalInfo ?? undefined,
+        experiences: exps,
+        education: edus,
+        languages: src.languages ?? undefined,
+        skills: src.skills,
+      },
+    })
+  } catch (error) {
+    logger.error('Failed to copy profile CV onto application candidate', { error })
+  }
+}
 
 export const runtime = 'nodejs'
 
@@ -117,7 +196,7 @@ export const POST = withCsrfProtection(
             { status: 400 },
           )
         }
-        const { jobId, coverLetter } = parsed.data
+        const { jobId, coverLetter, cvId } = parsed.data
 
         // Get job to fetch orgId and verify it's published
         const job = await prisma.job.findUnique({
@@ -190,6 +269,11 @@ export const POST = withCsrfProtection(
             performedBy: session.user.id,
           },
         })
+
+        // Attach the applicant's chosen saved CV so the employer sees it.
+        if (cvId) {
+          await copyProfileCvToCandidate(session.user.id, candidateId, cvId)
+        }
 
         // Send email notifications
         try {
