@@ -131,14 +131,16 @@ export default async function AnalyticsPage() {
   const jobIds = jobCounts.map((j) => j.jobId)
   const jobTitles = await prisma.job.findMany({
     where: { id: { in: jobIds }, orgId },
-    select: { id: true, title: true },
+    select: { id: true, title: true, viewCount: true },
   })
   const titleMap = Object.fromEntries(jobTitles.map((j) => [j.id, j.title]))
+  const viewMap = Object.fromEntries(jobTitles.map((j) => [j.id, j.viewCount]))
 
   const topJobs = jobCounts.map((j) => ({
     jobId: j.jobId,
     title: titleMap[j.jobId] ?? j.jobId,
     count: j._count.jobId,
+    views: viewMap[j.jobId] ?? 0,
   }))
 
   return (

@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Briefcase, Users, Kanban, CheckCircle, Clock, XCircle } from 'lucide-react'
+import { Plus, Briefcase, Users, Kanban, CheckCircle, Clock, XCircle, Eye } from 'lucide-react'
 import { STAGE_LABELS_EN, STAGE_COLORS } from '@/lib/constants/application-stages'
 
 export async function generateMetadata({
@@ -42,6 +42,7 @@ async function getEmployerData(userId: string) {
       title: true,
       status: true,
       createdAt: true,
+      viewCount: true,
       _count: {
         select: { applications: true },
       },
@@ -245,6 +246,10 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
                           <span className="flex items-center gap-1">
                             <Users className="h-4 w-4" />
                             {job._count.applications} prihlášok
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Eye className="h-4 w-4" />
+                            {job.viewCount} zobrazení
                           </span>
                           <span>
                             Vytvorené {new Date(job.createdAt).toLocaleDateString('sk-SK')}

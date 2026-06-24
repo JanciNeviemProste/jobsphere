@@ -16,6 +16,7 @@ interface TopJobsTableProps {
     title: string
     count: number
     jobId: string
+    views?: number
   }>
 }
 
@@ -32,13 +33,14 @@ export function TopJobsTable({ jobs }: TopJobsTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead>{t('jobTitle')}</TableHead>
+              <TableHead className="text-right">Zobrazenia</TableHead>
               <TableHead className="text-right">{t('applications')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {jobs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={2} className="text-center text-muted-foreground">
+                <TableCell colSpan={3} className="text-center text-muted-foreground">
                   {t('noApplications')}
                 </TableCell>
               </TableRow>
@@ -46,6 +48,7 @@ export function TopJobsTable({ jobs }: TopJobsTableProps) {
               jobs.map((job) => (
                 <TableRow key={job.jobId}>
                   <TableCell className="font-medium">{job.title}</TableCell>
+                  <TableCell className="text-right">{job.views ?? 0}</TableCell>
                   <TableCell className="text-right">{job.count}</TableCell>
                 </TableRow>
               ))

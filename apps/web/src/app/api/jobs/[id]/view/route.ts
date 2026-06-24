@@ -17,18 +17,21 @@ export const POST = withRateLimit(
 
       logger.apiRequest('POST', `/api/jobs/${params.id}/view`)
 
-      // Verify job exists and is active
-      const job = await prisma.job.findUnique({
+      // Atomically increment the view counter for the published job. updateMany lets us
+      // scope by status + soft-delete and tells us via `count` whether a row matched
+      // (no throw when the job doesn't exist / isn't public).
+      const result = await prisma.job.updateMany({
         where: {
           id: params.id,
           status: 'PUBLISHED',
+          deletedAt: null,
         },
-        select: {
-          id: true,
+        data: {
+          viewCount: { increment: 1 },
         },
       })
 
-      if (!job) {
+      if (result.count === 0) {
         return NextResponse.json({ error: 'Job not found' }, { status: 404 })
       }
 

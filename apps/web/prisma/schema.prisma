@@ -201,6 +201,9 @@ model Job {
   // Pipeline stages
   pipeline       Json     @default("[]")
 
+  // Public ad analytics
+  viewCount      Int      @default(0)
+
   // SEO
   slug           String?
   metaTitle      String?
