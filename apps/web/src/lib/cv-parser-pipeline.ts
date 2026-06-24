@@ -10,7 +10,7 @@ import { logger } from './logger'
 
 export interface ParseResult {
   text: string
-  method: 'node_pdf' | 'node_docx' | 'ocr_tesseract' | 'metadata_fallback'
+  method: 'node_pdf' | 'node_docx' | 'ocr_vision' | 'ocr_tesseract' | 'metadata_fallback'
   confidence: number
   extractedLength: number
   error?: {
@@ -99,6 +99,8 @@ async function checkForMacros(buffer: ArrayBuffer): Promise<boolean> {
 
 // Import OCR client (actual implementation)
 import { callPythonOCR as callOCR } from './ocr-client'
+// Multimodal (vision) OCR fallback — works in serverless where Python OCR does not.
+import { visionExtractText } from './vision-ocr'
 
 /**
  * Extract metadata as fallback when text extraction fails
@@ -197,6 +199,27 @@ export async function parseCV(
       reason: 'insufficient_text',
     })
 
+    // Stage 2a: Vision OCR (multimodal LLM) — reads scanned/image PDFs directly and
+    // runs in the serverless environment. Preferred over the Python OCR service.
+    try {
+      const vision = await visionExtractText(buffer, metadata.mimeType, traceId)
+      if (vision.success && vision.text) {
+        text = vision.text
+        method = 'ocr_vision'
+        confidence = vision.confidence ?? 0.6
+        logger.info('Vision OCR complete', {
+          traceId,
+          extractedLength: text.length,
+          duration: Date.now() - startTime,
+        })
+      }
+    } catch (error) {
+      logger.warn('Vision OCR threw - will try Python OCR', { traceId, error })
+    }
+  }
+
+  // Stage 2b: Python Tesseract OCR (legacy fallback, e.g. if vision is unavailable)
+  if (text.length < 50) {
     try {
       const ocrResult = await callOCR(buffer, metadata, traceId)
 
