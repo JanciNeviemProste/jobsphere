@@ -371,6 +371,12 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
                   </Link>
                 </Button>
                 <Button className="w-full justify-start" variant="outline" asChild>
+                  <Link href={`/${params.locale}/employer/gigs`}>
+                    <Briefcase className="mr-2 h-4 w-4" />
+                    Zákazky pre freelancerov
+                  </Link>
+                </Button>
+                <Button className="w-full justify-start" variant="outline" asChild>
                   <Link href={`/${params.locale}/employer/settings`}>
                     <Briefcase className="mr-2 h-4 w-4" />
                     Nastavenia spoločnosti
