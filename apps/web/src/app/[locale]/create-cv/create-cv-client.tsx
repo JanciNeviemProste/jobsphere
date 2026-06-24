@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CVUploadZone } from '@/components/cv-upload-zone'
+import { CVPreview, type CVPreviewData } from './cv-preview'
 import {
   FileText,
   Sparkles,
@@ -16,6 +17,7 @@ import {
   Trash2,
   Image as ImageIcon,
   Heart,
+  X,
 } from 'lucide-react'
 
 interface Experience {
@@ -75,6 +77,30 @@ export default function CreateCVClient() {
 
   // Languages State
   const [languages, setLanguages] = useState<Language[]>([])
+
+  // Preview / draft state
+  const [showPreview, setShowPreview] = useState(false)
+  const [draftSaved, setDraftSaved] = useState(false)
+
+  const DRAFT_KEY = 'jobsphere-cv-draft'
+
+  // Restore a saved draft on first load
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY)
+      if (!raw) return
+      const d = JSON.parse(raw)
+      if (d.personalInfo) setPersonalInfo((prev) => ({ ...prev, ...d.personalInfo }))
+      if (Array.isArray(d.experiences)) setExperiences(d.experiences)
+      if (Array.isArray(d.education)) setEducation(d.education)
+      if (Array.isArray(d.skills)) setSkills(d.skills)
+      if (Array.isArray(d.interests)) setInterests(d.interests)
+      if (Array.isArray(d.languages)) setLanguages(d.languages)
+    } catch {
+      // ignore malformed draft
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Handle parsed CV data from upload
   const handleCVParsed = (parsedData: any) => {
@@ -235,6 +261,37 @@ export default function CreateCVClient() {
   }
 
   const removePhoto = () => setPersonalInfo((prev) => ({ ...prev, photo: '' }))
+
+  // Data shape consumed by the preview / print / draft.
+  const cvData: CVPreviewData = {
+    personalInfo,
+    experiences,
+    education,
+    skills,
+    interests,
+    languages,
+  }
+
+  const handleSaveDraft = () => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(cvData))
+      setDraftSaved(true)
+      setTimeout(() => setDraftSaved(false), 2500)
+    } catch {
+      // localStorage may be unavailable (e.g. private mode) — ignore
+    }
+  }
+
+  const handleDownloadPdf = () => {
+    // Use the browser's print dialog → "Save as PDF" (prints only the #cv-print block).
+    window.print()
+  }
+
+  const handleGenerate = () => {
+    // No standalone AI generator yet — guide the user up to the "upload CV" zone
+    // so the AI can fill the form for them.
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const addLanguage = () => {
     setLanguages([...languages, { name: '', proficiency: '' }])
@@ -671,20 +728,20 @@ export default function CreateCVClient() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full" variant="outline">
+                <Button className="w-full" variant="outline" onClick={handleGenerate}>
                   <Sparkles className="mr-2 h-4 w-4" />
                   {t('actions.generate')}
                 </Button>
-                <Button className="w-full" variant="outline">
+                <Button className="w-full" variant="outline" onClick={() => setShowPreview(true)}>
                   <Eye className="mr-2 h-4 w-4" />
                   {t('actions.preview')}
                 </Button>
-                <Button className="w-full">
+                <Button className="w-full" onClick={handleDownloadPdf}>
                   <Download className="mr-2 h-4 w-4" />
                   {t('actions.download')}
                 </Button>
-                <Button className="w-full" variant="secondary">
-                  {t('actions.save')}
+                <Button className="w-full" variant="secondary" onClick={handleSaveDraft}>
+                  {draftSaved ? '✓ Uložené' : t('actions.save')}
                 </Button>
               </CardContent>
             </Card>
@@ -704,6 +761,54 @@ export default function CreateCVClient() {
           </div>
         </div>
       </div>
+
+      {/* Print-only CV — window.print() turns this into a PDF ("Save as PDF"). */}
+      <div id="cv-print">
+        <CVPreview data={cvData} />
+      </div>
+
+      {/* On-screen preview modal */}
+      {showPreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/60 p-4 print:hidden"
+          onClick={() => setShowPreview(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="relative my-8 w-full max-w-3xl rounded-lg bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-lg border-b bg-white px-4 py-3">
+              <h3 className="text-lg font-semibold">{t('actions.preview')}</h3>
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={handleDownloadPdf}>
+                  <Download className="mr-2 h-4 w-4" />
+                  {t('actions.download')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowPreview(false)}
+                  aria-label="Zavrieť"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+            <CVPreview data={cvData} />
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @media screen { #cv-print { display: none; } }
+        @media print {
+          body * { visibility: hidden !important; }
+          #cv-print, #cv-print * { visibility: visible !important; }
+          #cv-print { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+      `}</style>
     </div>
   )
 }

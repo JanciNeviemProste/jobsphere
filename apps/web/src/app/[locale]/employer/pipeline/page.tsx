@@ -95,14 +95,11 @@ export default async function PipelinePage({
             <p className="text-muted-foreground">Presúvajte kandidátov medzi fázami</p>
           </div>
           <div className="flex items-center gap-2">
-            <form method="GET">
+            {/* Server Component: no onChange handlers allowed — submit via the button. */}
+            <form method="GET" className="flex items-center gap-2">
               <select
                 name="jobId"
                 defaultValue={currentJobId ?? ''}
-                onChange={(e) => {
-                  const form = e.currentTarget.form
-                  if (form) form.submit()
-                }}
                 className="rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="">Všetky pozície</option>
@@ -112,6 +109,9 @@ export default async function PipelinePage({
                   </option>
                 ))}
               </select>
+              <Button type="submit" variant="outline" size="sm">
+                Filtrovať
+              </Button>
             </form>
             <Button variant="outline" size="sm" asChild>
               <Link href={`/${params.locale}/employer/applicants`}>Zoznam</Link>
