@@ -12,6 +12,7 @@ import { logger } from '@/lib/logger'
 import { withRateLimit } from '@/lib/rate-limit'
 import { getOrCreateCandidateForUser, getPersonalCandidateForUser } from '@/lib/identity'
 import { isAllowedCvUrl } from '@/lib/cv-url'
+import { extractedCvToResumeFields } from '@/lib/cv-resume-fields'
 
 export const runtime = 'nodejs'
 
@@ -113,14 +114,22 @@ export const POST = withRateLimit(
           sourceDocumentId = document.id
         }
 
-        // Create Resume record with basic info from parsed CV, linking the source
-        // document when available.
+        // Create Resume record from the parsed CV, linking the source document
+        // when available. Populate the structured JSON columns (builder shape) so
+        // the employer detail + "Moje CV" preview show the uploaded CV's
+        // experience/education/skills/languages — not just the summary.
+        const structured = extractedCvToResumeFields(extractedCV)
         const resume = await prisma.resume.create({
           data: {
             candidateId: candidate.id,
             sourceDocumentId,
             language: locale,
             summary: extractedCV.summary || null,
+            personalInfo: structured.personalInfo,
+            experiences: structured.experiences,
+            education: structured.education,
+            languages: structured.languages,
+            skills: structured.skills,
           },
         })
 

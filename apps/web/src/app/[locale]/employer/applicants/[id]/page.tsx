@@ -82,8 +82,28 @@ function safeParseResume(
 ): ParsedResume | null {
   if (!resume) return null
   try {
-    const experiences = Array.isArray(resume.experiences) ? resume.experiences : []
-    const education = Array.isArray(resume.education) ? resume.education : []
+    // Normalize both shapes the Resume JSON can hold: the builder/upload shape
+    // ({position, period, school, year}) and the already-normalized employer shape
+    // ({title, startDate, institution, endDate}) copied in via copyProfileCvToCandidate.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const experiences = (Array.isArray(resume.experiences) ? resume.experiences : []).map(
+      (e: any) => ({
+        title: e.title ?? e.position ?? undefined,
+        company: e.company ?? undefined,
+        startDate: e.startDate ?? e.period ?? undefined,
+        endDate: e.endDate ?? undefined,
+        current: e.current ?? undefined,
+        description: e.description ?? undefined,
+      }),
+    )
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const education = (Array.isArray(resume.education) ? resume.education : []).map((e: any) => ({
+      institution: e.institution ?? e.school ?? undefined,
+      field: e.field ?? undefined,
+      degree: e.degree ?? undefined,
+      startDate: e.startDate ?? undefined,
+      endDate: e.endDate ?? e.year ?? undefined,
+    }))
     return {
       summary: resume.summary ?? undefined,
       skills: Array.isArray(resume.skills) ? resume.skills : [],

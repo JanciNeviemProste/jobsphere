@@ -45,6 +45,18 @@ export const PATCH = withCsrfProtection(
           return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
         }
 
+        // Ensure the proposal actually belongs to THIS gig (the gig is already
+        // confirmed to belong to the caller's org). Without this scope a member
+        // could PATCH another org's proposal by passing a foreign proposalId with
+        // their own gigId in the URL (cross-gig IDOR).
+        const proposal = await prisma.gigProposal.findFirst({
+          where: { id: proposalId, gigId },
+          select: { id: true },
+        })
+        if (!proposal) {
+          return NextResponse.json({ error: 'Proposal not found' }, { status: 404 })
+        }
+
         if (parsed.data.action === 'REJECT') {
           await prisma.gigProposal.update({
             where: { id: proposalId },
