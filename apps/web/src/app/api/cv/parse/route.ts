@@ -74,7 +74,7 @@ export const POST = withRateLimit(
       const extractedCV = await extractCvFromText(rawText, {
         openRouterApiKey: openRouterKey,
         apiKey: anthropicKey,
-        model: openRouterKey ? 'google/gemini-flash-1.5-8b' : 'claude-opus-4-20250514',
+        model: openRouterKey ? 'google/gemini-2.5-flash-lite' : 'claude-opus-4-20250514',
         locale,
       })
 
