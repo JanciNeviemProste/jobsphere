@@ -383,7 +383,7 @@ export const RateLimitPresets = {
   api: { limit: 100, window: 60 }, // 100 requests per minute
   public: { limit: 200, window: 60 }, // 200 requests per minute
   strict: { limit: 10, window: 900 }, // 10 requests per 15 minutes
-  upload: { limit: 10, window: 300 }, // 10 uploads per 5 minutes
+  upload: { limit: 30, window: 300 }, // 30 uploads per 5 minutes (CV upload + AI parse share this; 10 was too low for real retries/demos)
 } as const
 
 type RateLimitPreset = keyof typeof RateLimitPresets

@@ -376,8 +376,8 @@ describe('Rate Limit Library', () => {
       expect(RateLimitPresets.strict).toEqual({ limit: 10, window: 900 })
     })
 
-    it('should have upload preset with low limits', () => {
-      expect(RateLimitPresets.upload).toEqual({ limit: 10, window: 300 })
+    it('should have upload preset with bounded limits', () => {
+      expect(RateLimitPresets.upload).toEqual({ limit: 30, window: 300 })
     })
   })
 
