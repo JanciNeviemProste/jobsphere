@@ -31,10 +31,12 @@ export interface ParseResult {
  */
 async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
   try {
-    // Dynamic import for server-only pdf-parse
-    const pdfParse = await import('pdf-parse')
-    const data = await (pdfParse as any).default(Buffer.from(buffer))
-    return data.text || ''
+    // pdf-parse v2 exposes a named `pdf()` function. The old v1 default export
+    // (`pdfParse.default(...)`) was removed in v2, so calling it threw a TypeError
+    // for EVERY PDF and silently dropped extraction to the metadata fallback.
+    const { pdf } = (await import('pdf-parse')) as any
+    const data = await pdf(Buffer.from(buffer))
+    return data?.text || ''
   } catch (error) {
     logger.warn('PDF parsing error', { error })
     throw new CVParseException(

@@ -93,7 +93,16 @@ export function CVUploadZone({ onCVParsed, onManualClick }: CVUploadZoneProps) {
         throw new Error('Failed to upload file')
       }
 
-      const { rawText } = await uploadResponse.json()
+      const { rawText, parseMethod } = await uploadResponse.json()
+
+      // If no real text could be extracted (e.g. a scanned / image-only PDF), the
+      // server falls back to filename metadata. Sending that to the AI would make it
+      // hallucinate a fake CV — so stop here and show a clear, actionable message.
+      if (parseMethod === 'metadata_fallback' || !rawText || rawText.trim().length < 30) {
+        setStatus('error')
+        setError(`${t('errors.file_no_text_after_ocr')}\n\n${t('hints.scanned_pdf')}`)
+        return
+      }
 
       // 2. Parse CV with Claude
       setStatus('parsing')
