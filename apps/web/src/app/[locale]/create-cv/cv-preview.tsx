@@ -50,7 +50,13 @@ export function CVPreview({ data }: { data: CVPreviewData }) {
   const filledLangs = data.languages.filter((l) => l.name)
 
   return (
-    <div className="mx-auto max-w-[800px] bg-white p-10 text-[13px] leading-relaxed text-gray-800">
+    <div
+      className="mx-auto max-w-[800px] bg-white p-10 text-[13px] leading-relaxed text-gray-800"
+      // System font (not the Inter web-font) so html2canvas reliably renders Slovak
+      // diacritics (č š ľ ž ý ť ď ň ô…) in the PDF — Arial is always present and has
+      // full Latin-Extended glyphs.
+      style={{ fontFamily: 'Arial, "Helvetica Neue", Helvetica, sans-serif' }}
+    >
       {/* Header */}
       <header className="flex items-center gap-6 border-b-4 border-gray-800 pb-5">
         {p.photo && (
