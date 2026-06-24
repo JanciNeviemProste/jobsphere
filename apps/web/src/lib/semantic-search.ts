@@ -46,6 +46,14 @@ export async function searchCandidates(params: SearchCandidatesParams): Promise<
     includeDetails = false,
   } = params
 
+  // SECURITY (multi-tenant): the search MUST be scoped to one organization.
+  // Without an orgId filter the vector query returns ResumeSections from EVERY
+  // tenant — including job-seekers' private CVs in the personal sentinel org.
+  // Fail closed rather than leak across tenants.
+  if (!organizationId) {
+    throw new Error('searchCandidates requires organizationId for tenant isolation')
+  }
+
   try {
     // 1. Generate embedding for job description
     logger.info('Generating job description embedding')
@@ -73,6 +81,9 @@ export async function searchCandidates(params: SearchCandidatesParams): Promise<
       JOIN "Candidate" c ON r."candidateId" = c.id
       WHERE
         rs."embeddingVector" IS NOT NULL
+        AND c."orgId" = ${organizationId}
+        AND c."deletedAt" IS NULL
+        AND r."deletedAt" IS NULL
         AND (1 - (rs."embeddingVector" <=> ${embeddingString}::vector)) >= ${minSimilarity}
       ORDER BY rs."embeddingVector" <=> ${embeddingString}::vector ASC
       LIMIT ${limit}
@@ -137,6 +148,7 @@ export async function findSimilarCandidates(
     const resume = await prisma.resume.findFirst({
       where: { candidateId },
       include: {
+        candidate: { select: { orgId: true } },
         sections: {
           // @ts-ignore - embeddingVector is Unsupported type
           where: { embeddingVector: { not: null } },
@@ -155,10 +167,13 @@ export async function findSimilarCandidates(
     // @ts-expect-error - sections is included
     const sourceEmbedding = resume.sections[0].embeddingVector
     const embeddingString = `[${sourceEmbedding}]`
+    // @ts-expect-error - candidate is included
+    const orgId: string = resume.candidate.orgId
 
     // Set HNSW search quality parameter
     await prisma.$executeRaw`SET hnsw.ef_search = 100;`
 
+    // Scope to the source candidate's own organization (multi-tenant isolation).
     const results = await prisma.$queryRaw<any[]>`
       SELECT
         r.id as "resumeId",
@@ -167,8 +182,11 @@ export async function findSimilarCandidates(
         1 - (rs."embeddingVector" <=> ${embeddingString}::vector) as similarity
       FROM "ResumeSection" rs
       JOIN "Resume" r ON rs."resumeId" = r.id
+      JOIN "Candidate" c ON r."candidateId" = c.id
       WHERE
         rs."embeddingVector" IS NOT NULL
+        AND c."orgId" = ${orgId}
+        AND c."deletedAt" IS NULL
         AND r."candidateId" != ${candidateId}
       ORDER BY rs."embeddingVector" <=> ${embeddingString}::vector ASC
       LIMIT ${limit}

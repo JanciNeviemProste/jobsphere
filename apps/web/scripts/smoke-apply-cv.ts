@@ -120,7 +120,8 @@ async function run() {
     employerCandidateId = employer.id
     check('employer-org candidate distinct from personal', employer.id !== personalCandidateId)
 
-    await copyProfileCvToCandidate(seeker, employerCandidateId, profileResume.id)
+    const attached = await copyProfileCvToCandidate(seeker, employerCandidateId, profileResume.id)
+    check('copy returns true on success', attached === true)
 
     const copied = await prisma.resume.findFirst({
       where: { candidateId: employerCandidateId, deletedAt: null },
@@ -149,9 +150,14 @@ async function run() {
 
     console.log('3) Ownership guard: foreign cvId is ignored (no crash, no copy)')
     const before = await prisma.resume.count({ where: { candidateId: employerCandidateId } })
-    await copyProfileCvToCandidate(seeker, employerCandidateId, 'cl00000000000000000000000') // non-existent
+    const foreign = await copyProfileCvToCandidate(
+      seeker,
+      employerCandidateId,
+      'cl00000000000000000000000',
+    ) // non-existent
     const after = await prisma.resume.count({ where: { candidateId: employerCandidateId } })
     check('non-owned/invalid cvId adds nothing', before === after)
+    check('copy returns false for non-owned cvId', foreign === false)
   } catch (err) {
     failures += 1
     console.error('\n❌ Smoke run threw:', err)

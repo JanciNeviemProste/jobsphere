@@ -234,21 +234,19 @@ export default function ApplyClient({ params }: { params: { id: string; locale: 
    */
   async function handleExistingCVSelection(cvId: string) {
     try {
-      const response = await fetch(`/api/resumes/${cvId}`)
+      // Read the selected profile CV (a Resume on the user's personal candidate).
+      // NOTE: /api/resumes/[id] is org-scoped and 403s for personal CVs, so we use
+      // the profile endpoint which returns the CV's own personalInfo.
+      const response = await fetch(`/api/cv/profile?id=${encodeURIComponent(cvId)}`)
 
       if (response.ok) {
-        const cvData = await response.json()
-
-        // Auto-fill form fields from CV metadata
-        if (cvData?.candidate?.contacts?.length > 0) {
-          const contact = cvData.candidate.contacts[0]
-
-          if (contact.phone) {
-            form.setValue('phoneNumber', contact.phone)
-          }
-          if (contact.linkedIn) {
-            form.setValue('linkedin', contact.linkedIn)
-          }
+        const { data } = await response.json()
+        const pi = data?.personalInfo
+        if (pi?.phone) {
+          form.setValue('phoneNumber', pi.phone)
+        }
+        if (pi?.linkedin) {
+          form.setValue('linkedin', pi.linkedin)
         }
       }
     } catch (error) {
@@ -299,10 +297,20 @@ export default function ApplyClient({ params }: { params: { id: string; locale: 
         throw new Error(errorData.error || 'Failed to submit application')
       }
 
+      const data = await response.json().catch(() => ({}))
       setSubmitted(true)
-      toast.success(t('apply.success'), {
-        description: t('apply.successDescription'),
-      })
+
+      // The application succeeded; if the user intended to attach a CV but the
+      // server couldn't attach it, say so honestly instead of a clean success.
+      if (values.cvId && data?.cvAttached === false) {
+        toast.error('Prihláška odoslaná, ale CV sa nepodarilo priložiť', {
+          description: 'Tvoje CV nájdeš v dashboarde („Moje CV") a môžeš ho priložiť znova.',
+        })
+      } else {
+        toast.success(t('apply.success'), {
+          description: t('apply.successDescription'),
+        })
+      }
 
       // Redirect after 3 seconds
       setTimeout(() => {

@@ -39,34 +39,19 @@ export async function copyProfileCvToCandidate(
   userId: string,
   employerCandidateId: string,
   cvId: string,
-): Promise<void> {
+): Promise<boolean> {
   try {
     const personal = await getPersonalCandidateForUser(userId)
     const src = await prisma.resume.findFirst({
       where: { id: cvId, candidateId: personal.id, deletedAt: null },
       include: { sourceDocument: true },
     })
-    if (!src) return // not the user's CV, or deleted — silently skip
-
-    // Copy the uploaded source file (if any) so the employer can download it.
-    let sourceDocumentId: string | undefined
-    if (src.sourceDocument) {
-      const d = src.sourceDocument
-      const copy = await prisma.candidateDocument.create({
-        data: {
-          candidateId: employerCandidateId,
-          type: d.type,
-          filename: d.filename,
-          uri: d.uri,
-          mime: d.mime,
-          size: d.size,
-          hash: d.hash,
-          parsedAt: d.parsedAt,
-          parsedText: d.parsedText,
-        },
-        select: { id: true },
-      })
-      sourceDocumentId = copy.id
+    if (!src) {
+      // The client offered a cvId the server can't honor (not the user's CV, or
+      // deleted between selection and submit). Warn so it's diagnosable; the
+      // caller surfaces cvAttached:false to the applicant.
+      logger.warn('Profile CV not attachable to application', { userId, cvId })
+      return false
     }
 
     const exps = (Array.isArray(src.experiences) ? src.experiences : []).map((e: any) => ({
@@ -85,22 +70,47 @@ export async function copyProfileCvToCandidate(
       endDate: e.year || e.endDate || '',
     }))
 
-    await prisma.resume.create({
-      data: {
-        candidateId: employerCandidateId,
-        sourceDocumentId,
-        language: src.language,
-        summary: src.summary,
-        yearsOfExperience: src.yearsOfExperience,
-        personalInfo: src.personalInfo ?? undefined,
-        experiences: exps,
-        education: edus,
-        languages: src.languages ?? undefined,
-        skills: src.skills,
-      },
+    // Atomic: copy the source file (if any) AND the Resume together so a failure
+    // can never leave an orphaned CandidateDocument with no Resume referencing it.
+    await prisma.$transaction(async (tx) => {
+      let sourceDocumentId: string | undefined
+      if (src.sourceDocument) {
+        const d = src.sourceDocument
+        const copy = await tx.candidateDocument.create({
+          data: {
+            candidateId: employerCandidateId,
+            type: d.type,
+            filename: d.filename,
+            uri: d.uri,
+            mime: d.mime,
+            size: d.size,
+            hash: d.hash,
+            parsedAt: d.parsedAt,
+            parsedText: d.parsedText,
+          },
+          select: { id: true },
+        })
+        sourceDocumentId = copy.id
+      }
+      await tx.resume.create({
+        data: {
+          candidateId: employerCandidateId,
+          sourceDocumentId,
+          language: src.language,
+          summary: src.summary,
+          yearsOfExperience: src.yearsOfExperience,
+          personalInfo: src.personalInfo ?? undefined,
+          experiences: exps,
+          education: edus,
+          languages: src.languages ?? undefined,
+          skills: src.skills,
+        },
+      })
     })
+    return true
   } catch (error) {
     logger.error('Failed to copy profile CV onto application candidate', { error })
+    return false
   }
 }
 
@@ -196,7 +206,11 @@ export const POST = withCsrfProtection(
             { status: 400 },
           )
         }
-        const { jobId, coverLetter, cvId } = parsed.data
+        const { jobId, coverLetter, cvId, expectedSalary, availableFrom } = parsed.data
+
+        // Coerce the optional applicant-provided fields to their column types.
+        const expectedSalaryInt = expectedSalary ? Number.parseInt(expectedSalary, 10) : NaN
+        const availableFromDate = availableFrom ? new Date(availableFrom) : null
 
         // Get job to fetch orgId and verify it's published
         const job = await prisma.job.findUnique({
@@ -242,7 +256,8 @@ export const POST = withCsrfProtection(
           )
         }
 
-        // Create application
+        // Create application (persist the applicant's salary/availability inputs,
+        // which the apply form collects — previously they were silently dropped).
         const application = await prisma.application.create({
           data: {
             jobId,
@@ -250,6 +265,12 @@ export const POST = withCsrfProtection(
             orgId: job.orgId,
             coverLetter,
             stage: 'NEW',
+            ...(Number.isFinite(expectedSalaryInt) && expectedSalaryInt >= 0
+              ? { expectedSalary: expectedSalaryInt }
+              : {}),
+            ...(availableFromDate && !Number.isNaN(availableFromDate.getTime())
+              ? { availableFrom: availableFromDate }
+              : {}),
           },
           include: {
             job: {
@@ -270,9 +291,11 @@ export const POST = withCsrfProtection(
           },
         })
 
-        // Attach the applicant's chosen saved CV so the employer sees it.
+        // Attach the applicant's chosen saved CV so the employer sees it. Track
+        // the outcome so we can honestly tell the applicant if it didn't attach.
+        let cvAttached: boolean | undefined
         if (cvId) {
-          await copyProfileCvToCandidate(session.user.id, candidateId, cvId)
+          cvAttached = await copyProfileCvToCandidate(session.user.id, candidateId, cvId)
         }
 
         // Send email notifications
@@ -322,7 +345,7 @@ export const POST = withCsrfProtection(
           // Don't fail the request if email fails
         }
 
-        return NextResponse.json(application, { status: 201 })
+        return NextResponse.json({ ...application, cvAttached }, { status: 201 })
       } catch (error: any) {
         logger.error('Error creating application', error)
 

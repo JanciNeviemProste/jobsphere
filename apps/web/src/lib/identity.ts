@@ -10,6 +10,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 import type { Candidate, Prisma } from '@prisma/client'
 
 /**
@@ -114,8 +115,14 @@ export async function ensurePersonalOrg(): Promise<string> {
       select: { id: true },
     })
     return org.id
-  } catch {
-    // Lost a create race — the row now exists, just read it.
+  } catch (err) {
+    // Only a unique-violation (P2002) is the expected lost-create-race — the row
+    // now exists, so read it. Anything else is a real failure; don't mask it.
+    const code = (err as { code?: string } | null)?.code
+    if (code !== 'P2002') {
+      logger.error('ensurePersonalOrg failed (non-race)', { err })
+      throw err
+    }
     const org = await prisma.organization.findUniqueOrThrow({
       where: { slug: PERSONAL_ORG_SLUG },
       select: { id: true },

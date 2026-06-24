@@ -39,8 +39,10 @@ export default function MyCvsPage() {
 
   const [loading, setLoading] = useState(true)
   const [unauthorized, setUnauthorized] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   const [cvs, setCvs] = useState<CvListItem[]>([])
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [downloadError, setDownloadError] = useState(false)
 
   // view modal
   const [viewData, setViewData] = useState<CVPreviewData | null>(null)
@@ -55,10 +57,16 @@ export default function MyCvsPage() {
         setUnauthorized(true)
         return
       }
+      if (!res.ok) {
+        // Distinguish a load failure from a genuinely empty list, so we don't tell
+        // a user with saved CVs that they have none.
+        setLoadError(true)
+        return
+      }
       const { cvs } = await res.json()
       setCvs(cvs ?? [])
     } catch {
-      /* ignore */
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -94,6 +102,7 @@ export default function MyCvsPage() {
   const downloadPdf = async () => {
     if (downloading || !printRef.current) return
     setDownloading(true)
+    setDownloadError(false)
     try {
       // @ts-ignore - html2pdf.js ships no type declarations
       const html2pdf = (await import('html2pdf.js')).default
@@ -109,6 +118,8 @@ export default function MyCvsPage() {
         })
         .from(printRef.current)
         .save()
+    } catch {
+      setDownloadError(true)
     } finally {
       setDownloading(false)
     }
@@ -157,7 +168,21 @@ export default function MyCvsPage() {
           </div>
         </div>
 
-        {cvs.length === 0 ? (
+        {loadError ? (
+          <div className="rounded-lg border bg-background p-12 text-center text-muted-foreground">
+            Nepodarilo sa načítať tvoje CV.{' '}
+            <button
+              onClick={() => {
+                setLoadError(false)
+                setLoading(true)
+                load()
+              }}
+              className="text-primary hover:underline"
+            >
+              Skúsiť znova
+            </button>
+          </div>
+        ) : cvs.length === 0 ? (
           <div className="rounded-lg border bg-background p-12 text-center text-muted-foreground">
             Zatiaľ nemáš uložené žiadne CV.{' '}
             <Link href={`/${locale}/create-cv`} className="text-primary hover:underline">
@@ -220,11 +245,14 @@ export default function MyCvsPage() {
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4">
           <div className="my-8 w-full max-w-[840px] rounded-lg bg-white shadow-xl">
             <div className="flex items-center justify-between border-b p-3">
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <Button size="sm" onClick={downloadPdf} disabled={downloading || !viewData}>
                   <Download className="mr-2 h-4 w-4" />
                   {downloading ? 'Sťahujem…' : 'Stiahnuť PDF'}
                 </Button>
+                {downloadError && (
+                  <span className="text-sm text-destructive">Stiahnutie zlyhalo, skús znova.</span>
+                )}
               </div>
               <Button
                 size="sm"

@@ -79,6 +79,18 @@ export const POST = withRateLimit(
         locale,
       })
 
+      // Detect an empty/garbage extraction so we don't silently report success on
+      // a CV the AI couldn't read (the caller surfaces extractionEmpty).
+      const extractionEmpty =
+        !extractedCV.summary &&
+        !extractedCV.personal?.fullName &&
+        !(Array.isArray(extractedCV.experiences) && extractedCV.experiences.length > 0) &&
+        !(Array.isArray(extractedCV.education) && extractedCV.education.length > 0) &&
+        !(Array.isArray(extractedCV.skills) && extractedCV.skills.length > 0)
+      if (extractionEmpty) {
+        logger.warn('CV extraction produced no usable fields', { textLength: rawText.length })
+      }
+
       // 5. If user is logged in, save to database
       if (session?.user?.id) {
         // Resolve the Candidate to attach this CV to. Employer-side members get
@@ -225,6 +237,7 @@ export const POST = withRateLimit(
           success: true,
           parsed: extractedCV,
           sectionsCreated: sections.length,
+          extractionEmpty,
         })
       }
 
@@ -232,6 +245,7 @@ export const POST = withRateLimit(
       return NextResponse.json({
         success: true,
         parsed: extractedCV,
+        extractionEmpty,
         anonymous: true,
       })
     } catch (error) {
