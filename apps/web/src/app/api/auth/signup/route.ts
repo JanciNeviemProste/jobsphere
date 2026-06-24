@@ -13,7 +13,7 @@ const signupSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
   password: strongPasswordSchema,
-  role: z.enum(['candidate', 'employer']).optional().default('candidate'),
+  role: z.enum(['candidate', 'employer', 'freelancer']).optional().default('candidate'),
   companyName: z.string().optional(),
 })
 
@@ -97,6 +97,13 @@ export const POST = withRateLimit(
               orgId: organization.id,
               role: 'ORG_ADMIN',
             },
+          })
+        }
+
+        // If freelancer, create an (empty) freelancer profile — no organization.
+        if (data.role === 'freelancer') {
+          await tx.freelancerProfile.create({
+            data: { userId: newUser.id },
           })
         }
 

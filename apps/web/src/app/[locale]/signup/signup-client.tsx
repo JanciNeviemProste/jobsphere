@@ -26,7 +26,7 @@ const signupSchema = z
     email: z.string().email(),
     password: z.string().min(12),
     confirmPassword: z.string(),
-    role: z.enum(['candidate', 'employer']),
+    role: z.enum(['candidate', 'employer', 'freelancer']),
     companyName: z.string().optional(),
     acceptTerms: z.literal(true),
   })
@@ -45,7 +45,7 @@ export default function SignupClient({ params }: { params: { locale: string } })
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [role, setRole] = useState<'candidate' | 'employer'>('candidate')
+  const [role, setRole] = useState<'candidate' | 'employer' | 'freelancer'>('candidate')
   const [companyName, setCompanyName] = useState('')
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [error, setError] = useState('')
@@ -123,9 +123,12 @@ export default function SignupClient({ params }: { params: { locale: string } })
         // Get session to determine redirect based on role
         const session = await getSession()
 
-        // Redirect employers to employer dashboard, candidates to regular dashboard
+        // Redirect by role: employer → employer dashboard, freelancer → freelancer
+        // profile, candidate → regular dashboard.
         if (session?.user?.orgId || role === 'employer') {
           router.push(`/${locale}/employer`)
+        } else if (role === 'freelancer') {
+          router.push(`/${locale}/freelancer`)
         } else {
           router.push(`/${locale}/dashboard`)
         }
@@ -218,7 +221,9 @@ export default function SignupClient({ params }: { params: { locale: string } })
               <Label>{t('registerAs')}</Label>
               <RadioGroup
                 value={role}
-                onValueChange={(value: string) => setRole(value as 'candidate' | 'employer')}
+                onValueChange={(value: string) =>
+                  setRole(value as 'candidate' | 'employer' | 'freelancer')
+                }
                 disabled={loading}
               >
                 <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50">
@@ -233,6 +238,15 @@ export default function SignupClient({ params }: { params: { locale: string } })
                   <Label htmlFor="employer" className="flex-1 cursor-pointer font-normal">
                     <div className="font-semibold">{t('roleEmployer')}</div>
                     <p className="text-xs text-muted-foreground">{t('roleEmployerDesc')}</p>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50">
+                  <RadioGroupItem value="freelancer" id="freelancer" />
+                  <Label htmlFor="freelancer" className="flex-1 cursor-pointer font-normal">
+                    <div className="font-semibold">Freelancer</div>
+                    <p className="text-xs text-muted-foreground">
+                      Ponúkam svoje služby (grafika, web, marketing…) firmám
+                    </p>
                   </Label>
                 </div>
               </RadioGroup>

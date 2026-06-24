@@ -93,9 +93,33 @@ model User {
   consents         ConsentRecord[]
   dsarRequests     DSARRequest[]
   candidates       Candidate[]      @relation("UserCandidates")
+  freelancerProfile FreelancerProfile?
 
   @@index([email])
   @@index([deletedAt])
+}
+
+// Freelancer marketplace: a freelancer's public profile + offered services.
+// Separate from Candidate (ATS) and from org membership — a freelancer has no org.
+model FreelancerProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  title        String?  // e.g. "Grafik", "Web developer"
+  bio          String?
+  services     String[] @default([]) // e.g. ["tvorba loga", "webdizajn"]
+  skills       String[] @default([])
+  hourlyRate   Int?     // per hour, in `currency`
+  currency     String   @default("EUR")
+  availability String   @default("AVAILABLE") // AVAILABLE, LIMITED, UNAVAILABLE
+  location     String?
+  portfolioUrl String?
+  visible      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([visible])
 }
 
 model UserOrgRole {
