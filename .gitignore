@@ -99,3 +99,8 @@ nul
 .gstack/
 
 .env*
+
+# Claude Code — local overrides (nezdieľať s tímom)
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+CLAUDE.local.md

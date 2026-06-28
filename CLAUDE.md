@@ -609,3 +609,39 @@ npx prisma generate
 - ✅ Secure CV storage with private access
 - ✅ Plan identification working
 - ✅ Documentation complete
+
+---
+
+## Pracovný štandard — Definition of Done po každej úprave kódu
+
+Po dokončení AKEJKOĽVEK zmeny kódu, pred ohlásením „hotovo" a pred commitom, VŽDY a v tomto poradí:
+
+1. **Diff-scoped security check** — prejdi LEN zmenené súbory/riadky (`git diff`) proti checklistu:
+   secrets/leak · authZ & IDOR · **multi-tenant org-scoping (`orgId` + `UserOrgRole`)** · input validation (Zod) ·
+   injection (Prisma `$queryRaw`/command/path) · Stripe/webhook podpis · PII/GDPR. Toto NIE je full-repo audit.
+2. **Quality gate** — spusti typecheck + lint + testy. Ak pre dotknutú cestu existuje security test, musí prejsť;
+   ak na novej/zmenenej kritickej ceste chýba, DOPÍŠ ho.
+3. **Posture update** — ak pribudol/zanikol nález, prepočítaj posture skóre
+   (od 100: Critical −20 / High −10 / Medium −4 / Low −1) a aktualizuj sekciu `## Security posture`
+   aj `bezpecnostny-audit/findings.json`.
+4. **Pravidlá** — žiadne secrets do logov/výstupu (len súbor + typ); nič needituj mimo scope zmeny
+   bez upozornenia; oprav root cause, nie symptóm.
+
+Príkazy projektu: typecheck=`yarn typecheck` · lint=`yarn lint` · test=`yarn test` · audit=`yarn audit`
+
+> Hooky v `.claude/settings.json` toto čiastočne vynucujú (PostToolUse: prettier + secret-scan; Stop-gate: typecheck+lint).
+> Manuálne kedykoľvek: `/po-zmene`.
+
+## Security posture
+
+skóre: — | otvorené P0/P1: — | posledný audit: — | report: `bezpecnostny-audit/SECURITY_REPORT_<dátum>.md`
+
+> Baseline ešte nevznikol — spusti Vrstvu 2: `Read SECURITY_AUDIT_TESTS_REPORT.md and execute it as a prompt.`
+
+## Pointery (detail v agent_docs/)
+
+- Auth & multi-tenancy: `@agent_docs/auth.md`
+- Stripe & entitlements: `@agent_docs/stripe.md`
+- Dátový model & tenant scoping: `@agent_docs/data-model.md`
+- Deploy & env: `@agent_docs/deploy.md`
+- Pracovný štandard / DoD / hooky: `@CC_MASTER_WORKFLOW.md`

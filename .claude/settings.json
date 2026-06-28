@@ -1,0 +1,64 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn typecheck:*)",
+      "Bash(yarn lint:*)",
+      "Bash(yarn test:*)",
+      "Bash(yarn build:*)",
+      "Bash(yarn dev)",
+      "Bash(yarn install)",
+      "Bash(yarn db:push:*)",
+      "Bash(yarn db:migrate:*)",
+      "Bash(yarn db:generate:*)",
+      "Bash(yarn db:seed:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx tsx:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git branch:*)",
+      "Bash(gh pr:*)",
+      "Bash(docker compose:*)",
+      "Bash(yarn docker:up)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(tree:*)"
+    ],
+    "deny": ["Read(./.env)", "Read(./.env.*)", "Bash(rm -rf:*)", "Bash(taskkill /F /IM node.exe:*)", "Bash(taskkill /f /im node.exe:*)"],
+    "ask": []
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/post-edit.mjs",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/dod-gate.mjs",
+            "timeout": 600
+          }
+        ]
+      }
+    ]
+  }
+}
