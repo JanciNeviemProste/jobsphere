@@ -4,6 +4,8 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { handleApiError } from '@/lib/errors'
+import { withCsrfProtection } from '@/lib/csrf'
+import { withRateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -72,31 +74,36 @@ const patchSchema = z.object({
   status: z.enum(['DRAFT', 'PUBLISHED', 'CLOSED']),
 })
 
-export async function PATCH(req: Request) {
-  try {
-    const session = await requireGlobalAdmin()
-    if (!session) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+export const PATCH = withCsrfProtection(
+  withRateLimit(
+    async (req: Request) => {
+      try {
+        const session = await requireGlobalAdmin()
+        if (!session) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
 
-    const body = await req.json()
-    const { jobId, status } = patchSchema.parse(body)
+        const body = await req.json()
+        const { jobId, status } = patchSchema.parse(body)
 
-    const job = await prisma.job.findUnique({ where: { id: jobId } })
-    if (!job) {
-      return NextResponse.json({ error: 'Job not found' }, { status: 404 })
-    }
+        const job = await prisma.job.findUnique({ where: { id: jobId } })
+        if (!job) {
+          return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+        }
 
-    const updated = await prisma.job.update({
-      where: { id: jobId },
-      data: { status },
-      select: { id: true, title: true, status: true },
-    })
+        const updated = await prisma.job.update({
+          where: { id: jobId },
+          data: { status },
+          select: { id: true, title: true, status: true },
+        })
 
-    logger.info(`Admin set job ${jobId} status=${status} by ${session.user.id}`)
-    return NextResponse.json({ job: updated })
-  } catch (error) {
-    logger.error('Admin PATCH /jobs error:', error)
-    return handleApiError(error)
-  }
-}
+        logger.info(`Admin set job ${jobId} status=${status} by ${session.user.id}`)
+        return NextResponse.json({ job: updated })
+      } catch (error) {
+        logger.error('Admin PATCH /jobs error:', error)
+        return handleApiError(error)
+      }
+    },
+    { preset: 'api' },
+  ),
+)

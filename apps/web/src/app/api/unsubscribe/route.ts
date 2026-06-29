@@ -15,6 +15,13 @@ import { verifyUnsubscribeToken } from '@/lib/unsubscribe'
 
 export const runtime = 'nodejs'
 
+/** Mask an email for logging — keep first char + domain (GDPR: no full PII in logs). */
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@')
+  if (!domain) return '***'
+  return `${local.slice(0, 1)}***@${domain}`
+}
+
 function htmlPage(title: string, message: string, status: number): NextResponse {
   const body = `<!DOCTYPE html>
 <html lang="en">
@@ -58,7 +65,7 @@ export const GET = withRateLimit(
     }
 
     if (!verifyUnsubscribeToken(email, token)) {
-      logger.warn('Unsubscribe rejected — invalid token', { email })
+      logger.warn('Unsubscribe rejected — invalid token', { email: maskEmail(email) })
       return htmlPage(
         'Invalid unsubscribe link',
         'This unsubscribe link is invalid or has expired.',
@@ -80,7 +87,7 @@ export const GET = withRateLimit(
         },
       })
 
-      logger.info('Recipient unsubscribed', { email })
+      logger.info('Recipient unsubscribed', { email: maskEmail(email) })
 
       return htmlPage(
         'You have been unsubscribed',
@@ -89,7 +96,7 @@ export const GET = withRateLimit(
       )
     } catch (error) {
       logger.error('Failed to process unsubscribe', {
-        email,
+        email: maskEmail(email),
         error: error instanceof Error ? error.message : String(error),
       })
       return htmlPage(

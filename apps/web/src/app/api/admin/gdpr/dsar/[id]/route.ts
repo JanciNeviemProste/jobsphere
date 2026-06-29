@@ -14,6 +14,8 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { GdprService } from '@/services/gdpr.service'
+import { withCsrfProtection } from '@/lib/csrf'
+import { withRateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -29,81 +31,93 @@ async function requireGlobalAdmin() {
  * POST /api/admin/gdpr/dsar/[id]
  * Body: { action: 'EXECUTE_DELETE' | 'MARK_COMPLETED' | 'REJECT', rejectionReason?: string }
  */
-export const POST = async (req: Request, { params }: { params: { id: string } }) => {
-  const authResult = await requireGlobalAdmin()
-  if (authResult instanceof NextResponse) return authResult
-
-  try {
-    const { action, rejectionReason } = await req.json()
-
-    const dsar = await prisma.dSARRequest.findUnique({ where: { id: params.id } })
-    if (!dsar) {
-      return NextResponse.json({ error: 'Request not found' }, { status: 404 })
-    }
-
-    if (action === 'EXECUTE_DELETE') {
-      if (dsar.requestType !== 'DELETE') {
-        return NextResponse.json({ error: 'This request is not a DELETE request' }, { status: 400 })
+export const POST = withCsrfProtection(
+  withRateLimit(
+    async (req: Request, context?: { params?: Record<string, string> }) => {
+      const params = context?.params as { id: string }
+      if (!params?.id) {
+        return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 })
       }
-      if (!dsar.userId) {
-        return NextResponse.json(
-          { error: 'Request has no linked user (already erased?)' },
-          { status: 400 },
-        )
+      const authResult = await requireGlobalAdmin()
+      if (authResult instanceof NextResponse) return authResult
+
+      try {
+        const { action, rejectionReason } = await req.json()
+
+        const dsar = await prisma.dSARRequest.findUnique({ where: { id: params.id } })
+        if (!dsar) {
+          return NextResponse.json({ error: 'Request not found' }, { status: 404 })
+        }
+
+        if (action === 'EXECUTE_DELETE') {
+          if (dsar.requestType !== 'DELETE') {
+            return NextResponse.json(
+              { error: 'This request is not a DELETE request' },
+              { status: 400 },
+            )
+          }
+          if (!dsar.userId) {
+            return NextResponse.json(
+              { error: 'Request has no linked user (already erased?)' },
+              { status: 400 },
+            )
+          }
+
+          const result = await GdprService.eraseUserData(dsar.userId)
+
+          // userId FK is SetNull after the user is deleted; update by request id.
+          await prisma.dSARRequest.update({
+            where: { id: dsar.id },
+            data: {
+              status: 'COMPLETED',
+              completedAt: new Date(),
+              responseData: {
+                candidateIds: result.candidateIds,
+                documentsDeleted: result.documentsDeleted,
+                blobsDeleted: result.blobsDeleted,
+                applicationsDeleted: result.applicationsDeleted,
+                resumesDeleted: result.resumesDeleted,
+              },
+            },
+          })
+
+          logger.info('Admin: executed DSAR erasure', {
+            adminId: authResult.user.id,
+            requestId: dsar.id,
+          })
+
+          return NextResponse.json({ success: true, status: 'COMPLETED', result })
+        }
+
+        if (action === 'MARK_COMPLETED') {
+          const updated = await prisma.dSARRequest.update({
+            where: { id: dsar.id },
+            data: { status: 'COMPLETED', completedAt: new Date() },
+          })
+          return NextResponse.json({ success: true, request: updated })
+        }
+
+        if (action === 'REJECT') {
+          const updated = await prisma.dSARRequest.update({
+            where: { id: dsar.id },
+            data: {
+              status: 'REJECTED',
+              completedAt: new Date(),
+              rejectionReason: rejectionReason || 'Rejected by administrator',
+            },
+          })
+          return NextResponse.json({ success: true, request: updated })
+        }
+
+        return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+      } catch (error) {
+        logger.error('Admin DSAR processing failed', error)
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
       }
-
-      const result = await GdprService.eraseUserData(dsar.userId)
-
-      // userId FK is SetNull after the user is deleted; update by request id.
-      await prisma.dSARRequest.update({
-        where: { id: dsar.id },
-        data: {
-          status: 'COMPLETED',
-          completedAt: new Date(),
-          responseData: {
-            candidateIds: result.candidateIds,
-            documentsDeleted: result.documentsDeleted,
-            blobsDeleted: result.blobsDeleted,
-            applicationsDeleted: result.applicationsDeleted,
-            resumesDeleted: result.resumesDeleted,
-          },
-        },
-      })
-
-      logger.info('Admin: executed DSAR erasure', {
-        adminId: authResult.user.id,
-        requestId: dsar.id,
-      })
-
-      return NextResponse.json({ success: true, status: 'COMPLETED', result })
-    }
-
-    if (action === 'MARK_COMPLETED') {
-      const updated = await prisma.dSARRequest.update({
-        where: { id: dsar.id },
-        data: { status: 'COMPLETED', completedAt: new Date() },
-      })
-      return NextResponse.json({ success: true, request: updated })
-    }
-
-    if (action === 'REJECT') {
-      const updated = await prisma.dSARRequest.update({
-        where: { id: dsar.id },
-        data: {
-          status: 'REJECTED',
-          completedAt: new Date(),
-          rejectionReason: rejectionReason || 'Rejected by administrator',
-        },
-      })
-      return NextResponse.json({ success: true, request: updated })
-    }
-
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
-  } catch (error) {
-    logger.error('Admin DSAR processing failed', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
+    },
+    { preset: 'api' },
+  ),
+)
 
 /**
  * GET /api/admin/gdpr/dsar/[id]

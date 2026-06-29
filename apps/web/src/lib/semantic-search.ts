@@ -3,7 +3,7 @@
  * Vector similarity search for candidates using pgvector
  */
 
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { generateEmbedding } from '@/lib/embeddings'
 import { logger } from '@/lib/logger'
 

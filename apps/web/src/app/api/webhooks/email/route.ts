@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { withRateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -63,39 +64,43 @@ function verifySendGridSignature(body: string, headers: Headers): boolean {
   return signature === expectedSig
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    // Read raw body for signature verification before parsing JSON
-    const rawBody = await req.text()
+// Rate-limit the public webhook (defense-in-depth on top of signature verification).
+export const POST = withRateLimit(
+  async (req: NextRequest) => {
+    try {
+      // Read raw body for signature verification before parsing JSON
+      const rawBody = await req.text()
 
-    // Verify Resend webhook signature (Svix headers)
-    if (!verifyResendSignature(rawBody, req.headers)) {
-      logger.warn('Email webhook signature verification failed')
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
-    }
-
-    const body = JSON.parse(rawBody)
-
-    // Resend webhook format
-    if (body.type) {
-      return handleResendWebhook(body)
-    }
-
-    // SendGrid webhook format
-    if (Array.isArray(body)) {
-      if (!verifySendGridSignature(rawBody, req.headers)) {
-        logger.warn('SendGrid webhook signature verification failed')
+      // Verify Resend webhook signature (Svix headers)
+      if (!verifyResendSignature(rawBody, req.headers)) {
+        logger.warn('Email webhook signature verification failed')
         return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
       }
-      return handleSendGridWebhook(body)
-    }
 
-    return NextResponse.json({ error: 'Unknown webhook format' }, { status: 400 })
-  } catch (error) {
-    logger.error('Email webhook error:', error)
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
-  }
-}
+      const body = JSON.parse(rawBody)
+
+      // Resend webhook format
+      if (body.type) {
+        return handleResendWebhook(body)
+      }
+
+      // SendGrid webhook format
+      if (Array.isArray(body)) {
+        if (!verifySendGridSignature(rawBody, req.headers)) {
+          logger.warn('SendGrid webhook signature verification failed')
+          return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+        }
+        return handleSendGridWebhook(body)
+      }
+
+      return NextResponse.json({ error: 'Unknown webhook format' }, { status: 400 })
+    } catch (error) {
+      logger.error('Email webhook error:', error)
+      return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+    }
+  },
+  { limit: 1000, window: 60 },
+)
 
 async function handleResendWebhook(event: any) {
   const { type, data } = event

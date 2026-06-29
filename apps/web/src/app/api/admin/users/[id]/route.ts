@@ -8,6 +8,8 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { withCsrfProtection } from '@/lib/csrf'
+import { withRateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -93,41 +95,53 @@ export const GET = async (_req: Request, { params }: { params: { id: string } })
  * DELETE /api/admin/users/[id]
  * Soft-deletes a user by setting deletedAt. Cannot delete yourself or another admin.
  */
-export const DELETE = async (_req: Request, { params }: { params: { id: string } }) => {
-  const authResult = await requireGlobalAdmin()
-  if (authResult instanceof NextResponse) return authResult
+export const DELETE = withCsrfProtection(
+  withRateLimit(
+    async (_req: Request, context?: { params?: Record<string, string> }) => {
+      const params = context?.params as { id: string }
+      if (!params?.id) {
+        return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 })
+      }
+      const authResult = await requireGlobalAdmin()
+      if (authResult instanceof NextResponse) return authResult
 
-  try {
-    if (params.id === authResult.user.id) {
-      return NextResponse.json({ error: 'You cannot delete your own account' }, { status: 400 })
-    }
+      try {
+        if (params.id === authResult.user.id) {
+          return NextResponse.json({ error: 'You cannot delete your own account' }, { status: 400 })
+        }
 
-    const target = await prisma.user.findUnique({
-      where: { id: params.id },
-      select: { id: true, isGlobalAdmin: true, deletedAt: true },
-    })
+        const target = await prisma.user.findUnique({
+          where: { id: params.id },
+          select: { id: true, isGlobalAdmin: true, deletedAt: true },
+        })
 
-    if (!target || target.deletedAt !== null) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
+        if (!target || target.deletedAt !== null) {
+          return NextResponse.json({ error: 'User not found' }, { status: 404 })
+        }
 
-    if (target.isGlobalAdmin) {
-      return NextResponse.json(
-        { error: 'Cannot delete a global admin. Demote first.' },
-        { status: 400 },
-      )
-    }
+        if (target.isGlobalAdmin) {
+          return NextResponse.json(
+            { error: 'Cannot delete a global admin. Demote first.' },
+            { status: 400 },
+          )
+        }
 
-    await prisma.user.update({
-      where: { id: params.id },
-      data: { deletedAt: new Date() },
-    })
+        await prisma.user.update({
+          where: { id: params.id },
+          data: { deletedAt: new Date() },
+        })
 
-    logger.info('Admin: soft-deleted user', { adminId: authResult.user.id, targetId: params.id })
+        logger.info('Admin: soft-deleted user', {
+          adminId: authResult.user.id,
+          targetId: params.id,
+        })
 
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    logger.error('Admin DELETE /users/[id] failed', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
+        return NextResponse.json({ success: true })
+      } catch (error) {
+        logger.error('Admin DELETE /users/[id] failed', error)
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+      }
+    },
+    { preset: 'api' },
+  ),
+)

@@ -1,1 +1,92 @@
-[]
+[
+  {
+    "id": "F1",
+    "severity": "Medium",
+    "category": "E - Web boundary (CSRF)",
+    "file": "apps/web/src/app/api/organizations/[id]/route.ts + apps/web/src/app/api/admin/{users,jobs,organizations,settings,users/[id],gdpr/dsar/[id]}/route.ts",
+    "status": "fixed",
+    "summary": "Authenticated mutation handlers were not wrapped with withCsrfProtection (rest of app wraps 96+). Wrapped with withCsrfProtection(withRateLimit(...)). SameSite=Lax already mitigated.",
+    "fixedAt": "2026-06-29"
+  },
+  {
+    "id": "F2",
+    "severity": "Medium",
+    "category": "J - Rate limiting",
+    "file": "same routes as F1",
+    "status": "fixed",
+    "summary": "Same mutation routes lacked withRateLimit. Added preset 'api' inside the F1 wrapper.",
+    "fixedAt": "2026-06-29"
+  },
+  {
+    "id": "F3",
+    "severity": "Low",
+    "category": "F/E - Webhook",
+    "file": "apps/web/src/app/api/webhooks/email/route.ts",
+    "status": "fixed",
+    "summary": "CORRECTION: signature verification already fails-closed in production (audit false-positive). Only gap was no rate-limit -> added withRateLimit({limit:1000,window:60}).",
+    "fixedAt": "2026-06-29"
+  },
+  {
+    "id": "F4",
+    "severity": "High",
+    "category": "I - Dependencies",
+    "file": "apps/web/package.json (sanitize-html)",
+    "status": "fixed",
+    "summary": "sanitize-html 2.17.3 < patched 2.17.4 (Critical advisory: XSS via xmp passthrough), reachable on user input. Bumped to ^2.17.4 (resolved 2.17.5); yarn audit Critical now 0.",
+    "fixedAt": "2026-06-29"
+  },
+  {
+    "id": "F5",
+    "severity": "Medium",
+    "category": "J/H - PII logging",
+    "file": "apps/web/src/app/api/unsubscribe/route.ts",
+    "status": "fixed",
+    "summary": "Logged bare candidate email (PII). Added maskEmail() helper; all three log calls now mask.",
+    "fixedAt": "2026-06-29"
+  },
+  {
+    "id": "F6",
+    "severity": "Medium",
+    "category": "G - Files & storage",
+    "file": "apps/web/src/lib/cv-storage.ts",
+    "status": "deferred",
+    "summary": "Vercel Blob access:'public' (SEC-001). Mitigated app-layer (authenticated download route + unguessable URL). P2 follow-up: upgrade @vercel/blob to access:'private'. CLAUDE.md stale 'private' claim corrected.",
+    "deferredReason": "needs @vercel/blob upgrade; already mitigated"
+  },
+  {
+    "id": "F7",
+    "severity": "Low",
+    "category": "H - PII/GDPR",
+    "file": "apps/web/src/app/api/gdpr/export/route.ts",
+    "status": "deferred",
+    "summary": "Speculative download-token reuse risk. P2: verify tokens are single-use/short-lived.",
+    "deferredReason": "speculative; needs token-lifecycle audit"
+  },
+  {
+    "id": "F8",
+    "severity": "Low",
+    "category": "D - Injection (prompt)",
+    "file": "packages/ai/src/cv-parser.ts",
+    "status": "accepted",
+    "summary": "CV text interpolated into the LLM prompt without delimiters. Mitigated: output is JSON-schema-parsed and never used for auth/queries. Accepted; optional hardening = wrap in <CV></CV>.",
+    "acceptedReason": "mitigated by schema parse; output not trusted for control flow"
+  },
+  {
+    "id": "F9",
+    "severity": "Low",
+    "category": "cleanup",
+    "file": "apps/web/src/lib/antivirus.ts",
+    "status": "fixed",
+    "summary": "crypto.randomUUID() relied on the Node global crypto (works on Node 19+). Added explicit import { randomUUID } from 'node:crypto'. (Audit had over-rated this as Critical.)",
+    "fixedAt": "2026-06-29"
+  },
+  {
+    "id": "F10",
+    "severity": "Low",
+    "category": "cleanup",
+    "file": "apps/web/src/lib/semantic-search.ts",
+    "status": "fixed",
+    "summary": "Imported the deprecated @/lib/db re-export instead of @/lib/prisma. Switched to @/lib/prisma.",
+    "fixedAt": "2026-06-29"
+  }
+]

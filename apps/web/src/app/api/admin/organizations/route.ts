@@ -4,6 +4,8 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { handleApiError } from '@/lib/errors'
+import { withCsrfProtection } from '@/lib/csrf'
+import { withRateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -54,31 +56,36 @@ const patchSchema = z.object({
   action: z.enum(['suspend', 'activate']),
 })
 
-export async function PATCH(req: Request) {
-  try {
-    const session = await requireGlobalAdmin()
-    if (!session) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+export const PATCH = withCsrfProtection(
+  withRateLimit(
+    async (req: Request) => {
+      try {
+        const session = await requireGlobalAdmin()
+        if (!session) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
 
-    const body = await req.json()
-    const { orgId, action } = patchSchema.parse(body)
+        const body = await req.json()
+        const { orgId, action } = patchSchema.parse(body)
 
-    const org = await prisma.organization.findUnique({ where: { id: orgId } })
-    if (!org) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
-    }
+        const org = await prisma.organization.findUnique({ where: { id: orgId } })
+        if (!org) {
+          return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
+        }
 
-    const updated = await prisma.organization.update({
-      where: { id: orgId },
-      data: { deletedAt: action === 'suspend' ? new Date() : null },
-      select: { id: true, name: true, deletedAt: true },
-    })
+        const updated = await prisma.organization.update({
+          where: { id: orgId },
+          data: { deletedAt: action === 'suspend' ? new Date() : null },
+          select: { id: true, name: true, deletedAt: true },
+        })
 
-    logger.info(`Admin ${action} organization ${orgId} by ${session.user.id}`)
-    return NextResponse.json({ organization: updated })
-  } catch (error) {
-    logger.error('Admin PATCH /organizations error:', error)
-    return handleApiError(error)
-  }
-}
+        logger.info(`Admin ${action} organization ${orgId} by ${session.user.id}`)
+        return NextResponse.json({ organization: updated })
+      } catch (error) {
+        logger.error('Admin PATCH /organizations error:', error)
+        return handleApiError(error)
+      }
+    },
+    { preset: 'api' },
+  ),
+)

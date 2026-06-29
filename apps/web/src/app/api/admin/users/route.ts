@@ -9,6 +9,8 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import * as z from 'zod'
+import { withCsrfProtection } from '@/lib/csrf'
+import { withRateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -107,74 +109,79 @@ export const GET = async (req: Request) => {
  * PATCH /api/admin/users
  * Change user status: ban, unban, promote_admin, demote_admin.
  */
-export const PATCH = async (req: Request) => {
-  const authResult = await requireGlobalAdmin()
-  if (authResult instanceof NextResponse) return authResult
+export const PATCH = withCsrfProtection(
+  withRateLimit(
+    async (req: Request) => {
+      const authResult = await requireGlobalAdmin()
+      if (authResult instanceof NextResponse) return authResult
 
-  try {
-    const body: unknown = await req.json()
-    const { userId, action } = patchBodySchema.parse(body)
+      try {
+        const body: unknown = await req.json()
+        const { userId, action } = patchBodySchema.parse(body)
 
-    // Prevent admins from acting on themselves for sensitive operations
-    if (userId === authResult.user.id && (action === 'demote_admin' || action === 'ban')) {
-      return NextResponse.json(
-        { error: 'You cannot perform this action on your own account' },
-        { status: 400 },
-      )
-    }
+        // Prevent admins from acting on themselves for sensitive operations
+        if (userId === authResult.user.id && (action === 'demote_admin' || action === 'ban')) {
+          return NextResponse.json(
+            { error: 'You cannot perform this action on your own account' },
+            { status: 400 },
+          )
+        }
 
-    const target = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, deletedAt: true },
-    })
+        const target = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true, deletedAt: true },
+        })
 
-    if (!target || target.deletedAt !== null) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
+        if (!target || target.deletedAt !== null) {
+          return NextResponse.json({ error: 'User not found' }, { status: 404 })
+        }
 
-    let updateData: Record<string, unknown>
+        let updateData: Record<string, unknown>
 
-    switch (action) {
-      case 'ban':
-        // AUTH-001: bump sessionEpoch to immediately revoke the banned user's active JWTs
-        updateData = { lockedUntil: BAN_DATE, sessionEpoch: { increment: 1 } }
-        break
-      case 'unban':
-        updateData = { lockedUntil: null, failedAttempts: 0 }
-        break
-      case 'promote_admin':
-        updateData = { isGlobalAdmin: true }
-        break
-      case 'demote_admin':
-        // AUTH-001: revoke active sessions so the demoted admin loses elevated access now
-        updateData = { isGlobalAdmin: false, sessionEpoch: { increment: 1 } }
-        break
-    }
+        switch (action) {
+          case 'ban':
+            // AUTH-001: bump sessionEpoch to immediately revoke the banned user's active JWTs
+            updateData = { lockedUntil: BAN_DATE, sessionEpoch: { increment: 1 } }
+            break
+          case 'unban':
+            updateData = { lockedUntil: null, failedAttempts: 0 }
+            break
+          case 'promote_admin':
+            updateData = { isGlobalAdmin: true }
+            break
+          case 'demote_admin':
+            // AUTH-001: revoke active sessions so the demoted admin loses elevated access now
+            updateData = { isGlobalAdmin: false, sessionEpoch: { increment: 1 } }
+            break
+        }
 
-    const updated = await prisma.user.update({
-      where: { id: userId },
-      data: updateData,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        isGlobalAdmin: true,
-        lockedUntil: true,
-        failedAttempts: true,
-      },
-    })
+        const updated = await prisma.user.update({
+          where: { id: userId },
+          data: updateData,
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            isGlobalAdmin: true,
+            lockedUntil: true,
+            failedAttempts: true,
+          },
+        })
 
-    logger.info('Admin: user action applied', { adminId: authResult.user.id, userId, action })
+        logger.info('Admin: user action applied', { adminId: authResult.user.id, userId, action })
 
-    return NextResponse.json({ user: updated })
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request body', issues: error.issues },
-        { status: 400 },
-      )
-    }
-    logger.error('Admin PATCH /users failed', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
+        return NextResponse.json({ user: updated })
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return NextResponse.json(
+            { error: 'Invalid request body', issues: error.issues },
+            { status: 400 },
+          )
+        }
+        logger.error('Admin PATCH /users failed', error)
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+      }
+    },
+    { preset: 'api' },
+  ),
+)

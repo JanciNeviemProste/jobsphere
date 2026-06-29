@@ -3,6 +3,7 @@
  * Scans files for malware before processing
  */
 
+import { randomUUID } from 'node:crypto'
 import { CVErrors, CVParseException } from '@jobsphere/ai'
 import { logger } from './logger'
 
@@ -155,7 +156,7 @@ export async function securityCheck(
   buffer: Buffer,
   metadata: { filename: string; mimeType: string; fileSize: number },
 ): Promise<void> {
-  const traceId = crypto.randomUUID()
+  const traceId = randomUUID()
 
   logger.info('Security check started', { traceId, ...metadata })
 

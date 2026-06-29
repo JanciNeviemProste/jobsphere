@@ -559,9 +559,9 @@ All 30+ incomplete features have been completed across 5 implementation phases.
 
 **CV Storage Security:**
 
-- ✅ Changed Vercel Blob access from 'public' to 'private'
+- ⚠️ Vercel Blob still uses `access:'public'` (SEC-001 / finding F6) — access is enforced at the app layer (authenticated `/api/cv/{id}/download` route + unguessable `addRandomSuffix` URL). FOLLOW-UP: upgrade `@vercel/blob` to `access:'private'`.
 - ✅ Implemented local file deletion with fs/promises
-- ✅ Signed URLs for secure CV access
+- ✅ Signed URLs for secure CV access (download route authorizes the caller)
 - File: `apps/web/src/lib/cv-storage.ts`
 
 ### Phase 5: Documentation (✅ COMPLETED)
@@ -634,9 +634,9 @@ Príkazy projektu: typecheck=`yarn typecheck` · lint=`yarn lint` · test=`yarn 
 
 ## Security posture
 
-skóre: — | otvorené P0/P1: — | posledný audit: — | report: `bezpecnostny-audit/SECURITY_REPORT_<dátum>.md`
+skóre: **94/100** (pred remediáciou 69) | otvorené: 0 Critical/High · 1 Medium (F6 blob) + 2 Low — deferred | posledný audit: **2026-06-29** (Vrstva 2) | report: `bezpecnostny-audit/SECURITY_REPORT_2026-06-29.md` · tracking: `bezpecnostny-audit/findings.json`
 
-> Baseline ešte nevznikol — spusti Vrstvu 2: `Read SECURITY_AUDIT_TESTS_REPORT.md and execute it as a prompt.`
+> Re-baseline: `Read SECURITY_AUDIT_TESTS_REPORT.md and execute it as a prompt.` · diff-scoped DoD: `/po-zmene`.
 
 ## Pointery (detail v agent_docs/)
 

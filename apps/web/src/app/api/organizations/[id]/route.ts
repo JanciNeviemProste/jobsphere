@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { sanitizeHtml, sanitizeUrl } from '@/lib/sanitize'
 import { logger } from '@/lib/logger'
+import { withCsrfProtection } from '@/lib/csrf'
+import { withRateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -15,122 +17,138 @@ const updateOrgSchema = z.object({
   size: z.string().max(50).optional().or(z.literal('')),
 })
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-  try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+export const GET = withRateLimit(
+  async (request: Request, context?: { params?: Record<string, string> }) => {
+    const params = context?.params as { id: string }
+    if (!params?.id) {
+      return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 })
     }
+    try {
+      const session = await auth()
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
 
-    // Verify membership
-    const membership = await prisma.userOrgRole.findFirst({
-      where: {
-        userId: session.user.id,
-        orgId: params.id,
-      },
-    })
+      // Verify membership
+      const membership = await prisma.userOrgRole.findFirst({
+        where: {
+          userId: session.user.id,
+          orgId: params.id,
+        },
+      })
 
-    if (!membership) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!membership) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+
+      const organization = await prisma.organization.findUnique({
+        where: { id: params.id },
+        select: {
+          id: true,
+          name: true,
+          logo: true,
+          website: true,
+          description: true,
+          industry: true,
+          size: true,
+          slug: true,
+        },
+      })
+
+      if (!organization) {
+        return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
+      }
+
+      return NextResponse.json(organization)
+    } catch (error) {
+      logger.error('Error fetching organization:', error)
+      return NextResponse.json({ error: 'Failed to fetch organization' }, { status: 500 })
     }
+  },
+  { preset: 'api' },
+)
 
-    const organization = await prisma.organization.findUnique({
-      where: { id: params.id },
-      select: {
-        id: true,
-        name: true,
-        logo: true,
-        website: true,
-        description: true,
-        industry: true,
-        size: true,
-        slug: true,
-      },
-    })
+export const PATCH = withCsrfProtection(
+  withRateLimit(
+    async (request: Request, context?: { params?: Record<string, string> }) => {
+      const params = context?.params as { id: string }
+      if (!params?.id) {
+        return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 })
+      }
+      try {
+        const session = await auth()
+        if (!session?.user?.id) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
 
-    if (!organization) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
-    }
+        // Verify admin role
+        const membership = await prisma.userOrgRole.findFirst({
+          where: {
+            userId: session.user.id,
+            orgId: params.id,
+            role: 'ORG_ADMIN',
+          },
+        })
 
-    return NextResponse.json(organization)
-  } catch (error) {
-    logger.error('Error fetching organization:', error)
-    return NextResponse.json({ error: 'Failed to fetch organization' }, { status: 500 })
-  }
-}
+        if (!membership) {
+          return NextResponse.json(
+            { error: 'Forbidden - Only organization admins can update organization settings' },
+            { status: 403 },
+          )
+        }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
-  try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+        const body = await request.json()
+        const validatedData = updateOrgSchema.parse(body)
 
-    // Verify admin role
-    const membership = await prisma.userOrgRole.findFirst({
-      where: {
-        userId: session.user.id,
-        orgId: params.id,
-        role: 'ORG_ADMIN',
-      },
-    })
+        // Prepare update data (remove empty strings and sanitize)
+        const updateData: any = {}
+        if (validatedData.name !== undefined) {
+          // Sanitize name to prevent XSS via event handlers
+          updateData.name = sanitizeHtml(validatedData.name)
+        }
+        if (validatedData.website !== undefined) {
+          // Sanitize URL to prevent javascript: protocol XSS
+          updateData.website = sanitizeUrl(validatedData.website)
+        }
+        if (validatedData.description !== undefined) {
+          // Sanitize HTML to prevent XSS via script tags and event handlers
+          updateData.description = sanitizeHtml(validatedData.description)
+        }
+        if (validatedData.industry !== undefined) {
+          updateData.industry = validatedData.industry === '' ? null : validatedData.industry
+        }
+        if (validatedData.size !== undefined) {
+          updateData.size = validatedData.size === '' ? null : validatedData.size
+        }
 
-    if (!membership) {
-      return NextResponse.json(
-        { error: 'Forbidden - Only organization admins can update organization settings' },
-        { status: 403 },
-      )
-    }
+        const updated = await prisma.organization.update({
+          where: { id: params.id },
+          data: updateData,
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+            website: true,
+            description: true,
+            industry: true,
+            size: true,
+            slug: true,
+          },
+        })
 
-    const body = await request.json()
-    const validatedData = updateOrgSchema.parse(body)
+        return NextResponse.json(updated)
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return NextResponse.json(
+            { error: 'Invalid request data', details: error.errors },
+            { status: 400 },
+          )
+        }
 
-    // Prepare update data (remove empty strings and sanitize)
-    const updateData: any = {}
-    if (validatedData.name !== undefined) {
-      // Sanitize name to prevent XSS via event handlers
-      updateData.name = sanitizeHtml(validatedData.name)
-    }
-    if (validatedData.website !== undefined) {
-      // Sanitize URL to prevent javascript: protocol XSS
-      updateData.website = sanitizeUrl(validatedData.website)
-    }
-    if (validatedData.description !== undefined) {
-      // Sanitize HTML to prevent XSS via script tags and event handlers
-      updateData.description = sanitizeHtml(validatedData.description)
-    }
-    if (validatedData.industry !== undefined) {
-      updateData.industry = validatedData.industry === '' ? null : validatedData.industry
-    }
-    if (validatedData.size !== undefined) {
-      updateData.size = validatedData.size === '' ? null : validatedData.size
-    }
-
-    const updated = await prisma.organization.update({
-      where: { id: params.id },
-      data: updateData,
-      select: {
-        id: true,
-        name: true,
-        logo: true,
-        website: true,
-        description: true,
-        industry: true,
-        size: true,
-        slug: true,
-      },
-    })
-
-    return NextResponse.json(updated)
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
-        { status: 400 },
-      )
-    }
-
-    logger.error('Error updating organization:', error)
-    return NextResponse.json({ error: 'Failed to update organization' }, { status: 500 })
-  }
-}
+        logger.error('Error updating organization:', error)
+        return NextResponse.json({ error: 'Failed to update organization' }, { status: 500 })
+      }
+    },
+    { preset: 'api' },
+  ),
+)
