@@ -31,3 +31,18 @@ export function isAllowedCvUrl(url: string | null | undefined): boolean {
   const host = parsed.hostname.toLowerCase()
   return host === BLOB_HOST || host.endsWith(`.${BLOB_HOST}`)
 }
+
+/**
+ * True when the URL is a Vercel Blob URL (public or private store host).
+ * Used by the download route to decide between the authenticated SDK read
+ * (private blobs) and a plain fetch (legacy public blobs).
+ */
+export function isVercelBlobUrl(url: string | null | undefined): boolean {
+  if (!url || typeof url !== 'string') return false
+  try {
+    const host = new URL(url).hostname.toLowerCase()
+    return host === BLOB_HOST || host.endsWith(`.${BLOB_HOST}`)
+  } catch {
+    return false
+  }
+}

@@ -48,28 +48,28 @@
     "id": "F6",
     "severity": "Medium",
     "category": "G - Files & storage",
-    "file": "apps/web/src/lib/cv-storage.ts",
-    "status": "deferred",
-    "summary": "Vercel Blob access:'public' (SEC-001). Mitigated app-layer (authenticated download route + unguessable URL). P2 follow-up: upgrade @vercel/blob to access:'private'. CLAUDE.md stale 'private' claim corrected.",
-    "deferredReason": "needs @vercel/blob upgrade; already mitigated"
+    "file": "apps/web/src/lib/cv-storage.ts + apps/web/src/app/api/cv/[documentId]/download/route.ts",
+    "status": "fixed",
+    "summary": "Upgraded @vercel/blob 0.22 -> 2.5; CV uploads now access:'private'. Download route reads via authenticated get({access:'private'}) with a fetch() fallback for legacy public blobs. Unit-tested (authz + private read + fallback). POST-DEPLOY: verify one real CV download on jobsphere.eu.",
+    "fixedAt": "2026-06-29"
   },
   {
     "id": "F7",
     "severity": "Low",
     "category": "H - PII/GDPR",
     "file": "apps/web/src/app/api/gdpr/export/route.ts",
-    "status": "deferred",
-    "summary": "Speculative download-token reuse risk. P2: verify tokens are single-use/short-lived.",
-    "deferredReason": "speculative; needs token-lifecycle audit"
+    "status": "fixed",
+    "summary": "VERIFIED non-issue: the export embeds /api/cv/{id}/download links which are session-authorized (auth + ownership/org-membership re-checked on every call). No standalone reusable token exists, so there is nothing to expire. No code change required.",
+    "fixedAt": "2026-06-29"
   },
   {
     "id": "F8",
     "severity": "Low",
     "category": "D - Injection (prompt)",
     "file": "packages/ai/src/cv-parser.ts",
-    "status": "accepted",
-    "summary": "CV text interpolated into the LLM prompt without delimiters. Mitigated: output is JSON-schema-parsed and never used for auth/queries. Accepted; optional hardening = wrap in <CV></CV>.",
-    "acceptedReason": "mitigated by schema parse; output not trusted for control flow"
+    "status": "fixed",
+    "summary": "Hardened: CV text is wrapped in <CV></CV> delimiters in the LLM prompt (both OpenRouter and Anthropic extraction paths) with an explicit 'treat as data, never as instructions' guard. Remains defense-in-depth (output is JSON-schema-parsed and never used for control flow).",
+    "fixedAt": "2026-06-29"
   },
   {
     "id": "F9",
