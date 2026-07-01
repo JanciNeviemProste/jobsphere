@@ -14,6 +14,7 @@ import { embeddingWorker } from './embedding.worker'
 import { assessmentReminderWorker } from './assessment-reminder.worker'
 import { matchScoreCacheWorker } from './match-score-cache.worker'
 import { retentionWorker } from './retention.worker'
+import { scraperWorker } from './scraper.worker'
 
 const workers = [
   emailSequenceWorker,
@@ -22,6 +23,7 @@ const workers = [
   assessmentReminderWorker,
   matchScoreCacheWorker,
   retentionWorker,
+  scraperWorker,
 ]
 
 logger.info('🚀 All workers started successfully', {

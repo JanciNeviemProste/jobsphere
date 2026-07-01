@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { auth } from '@/lib/auth'
+import { requireGlobalAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { handleApiError } from '@/lib/errors'
@@ -8,14 +8,6 @@ import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
-
-async function requireGlobalAdmin() {
-  const session = await auth()
-  if (!session?.user?.isGlobalAdmin) {
-    return null
-  }
-  return session
-}
 
 export async function GET(req: Request) {
   try {
@@ -101,6 +93,95 @@ export const PATCH = withCsrfProtection(
         return NextResponse.json({ job: updated })
       } catch (error) {
         logger.error('Admin PATCH /jobs error:', error)
+        return handleApiError(error)
+      }
+    },
+    { preset: 'api' },
+  ),
+)
+
+// Admin job creation. Unlike POST /api/jobs (which resolves the org from the
+// caller's membership), a global admin is not bound to any org — so `orgId` is
+// REQUIRED in the body and validated to exist before the job is created.
+const createJobSchema = z.object({
+  orgId: z.string().min(1, 'orgId is required'),
+  title: z.string().min(3, 'Title must be at least 3 characters').max(200),
+  description: z.string().min(50, 'Description must be at least 50 characters').max(10000),
+  requirements: z.string().max(10000).optional(),
+  benefits: z.string().max(10000).optional(),
+  location: z.string().min(2).max(100).optional(),
+  region: z.string().max(100).optional(),
+  workMode: z.enum(['REMOTE', 'HYBRID', 'ONSITE']).default('ONSITE'),
+  type: z
+    .enum(['FULL_TIME', 'PART_TIME', 'CONTRACT', 'FREELANCE', 'INTERNSHIP'])
+    .default('FULL_TIME'),
+  seniority: z.enum(['JUNIOR', 'MID', 'SENIOR', 'LEAD', 'EXECUTIVE']).default('MID'),
+  salaryMin: z.number().int().min(0).optional(),
+  salaryMax: z.number().int().min(0).optional(),
+  salaryCurrency: z.string().max(10).optional(),
+  status: z.enum(['DRAFT', 'PUBLISHED', 'CLOSED']).default('PUBLISHED'),
+})
+
+export const POST = withCsrfProtection(
+  withRateLimit(
+    async (req: Request) => {
+      try {
+        const session = await requireGlobalAdmin()
+        if (!session) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+
+        const body = await req.json()
+        const data = createJobSchema.parse(body)
+
+        // The chosen org must exist (and not be soft-deleted) — otherwise the
+        // Job.orgId FK would dangle / point at a suspended org.
+        const org = await prisma.organization.findFirst({
+          where: { id: data.orgId, deletedAt: null },
+          select: { id: true },
+        })
+        if (!org) {
+          return NextResponse.json(
+            { error: 'Organization not found or suspended' },
+            { status: 404 },
+          )
+        }
+
+        const job = await prisma.job.create({
+          data: {
+            title: data.title,
+            description: data.description,
+            requirements: data.requirements || null,
+            benefits: data.benefits || null,
+            city: data.location || null,
+            region: data.region || null,
+            remote: data.workMode === 'REMOTE',
+            hybrid: data.workMode === 'HYBRID',
+            salaryMin: data.salaryMin ?? null,
+            salaryMax: data.salaryMax ?? null,
+            salaryCurrency: data.salaryCurrency || 'EUR',
+            employmentType: data.type,
+            seniority: data.seniority,
+            status: data.status,
+            publishedAt: data.status === 'PUBLISHED' ? new Date() : null,
+            orgId: org.id,
+            // Provenance: the admin who created it (session.user.id is guaranteed
+            // present because requireGlobalAdmin resolved a global-admin session).
+            createdBy: session.user.id,
+          },
+          select: { id: true, title: true, status: true, orgId: true, createdAt: true },
+        })
+
+        logger.info(`Admin created job ${job.id} for org ${org.id} by ${session.user.id}`)
+        return NextResponse.json({ job }, { status: 201 })
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return NextResponse.json(
+            { error: 'Validation failed', issues: error.issues },
+            { status: 400 },
+          )
+        }
+        logger.error('Admin POST /jobs error:', error)
         return handleApiError(error)
       }
     },

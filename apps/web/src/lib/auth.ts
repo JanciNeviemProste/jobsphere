@@ -308,3 +308,20 @@ export async function requireAuth() {
 
   return session
 }
+
+/**
+ * Require a platform-wide superadmin (User.isGlobalAdmin).
+ *
+ * Shared guard for every /api/admin/* endpoint. Returns the session when the
+ * caller is a global admin, otherwise returns null so the route can respond
+ * with 403 (kept as a non-throwing sentinel to preserve the existing admin
+ * route shape). A global admin is NOT scoped to any single organization, so
+ * these endpoints intentionally bypass the per-org UserOrgRole check.
+ */
+export async function requireGlobalAdmin() {
+  const session = await auth()
+  if (!session?.user?.isGlobalAdmin) {
+    return null
+  }
+  return session
+}

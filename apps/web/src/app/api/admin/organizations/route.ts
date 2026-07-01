@@ -1,21 +1,14 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { auth } from '@/lib/auth'
+import { requireGlobalAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { handleApiError } from '@/lib/errors'
 import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
+import { generateUniqueOrgSlug } from '@/lib/org-slug'
 
 export const runtime = 'nodejs'
-
-async function requireGlobalAdmin() {
-  const session = await auth()
-  if (!session?.user?.isGlobalAdmin) {
-    return null
-  }
-  return session
-}
 
 export async function GET() {
   try {
@@ -83,6 +76,63 @@ export const PATCH = withCsrfProtection(
         return NextResponse.json({ organization: updated })
       } catch (error) {
         logger.error('Admin PATCH /organizations error:', error)
+        return handleApiError(error)
+      }
+    },
+    { preset: 'api' },
+  ),
+)
+
+const createOrgSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(200),
+  slug: z
+    .string()
+    .max(100)
+    .regex(/^[a-z0-9-]+$/, 'Slug may only contain lowercase letters, numbers and hyphens')
+    .optional(),
+  industry: z.string().max(100).optional(),
+  size: z.string().max(50).optional(),
+  website: z.string().url('Website must be a valid URL').max(300).optional(),
+})
+
+export const POST = withCsrfProtection(
+  withRateLimit(
+    async (req: Request) => {
+      try {
+        const session = await requireGlobalAdmin()
+        if (!session) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+
+        const body = await req.json()
+        const data = createOrgSchema.parse(body)
+
+        // Prefer an explicit slug when supplied, otherwise derive one from name.
+        // Either way run it through the uniqueness probe so we never violate the
+        // Organization.slug unique constraint.
+        const slug = await generateUniqueOrgSlug(data.slug || data.name)
+
+        const org = await prisma.organization.create({
+          data: {
+            name: data.name.trim(),
+            slug,
+            industry: data.industry || null,
+            size: data.size || null,
+            website: data.website || null,
+          },
+          select: { id: true, name: true, slug: true, industry: true, createdAt: true },
+        })
+
+        logger.info(`Admin created organization ${org.id} by ${session.user.id}`)
+        return NextResponse.json({ organization: org }, { status: 201 })
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return NextResponse.json(
+            { error: 'Validation failed', issues: error.issues },
+            { status: 400 },
+          )
+        }
+        logger.error('Admin POST /organizations error:', error)
         return handleApiError(error)
       }
     },

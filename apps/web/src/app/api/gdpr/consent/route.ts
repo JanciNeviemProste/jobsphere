@@ -15,9 +15,11 @@ export const runtime = 'nodejs'
 
 // Validation schema for GDPR consent
 const consentSchema = z.object({
-  purpose: z.enum(['MARKETING', 'ANALYTICS', 'COOKIES'], {
+  // DATA_IMPORT (L64): consent to ingest a user's data from an external source
+  // (e.g. the Profesia scraper import), gating the scraper's import step.
+  purpose: z.enum(['MARKETING', 'ANALYTICS', 'COOKIES', 'DATA_IMPORT'], {
     errorMap: () => ({
-      message: 'Invalid consent purpose. Must be MARKETING, ANALYTICS, or COOKIES.',
+      message: 'Invalid consent purpose. Must be MARKETING, ANALYTICS, COOKIES, or DATA_IMPORT.',
     }),
   }),
   granted: z.boolean({

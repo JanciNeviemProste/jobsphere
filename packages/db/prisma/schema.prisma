@@ -287,6 +287,10 @@ model Job {
   // Sub-HR recruiter assigned to this job (L7). Plain id (org-member, app-validated).
   assignedRecruiterId String?
 
+  // Scraper import provenance + dedup (L65). Both null for normal jobs.
+  externalSource String?
+  externalId     String?
+
   // SEO
   slug           String?
   metaTitle      String?
@@ -309,6 +313,7 @@ model Job {
   savedBy        SavedJob[]
 
   @@unique([orgId, slug])
+  @@unique([externalSource, externalId]) // scraper dedup (L65); NULLs are distinct in Postgres
   @@index([orgId, status])
   @@index([publishedAt, status]) // For public job listings sorted by date
   @@index([status, seniority]) // For seniority-filtered public listing

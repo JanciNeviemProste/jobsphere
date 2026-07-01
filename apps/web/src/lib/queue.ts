@@ -65,6 +65,7 @@ export const getMatchScoreCacheQueue = () => getOrCreateQueue('match-score-cache
 export const getAssessmentReminderQueue = () =>
   getOrCreateQueue('assessment-reminder', { priority: 2 })
 export const getRetentionQueue = () => getOrCreateQueue('retention', { priority: 3 })
+export const getScraperQueue = () => getOrCreateQueue('scraper', { priority: 3 })
 
 // Back-compat named exports used by workers. These are Proxies that lazy-instantiate
 // on first property access (so merely importing the symbol is free).
@@ -85,6 +86,7 @@ export const assessmentQueue = lazyProxy(getAssessmentQueue)
 export const matchScoreCacheQueue = lazyProxy(getMatchScoreCacheQueue)
 export const assessmentReminderQueue = lazyProxy(getAssessmentReminderQueue)
 export const retentionQueue = lazyProxy(getRetentionQueue)
+export const scraperQueue = lazyProxy(getScraperQueue)
 
 export interface EmailSequenceJobData {
   enrollmentId: string
@@ -112,6 +114,14 @@ export interface CandidateMatchScoreCacheJobData {
 }
 export interface AssessmentReminderJobData {
   inviteId: string
+}
+/**
+ * Scraper job (L65). `source` selects the scraper (defaults to 'profesia');
+ * `url` optionally overrides the listing entry point (else the worker's default).
+ */
+export interface ScraperJobData {
+  source?: string
+  url?: string
 }
 
 /**
@@ -166,6 +176,9 @@ export const addCandidateMatchScoreCacheJob = (data: CandidateMatchScoreCacheJob
 
 export const addAssessmentReminderJob = (data: AssessmentReminderJobData) =>
   safeAdd(getAssessmentReminderQueue, 'send-reminder', data)
+
+export const addScraperJob = (data: ScraperJobData = {}) =>
+  safeAdd(getScraperQueue, 'scrape-source', data)
 
 export async function getQueueStats(queueName: string) {
   const queue =
