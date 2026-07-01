@@ -10,6 +10,9 @@ const nextConfig = {
 
   images: {
     domains: ['jobsphere.com'],
+    // Company logos are stored in Vercel Blob (public bucket) — allow next/image
+    // to optimize them. The blob host is already whitelisted in the CSP img-src.
+    remotePatterns: [{ protocol: 'https', hostname: '*.public.blob.vercel-storage.com' }],
     formats: ['image/avif', 'image/webp'],
   },
 

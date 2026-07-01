@@ -24,6 +24,7 @@ export function Header() {
   const navItems = [
     { href: `/${locale}`, label: t('nav.home') },
     { href: `/${locale}/jobs`, label: t('nav.jobs') },
+    { href: `/${locale}/companies`, label: 'Profily firiem' },
     { href: `/${locale}/freelancers`, label: 'Freelanceri' },
     { href: `/${locale}/gigs`, label: 'Zákazky' },
     { href: `/${locale}/for-employers`, label: t('nav.forEmployers') },

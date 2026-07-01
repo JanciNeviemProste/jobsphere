@@ -40,6 +40,12 @@ export default async function HomePage({ params }: { params: { locale: string } 
     include: { organization: { select: { name: true } } },
   })
 
+  const companies = await prisma.organization.findMany({
+    where: { logo: { not: null }, deletedAt: null },
+    select: { id: true, name: true, logo: true },
+    take: 12,
+  })
+
   const features = [
     {
       icon: Sparkles,
@@ -114,6 +120,37 @@ export default async function HomePage({ params }: { params: { locale: string } 
           </div>
         </div>
       </section>
+
+      {/* Companies Section */}
+      {companies.length > 0 && (
+        <section className="border-b bg-white py-16 sm:py-20">
+          <div className="container">
+            <div className="mx-auto max-w-3xl text-center">
+              <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                Firmy, ktoré hľadajú
+              </h2>
+            </div>
+            <div className="mx-auto mt-10 grid max-w-5xl grid-cols-2 items-center gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+              {companies.map((company) => (
+                <Link
+                  key={company.id}
+                  href={`/${locale}/company/${company.id}`}
+                  className="flex items-center justify-center rounded-lg border bg-white p-4 transition-shadow hover:shadow-md"
+                  title={company.name}
+                >
+                  <Image
+                    src={company.logo as string}
+                    alt={company.name}
+                    width={120}
+                    height={60}
+                    className="h-12 w-auto object-contain"
+                  />
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Features Section */}
       <section className="bg-white py-24 sm:py-32">
