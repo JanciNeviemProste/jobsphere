@@ -11,6 +11,11 @@ declare module 'next-auth' {
       orgId?: string
       orgName?: string
       isGlobalAdmin?: boolean
+      // PR7 dual-role: full membership list + active context + personal roles
+      orgs?: { orgId: string; orgName: string | null; role: string }[]
+      activeOrgId?: string | null
+      isCandidate?: boolean
+      isFreelancer?: boolean
     }
   }
 }
@@ -22,6 +27,11 @@ declare module 'next-auth/jwt' {
     orgId?: string | null
     orgName?: string | null
     isGlobalAdmin?: boolean
+    // PR7 dual-role: full membership list + active context + personal roles
+    orgs?: { orgId: string; orgName: string | null; role: string }[]
+    activeOrgId?: string | null
+    isCandidate?: boolean
+    isFreelancer?: boolean
     // AUTH-001 session revocation
     sessionEpoch?: number
     epochCheckedAt?: number

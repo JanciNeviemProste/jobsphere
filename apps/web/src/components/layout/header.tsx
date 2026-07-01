@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useSession, signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -18,8 +19,20 @@ import { LanguageSwitcher } from './language-switcher'
 export function Header() {
   const t = useTranslations()
   const pathname = usePathname()
+  const router = useRouter()
   const locale = pathname.split('/')[1] || 'en'
-  const { data: session, status } = useSession()
+  const { data: session, status, update } = useSession()
+
+  // PR7 dual-role context switch: persist the chosen org into the JWT (server
+  // re-derives role/orgId), then route into the employer workspace. switch-authz
+  // is enforced server-side in the jwt callback — a foreign orgId is ignored.
+  async function switchToOrg(orgId: string) {
+    await update({ activeOrgId: orgId })
+    router.push(`/${locale}/employer`)
+  }
+
+  const orgs = session?.user?.orgs ?? []
+  const activeOrgId = session?.user?.activeOrgId
 
   const navItems = [
     { href: `/${locale}`, label: t('nav.home') },
@@ -82,6 +95,28 @@ export function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {orgs.length > 0 && (
+                  <>
+                    <DropdownMenuLabel>Kontext</DropdownMenuLabel>
+                    {orgs.map((org) => (
+                      <DropdownMenuItem key={org.orgId} onClick={() => switchToOrg(org.orgId)}>
+                        <span className="mr-2 w-3">{org.orgId === activeOrgId ? '✓' : ''}</span>
+                        {org.orgName || 'Firma'}
+                      </DropdownMenuItem>
+                    ))}
+                    {/* MVP: personal contexts are a plain redirect (no active-org
+                        change) — the candidate context has no org. */}
+                    <DropdownMenuItem asChild>
+                      <Link href={`/${locale}/dashboard`}>Ako uchádzač</Link>
+                    </DropdownMenuItem>
+                    {session.user.isFreelancer && (
+                      <DropdownMenuItem asChild>
+                        <Link href={`/${locale}/freelancers`}>Ako freelancer</Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 <DropdownMenuItem asChild>
                   <Link href={session.user.orgId ? `/${locale}/employer` : `/${locale}/dashboard`}>
                     {t('nav.dashboard')}

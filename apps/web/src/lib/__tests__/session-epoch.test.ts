@@ -12,8 +12,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 // --- prisma: only the lookups the callbacks perform ---
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    userOrgRole: { findFirst: vi.fn() },
-    user: { findUnique: vi.fn() },
+    // PR7 dual-role: sign-in now loads ALL memberships (findMany) and may persist activeOrgId.
+    userOrgRole: { findFirst: vi.fn(), findMany: vi.fn() },
+    user: { findUnique: vi.fn(), update: vi.fn() },
   },
 }))
 
@@ -43,14 +44,15 @@ describe('AUTH-001 session epoch', () => {
   })
 
   it('pins sessionEpoch on sign-in', async () => {
-    vi.mocked(prisma.userOrgRole.findFirst).mockResolvedValue({
-      role: 'RECRUITER',
-      orgId: 'org-1',
-      organization: { name: 'Acme' },
-    } as any)
+    vi.mocked(prisma.userOrgRole.findMany).mockResolvedValue([
+      { orgId: 'org-1', role: 'RECRUITER', organization: { name: 'Acme' } },
+    ] as any)
     vi.mocked(prisma.user.findUnique).mockResolvedValue({
       isGlobalAdmin: false,
       sessionEpoch: 3,
+      activeOrgId: null,
+      freelancerProfile: null,
+      candidates: [],
     } as any)
 
     const token = await callJwt({ token: {}, user: { id: 'user-1' } })
