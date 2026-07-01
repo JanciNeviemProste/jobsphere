@@ -284,6 +284,9 @@ model Job {
   assessmentId       String?
   screeningQuestions Json?
 
+  // Sub-HR recruiter assigned to this job (L7). Plain id (org-member, app-validated).
+  assignedRecruiterId String?
+
   // SEO
   slug           String?
   metaTitle      String?

@@ -43,7 +43,17 @@ const createJobSchema = z.object({
   seniority: z.enum(['JUNIOR', 'MID', 'SENIOR', 'LEAD', 'EXECUTIVE']).default('MID'),
   salaryMin: z.number().int().min(0).optional(),
   salaryMax: z.number().int().min(0).optional(),
-  salaryCurrency: z.string().max(10).default('EUR'),
+  // Currency: `salaryCurrency` is canonical; `currency` is accepted as a client
+  // alias (the /jobs/new form field is named `currency`). Either resolves below.
+  salaryCurrency: z.string().max(10).optional(),
+  currency: z.string().max(10).optional(),
+  // PR5 — sub-HR assignment, ad media, and screening (extra questions OR a test).
+  assignedRecruiterId: z.string().optional(),
+  imageUrl: z.string().url().optional(),
+  videoUrl: z.string().url().optional(),
+  requiresAssessment: z.boolean().optional(),
+  assessmentId: z.string().optional(),
+  screeningQuestions: z.array(z.string().max(2000)).max(50).optional(),
 })
 
 export const GET = withRateLimit(
@@ -229,6 +239,58 @@ export const POST = withCsrfProtection(
           )
         }
 
+        // PR5 (L7): a sub-HR/recruiter may only be assigned if they belong to
+        // THIS organization — otherwise a caller could assign an outside user.
+        let assignedRecruiterId: string | null = null
+        if (data.assignedRecruiterId) {
+          const recruiterMembership = await prisma.userOrgRole.findFirst({
+            where: {
+              userId: data.assignedRecruiterId,
+              orgId: organizationId,
+              deletedAt: null,
+            },
+            select: { userId: true },
+          })
+          if (!recruiterMembership) {
+            return NextResponse.json(
+              { error: 'Assigned recruiter must be a member of your organization' },
+              { status: 400 },
+            )
+          }
+          assignedRecruiterId = data.assignedRecruiterId
+        }
+
+        // PR5 (L52/L54): screening is either a linked assessment (org-owned) OR
+        // a list of extra questions — never both. Validate ownership of any
+        // referenced assessment so a foreign-org test can't be attached (IDOR).
+        let requiresAssessment = false
+        let assessmentId: string | null = null
+        let screeningQuestions: string[] | undefined
+
+        if (data.assessmentId) {
+          const assessment = await prisma.assessment.findFirst({
+            where: { id: data.assessmentId, orgId: organizationId },
+            select: { id: true },
+          })
+          if (!assessment) {
+            return NextResponse.json(
+              { error: 'Selected assessment was not found in your organization' },
+              { status: 400 },
+            )
+          }
+          assessmentId = assessment.id
+          requiresAssessment = true
+        } else if (data.requiresAssessment) {
+          // requiresAssessment requested but no valid assessment was selected.
+          return NextResponse.json(
+            { error: 'An assessment must be selected when requiring an assessment' },
+            { status: 400 },
+          )
+        } else if (data.screeningQuestions?.length) {
+          const cleaned = data.screeningQuestions.map((q) => q.trim()).filter(Boolean)
+          if (cleaned.length > 0) screeningQuestions = cleaned
+        }
+
         // Create the job
         const job = await prisma.job.create({
           data: {
@@ -242,9 +304,16 @@ export const POST = withCsrfProtection(
             hybrid: data.workMode === 'HYBRID',
             salaryMin: data.salaryMin ? Number(data.salaryMin) : null,
             salaryMax: data.salaryMax ? Number(data.salaryMax) : null,
-            salaryCurrency: data.salaryCurrency,
+            salaryCurrency: data.salaryCurrency || data.currency || 'EUR',
             employmentType: data.type || 'FULL_TIME',
             seniority: data.seniority || 'MID',
+            // PR5: ad media + sub-HR assignment + screening
+            imageUrl: data.imageUrl || null,
+            videoUrl: data.videoUrl || null,
+            assignedRecruiterId,
+            requiresAssessment,
+            assessmentId,
+            screeningQuestions,
             status: 'PUBLISHED',
             orgId: organizationId,
             createdBy: session.user.id,
