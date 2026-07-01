@@ -44,11 +44,16 @@ export type AuthFixtures = {
   agencyUser: Page
 
   /**
+   * Authenticated page for GLOBAL ADMIN (isGlobalAdmin) — access to /admin
+   */
+  globalAdminUser: Page
+
+  /**
    * Generic authenticated context factory
    * Use when you need to create multiple contexts with different roles
    */
   createAuthenticatedContext: (
-    role: 'candidate' | 'recruiter' | 'orgAdmin' | 'hiringManager' | 'agency'
+    role: 'candidate' | 'recruiter' | 'orgAdmin' | 'hiringManager' | 'agency' | 'globalAdmin',
   ) => Promise<{ context: BrowserContext; page: Page }>
 }
 
@@ -59,7 +64,7 @@ const AUTH_DIR = path.join(__dirname, '..', '..', 'playwright', '.auth')
  * Get the path to the stored auth state for a given role
  */
 function getAuthStatePath(
-  role: 'candidate' | 'recruiter' | 'orgAdmin' | 'hiringManager' | 'agency'
+  role: 'candidate' | 'recruiter' | 'orgAdmin' | 'hiringManager' | 'agency' | 'globalAdmin',
 ): string {
   return path.join(AUTH_DIR, `${role}.json`)
 }
@@ -155,13 +160,30 @@ export const test = base.extend<AuthFixtures>({
   },
 
   /**
+   * Global admin user fixture (isGlobalAdmin — access to /admin)
+   */
+  globalAdminUser: async ({ browser }, use) => {
+    const context = await browser.newContext({
+      storageState: getAuthStatePath('globalAdmin'),
+    })
+    const page = await context.newPage()
+
+    await page.addInitScript(() => {
+      window.localStorage.setItem('locale', 'en')
+    })
+
+    await use(page)
+    await context.close()
+  },
+
+  /**
    * Factory function to create authenticated contexts on-demand
    */
   createAuthenticatedContext: async ({ browser }, use) => {
     const contexts: BrowserContext[] = []
 
     const factory = async (
-      role: 'candidate' | 'recruiter' | 'orgAdmin' | 'hiringManager' | 'agency'
+      role: 'candidate' | 'recruiter' | 'orgAdmin' | 'hiringManager' | 'agency' | 'globalAdmin',
     ) => {
       const context = await browser.newContext({
         storageState: getAuthStatePath(role),

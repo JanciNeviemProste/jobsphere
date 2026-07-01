@@ -14,11 +14,7 @@ import { chromium, type FullConfig } from '@playwright/test'
 import { PrismaClient } from '@prisma/client'
 import path from 'path'
 import fs from 'fs'
-import {
-  createAllTestUsers,
-  getUserCredentials,
-  TEST_USERS,
-} from '../helpers/test-users'
+import { createAllTestUsers, getUserCredentials, TEST_USERS } from '../helpers/test-users'
 
 const AUTH_DIR = path.join(__dirname, '..', '..', 'playwright', '.auth')
 
@@ -28,7 +24,7 @@ const AUTH_DIR = path.join(__dirname, '..', '..', 'playwright', '.auth')
 async function loginAndSaveAuth(
   baseURL: string,
   userKey: keyof typeof TEST_USERS,
-  authFilePath: string
+  authFilePath: string,
 ) {
   const browser = await chromium.launch()
   const context = await browser.newContext()
@@ -98,27 +94,12 @@ async function globalSetup(config: FullConfig) {
 
     // Login each user and save auth state
     await Promise.all([
-      loginAndSaveAuth(
-        baseURL,
-        'candidate',
-        path.join(AUTH_DIR, 'candidate.json')
-      ),
-      loginAndSaveAuth(
-        baseURL,
-        'recruiter',
-        path.join(AUTH_DIR, 'recruiter.json')
-      ),
-      loginAndSaveAuth(
-        baseURL,
-        'orgAdmin',
-        path.join(AUTH_DIR, 'orgAdmin.json')
-      ),
-      loginAndSaveAuth(
-        baseURL,
-        'hiringManager',
-        path.join(AUTH_DIR, 'hiringManager.json')
-      ),
+      loginAndSaveAuth(baseURL, 'candidate', path.join(AUTH_DIR, 'candidate.json')),
+      loginAndSaveAuth(baseURL, 'recruiter', path.join(AUTH_DIR, 'recruiter.json')),
+      loginAndSaveAuth(baseURL, 'orgAdmin', path.join(AUTH_DIR, 'orgAdmin.json')),
+      loginAndSaveAuth(baseURL, 'hiringManager', path.join(AUTH_DIR, 'hiringManager.json')),
       loginAndSaveAuth(baseURL, 'agency', path.join(AUTH_DIR, 'agency.json')),
+      loginAndSaveAuth(baseURL, 'globalAdmin', path.join(AUTH_DIR, 'globalAdmin.json')),
     ])
 
     console.log('\n✅ Global setup completed successfully!\n')
