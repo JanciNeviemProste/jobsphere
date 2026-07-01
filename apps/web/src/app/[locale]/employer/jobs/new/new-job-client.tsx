@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
@@ -18,7 +18,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { AlertCircle, ArrowLeft, Briefcase, MapPin, DollarSign, Clock, Users } from 'lucide-react'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import {
+  AlertCircle,
+  ArrowLeft,
+  Briefcase,
+  MapPin,
+  DollarSign,
+  UserCog,
+  ImageIcon,
+  Video,
+  ListChecks,
+  Upload,
+  Plus,
+  X,
+  Loader2,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { logger } from '@/lib/logger'
@@ -38,14 +53,36 @@ const jobSchema = z.object({
   seniority: z.enum(['JUNIOR', 'MID', 'SENIOR', 'LEAD', 'EXECUTIVE']),
   department: z.string().optional(),
   keywords: z.string().optional(),
+  // PR5 — sub-HR assignment, ad media, and screening (extra questions OR a test).
+  assignedRecruiterId: z.string().optional(),
+  imageUrl: z.string().optional(),
+  videoUrl: z.string().optional(),
+  screeningMode: z.enum(['NONE', 'QUESTIONS', 'ASSESSMENT']).default('NONE'),
+  assessmentId: z.string().optional(),
+  screeningQuestions: z.array(z.string()).optional(),
 })
 
 type JobFormData = z.infer<typeof jobSchema>
+
+interface OrgMember {
+  user: { id: string; name: string | null; email: string | null }
+  role: string
+}
+
+interface OrgAssessment {
+  id: string
+  name: string
+  isPublished: boolean
+}
 
 export default function NewJobClient({ params }: { params: { locale: string } }) {
   const router = useRouter()
   const t = useTranslations()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [members, setMembers] = useState<OrgMember[]>([])
+  const [assessments, setAssessments] = useState<OrgAssessment[]>([])
+  const [logoUploading, setLogoUploading] = useState(false)
+  const [videoUploading, setVideoUploading] = useState(false)
 
   const {
     register,
@@ -60,18 +97,115 @@ export default function NewJobClient({ params }: { params: { locale: string } })
       type: 'FULL_TIME',
       seniority: 'MID',
       currency: 'EUR',
+      screeningMode: 'NONE',
+      screeningQuestions: [],
     },
   })
+
+  // Fetch org members (for sub-HR assignment) and assessments (for the test picker).
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      try {
+        const [membersRes, assessmentsRes] = await Promise.all([
+          fetch('/api/organizations/current/members'),
+          fetch('/api/assessments'),
+        ])
+        if (active && membersRes.ok) {
+          const data = await membersRes.json()
+          setMembers(Array.isArray(data.members) ? data.members : [])
+        }
+        if (active && assessmentsRes.ok) {
+          const data = await assessmentsRes.json()
+          setAssessments(Array.isArray(data.assessments) ? data.assessments : [])
+        }
+      } catch (error) {
+        logger.error('Failed to load job-form metadata', error)
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const screeningMode = watch('screeningMode')
+  const assignedRecruiterId = watch('assignedRecruiterId')
+  const assessmentId = watch('assessmentId')
+  const imageUrl = watch('imageUrl')
+  const videoUrl = watch('videoUrl')
+  const screeningQuestions = watch('screeningQuestions') ?? []
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLogoUploading(true)
+    try {
+      const body = new FormData()
+      body.append('file', file)
+      const res = await fetch('/api/upload/logo', { method: 'POST', body })
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || 'Upload failed')
+      setValue('imageUrl', result.url)
+      toast.success(t('employer.newJob.imageUploaded'))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to upload image')
+    } finally {
+      setLogoUploading(false)
+    }
+  }
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setVideoUploading(true)
+    try {
+      const body = new FormData()
+      body.append('file', file)
+      const res = await fetch('/api/upload/video', { method: 'POST', body })
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || 'Upload failed')
+      setValue('videoUrl', result.url)
+      toast.success(t('employer.newJob.videoUploaded'))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to upload video')
+    } finally {
+      setVideoUploading(false)
+    }
+  }
+
+  const addQuestion = () => setValue('screeningQuestions', [...screeningQuestions, ''])
+  const updateQuestion = (index: number, value: string) => {
+    const next = [...screeningQuestions]
+    next[index] = value
+    setValue('screeningQuestions', next)
+  }
+  const removeQuestion = (index: number) =>
+    setValue(
+      'screeningQuestions',
+      screeningQuestions.filter((_, i) => i !== index),
+    )
 
   const onSubmit = async (data: JobFormData) => {
     setIsSubmitting(true)
 
     try {
-      // Convert empty strings to undefined for optional numeric fields
+      // Convert empty strings to undefined for optional numeric fields, and
+      // fold the PR5 screening selection into the API's canonical fields.
       const processedData = {
         ...data,
         salaryMin: data.salaryMin === '' ? undefined : Number(data.salaryMin),
         salaryMax: data.salaryMax === '' ? undefined : Number(data.salaryMax),
+        salaryCurrency: data.currency,
+        assignedRecruiterId: data.assignedRecruiterId || undefined,
+        imageUrl: data.imageUrl || undefined,
+        videoUrl: data.videoUrl || undefined,
+        requiresAssessment: data.screeningMode === 'ASSESSMENT',
+        assessmentId:
+          data.screeningMode === 'ASSESSMENT' ? data.assessmentId || undefined : undefined,
+        screeningQuestions:
+          data.screeningMode === 'QUESTIONS'
+            ? (data.screeningQuestions ?? []).map((q) => q.trim()).filter(Boolean)
+            : undefined,
       }
 
       const response = await fetch('/api/jobs', {
@@ -186,6 +320,145 @@ export default function NewJobClient({ params }: { params: { locale: string } })
                   placeholder={t('employer.newJob.departmentPlaceholder')}
                   {...register('department')}
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* PR5 (L7) — Sub-HR recruiter assignment */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserCog className="h-5 w-5" />
+                {t('employer.newJob.assignRecruiter')}
+              </CardTitle>
+              <CardDescription>{t('employer.newJob.assignRecruiterDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="assignedRecruiterId">{t('employer.newJob.recruiter')}</Label>
+                <Select
+                  value={assignedRecruiterId ?? 'none'}
+                  onValueChange={(value) =>
+                    setValue('assignedRecruiterId', value === 'none' ? undefined : value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('employer.newJob.recruiterPlaceholder')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('employer.newJob.unassigned')}</SelectItem>
+                    {members.map((m) => (
+                      <SelectItem key={m.user.id} value={m.user.id}>
+                        {m.user.name || m.user.email || m.user.id}
+                        {m.role ? ` · ${m.role}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* PR5 (L38) — Ad media (image + video) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5" />
+                {t('employer.newJob.media')}
+              </CardTitle>
+              <CardDescription>{t('employer.newJob.mediaDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Image */}
+              <div className="space-y-2">
+                <Label>{t('employer.newJob.adImage')}</Label>
+                {imageUrl ? (
+                  <div className="space-y-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={imageUrl}
+                      alt="Job ad preview"
+                      className="max-h-40 rounded-md border object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setValue('imageUrl', undefined)}
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      {t('employer.newJob.removeImage')}
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      id="imageUpload"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={logoUploading}
+                      onClick={() => document.getElementById('imageUpload')?.click()}
+                    >
+                      {logoUploading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="mr-2 h-4 w-4" />
+                      )}
+                      {t('employer.newJob.uploadImage')}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Video */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Video className="h-4 w-4" />
+                  {t('employer.newJob.adVideo')}
+                </Label>
+                {videoUrl ? (
+                  <div className="space-y-2">
+                    <video src={videoUrl} controls className="max-h-48 rounded-md border" />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setValue('videoUrl', undefined)}
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      {t('employer.newJob.removeVideo')}
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      id="videoUpload"
+                      type="file"
+                      accept="video/mp4,video/webm"
+                      className="hidden"
+                      onChange={handleVideoUpload}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={videoUploading}
+                      onClick={() => document.getElementById('videoUpload')?.click()}
+                    >
+                      {videoUploading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="mr-2 h-4 w-4" />
+                      )}
+                      {t('employer.newJob.uploadVideo')}
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -351,6 +624,109 @@ export default function NewJobClient({ params }: { params: { locale: string } })
                 />
                 <p className="text-sm text-muted-foreground">{t('employer.newJob.keywordsHint')}</p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* PR5 (L52/L54) — Screening: extra questions OR a linked test */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ListChecks className="h-5 w-5" />
+                {t('employer.newJob.screening')}
+              </CardTitle>
+              <CardDescription>{t('employer.newJob.screeningDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <RadioGroup
+                value={screeningMode}
+                onValueChange={(value) =>
+                  setValue('screeningMode', value as JobFormData['screeningMode'])
+                }
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="NONE" id="screening-none" />
+                  <Label htmlFor="screening-none" className="font-normal">
+                    {t('employer.newJob.screeningNone')}
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="QUESTIONS" id="screening-questions" />
+                  <Label htmlFor="screening-questions" className="font-normal">
+                    {t('employer.newJob.screeningQuestions')}
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="ASSESSMENT" id="screening-assessment" />
+                  <Label htmlFor="screening-assessment" className="font-normal">
+                    {t('employer.newJob.screeningAssessment')}
+                  </Label>
+                </div>
+              </RadioGroup>
+
+              {screeningMode === 'QUESTIONS' && (
+                <div className="space-y-3 rounded-md border p-4">
+                  {screeningQuestions.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      {t('employer.newJob.noQuestionsYet')}
+                    </p>
+                  )}
+                  {screeningQuestions.map((q, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <Input
+                        value={q}
+                        placeholder={t('employer.newJob.questionPlaceholder')}
+                        maxLength={2000}
+                        onChange={(e) => updateQuestion(index, e.target.value)}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeQuestion(index)}
+                        aria-label={t('employer.newJob.removeQuestion')}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  {screeningQuestions.length < 50 && (
+                    <Button type="button" variant="outline" size="sm" onClick={addQuestion}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      {t('employer.newJob.addQuestion')}
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {screeningMode === 'ASSESSMENT' && (
+                <div className="space-y-2 rounded-md border p-4">
+                  <Label htmlFor="assessmentId">{t('employer.newJob.selectAssessment')}</Label>
+                  {assessments.length > 0 ? (
+                    <Select
+                      value={assessmentId ?? ''}
+                      onValueChange={(value) => setValue('assessmentId', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={t('employer.newJob.selectAssessmentPlaceholder')}
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {assessments.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.name}
+                            {a.isPublished ? '' : ` (${t('employer.newJob.draft')})`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {t('employer.newJob.noAssessments')}
+                    </p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 

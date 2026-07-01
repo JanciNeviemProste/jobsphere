@@ -17,6 +17,47 @@ import type { Prisma } from '@prisma/client'
 
 export const runtime = 'nodejs'
 
+/**
+ * GET /api/assessments
+ * Lists the current user's organization assessments (id + name only).
+ * Used by the job-creation screening picker (PR5). Strictly org-scoped so a
+ * caller can never enumerate another organization's tests.
+ */
+export const GET = withRateLimit<NextRequest>(
+  async (_req: NextRequest) => {
+    try {
+      logger.apiRequest('GET', '/api/assessments')
+
+      const session = await requireAuth()
+      if (!session.user?.id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
+      const userOrg = await prisma.userOrgRole.findFirst({
+        where: { userId: session.user.id },
+        select: { orgId: true },
+      })
+
+      if (!userOrg) {
+        return NextResponse.json({ assessments: [] })
+      }
+
+      const assessments = await prisma.assessment.findMany({
+        where: { orgId: userOrg.orgId },
+        select: { id: true, name: true, isPublished: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      return NextResponse.json({ assessments })
+    } catch (error) {
+      logger.apiError('GET', '/api/assessments', error)
+      const errorData = errorResponse(error)
+      return NextResponse.json({ error: errorData.error }, { status: errorData.statusCode })
+    }
+  },
+  { preset: 'api' },
+)
+
 export const POST = withCsrfProtection<NextRequest>(
   withRateLimit<NextRequest>(
     async (req: NextRequest) => {
