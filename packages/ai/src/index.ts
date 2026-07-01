@@ -25,6 +25,15 @@ export { calculateMatchScore, matchCandidatesToJob, type JobRequirements } from 
 // Assessment Grading
 export { gradeAssessmentAnswer } from './assessment'
 
+// Assessment Generation
+export { generateAssessment } from './assessment-generator'
+export type {
+  GeneratedAssessment,
+  GeneratedSection,
+  GeneratedQuestion,
+  GeneratedQuestionType,
+} from './assessment-generator'
+
 // Match Explanation
 export { explainMatch } from './explain-match'
 

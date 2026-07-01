@@ -211,10 +211,16 @@ export const POST = withCsrfProtection(
         const expectedSalaryInt = expectedSalary ? Number.parseInt(expectedSalary, 10) : NaN
         const availableFromDate = availableFrom ? new Date(availableFrom) : null
 
-        // Get job to fetch orgId and verify it's published
+        // Get job to fetch orgId, verify it's published, and learn whether it
+        // requires an assessment (L52/L54) so we can auto-invite on apply.
         const job = await prisma.job.findUnique({
           where: { id: jobId },
-          select: { orgId: true, status: true },
+          select: {
+            orgId: true,
+            status: true,
+            requiresAssessment: true,
+            assessmentId: true,
+          },
         })
 
         if (!job) {
@@ -297,6 +303,24 @@ export const POST = withCsrfProtection(
           cvAttached = await copyProfileCvToCandidate(session.user.id, candidateId, cvId)
         }
 
+        // If the job requires an assessment (L52/L54), mint an invite for this
+        // candidate and hand the token back so the client can route them into
+        // the test runner. Best-effort: never block the application on it.
+        let assessmentInvite: { assessmentId: string; token: string } | undefined
+        if (job.requiresAssessment && job.assessmentId) {
+          try {
+            const { createOrGetAssessmentInvite } = await import('@/lib/assessment-invite')
+            const { token } = await createOrGetAssessmentInvite({
+              assessmentId: job.assessmentId,
+              candidateId,
+              jobId,
+            })
+            assessmentInvite = { assessmentId: job.assessmentId, token }
+          } catch (inviteError) {
+            logger.error('Failed to create assessment invite on apply', inviteError)
+          }
+        }
+
         // Send email notifications
         try {
           const { sendEmail, getApplicationReceivedEmail, getNewApplicationEmail } = await import(
@@ -344,7 +368,7 @@ export const POST = withCsrfProtection(
           // Don't fail the request if email fails
         }
 
-        return NextResponse.json({ ...application, cvAttached }, { status: 201 })
+        return NextResponse.json({ ...application, cvAttached, assessmentInvite }, { status: 201 })
       } catch (error: any) {
         logger.error('Error creating application', error)
 

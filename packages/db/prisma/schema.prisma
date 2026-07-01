@@ -279,6 +279,11 @@ model Job {
   imageUrl       String?
   videoUrl       String?
 
+  // Screening / assessment (L52/L54): optional extra questions or a linked test shown on apply.
+  requiresAssessment Boolean @default(false)
+  assessmentId       String?
+  screeningQuestions Json?
+
   // SEO
   slug           String?
   metaTitle      String?
