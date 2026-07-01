@@ -3,6 +3,9 @@ import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
   testDir: './tests',
   testMatch: ['**/*.spec.ts', '**/*.e2e.ts'],
+  // Visual-regression specs run via their own opt-in config (playwright.visual.config.ts)
+  // so missing baselines never fail the default e2e run.
+  testIgnore: ['**/e2e/visual/**'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

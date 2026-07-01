@@ -65,6 +65,15 @@ export const TEST_USERS = {
     role: 'AGENCY',
     orgId: TEST_ORG.id,
   },
+  // Global (super) admin — no org membership; access to /admin via isGlobalAdmin.
+  globalAdmin: {
+    id: 'test-global-admin-user',
+    email: 'global-admin@test.jobsphere.com',
+    password: TEST_PASSWORD,
+    name: 'Test Global Admin',
+    role: null,
+    isGlobalAdmin: true,
+  },
 } as const
 
 /**
@@ -91,10 +100,7 @@ export async function createTestOrganization(prisma: PrismaClient) {
 /**
  * Create a test user with the specified role
  */
-export async function createTestUser(
-  prisma: PrismaClient,
-  userKey: keyof typeof TEST_USERS
-) {
+export async function createTestUser(prisma: PrismaClient, userKey: keyof typeof TEST_USERS) {
   const userData = TEST_USERS[userKey]
   const hashedPassword = await hash(userData.password, 10)
 
@@ -110,6 +116,7 @@ export async function createTestUser(
       emailVerified: new Date(), // Auto-verify test users
       locale: 'en',
       timezone: 'UTC',
+      isGlobalAdmin: 'isGlobalAdmin' in userData ? userData.isGlobalAdmin : false,
     },
   })
 
@@ -149,6 +156,7 @@ export async function createAllTestUsers(prisma: PrismaClient) {
     createTestUser(prisma, 'orgAdmin'),
     createTestUser(prisma, 'hiringManager'),
     createTestUser(prisma, 'agency'),
+    createTestUser(prisma, 'globalAdmin'),
   ])
 
   return {
@@ -159,6 +167,7 @@ export async function createAllTestUsers(prisma: PrismaClient) {
       orgAdmin: users[2],
       hiringManager: users[3],
       agency: users[4],
+      globalAdmin: users[5],
     },
   }
 }
@@ -186,6 +195,7 @@ export async function cleanupTestData(prisma: PrismaClient) {
           TEST_USERS.orgAdmin.id,
           TEST_USERS.hiringManager.id,
           TEST_USERS.agency.id,
+          TEST_USERS.globalAdmin.id,
         ],
       },
     },
