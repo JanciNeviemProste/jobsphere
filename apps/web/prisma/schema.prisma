@@ -80,6 +80,9 @@ model User {
   // Session revocation (AUTH-001): bump to invalidate all active JWTs for this user
   sessionEpoch     Int      @default(0)
 
+  // Dual-role (L17): active org context for the session switcher. Null = derive first membership.
+  activeOrgId      String?
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   deletedAt        DateTime?

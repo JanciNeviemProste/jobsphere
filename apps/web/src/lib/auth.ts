@@ -7,6 +7,7 @@ import { prisma } from './prisma'
 import * as bcryptjs from 'bcryptjs'
 import { getServerSession } from 'next-auth/next'
 import { logger } from './logger'
+import { deriveActiveContext, isMemberOfOrg, type OrgMembership } from './auth-context'
 
 // UnauthorizedError — defined here to break circular dep with api-helpers.ts
 // api-helpers.ts re-exports this class for backwards compatibility.
@@ -199,32 +200,80 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       try {
         if (user?.id) {
           token.id = user.id
 
-          // Load user's organization, role, global admin flag and session epoch
-          const [userOrg, dbUser] = await Promise.all([
-            prisma.userOrgRole.findFirst({
+          // PR7 dual-role: load ALL memberships (not just the first), the global
+          // admin flag, session epoch, the persisted active org, and existence of
+          // candidate/freelancer identities.
+          const [memberships, dbUser] = await Promise.all([
+            prisma.userOrgRole.findMany({
               where: { userId: user.id },
-              include: { organization: true },
+              include: { organization: { select: { id: true, name: true } } },
             }),
             prisma.user.findUnique({
               where: { id: user.id },
-              select: { isGlobalAdmin: true, sessionEpoch: true },
+              select: {
+                isGlobalAdmin: true,
+                sessionEpoch: true,
+                activeOrgId: true,
+                freelancerProfile: { select: { id: true } },
+                candidates: { select: { id: true }, take: 1 },
+              },
             }),
           ])
 
-          token.role = userOrg?.role || 'candidate'
-          token.orgId = userOrg?.orgId || null
-          token.orgName = userOrg?.organization?.name || null
+          const orgs: OrgMembership[] = memberships.map((m) => ({
+            orgId: m.orgId,
+            orgName: m.organization?.name ?? null,
+            role: m.role,
+          }))
+          token.orgs = orgs
+
+          // Derive the flat role/orgId/orgName from the active org (falls back to
+          // the first membership when the persisted activeOrgId is stale/invalid).
+          // Keeps legacy `session.user.orgId`/`role` readers working unchanged.
+          const ctx = deriveActiveContext(orgs, dbUser?.activeOrgId ?? null)
+          token.activeOrgId = ctx.activeOrgId
+          token.role = ctx.role
+          token.orgId = ctx.orgId
+          token.orgName = ctx.orgName
+
+          token.isCandidate = (dbUser?.candidates?.length ?? 0) > 0
+          token.isFreelancer = !!dbUser?.freelancerProfile
           token.isGlobalAdmin = dbUser?.isGlobalAdmin ?? false
           // AUTH-001: pin the session epoch at sign-in so we can detect revocation later
           token.sessionEpoch = dbUser?.sessionEpoch ?? 0
           token.epochCheckedAt = Date.now()
           token.invalid = false
 
+          return token
+        }
+
+        // PR7 dual-role context switch. Triggered by useSession().update({ activeOrgId }).
+        // switch-authz: apply the requested org ONLY when the user is truly a member
+        // (guards against pointing the session at a foreign org). A foreign/unknown
+        // id is ignored silently — the active context is left untouched.
+        if (trigger === 'update' && session?.activeOrgId) {
+          const orgs = (token.orgs ?? []) as OrgMembership[]
+          if (isMemberOfOrg(orgs, session.activeOrgId)) {
+            const ctx = deriveActiveContext(orgs, session.activeOrgId as string)
+            token.activeOrgId = ctx.activeOrgId
+            token.role = ctx.role
+            token.orgId = ctx.orgId
+            token.orgName = ctx.orgName
+            // Persist so the next sign-in defaults to the chosen org.
+            try {
+              await prisma.user.update({
+                where: { id: token.id as string },
+                data: { activeOrgId: ctx.activeOrgId },
+              })
+            } catch (persistError) {
+              logger.error('Failed to persist activeOrgId on context switch', persistError)
+            }
+          }
           return token
         }
 
@@ -275,6 +324,12 @@ export const authOptions: NextAuthOptions = {
           session.user.orgId = token.orgId as string | undefined
           session.user.orgName = token.orgName as string | undefined
           session.user.isGlobalAdmin = token.isGlobalAdmin as boolean | undefined
+          // PR7 dual-role: expose the full membership list + active context so the
+          // UI can render a context switcher.
+          session.user.orgs = token.orgs
+          session.user.activeOrgId = token.activeOrgId ?? null
+          session.user.isCandidate = token.isCandidate
+          session.user.isFreelancer = token.isFreelancer
         }
         return session
       } catch (error) {
