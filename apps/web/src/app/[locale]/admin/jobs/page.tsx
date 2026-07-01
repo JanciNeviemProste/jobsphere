@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table'
 import { JobStatusSelect } from './_components/job-status-select'
 import { JobStatusFilter } from './_components/job-status-filter'
+import { CreateJobButton } from './_components/create-job-button'
 
 const STATUS_COLORS: Record<string, string> = {
   PUBLISHED: 'bg-green-100 text-green-800 hover:bg-green-100',
@@ -51,7 +52,7 @@ export default async function AdminJobsPage({
       : {}),
   }
 
-  const [jobs, total] = await Promise.all([
+  const [jobs, total, orgs] = await Promise.all([
     prisma.job.findMany({
       where,
       select: {
@@ -68,6 +69,13 @@ export default async function AdminJobsPage({
       take: limit,
     }),
     prisma.job.count({ where }),
+    // Active organizations for the "create job" org picker.
+    prisma.organization.findMany({
+      where: { deletedAt: null },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+      take: 500,
+    }),
   ])
 
   const totalPages = Math.ceil(total / limit)
@@ -79,7 +87,10 @@ export default async function AdminJobsPage({
           <h1 className="text-2xl font-bold text-slate-900">Joby</h1>
           <p className="mt-1 text-sm text-slate-500">{total} jobov celkovo</p>
         </div>
-        <JobStatusFilter currentStatus={status} />
+        <div className="flex items-center gap-2">
+          <JobStatusFilter currentStatus={status} />
+          <CreateJobButton orgs={orgs} />
+        </div>
       </div>
 
       <Card>

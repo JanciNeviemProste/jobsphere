@@ -14,20 +14,26 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 // NOTE: vi.mock factories are hoisted above imports, so any value they reference
 // must be created with vi.hoisted (which is hoisted too).
 
-const { eraseCandidatesPII, assessmentReminderQueue, emailSequenceQueue, retentionQueue } =
-  vi.hoisted(() => {
-    const makeQueueMock = () => ({
-      add: vi.fn().mockResolvedValue({ id: 'job-id' }),
-      getRepeatableJobs: vi.fn().mockResolvedValue([]),
-      removeRepeatableByKey: vi.fn().mockResolvedValue(undefined),
-    })
-    return {
-      eraseCandidatesPII: vi.fn(),
-      assessmentReminderQueue: makeQueueMock(),
-      emailSequenceQueue: makeQueueMock(),
-      retentionQueue: makeQueueMock(),
-    }
+const {
+  eraseCandidatesPII,
+  assessmentReminderQueue,
+  emailSequenceQueue,
+  retentionQueue,
+  scraperQueue,
+} = vi.hoisted(() => {
+  const makeQueueMock = () => ({
+    add: vi.fn().mockResolvedValue({ id: 'job-id' }),
+    getRepeatableJobs: vi.fn().mockResolvedValue([]),
+    removeRepeatableByKey: vi.fn().mockResolvedValue(undefined),
   })
+  return {
+    eraseCandidatesPII: vi.fn(),
+    assessmentReminderQueue: makeQueueMock(),
+    emailSequenceQueue: makeQueueMock(),
+    retentionQueue: makeQueueMock(),
+    scraperQueue: makeQueueMock(),
+  }
+})
 
 vi.mock('@/services/gdpr.service', () => ({
   eraseCandidatesPII,
@@ -45,7 +51,9 @@ vi.mock('@/lib/queue', () => ({
   assessmentReminderQueue,
   emailSequenceQueue,
   retentionQueue,
+  scraperQueue,
   addAssessmentReminderJob: vi.fn(),
+  addScraperJob: vi.fn(),
 }))
 
 import { prisma } from '@/lib/prisma'
@@ -57,6 +65,7 @@ describe('initializeCronJobs', () => {
     assessmentReminderQueue.getRepeatableJobs.mockResolvedValue([])
     emailSequenceQueue.getRepeatableJobs.mockResolvedValue([])
     retentionQueue.getRepeatableJobs.mockResolvedValue([])
+    scraperQueue.getRepeatableJobs.mockResolvedValue([])
   })
 
   it('schedules the expected repeatable jobs on the correct queues', async () => {
@@ -86,6 +95,15 @@ describe('initializeCronJobs', () => {
       expect.any(Object),
       expect.objectContaining({
         repeat: expect.objectContaining({ pattern: '0 3 * * *', tz: 'UTC' }),
+      }),
+    )
+
+    // Profesia scraper (L65): hourly. Consent-gated + rate-limited in the worker.
+    expect(scraperQueue.add).toHaveBeenCalledWith(
+      'scan-profesia',
+      expect.any(Object),
+      expect.objectContaining({
+        repeat: expect.objectContaining({ pattern: '0 * * * *' }),
       }),
     )
   })

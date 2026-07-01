@@ -13,6 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { OrgActionButton } from './_components/org-action-button'
+import { CreateOrgButton } from './_components/create-org-button'
 
 export default async function AdminOrganizationsPage({ params }: { params: { locale: string } }) {
   const session = await auth()
@@ -42,9 +43,12 @@ export default async function AdminOrganizationsPage({ params }: { params: { loc
 
   return (
     <div className="space-y-6 p-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Organizácie</h1>
-        <p className="mt-1 text-sm text-slate-500">Celkovo {orgs.length} organizácií</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Organizácie</h1>
+          <p className="mt-1 text-sm text-slate-500">Celkovo {orgs.length} organizácií</p>
+        </div>
+        <CreateOrgButton />
       </div>
 
       <Card>

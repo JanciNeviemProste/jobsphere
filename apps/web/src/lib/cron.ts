@@ -8,6 +8,7 @@ import {
   assessmentReminderQueue,
   emailSequenceQueue,
   retentionQueue,
+  scraperQueue,
   addAssessmentReminderJob,
 } from '@/lib/queue'
 import { eraseCandidatesPII } from '@/services/gdpr.service'
@@ -52,6 +53,11 @@ export async function initializeCronJobs() {
       await retentionQueue.removeRepeatableByKey(job.key)
     }
 
+    const scraperRepeatable = await scraperQueue.getRepeatableJobs()
+    for (const job of scraperRepeatable) {
+      await scraperQueue.removeRepeatableByKey(job.key)
+    }
+
     // Assessment reminders - daily at 9 AM UTC
     await assessmentReminderQueue.add(
       'daily-scan',
@@ -92,6 +98,19 @@ export async function initializeCronJobs() {
       },
     )
     logger.info('Retention cron job scheduled: daily at 3 AM UTC')
+
+    // Profesia scraper (L65) - hourly. Consent-gated + rate-limited in the worker.
+    await scraperQueue.add(
+      'scan-profesia',
+      { source: 'profesia.sk' },
+      {
+        repeat: {
+          pattern: '0 * * * *', // Every hour, on the hour
+        },
+        removeOnComplete: true,
+      },
+    )
+    logger.info('Profesia scraper cron job scheduled: hourly')
 
     logger.info('All cron jobs initialized successfully')
   } catch (error) {
@@ -401,6 +420,7 @@ export async function getScheduledJobs() {
   const assessmentJobs = await assessmentReminderQueue.getRepeatableJobs()
   const emailJobs = await emailSequenceQueue.getRepeatableJobs()
   const retentionJobs = await retentionQueue.getRepeatableJobs()
+  const scraperJobs = await scraperQueue.getRepeatableJobs()
 
   return {
     assessmentReminders: assessmentJobs.map((job) => ({
@@ -422,6 +442,12 @@ export async function getScheduledJobs() {
       pattern: job.pattern,
       next: job.next,
       tz: job.tz,
+    })),
+    scraper: scraperJobs.map((job) => ({
+      key: job.key,
+      name: job.name,
+      pattern: job.pattern,
+      next: job.next,
     })),
   }
 }
