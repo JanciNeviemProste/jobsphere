@@ -65,6 +65,8 @@ interface JobData {
   location: string
   salaryMin?: number
   salaryMax?: number
+  requiresAssessment?: boolean
+  assessmentId?: string | null
 }
 
 interface UserCV {
@@ -109,6 +111,8 @@ export default function ApplyClient({ params }: { params: { id: string; locale: 
           location: data.location,
           salaryMin: data.salaryMin,
           salaryMax: data.salaryMax,
+          requiresAssessment: data.requiresAssessment,
+          assessmentId: data.assessmentId,
         })
       } catch (error) {
         logger.error('Error fetching job', error)
@@ -310,6 +314,20 @@ export default function ApplyClient({ params }: { params: { id: string; locale: 
         toast.success(t('apply.success'), {
           description: t('apply.successDescription'),
         })
+      }
+
+      // If the job requires an assessment, the server minted an invite — route
+      // the applicant straight into the test runner instead of the dashboard.
+      const invite = data?.assessmentInvite as { assessmentId: string; token: string } | undefined
+      if (invite?.assessmentId && invite?.token) {
+        setTimeout(() => {
+          router.push(
+            `/${params.locale}/assessment/${invite.assessmentId}/take?token=${encodeURIComponent(
+              invite.token,
+            )}`,
+          )
+        }, 1500)
+        return
       }
 
       // Redirect after 3 seconds

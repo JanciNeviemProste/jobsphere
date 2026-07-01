@@ -5,7 +5,16 @@ import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createAssessmentSchema, type CreateAssessmentInput } from '@/schemas/assessment.schema'
-import { Plus, Trash2, Save, Loader2, GripVertical, ChevronDown, ChevronUp } from 'lucide-react'
+import {
+  Plus,
+  Trash2,
+  Save,
+  Loader2,
+  GripVertical,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,12 +25,17 @@ export default function AssessmentBuilderClient() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set([0]))
+  // AI draft generation state.
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [genJobTitle, setGenJobTitle] = useState('')
+  const [genJobDescription, setGenJobDescription] = useState('')
 
   const {
     register,
     control,
     handleSubmit,
     watch,
+    reset,
     formState: { errors },
   } = useForm<CreateAssessmentInput>({
     resolver: zodResolver(createAssessmentSchema),
@@ -126,6 +140,49 @@ export default function AssessmentBuilderClient() {
     }
   }
 
+  const onGenerate = async () => {
+    if (!genJobTitle.trim() || !genJobDescription.trim()) {
+      toast.error('Add a job title and description first')
+      return
+    }
+    try {
+      setIsGenerating(true)
+      const response = await fetch('/api/assessments/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobTitle: genJobTitle,
+          jobDescription: genJobDescription,
+          locale: watch('locale'),
+        }),
+      })
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || 'Failed to generate assessment')
+      }
+      const { assessment } = await response.json()
+      // Load the AI draft into the form. Expand every generated section.
+      reset({
+        name: assessment.name ?? '',
+        description: assessment.description ?? '',
+        locale: assessment.locale ?? watch('locale'),
+        durationMin: assessment.durationMin ?? 60,
+        passingScore: assessment.passingScore ?? 70,
+        randomize: assessment.randomize ?? false,
+        sections: assessment.sections ?? [],
+      })
+      setExpandedSections(new Set((assessment.sections ?? []).map((_: unknown, i: number) => i)))
+      toast.success('Draft generated', {
+        description: `Review and edit the ${assessment.sections?.length ?? 0} generated section(s) before saving.`,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to generate assessment'
+      toast.error('Error', { description: message })
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   const watchedSections = watch('sections')
   const totalQuestions = watchedSections?.reduce(
     (sum, section) => sum + (section.questions?.length || 0),
@@ -142,6 +199,55 @@ export default function AssessmentBuilderClient() {
             Build skills assessments with sections and questions
           </p>
         </div>
+
+        {/* AI Generation Card — sits outside the form so its inputs don't submit it */}
+        <Card className="mx-auto mb-6 max-w-5xl border-primary/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Generate with AI
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Paste a job title and description and let AI draft the sections and questions. You can
+              edit everything before saving.
+            </p>
+            <div>
+              <Label htmlFor="genJobTitle">Job Title</Label>
+              <Input
+                id="genJobTitle"
+                value={genJobTitle}
+                onChange={(e) => setGenJobTitle(e.target.value)}
+                placeholder="e.g., Senior React Developer"
+              />
+            </div>
+            <div>
+              <Label htmlFor="genJobDescription">Job Description</Label>
+              <textarea
+                id="genJobDescription"
+                value={genJobDescription}
+                onChange={(e) => setGenJobDescription(e.target.value)}
+                placeholder="Paste the role responsibilities and required skills..."
+                className="min-h-[120px] w-full rounded-md border px-3 py-2"
+                rows={4}
+              />
+            </div>
+            <Button type="button" onClick={onGenerate} disabled={isGenerating}>
+              {isGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Vygenerovať AI
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mx-auto max-w-5xl space-y-6">
           {/* Basic Info Card */}

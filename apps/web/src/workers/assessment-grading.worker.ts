@@ -21,7 +21,7 @@ const anthropic = new Anthropic({
 async function gradeCodeWithClaude(
   prompt: string,
   answer: string,
-  testCases: any[]
+  testCases: any[],
 ): Promise<{ score: number; feedback: string }> {
   const systemPrompt = `You are an expert programming instructor grading a coding challenge.
 
@@ -139,9 +139,12 @@ export async function processAssessmentGrading(job: Job<AssessmentJobData>) {
 
       // Grade based on question type
       // response.response is JSON, extract answer value
-      const answerValue = typeof response.response === 'object' && response.response !== null
-        ? (response.response as any).answer || (response.response as any).value || JSON.stringify(response.response)
-        : String(response.response)
+      const answerValue =
+        typeof response.response === 'object' && response.response !== null
+          ? (response.response as any).answer ||
+            (response.response as any).value ||
+            JSON.stringify(response.response)
+          : String(response.response)
 
       // Map schema type to worker type
       const mappedType = questionTypeMap[question.type] || 'FREE_TEXT'
@@ -161,11 +164,7 @@ export async function processAssessmentGrading(job: Job<AssessmentJobData>) {
         case 'CODING':
           // Grade with Claude AI
           // Note: Question model doesn't have testCases field, using empty array
-          const gradingResult = await gradeCodeWithClaude(
-            question.text || '',
-            answerValue,
-            []
-          )
+          const gradingResult = await gradeCodeWithClaude(question.text || '', answerValue, [])
 
           earnedPoints = gradingResult.score * questionPoints
           feedback = gradingResult.feedback
@@ -218,10 +217,15 @@ export async function processAssessmentGrading(job: Job<AssessmentJobData>) {
         status: 'GRADED',
         submittedAt: new Date(),
         detail: {
+          // Preserve anything already stored on the attempt (e.g. anti-cheat
+          // telemetry written at submit time) rather than clobbering it.
+          ...(typeof attempt.detail === 'object' && attempt.detail !== null
+            ? (attempt.detail as Record<string, unknown>)
+            : {}),
           passed,
           percentage,
           maxScore,
-        }
+        },
       },
     })
 
@@ -238,9 +242,9 @@ export async function processAssessmentGrading(job: Job<AssessmentJobData>) {
       include: {
         contacts: {
           where: { isPrimary: true },
-          take: 1
-        }
-      }
+          take: 1,
+        },
+      },
     })
 
     const candidateEmail = candidate?.contacts?.[0]?.email
@@ -299,7 +303,7 @@ export const assessmentGradingWorker = new Worker<AssessmentJobData>(
   {
     connection,
     concurrency: WORKER_CONCURRENCY,
-  }
+  },
 )
 
 // Worker event handlers
