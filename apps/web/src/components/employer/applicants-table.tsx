@@ -3,9 +3,11 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { CalendarClock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { InterviewScheduleDialog } from './interview-schedule-dialog'
 import {
   Table,
   TableBody,
@@ -67,6 +69,7 @@ function ScoreCell({ score }: { score?: number | null }) {
 
 export function ApplicantsTable({ applications, locale }: ApplicantsTableProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [scheduleFor, setScheduleFor] = useState<string | null>(null)
   const router = useRouter()
 
   const allSelected = applications.length > 0 && selectedIds.size === applications.length
@@ -150,7 +153,7 @@ export function ApplicantsTable({ applications, locale }: ApplicantsTableProps) 
             <TableHead>Stage</TableHead>
             <TableHead>Skóre</TableHead>
             <TableHead>Dátum</TableHead>
-            <TableHead className="w-20" />
+            <TableHead className="w-32" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -199,14 +202,36 @@ export function ApplicantsTable({ applications, locale }: ApplicantsTableProps) 
                 {new Date(application.createdAt).toLocaleDateString('sk-SK')}
               </TableCell>
               <TableCell onClick={(e) => e.stopPropagation()}>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/${locale}/employer/applicants/${application.id}`}>Detail</Link>
-                </Button>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setScheduleFor(application.id)}
+                    title="Naplánovať pohovor"
+                  >
+                    <CalendarClock className="h-4 w-4" />
+                    <span className="sr-only">Naplánovať pohovor</span>
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/${locale}/employer/applicants/${application.id}`}>Detail</Link>
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+
+      {scheduleFor && (
+        <InterviewScheduleDialog
+          applicationId={scheduleFor}
+          open={scheduleFor !== null}
+          onOpenChange={(o) => {
+            if (!o) setScheduleFor(null)
+          }}
+          defaultType="VIDEO"
+        />
+      )}
     </div>
   )
 }

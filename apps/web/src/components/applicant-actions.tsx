@@ -10,8 +10,9 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Video, MapPin } from 'lucide-react'
 import { logger } from '@/lib/logger'
+import { InterviewScheduleDialog } from '@/components/employer/interview-schedule-dialog'
 
 interface ApplicantActionsProps {
   applicationId: string
@@ -25,6 +26,8 @@ export function ApplicantActions({ applicationId, currentStage, locale }: Applic
   const [isLoading, setIsLoading] = useState(false)
   const [showEmailDialog, setShowEmailDialog] = useState(false)
   const [showNoteDialog, setShowNoteDialog] = useState(false)
+  const [showInterviewDialog, setShowInterviewDialog] = useState(false)
+  const [interviewType, setInterviewType] = useState<'VIDEO' | 'ONSITE'>('VIDEO')
   const [emailSubject, setEmailSubject] = useState('')
   const [emailBody, setEmailBody] = useState('')
   const [note, setNote] = useState('')
@@ -124,6 +127,13 @@ export function ApplicantActions({ applicationId, currentStage, locale }: Applic
 
   return (
     <>
+      <InterviewScheduleDialog
+        applicationId={applicationId}
+        open={showInterviewDialog}
+        onOpenChange={setShowInterviewDialog}
+        defaultType={interviewType}
+      />
+
       <Card>
         <CardHeader>
           <CardTitle>Akcie</CardTitle>
@@ -172,6 +182,31 @@ export function ApplicantActions({ applicationId, currentStage, locale }: Applic
               </Button>
             </>
           )}
+          <Separator />
+          <Button
+            className="w-full"
+            variant="outline"
+            onClick={() => {
+              setInterviewType('VIDEO')
+              setShowInterviewDialog(true)
+            }}
+            disabled={isLoading}
+          >
+            <Video className="mr-2 h-4 w-4" />
+            Naplánovať videopohovor
+          </Button>
+          <Button
+            className="w-full"
+            variant="outline"
+            onClick={() => {
+              setInterviewType('ONSITE')
+              setShowInterviewDialog(true)
+            }}
+            disabled={isLoading}
+          >
+            <MapPin className="mr-2 h-4 w-4" />
+            Naplánovať pohovor (fyzicky)
+          </Button>
           <Separator />
           <Button
             className="w-full"
