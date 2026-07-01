@@ -447,6 +447,27 @@ export default async function JobDetailPage({
 
                 <Separator className="my-6" />
 
+                {/* Job media (company ad image / video) */}
+                {(job.imageUrl || job.videoUrl) && (
+                  <div className="space-y-4">
+                    {job.imageUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={job.imageUrl}
+                        alt={job.title}
+                        className="w-full rounded-lg border object-cover"
+                      />
+                    )}
+                    {job.videoUrl && (
+                      <video
+                        controls
+                        className="w-full rounded-lg border bg-black"
+                        src={job.videoUrl}
+                      />
+                    )}
+                  </div>
+                )}
+
                 {/* Job Description */}
                 <div className="space-y-4">
                   <h3 className="text-xl font-semibold">{t('jobDetail.description')}</h3>

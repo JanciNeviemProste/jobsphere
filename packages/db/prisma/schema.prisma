@@ -16,6 +16,7 @@ model Organization {
   name        String
   slug        String   @unique
   logo        String?
+  videoUrl    String?
   website     String?
   description String?
   industry    String?
@@ -272,6 +273,10 @@ model Job {
 
   // Public ad analytics
   viewCount      Int      @default(0)
+
+  // Media (company ad image/video)
+  imageUrl       String?
+  videoUrl       String?
 
   // SEO
   slug           String?

@@ -15,6 +15,8 @@ const updateOrgSchema = z.object({
   description: z.string().max(2000).optional().or(z.literal('')),
   industry: z.string().max(100).optional().or(z.literal('')),
   size: z.string().max(50).optional().or(z.literal('')),
+  logo: z.string().url().optional().or(z.literal('')),
+  videoUrl: z.string().url().optional().or(z.literal('')),
 })
 
 export const GET = withRateLimit(
@@ -47,6 +49,7 @@ export const GET = withRateLimit(
           id: true,
           name: true,
           logo: true,
+          videoUrl: true,
           website: true,
           description: true,
           industry: true,
@@ -120,6 +123,14 @@ export const PATCH = withCsrfProtection(
         if (validatedData.size !== undefined) {
           updateData.size = validatedData.size === '' ? null : validatedData.size
         }
+        if (validatedData.logo !== undefined) {
+          // Sanitize URL to reject javascript:/data: schemes; empty clears the logo.
+          updateData.logo = validatedData.logo === '' ? null : sanitizeUrl(validatedData.logo)
+        }
+        if (validatedData.videoUrl !== undefined) {
+          updateData.videoUrl =
+            validatedData.videoUrl === '' ? null : sanitizeUrl(validatedData.videoUrl)
+        }
 
         const updated = await prisma.organization.update({
           where: { id: params.id },
@@ -128,6 +139,7 @@ export const PATCH = withCsrfProtection(
             id: true,
             name: true,
             logo: true,
+            videoUrl: true,
             website: true,
             description: true,
             industry: true,

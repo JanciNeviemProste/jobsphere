@@ -23,6 +23,7 @@ export const GET = withRateLimit(
               id: true,
               name: true,
               logo: true,
+              videoUrl: true,
               website: true,
               description: true,
               industry: true,
