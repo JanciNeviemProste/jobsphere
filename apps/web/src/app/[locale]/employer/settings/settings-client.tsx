@@ -3,6 +3,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ProfileTab } from '@/components/settings/profile-tab'
 import { TeamTab } from '@/components/settings/team-tab'
+import { BranchesTab } from '@/components/settings/branches-tab'
 import { BillingTab } from '@/components/settings/billing-tab'
 import { NotificationsTab } from '@/components/settings/notifications-tab'
 import { Button } from '@/components/ui/button'
@@ -31,9 +32,10 @@ export default function SettingsClient() {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto">
             <TabsTrigger value="profile">Company Profile</TabsTrigger>
             <TabsTrigger value="team">Team Members</TabsTrigger>
+            <TabsTrigger value="branches">Pobočky</TabsTrigger>
             <TabsTrigger value="billing">Billing</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
@@ -44,6 +46,10 @@ export default function SettingsClient() {
 
           <TabsContent value="team">
             <TeamTab />
+          </TabsContent>
+
+          <TabsContent value="branches">
+            <BranchesTab />
           </TabsContent>
 
           <TabsContent value="billing">

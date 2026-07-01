@@ -51,6 +51,7 @@ model Organization {
   matchScores     MatchScore[]
   auditLogs       AuditLog[]
   gigs            Gig[]
+  branches        Branch[]
 
   @@index([slug])
   @@index([deletedAt])
@@ -545,6 +546,7 @@ model Application {
   organization  Organization @relation(fields: [orgId], references: [id])
   assignee      User?        @relation(fields: [assignedTo], references: [id])
   activities    ApplicationActivity[]
+  interviews    Interview[]
 
   @@unique([candidateId, jobId])
   @@index([candidateId]) // Candidate viewing their own applications
@@ -1437,4 +1439,50 @@ model WebVitalsMetric {
 
   @@index([name, rating])
   @@index([timestamp])
+}
+
+// ============ INTERVIEW & BRANCH MODELS ============
+
+// A company office/location (L32/L6): used for on-site interview addresses.
+model Branch {
+  id         String    @id @default(cuid())
+  orgId      String
+  name       String
+  street     String?
+  city       String?
+  region     String?
+  country    String?
+  postalCode String?
+  isPrimary  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  organization Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, deletedAt])
+}
+
+// A scheduled interview for an application (L24/L28/L32).
+model Interview {
+  id             String   @id @default(cuid())
+  applicationId  String
+  orgId          String
+  type           String // VIDEO, ONSITE, PHONE
+  scheduledAt    DateTime
+  durationMin    Int?
+  location       String? // free-text address (snapshot) for ONSITE
+  branchId       String? // optional link to a Branch
+  meetingUrl     String? // video link for VIDEO
+  status         String   @default("SCHEDULED") // SCHEDULED, DONE, CANCELED
+  createdBy      String
+  invitedUserIds String[] @default([]) // colleagues / other HR invited
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id])
+
+  @@index([orgId, scheduledAt])
+  @@index([applicationId])
 }

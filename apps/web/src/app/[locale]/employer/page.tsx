@@ -7,7 +7,17 @@ import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Briefcase, Users, Kanban, CheckCircle, Clock, XCircle, Eye } from 'lucide-react'
+import {
+  Plus,
+  Briefcase,
+  Users,
+  Kanban,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Eye,
+  CalendarClock,
+} from 'lucide-react'
 import { STAGE_LABELS_EN, STAGE_COLORS } from '@/lib/constants/application-stages'
 
 export async function generateMetadata({
@@ -368,6 +378,12 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
                   <Link href={`/${params.locale}/employer/pipeline`}>
                     <Kanban className="mr-2 h-4 w-4" />
                     Pipeline
+                  </Link>
+                </Button>
+                <Button className="w-full justify-start" variant="outline" asChild>
+                  <Link href={`/${params.locale}/employer/calendar`}>
+                    <CalendarClock className="mr-2 h-4 w-4" />
+                    Kalendár pohovorov
                   </Link>
                 </Button>
                 <Button className="w-full justify-start" variant="outline" asChild>

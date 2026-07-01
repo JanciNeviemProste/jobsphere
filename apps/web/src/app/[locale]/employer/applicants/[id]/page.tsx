@@ -19,6 +19,8 @@ import {
   ArrowRight,
   StickyNote,
   FileText,
+  CalendarClock,
+  Video,
 } from 'lucide-react'
 import { ApplicantActions } from '@/components/applicant-actions'
 import { ApplicantSummaryCard } from '@/components/employer/applicant-summary-card'
@@ -43,9 +45,32 @@ function dayLabel(date: Date): string {
 
 function activityIcon(type: string) {
   if (type === 'EMAIL_SENT' || type === 'EMAIL_RECEIVED') return <Mail className="h-4 w-4" />
-  if (type === 'STAGE_CHANGE') return <ArrowRight className="h-4 w-4" />
+  if (type === 'STAGE_CHANGE' || type === 'STAGE_CHANGED') return <ArrowRight className="h-4 w-4" />
   if (type === 'NOTE_ADDED') return <StickyNote className="h-4 w-4" />
+  if (type === 'INTERVIEW_SCHEDULED') return <CalendarClock className="h-4 w-4" />
   return <FileText className="h-4 w-4" />
+}
+
+const INTERVIEW_TYPE_LABELS: Record<string, string> = {
+  VIDEO: 'Videopohovor',
+  ONSITE: 'Osobne',
+  PHONE: 'Telefonicky',
+}
+
+const INTERVIEW_STATUS_LABELS: Record<string, string> = {
+  SCHEDULED: 'Naplánovaný',
+  DONE: 'Uskutočnený',
+  CANCELED: 'Zrušený',
+}
+
+function formatInterviewDateTime(date: Date): string {
+  return new Date(date).toLocaleString('sk-SK', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 interface ParsedResume {
@@ -148,6 +173,9 @@ async function getApplicationDetail(applicationId: string, userId: string) {
       },
       activities: {
         orderBy: { createdAt: 'asc' },
+      },
+      interviews: {
+        orderBy: { scheduledAt: 'asc' },
       },
     },
   })
@@ -510,6 +538,72 @@ export default async function EmployerApplicationDetailPage({
                 </CardContent>
               </Card>
             )}
+
+            {/* Interviews */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Pohovory</CardTitle>
+                <CardDescription>Naplánované pohovory s kandidátom</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {application.interviews.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Zatiaľ nie je naplánovaný žiadny pohovor. Použite akcie vpravo.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {application.interviews.map((interview) => (
+                      <div
+                        key={interview.id}
+                        className="flex items-start gap-3 rounded-lg border p-4"
+                      >
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          {interview.type === 'VIDEO' ? (
+                            <Video className="h-4 w-4" />
+                          ) : (
+                            <CalendarClock className="h-4 w-4" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-medium">
+                              {INTERVIEW_TYPE_LABELS[interview.type] ?? interview.type}
+                            </p>
+                            <Badge variant="outline" className="text-xs">
+                              {INTERVIEW_STATUS_LABELS[interview.status] ?? interview.status}
+                            </Badge>
+                          </div>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {formatInterviewDateTime(interview.scheduledAt)}
+                            {interview.durationMin ? ` · ${interview.durationMin} min` : ''}
+                          </p>
+                          {interview.location && (
+                            <p className="mt-1 flex items-center gap-1 text-sm">
+                              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                              {interview.location}
+                            </p>
+                          )}
+                          {interview.meetingUrl && (
+                            <a
+                              href={interview.meetingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-1 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                            >
+                              <Video className="h-3.5 w-3.5" />
+                              Pripojiť sa k hovoru
+                            </a>
+                          )}
+                          {interview.notes && (
+                            <p className="mt-2 whitespace-pre-wrap text-sm">{interview.notes}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Cover Letter */}
             <Card>
