@@ -18,6 +18,7 @@ const SeniorityLevelEnum = z.enum(['JUNIOR', 'MID', 'SENIOR', 'LEAD', 'EXECUTIVE
 
 const jobSearchSchema = z.object({
   search: z.string().optional(),
+  location: z.string().optional(),
   workMode: WorkModeEnum.optional(),
   jobType: JobTypeEnum.optional(),
   seniority: SeniorityLevelEnum.optional(),
@@ -56,6 +57,7 @@ export const GET = withRateLimit(
       // Parse and validate query params
       const params = jobSearchSchema.parse({
         search: searchParams.get('search') || undefined,
+        location: searchParams.get('location') || undefined,
         workMode: searchParams.get('workMode') || undefined,
         jobType: searchParams.get('jobType') || undefined,
         seniority: searchParams.get('seniority') || undefined,
@@ -63,15 +65,26 @@ export const GET = withRateLimit(
         limit: searchParams.get('limit') || undefined,
       })
 
-      const where = {
-        status: 'PUBLISHED' as const,
-        ...(params.search && {
-          OR: [
+      // Position search (title/description/company) and location search (city/region)
+      // are combined with AND so both narrow the result set (Profesia-style two-field search).
+      const searchOr = params.search
+        ? [
             { title: { contains: params.search, mode: 'insensitive' as const } },
             { description: { contains: params.search, mode: 'insensitive' as const } },
-            { organization: { name: { contains: params.search, mode: 'insensitive' as const } } },
-          ],
-        }),
+            {
+              organization: { name: { contains: params.search, mode: 'insensitive' as const } },
+            },
+          ]
+        : undefined
+      const locationOr = params.location
+        ? [
+            { city: { contains: params.location, mode: 'insensitive' as const } },
+            { region: { contains: params.location, mode: 'insensitive' as const } },
+          ]
+        : undefined
+
+      const where = {
+        status: 'PUBLISHED' as const,
         ...(params.workMode &&
           (params.workMode === 'REMOTE'
             ? { remote: true }
@@ -80,6 +93,12 @@ export const GET = withRateLimit(
               : { remote: false, hybrid: false })),
         ...(params.jobType && { employmentType: params.jobType }),
         ...(params.seniority && { seniority: params.seniority }),
+        ...((searchOr || locationOr) && {
+          AND: [
+            ...(searchOr ? [{ OR: searchOr }] : []),
+            ...(locationOr ? [{ OR: locationOr }] : []),
+          ],
+        }),
       }
 
       const jobs = await prisma.job.findMany({

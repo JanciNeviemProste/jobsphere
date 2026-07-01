@@ -121,6 +121,10 @@ export const POST = withCsrfProtection(
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
         const orgName = userOrgRole.organization?.name || 'your organization'
 
+        // Tracks whether the invite/notification e-mail actually left the system,
+        // so the UI can warn the admin instead of silently reporting success.
+        let inviteEmailSent = true
+
         // Check if user already exists
         let user = await prisma.user.findUnique({
           where: { email },
@@ -156,14 +160,17 @@ export const POST = withCsrfProtection(
           })
           const actionUrl = `${appUrl}/reset-password?token=${inviteToken}`
 
-          // Best-effort invite email — never fail the request if email fails.
+          // Best-effort invite email — never fail the request if email fails,
+          // but remember whether it actually left so the UI can warn the admin.
           try {
-            await sendEmail({
+            const emailResult = await sendEmail({
               to: email,
               subject: `You're invited to join ${orgName} on JobSphere`,
               html: getInvitationEmail({ isNewUser: true, orgName, role, actionUrl }),
             })
+            if (!emailResult.success) inviteEmailSent = false
           } catch (emailError) {
+            inviteEmailSent = false
             logger.error('Failed to send invitation email to new user:', emailError)
           }
         }
@@ -210,19 +217,24 @@ export const POST = withCsrfProtection(
         if (!isNewUser) {
           try {
             const actionUrl = `${appUrl}/login`
-            await sendEmail({
+            const emailResult = await sendEmail({
               to: user.email,
               subject: `You've been added to ${orgName}`,
               html: getInvitationEmail({ isNewUser: false, orgName, role, actionUrl }),
             })
+            if (!emailResult.success) inviteEmailSent = false
           } catch (emailError) {
+            inviteEmailSent = false
             logger.error('Failed to send notification email to existing user:', emailError)
           }
         }
 
         return NextResponse.json({
           member: newMember,
-          message: 'Member invited successfully',
+          emailSent: inviteEmailSent,
+          message: inviteEmailSent
+            ? 'Member invited successfully'
+            : 'Member added, but the invitation e-mail could not be sent — check the e-mail (Resend) configuration.',
         })
       } catch (error) {
         if (error instanceof z.ZodError) {

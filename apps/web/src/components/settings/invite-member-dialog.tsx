@@ -55,7 +55,14 @@ export function InviteMemberDialog({ open, onOpenChange, onSuccess }: InviteMemb
 
       const data = await response.json()
 
-      toast.success(`Invitation sent to ${formData.email}`)
+      if (data.emailSent === false) {
+        toast.warning(
+          data.message ||
+            'Člen pridaný, ale pozvánkový e-mail sa nepodarilo odoslať — skontrolujte nastavenie e-mailu.',
+        )
+      } else {
+        toast.success(`Invitation sent to ${formData.email}`)
+      }
 
       // Reset form
       setFormData({ email: '', role: 'RECRUITER' })

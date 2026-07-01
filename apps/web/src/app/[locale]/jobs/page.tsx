@@ -13,6 +13,7 @@ type Props = {
   searchParams?: {
     page?: string
     search?: string
+    location?: string
     workMode?: string
     jobType?: string
     seniority?: string
@@ -35,27 +36,36 @@ export async function generateMetadata({ params: { locale } }: Props): Promise<M
 async function getPublishedJobs({
   page,
   search,
+  location,
   workMode,
   jobType,
   seniority,
 }: {
   page: number
   search?: string
+  location?: string
   workMode?: string
   jobType?: string
   seniority?: string
 }) {
   try {
-    const where = {
-      status: 'PUBLISHED' as const,
-      deletedAt: null,
-      ...(search && {
-        OR: [
+    const searchOr = search
+      ? [
           { title: { contains: search, mode: 'insensitive' as const } },
           { description: { contains: search, mode: 'insensitive' as const } },
           { organization: { name: { contains: search, mode: 'insensitive' as const } } },
-        ],
-      }),
+        ]
+      : undefined
+    const locationOr = location
+      ? [
+          { city: { contains: location, mode: 'insensitive' as const } },
+          { region: { contains: location, mode: 'insensitive' as const } },
+        ]
+      : undefined
+
+    const where = {
+      status: 'PUBLISHED' as const,
+      deletedAt: null,
       ...(workMode === 'REMOTE'
         ? { remote: true }
         : workMode === 'HYBRID'
@@ -65,6 +75,9 @@ async function getPublishedJobs({
             : {}),
       ...(jobType ? { employmentType: jobType } : {}),
       ...(seniority ? { seniority } : {}),
+      ...((searchOr || locationOr) && {
+        AND: [...(searchOr ? [{ OR: searchOr }] : []), ...(locationOr ? [{ OR: locationOr }] : [])],
+      }),
     }
 
     const [jobs, total] = await Promise.all([
@@ -125,11 +138,19 @@ async function getPublishedJobs({
 export default async function JobsPage({ params, searchParams }: Props) {
   const page = Math.max(1, parseInt(searchParams?.page ?? '1', 10) || 1)
   const search = searchParams?.search
+  const location = searchParams?.location
   const workMode = searchParams?.workMode
   const jobType = searchParams?.jobType
   const seniority = searchParams?.seniority
 
-  const { jobs, total } = await getPublishedJobs({ page, search, workMode, jobType, seniority })
+  const { jobs, total } = await getPublishedJobs({
+    page,
+    search,
+    location,
+    workMode,
+    jobType,
+    seniority,
+  })
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
   return (
@@ -140,7 +161,7 @@ export default async function JobsPage({ params, searchParams }: Props) {
       initialPage={page}
       totalPages={totalPages}
       pageSize={PAGE_SIZE}
-      initialFilters={{ search, workMode, jobType, seniority }}
+      initialFilters={{ search, location, workMode, jobType, seniority }}
     />
   )
 }

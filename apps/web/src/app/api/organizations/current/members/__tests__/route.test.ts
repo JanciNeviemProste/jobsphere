@@ -119,15 +119,19 @@ describe('POST /api/organizations/current/members — invite emails', () => {
     expect(emailArg.html).toContain('/login')
   })
 
-  it('(c) email failure is best-effort: POST still returns 200', async () => {
+  it('(c) email failure is best-effort: POST still returns 200 but flags emailSent=false', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null as any)
     vi.mocked(prisma.user.create).mockResolvedValue({ id: 'u-1', email: 'new@example.com' } as any)
     sendEmail.mockRejectedValue(new Error('SMTP down'))
 
     const res = await POST(req({ email: 'new@example.com', role: 'RECRUITER' }))
 
+    // Best-effort preserved: the membership is still created (200). But L9 now
+    // surfaces the delivery failure so the UI can warn the admin instead of
+    // silently reporting success.
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body).toMatchObject({ message: 'Member invited successfully' })
+    expect(body).toMatchObject({ emailSent: false })
+    expect(body.message).toMatch(/could not be sent/i)
   })
 })
