@@ -14,9 +14,7 @@ interface ApplicationsByStageChartProps {
 const COLORS = {
   NEW: '#3b82f6',
   SCREENING: '#f59e0b',
-  PHONE_SCREEN: '#8b5cf6',
   INTERVIEW: '#10b981',
-  OFFER: '#06b6d4',
   HIRED: '#22c55e',
   REJECTED: '#ef4444',
 }

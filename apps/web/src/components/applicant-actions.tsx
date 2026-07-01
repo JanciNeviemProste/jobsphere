@@ -140,7 +140,7 @@ export function ApplicantActions({ applicationId, currentStage, locale }: Applic
               Začať screening
             </Button>
           )}
-          {(currentStage === 'SCREENING' || currentStage === 'PHONE_SCREEN') && (
+          {currentStage === 'SCREENING' && (
             <Button
               className="w-full"
               variant="default"

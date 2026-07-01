@@ -28,11 +28,41 @@ interface ApplicationRow {
   jobTitle: string
   stage: string
   createdAt: Date
+  avatar?: string | null
+  score?: number | null
 }
 
 interface ApplicantsTableProps {
   applications: ApplicationRow[]
   locale: string
+}
+
+function initials(name: string): string {
+  return (
+    name
+      .split(' ')
+      .map((n) => n[0])
+      .filter(Boolean)
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || 'K'
+  )
+}
+
+function ScoreCell({ score }: { score?: number | null }) {
+  if (typeof score !== 'number') {
+    return <span className="text-xs text-muted-foreground">—</span>
+  }
+  let colorClass = 'bg-red-100 text-red-800'
+  if (score >= 80) colorClass = 'bg-green-100 text-green-800'
+  else if (score >= 60) colorClass = 'bg-amber-100 text-amber-800'
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${colorClass}`}
+    >
+      {score}%
+    </span>
+  )
 }
 
 export function ApplicantsTable({ applications, locale }: ApplicantsTableProps) {
@@ -118,6 +148,7 @@ export function ApplicantsTable({ applications, locale }: ApplicantsTableProps) 
             <TableHead>Kandidát</TableHead>
             <TableHead>Pozícia</TableHead>
             <TableHead>Stage</TableHead>
+            <TableHead>Skóre</TableHead>
             <TableHead>Dátum</TableHead>
             <TableHead className="w-20" />
           </TableRow>
@@ -139,16 +170,20 @@ export function ApplicantsTable({ applications, locale }: ApplicantsTableProps) 
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
-                    <span className="text-sm font-semibold text-primary">
-                      {(application.candidateName || application.candidateEmail || '')
-                        .split(' ')
-                        .map((n) => n[0])
-                        .join('')
-                        .toUpperCase()
-                        .slice(0, 2)}
-                    </span>
-                  </div>
+                  {application.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={application.avatar}
+                      alt={application.candidateName || 'Kandidát'}
+                      className="h-9 w-9 flex-shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
+                      <span className="text-sm font-semibold text-primary">
+                        {initials(application.candidateName || application.candidateEmail || '')}
+                      </span>
+                    </div>
+                  )}
                   <div>
                     <p className="font-medium">{application.candidateName || 'Kandidát'}</p>
                     <p className="text-xs text-muted-foreground">{application.candidateEmail}</p>
@@ -157,6 +192,9 @@ export function ApplicantsTable({ applications, locale }: ApplicantsTableProps) 
               </TableCell>
               <TableCell className="text-sm">{application.jobTitle}</TableCell>
               <TableCell>{stageBadge(application.stage)}</TableCell>
+              <TableCell>
+                <ScoreCell score={application.score} />
+              </TableCell>
               <TableCell className="text-sm text-muted-foreground">
                 {new Date(application.createdAt).toLocaleDateString('sk-SK')}
               </TableCell>

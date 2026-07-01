@@ -124,9 +124,7 @@ export async function updateApplicationStatus(
   if (status !== application.stage) {
     const eventDescriptions: Record<string, string> = {
       SCREENING: 'Application is being screened',
-      PHONE_SCREEN: 'Phone screen scheduled',
       INTERVIEW: 'Interview scheduled',
-      OFFER: 'Offer extended',
       HIRED: 'Candidate hired',
       REJECTED: 'Application rejected',
     }

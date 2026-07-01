@@ -6,27 +6,19 @@ interface ConversionFunnelProps {
   total: number
   screening: number
   interview: number
-  offer: number
   hired: number
 }
 
-export function ConversionFunnel({
-  total,
-  screening,
-  interview,
-  offer,
-  hired,
-}: ConversionFunnelProps) {
+export function ConversionFunnel({ total, screening, interview, hired }: ConversionFunnelProps) {
   const stages = [
     { stage: 'Applied', count: total, percentage: 100 },
     { stage: 'Screening', count: screening, percentage: total > 0 ? (screening / total) * 100 : 0 },
     { stage: 'Interview', count: interview, percentage: total > 0 ? (interview / total) * 100 : 0 },
-    { stage: 'Offer', count: offer, percentage: total > 0 ? (offer / total) * 100 : 0 },
     { stage: 'Hired', count: hired, percentage: total > 0 ? (hired / total) * 100 : 0 },
   ]
 
   const getColor = (index: number) => {
-    const colors = ['bg-blue-500', 'bg-yellow-500', 'bg-purple-500', 'bg-cyan-500', 'bg-green-500']
+    const colors = ['bg-blue-500', 'bg-yellow-500', 'bg-purple-500', 'bg-green-500']
     return colors[index] || 'bg-gray-500'
   }
 

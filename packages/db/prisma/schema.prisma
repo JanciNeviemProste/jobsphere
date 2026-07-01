@@ -587,6 +587,12 @@ model MatchScore {
   evidence    Json     // Matched skills, experience, etc.
   explanation String[] // Bullet points explaining match
 
+  // HR manual override (L44): when set, the UI shows overrideScore instead of the AI score0to100.
+  overrideScore  Int?
+  overrideBy     String?
+  overrideAt     DateTime?
+  overrideReason String?
+
   version     String   // Algorithm version for tracking
 
   createdAt   DateTime @default(now())

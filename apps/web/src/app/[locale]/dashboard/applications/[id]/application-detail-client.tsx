@@ -57,12 +57,8 @@ export default function ApplicationDetailClient({
         return <Badge variant="secondary">Nová</Badge>
       case 'SCREENING':
         return <Badge>Preveruje sa</Badge>
-      case 'PHONE_SCREEN':
-        return <Badge className="bg-blue-600">Telefonický pohovor</Badge>
       case 'INTERVIEW':
         return <Badge className="bg-blue-600">Interview</Badge>
-      case 'OFFER':
-        return <Badge className="bg-green-600">Ponuka</Badge>
       case 'HIRED':
         return <Badge className="bg-green-600">Prijaté</Badge>
       case 'REJECTED':

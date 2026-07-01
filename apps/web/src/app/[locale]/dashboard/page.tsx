@@ -90,9 +90,9 @@ async function getDashboardData() {
   const stats = {
     total: applications.length,
     pending: applications.filter((a) => a.stage === 'NEW').length,
-    reviewing: applications.filter((a) => a.stage === 'SCREENING' || a.stage === 'PHONE_SCREEN')
+    reviewing: applications.filter((a) => a.stage === 'SCREENING' || a.stage === 'INTERVIEW')
       .length,
-    accepted: applications.filter((a) => a.stage === 'HIRED' || a.stage === 'OFFER').length,
+    accepted: applications.filter((a) => a.stage === 'HIRED').length,
     rejected: applications.filter((a) => a.stage === 'REJECTED').length,
   }
 

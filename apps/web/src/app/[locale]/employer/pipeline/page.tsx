@@ -6,7 +6,12 @@ import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { PipelineBoard } from '@/components/employer/pipeline-board'
-import { APPLICATION_STAGES } from '@/lib/constants/application-stages'
+import {
+  ApplicantsViewControls,
+  type ApplicantsSort,
+  APPLICANTS_SORTS,
+} from '@/components/employer/applicants-view-controls'
+import { APPLICATION_STAGES, type ApplicationStage } from '@/lib/constants/application-stages'
 
 // Maximum cards to show per Kanban column — keeps the DOM manageable
 const PER_STAGE_CAP = 50
@@ -23,7 +28,7 @@ export default async function PipelinePage({
   searchParams,
 }: {
   params: { locale: string }
-  searchParams: { jobId?: string }
+  searchParams: { jobId?: string; stage?: string; sort?: string }
 }) {
   const session = await auth()
   if (!session?.user?.id) {
@@ -39,12 +44,23 @@ export default async function PipelinePage({
 
   const orgId = userOrgRole.orgId
   const currentJobId = searchParams.jobId
+  const currentStage = APPLICATION_STAGES.includes(searchParams.stage as ApplicationStage)
+    ? (searchParams.stage as ApplicationStage)
+    : undefined
+  const currentSort: ApplicantsSort = APPLICANTS_SORTS.includes(searchParams.sort as ApplicantsSort)
+    ? (searchParams.sort as ApplicantsSort)
+    : 'date_desc'
+
+  // When a single stage is selected, only query that stage; otherwise all stages.
+  const stagesToLoad: readonly ApplicationStage[] = currentStage
+    ? [currentStage]
+    : APPLICATION_STAGES
 
   // Load capped card sets per stage + job list in parallel — all scoped to orgId
   const [stageResults, jobs] = await Promise.all([
     // One bounded query per stage (all filtered to org + optional job)
     Promise.all(
-      APPLICATION_STAGES.map((stage) =>
+      stagesToLoad.map((stage) =>
         prisma.application.findMany({
           where: {
             job: { orgId },
@@ -55,6 +71,7 @@ export default async function PipelinePage({
             id: true,
             stage: true,
             createdAt: true,
+            candidateId: true,
             job: { select: { id: true, title: true } },
             candidate: {
               select: {
@@ -62,10 +79,12 @@ export default async function PipelinePage({
                   take: 1,
                   select: { fullName: true, email: true },
                 },
+                // Candidate photo (recruiter-imported candidates have userId=null → no avatar)
+                user: { select: { avatar: true } },
               },
             },
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: currentSort === 'date_asc' ? 'asc' : 'desc' },
           take: PER_STAGE_CAP,
         }),
       ),
@@ -79,6 +98,37 @@ export default async function PipelinePage({
 
   const applications = stageResults.flat()
 
+  // MatchScore isn't a direct relation from Application, so batch-load by the
+  // model's unique compound (jobId, candidateId) and prefer the HR override.
+  const scoreMap = new Map<string, number>()
+  if (applications.length > 0) {
+    const matchScores = await prisma.matchScore.findMany({
+      where: {
+        orgId,
+        OR: applications.map((a) => ({ jobId: a.job.id, candidateId: a.candidateId })),
+      },
+      select: { jobId: true, candidateId: true, score0to100: true, overrideScore: true },
+    })
+    for (const m of matchScores) {
+      scoreMap.set(`${m.jobId}:${m.candidateId}`, m.overrideScore ?? m.score0to100)
+    }
+  }
+
+  const cards = applications.map((a) => ({
+    id: a.id,
+    stage: a.stage,
+    createdAt: a.createdAt.toISOString(),
+    job: a.job,
+    candidate: { contacts: a.candidate.contacts },
+    score: scoreMap.get(`${a.job.id}:${a.candidateId}`) ?? null,
+    avatar: a.candidate.user?.avatar ?? null,
+  }))
+
+  // Score sort reorders the loaded cards; date sort is already applied at DB level.
+  if (currentSort === 'score_desc') {
+    cards.sort((x, y) => (y.score ?? -1) - (x.score ?? -1))
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <div className="container mx-auto px-4 py-8">
@@ -89,44 +139,22 @@ export default async function PipelinePage({
           </Link>
         </Button>
 
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-3xl font-bold">Pipeline</h1>
             <p className="text-muted-foreground">Presúvajte kandidátov medzi fázami</p>
           </div>
-          <div className="flex items-center gap-2">
-            {/* Server Component: no onChange handlers allowed — submit via the button. */}
-            <form method="GET" className="flex items-center gap-2">
-              <select
-                name="jobId"
-                defaultValue={currentJobId ?? ''}
-                className="rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Všetky pozície</option>
-                {jobs.map((job) => (
-                  <option key={job.id} value={job.id}>
-                    {job.title}
-                  </option>
-                ))}
-              </select>
-              <Button type="submit" variant="outline" size="sm">
-                Filtrovať
-              </Button>
-            </form>
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`/${params.locale}/employer/applicants`}>Zoznam</Link>
-            </Button>
-          </div>
+          <ApplicantsViewControls
+            view="kanban"
+            locale={params.locale}
+            jobs={jobs}
+            currentJobId={currentJobId}
+            currentStage={currentStage}
+            currentSort={currentSort}
+          />
         </div>
 
-        <PipelineBoard
-          applications={applications.map((a) => ({
-            ...a,
-            createdAt: a.createdAt.toISOString(),
-          }))}
-          jobs={jobs}
-          currentJobId={currentJobId}
-        />
+        <PipelineBoard applications={cards} jobs={jobs} currentJobId={currentJobId} />
       </div>
     </div>
   )

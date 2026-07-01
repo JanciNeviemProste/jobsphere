@@ -1,6 +1,7 @@
 import { Mail, Phone, MapPin, Briefcase } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { MatchScoreOverride } from '@/components/employer/match-score-override'
 
 interface CandidateContact {
   fullName?: string | null
@@ -19,12 +20,15 @@ interface Resume {
 
 interface MatchScoreData {
   score0to100: number
+  overrideScore?: number | null
 }
 
 interface Props {
   contact: CandidateContact | null
   resume: Resume | null
   matchScore: MatchScoreData | null
+  // When provided, the score becomes HR-editable (override endpoint).
+  applicationId?: string
 }
 
 function ScoreBadge({ score }: { score: number }) {
@@ -41,7 +45,7 @@ function ScoreBadge({ score }: { score: number }) {
   )
 }
 
-export function ApplicantSummaryCard({ contact, resume, matchScore }: Props) {
+export function ApplicantSummaryCard({ contact, resume, matchScore, applicationId }: Props) {
   const displayName = contact?.fullName ?? contact?.email ?? 'Kandidát'
   const location = contact?.city ?? contact?.location ?? null
   const topSkills = resume?.skills?.slice(0, 5) ?? []
@@ -105,7 +109,15 @@ export function ApplicantSummaryCard({ contact, resume, matchScore }: Props) {
 
           <div className="shrink-0">
             {matchScore != null ? (
-              <ScoreBadge score={matchScore.score0to100} />
+              applicationId ? (
+                <MatchScoreOverride
+                  applicationId={applicationId}
+                  score0to100={matchScore.score0to100}
+                  overrideScore={matchScore.overrideScore ?? null}
+                />
+              ) : (
+                <ScoreBadge score={matchScore.overrideScore ?? matchScore.score0to100} />
+              )
             ) : (
               <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground">
                 Match score nedostupné
