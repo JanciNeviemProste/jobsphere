@@ -155,7 +155,12 @@ async function getApplicationDetail(applicationId: string, userId: string) {
   if (!application) return null
 
   // Defensive MatchScore fetch — model exists per schema
-  let matchScore: { score0to100: number; evidence: unknown; explanation: string[] } | null = null
+  let matchScore: {
+    score0to100: number
+    overrideScore: number | null
+    evidence: unknown
+    explanation: string[]
+  } | null = null
   try {
     matchScore = await prisma.matchScore.findUnique({
       where: {
@@ -164,7 +169,7 @@ async function getApplicationDetail(applicationId: string, userId: string) {
           candidateId: application.candidateId,
         },
       },
-      select: { score0to100: true, evidence: true, explanation: true },
+      select: { score0to100: true, overrideScore: true, evidence: true, explanation: true },
     })
   } catch {
     matchScore = null
@@ -283,7 +288,12 @@ export default async function EmployerApplicationDetailPage({
                   }
                 : null
             }
-            matchScore={matchScore ? { score0to100: matchScore.score0to100 } : null}
+            matchScore={
+              matchScore
+                ? { score0to100: matchScore.score0to100, overrideScore: matchScore.overrideScore }
+                : null
+            }
+            applicationId={application.id}
           />
         </div>
 
@@ -439,7 +449,16 @@ export default async function EmployerApplicationDetailPage({
               <Card>
                 <CardHeader>
                   <CardTitle>Zhoda s pozíciou</CardTitle>
-                  <CardDescription>Celkové skóre: {matchScore.score0to100} / 100</CardDescription>
+                  <CardDescription className="flex items-center gap-2">
+                    <span>
+                      Celkové skóre: {matchScore.overrideScore ?? matchScore.score0to100} / 100
+                    </span>
+                    {matchScore.overrideScore != null && (
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium">
+                        upravené HR (AI: {matchScore.score0to100})
+                      </span>
+                    )}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {evidenceBreakdown ? (
@@ -461,13 +480,18 @@ export default async function EmployerApplicationDetailPage({
                     <div>
                       <div className="mb-1 flex justify-between text-sm">
                         <span>Celkové skóre</span>
-                        <span className="font-medium">{matchScore.score0to100}%</span>
+                        <span className="font-medium">
+                          {matchScore.overrideScore ?? matchScore.score0to100}%
+                        </span>
                       </div>
                       <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                         <div
                           className="h-full rounded-full bg-primary transition-all"
                           style={{
-                            width: `${Math.min(100, Math.max(0, matchScore.score0to100))}%`,
+                            width: `${Math.min(
+                              100,
+                              Math.max(0, matchScore.overrideScore ?? matchScore.score0to100),
+                            )}%`,
                           }}
                         />
                       </div>

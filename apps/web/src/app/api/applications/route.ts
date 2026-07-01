@@ -5,11 +5,10 @@ import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
 import { getOrCreateCandidateForUser, getPersonalCandidateForUser } from '@/lib/identity'
+import { APPLICATION_STAGES } from '@/lib/constants/application-stages'
 import { z } from 'zod'
 
-const stageEnum = z
-  .enum(['NEW', 'SCREENING', 'PHONE_SCREEN', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED'])
-  .optional()
+const stageEnum = z.enum(APPLICATION_STAGES).optional()
 const paginationSchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(20),

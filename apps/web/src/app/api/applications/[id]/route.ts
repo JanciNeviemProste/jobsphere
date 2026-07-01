@@ -136,9 +136,7 @@ export const PATCH = withCsrfProtection(
         if (status && status !== application.stage) {
           const statusDescriptions: Record<string, string> = {
             SCREENING: 'Application is now under review',
-            PHONE_SCREEN: 'Phone screen scheduled',
             INTERVIEW: 'Interview has been scheduled',
-            OFFER: 'Offer extended',
             HIRED: 'Application has been accepted',
             REJECTED: 'Application has been rejected',
           }

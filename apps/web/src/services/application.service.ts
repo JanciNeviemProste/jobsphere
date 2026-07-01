@@ -414,7 +414,7 @@ export class ApplicationService {
           <p>The hiring team will reach out to you soon with more details about the interview schedule.</p>
           <p>Good luck!</p>
         `
-      } else if (newStage === 'OFFER' || newStage === 'HIRED') {
+      } else if (newStage === 'HIRED') {
         subject = `Job Offer - ${jobTitle}`
         message = `
           <h2>Congratulations! Job Offer</h2>
@@ -424,7 +424,7 @@ export class ApplicationService {
           <p>Congratulations on this achievement!</p>
         `
       } else {
-        return // Only send for INTERVIEW, OFFER, and HIRED stages
+        return // Only send for INTERVIEW and HIRED stages
       }
 
       await sendEmail({

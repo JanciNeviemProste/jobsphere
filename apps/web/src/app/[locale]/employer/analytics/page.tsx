@@ -84,8 +84,7 @@ export default async function AnalyticsPage() {
 
   const newApplications = stageMap['NEW'] ?? 0
   const screening = stageMap['SCREENING'] ?? 0
-  const interview = (stageMap['PHONE_SCREEN'] ?? 0) + (stageMap['INTERVIEW'] ?? 0)
-  const offer = stageMap['OFFER'] ?? 0
+  const interview = stageMap['INTERVIEW'] ?? 0
   const hired = stageMap['HIRED'] ?? 0
 
   const stageData = stageCounts.map((s) => ({ stage: s.stage, count: s._count.stage }))
@@ -164,13 +163,7 @@ export default async function AnalyticsPage() {
       {/* Charts Row */}
       <div className="grid gap-6 md:grid-cols-2">
         <ApplicationsByStageChart data={stageData} />
-        <ConversionFunnel
-          total={total}
-          screening={screening}
-          interview={interview}
-          offer={offer}
-          hired={hired}
-        />
+        <ConversionFunnel total={total} screening={screening} interview={interview} hired={hired} />
       </div>
 
       {/* Trend Chart */}

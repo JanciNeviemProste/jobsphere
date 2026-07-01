@@ -5,13 +5,25 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Kanban, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react'
 import { ExportCSVButton } from '@/components/ExportCSVButton'
 import { ApplicantsTable } from '@/components/employer/applicants-table'
+import {
+  ApplicantsViewControls,
+  type ApplicantsSort,
+  APPLICANTS_SORTS,
+} from '@/components/employer/applicants-view-controls'
+import { APPLICATION_STAGES, type ApplicationStage } from '@/lib/constants/application-stages'
 
 const PAGE_SIZE = 20
 
-async function getApplicants(userId: string, page: number) {
+interface ApplicantsFilters {
+  jobId?: string
+  stage?: ApplicationStage
+  sort: ApplicantsSort
+}
+
+async function getApplicants(userId: string, page: number, filters: ApplicantsFilters) {
   // Get user's organization
   const userOrgRole = await prisma.userOrgRole.findFirst({
     where: { userId },
@@ -24,7 +36,9 @@ async function getApplicants(userId: string, page: number) {
   const where = {
     job: {
       orgId: userOrgRole.orgId,
+      ...(filters.jobId ? { id: filters.jobId } : {}),
     },
+    ...(filters.stage ? { stage: filters.stage } : {}),
   }
 
   // Paginated query + total count — both scoped to the caller's org
@@ -35,8 +49,10 @@ async function getApplicants(userId: string, page: number) {
         id: true,
         stage: true,
         createdAt: true,
+        candidateId: true,
         job: {
           select: {
+            id: true,
             title: true,
           },
         },
@@ -50,17 +66,34 @@ async function getApplicants(userId: string, page: number) {
                 email: true,
               },
             },
+            // Candidate photo (recruiter-imported candidates have userId=null → no avatar)
+            user: { select: { avatar: true } },
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: filters.sort === 'date_asc' ? 'asc' : 'desc' },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
     prisma.application.count({ where }),
   ])
 
-  return { applications, total, orgId: userOrgRole.orgId }
+  // Batch-load match scores for the page rows (MatchScore isn't a direct relation).
+  const scoreMap = new Map<string, number>()
+  if (applications.length > 0) {
+    const matchScores = await prisma.matchScore.findMany({
+      where: {
+        orgId: userOrgRole.orgId,
+        OR: applications.map((a) => ({ jobId: a.job.id, candidateId: a.candidateId })),
+      },
+      select: { jobId: true, candidateId: true, score0to100: true, overrideScore: true },
+    })
+    for (const m of matchScores) {
+      scoreMap.set(`${m.jobId}:${m.candidateId}`, m.overrideScore ?? m.score0to100)
+    }
+  }
+
+  return { applications, total, orgId: userOrgRole.orgId, scoreMap }
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -75,7 +108,7 @@ export default async function ApplicantsPage({
   searchParams,
 }: {
   params: { locale: string }
-  searchParams?: { page?: string }
+  searchParams?: { page?: string; jobId?: string; stage?: string; sort?: string }
 }) {
   const session = await auth()
 
@@ -84,16 +117,30 @@ export default async function ApplicantsPage({
   }
 
   const page = Math.max(1, parseInt(searchParams?.page ?? '1', 10) || 1)
-  const result = await getApplicants(session.user.id, page)
+  const currentJobId = searchParams?.jobId
+  const currentStage = APPLICATION_STAGES.includes(searchParams?.stage as ApplicationStage)
+    ? (searchParams?.stage as ApplicationStage)
+    : undefined
+  const currentSort: ApplicantsSort = APPLICANTS_SORTS.includes(
+    searchParams?.sort as ApplicantsSort,
+  )
+    ? (searchParams?.sort as ApplicantsSort)
+    : 'date_desc'
+
+  const result = await getApplicants(session.user.id, page, {
+    jobId: currentJobId,
+    stage: currentStage,
+    sort: currentSort,
+  })
 
   if (!result) {
     redirect(`/${params.locale}/dashboard`)
   }
 
-  const { applications, total } = result
+  const { applications, total, scoreMap } = result
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
-  // Stats require DB-side aggregation — use groupBy so we don't load extra rows
+  // Stats require DB-side aggregation — org-wide overview (unaffected by filters).
   const stageCounts = await prisma.application.groupBy({
     by: ['stage'],
     where: {
@@ -109,9 +156,16 @@ export default async function ApplicantsPage({
   const stats = {
     total,
     new: stageMap['NEW'] ?? 0,
-    reviewing: (stageMap['SCREENING'] ?? 0) + (stageMap['PHONE_SCREEN'] ?? 0),
+    reviewing: stageMap['SCREENING'] ?? 0,
     interviewed: stageMap['INTERVIEW'] ?? 0,
   }
+
+  // Load org jobs for the position filter dropdown.
+  const jobs = await prisma.job.findMany({
+    where: { orgId: result.orgId },
+    select: { id: true, title: true },
+    orderBy: { createdAt: 'desc' },
+  })
 
   const tableApplications = applications.map((a) => ({
     id: a.id,
@@ -120,11 +174,24 @@ export default async function ApplicantsPage({
     jobTitle: a.job.title,
     stage: a.stage,
     createdAt: a.createdAt,
+    avatar: a.candidate.user?.avatar ?? null,
+    score: scoreMap.get(`${a.job.id}:${a.candidateId}`) ?? null,
   }))
 
-  // Build a page href preserving any future filters
+  // Score sort reorders the page; date sort is already applied at DB level.
+  if (currentSort === 'score_desc') {
+    tableApplications.sort((x, y) => (y.score ?? -1) - (x.score ?? -1))
+  }
+
+  // Build a page href preserving the active filters
   function pageHref(p: number) {
-    return `/${params.locale}/employer/applicants${p > 1 ? `?page=${p}` : ''}`
+    const sp = new URLSearchParams()
+    if (p > 1) sp.set('page', String(p))
+    if (currentJobId) sp.set('jobId', currentJobId)
+    if (currentStage) sp.set('stage', currentStage)
+    if (currentSort !== 'date_desc') sp.set('sort', currentSort)
+    const qs = sp.toString()
+    return `/${params.locale}/employer/applicants${qs ? `?${qs}` : ''}`
   }
 
   return (
@@ -139,18 +206,20 @@ export default async function ApplicantsPage({
         </Button>
 
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="mb-2 text-3xl font-bold">Všetci kandidáti</h1>
             <p className="text-muted-foreground">Prehľad všetkých prihlášok</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`/${params.locale}/employer/pipeline`}>
-                <Kanban className="mr-2 h-4 w-4" />
-                Zobraziť ako board
-              </Link>
-            </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <ApplicantsViewControls
+              view="list"
+              locale={params.locale}
+              jobs={jobs}
+              currentJobId={currentJobId}
+              currentStage={currentStage}
+              currentSort={currentSort}
+            />
             <ExportCSVButton />
           </div>
         </div>
