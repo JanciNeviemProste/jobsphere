@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import {
   APPLICATION_STAGES,
   STAGE_LABELS_SK,
@@ -44,6 +46,8 @@ function candidateName(app: ApplicationCard): string {
 }
 
 export function PipelineBoard({ applications, currentJobId }: PipelineBoardProps) {
+  const pathname = usePathname()
+  const locale = pathname.split('/')[1] || 'en'
   const [cards, setCards] = useState<ApplicationCard[]>(applications)
   const dragId = useRef<string | null>(null)
 
@@ -117,7 +121,13 @@ export function PipelineBoard({ applications, currentJobId }: PipelineBoardProps
                       onDragStart={() => handleDragStart(card.id)}
                       className="cursor-grab rounded-lg border bg-background p-3 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing"
                     >
-                      <p className="truncate text-sm font-medium">{candidateName(card)}</p>
+                      <Link
+                        href={`/${locale}/employer/applicants/${card.id}`}
+                        className="block truncate text-sm font-medium hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {candidateName(card)}
+                      </Link>
                       {jobTitle(card)}
                       <p className="mt-1 text-xs text-muted-foreground">
                         {relativeTime(card.createdAt)}

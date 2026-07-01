@@ -86,6 +86,11 @@ export function Header() {
                     {t('nav.dashboard')}
                   </Link>
                 </DropdownMenuItem>
+                {session.user.orgId && (
+                  <DropdownMenuItem asChild>
+                    <Link href={`/${locale}/employer/settings`}>Nastavenia spoločnosti</Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
                   <Link href={`/${locale}/dashboard/profile`}>{t('nav.profile')}</Link>
                 </DropdownMenuItem>

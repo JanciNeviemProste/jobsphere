@@ -74,7 +74,14 @@ export function InviteMemberDialog({ onSuccess }: InviteMemberDialogProps) {
         throw new Error(result.error || 'Failed to invite member')
       }
 
-      toast.success('Member invited successfully')
+      if (result.emailSent === false) {
+        toast.warning(
+          result.message ||
+            'Member added, but the invitation e-mail could not be sent — check the e-mail settings.',
+        )
+      } else {
+        toast.success('Member invited successfully')
+      }
 
       form.reset()
       setOpen(false)

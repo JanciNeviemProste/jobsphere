@@ -72,16 +72,18 @@ export default function SearchCandidatesClient({
     loadJob()
   }, [params.id])
 
-  const handleSearch = async () => {
+  const handleSearch = async (overrideLimit?: number) => {
     try {
       setIsSearching(true)
+
+      const effectiveLimit = overrideLimit ?? limit
 
       const response = await fetch('/api/candidates/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           jobId: params.id,
-          limit,
+          limit: effectiveLimit,
           minSimilarity,
           includeDetails: true,
         }),
@@ -139,6 +141,29 @@ export default function SearchCandidatesClient({
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
+                <Label>Rýchly výber (AI matching)</Label>
+                <div className="mt-1 grid grid-cols-3 gap-2">
+                  {[5, 15, 30].map((n) => (
+                    <Button
+                      key={n}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isSearching}
+                      onClick={() => {
+                        setLimit(n)
+                        handleSearch(n)
+                      }}
+                    >
+                      Top {n}
+                    </Button>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Top 30 = celá databáza uchádzačov vašej firmy
+                </p>
+              </div>
+              <div>
                 <Label htmlFor="limit">Max Results</Label>
                 <Input
                   id="limit"
@@ -171,7 +196,7 @@ export default function SearchCandidatesClient({
                 </div>
               </div>
 
-              <Button onClick={handleSearch} disabled={isSearching} className="w-full">
+              <Button onClick={() => handleSearch()} disabled={isSearching} className="w-full">
                 {isSearching ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

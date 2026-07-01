@@ -95,8 +95,8 @@ function getDateLocale(locale: string) {
 }
 
 const WORK_MODES = ['REMOTE', 'HYBRID', 'ONSITE']
-const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT']
-const SENIORITY_LEVELS = ['JUNIOR', 'MEDIOR', 'SENIOR', 'LEAD']
+const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'FREELANCE', 'INTERNSHIP']
+const SENIORITY_LEVELS = ['JUNIOR', 'MID', 'SENIOR', 'LEAD', 'EXECUTIVE']
 
 interface Props {
   params: { locale: string }
@@ -107,6 +107,7 @@ interface Props {
   pageSize: number
   initialFilters?: {
     search?: string
+    location?: string
     workMode?: string
     jobType?: string
     seniority?: string
@@ -139,6 +140,7 @@ export default function JobsClient({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState(initialFilters.search ?? '')
+  const [locationQuery, setLocationQuery] = useState(initialFilters.location ?? '')
   const [selectedWorkModes, setSelectedWorkModes] = useState<string[]>(
     initialFilters.workMode ? [initialFilters.workMode] : [],
   )
@@ -150,11 +152,13 @@ export default function JobsClient({
   )
 
   const debouncedSearch = useDebounce(searchQuery, 500)
+  const debouncedLocation = useDebounce(locationQuery, 500)
 
   // Build URL search params for navigation & API calls
   function buildParams(page: number, overrides?: Record<string, string | undefined>) {
     const p = new URLSearchParams()
     const s = overrides?.search ?? debouncedSearch
+    const loc = overrides?.location ?? debouncedLocation
     const wm =
       overrides?.workMode ?? (selectedWorkModes.length === 1 ? selectedWorkModes[0] : undefined)
     const jt =
@@ -162,6 +166,7 @@ export default function JobsClient({
     const sen =
       overrides?.seniority ?? (selectedSeniority.length === 1 ? selectedSeniority[0] : undefined)
     if (s) p.set('search', s)
+    if (loc) p.set('location', loc)
     if (wm) p.set('workMode', wm)
     if (jt) p.set('jobType', jt)
     if (sen) p.set('seniority', sen)
@@ -178,6 +183,7 @@ export default function JobsClient({
       try {
         const p = new URLSearchParams()
         if (debouncedSearch) p.set('search', debouncedSearch)
+        if (debouncedLocation) p.set('location', debouncedLocation)
         if (selectedWorkModes.length === 1) p.set('workMode', selectedWorkModes[0])
         if (selectedJobTypes.length === 1) p.set('jobType', selectedJobTypes[0])
         if (selectedSeniority.length === 1) p.set('seniority', selectedSeniority[0])
@@ -219,7 +225,14 @@ export default function JobsClient({
         setLoading(false)
       }
     },
-    [debouncedSearch, selectedWorkModes, selectedJobTypes, selectedSeniority, pageSize],
+    [
+      debouncedSearch,
+      debouncedLocation,
+      selectedWorkModes,
+      selectedJobTypes,
+      selectedSeniority,
+      pageSize,
+    ],
   )
 
   // Re-fetch when filters change (reset to page 1)
@@ -234,7 +247,7 @@ export default function JobsClient({
     })
     return () => ctrl.abort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, selectedWorkModes, selectedJobTypes, selectedSeniority])
+  }, [debouncedSearch, debouncedLocation, selectedWorkModes, selectedJobTypes, selectedSeniority])
 
   const goToPage = (page: number) => {
     const ctrl = new AbortController()
@@ -274,8 +287,29 @@ export default function JobsClient({
         return t('jobs.partTime')
       case 'CONTRACT':
         return t('jobs.contract')
+      case 'FREELANCE':
+        return 'Freelance'
+      case 'INTERNSHIP':
+        return 'Stáž'
       default:
         return type
+    }
+  }
+
+  const getSeniorityLabel = (level: string) => {
+    switch (level) {
+      case 'JUNIOR':
+        return 'Junior'
+      case 'MID':
+        return 'Medior'
+      case 'SENIOR':
+        return 'Senior'
+      case 'LEAD':
+        return 'Lead'
+      case 'EXECUTIVE':
+        return 'Executive'
+      default:
+        return level
     }
   }
 
@@ -310,12 +344,24 @@ export default function JobsClient({
 
         {/* Search and Filters */}
         <div className="mb-8 flex flex-col gap-4 md:flex-row">
+          {/* 1. Pracovná pozícia */}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={t('jobs.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* 2. Lokalita */}
+          <div className="relative flex-1">
+            <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Lokalita (mesto alebo región)"
+              value={locationQuery}
+              onChange={(e) => setLocationQuery(e.target.value)}
               className="pl-10"
             />
           </div>
@@ -405,7 +451,7 @@ export default function JobsClient({
                       toggleFilter(level, selectedSeniority, setSelectedSeniority)
                     }
                   >
-                    {level}
+                    {getSeniorityLabel(level)}
                   </DropdownMenuCheckboxItem>
                 ))}
               </DropdownMenuContent>
@@ -455,7 +501,9 @@ export default function JobsClient({
                       <CardTitle className="line-clamp-2">{job.title}</CardTitle>
                       <CardDescription className="mt-1">{job.organization.name}</CardDescription>
                     </div>
-                    {job.seniority && <Badge variant="secondary">{job.seniority}</Badge>}
+                    {job.seniority && (
+                      <Badge variant="secondary">{getSeniorityLabel(job.seniority)}</Badge>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1 space-y-3">
@@ -506,6 +554,7 @@ export default function JobsClient({
               className="mt-4"
               onClick={() => {
                 setSearchQuery('')
+                setLocationQuery('')
                 setSelectedWorkModes([])
                 setSelectedJobTypes([])
                 setSelectedSeniority([])
