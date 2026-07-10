@@ -3,7 +3,7 @@ import CVUploadClient from './cv-upload-client'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Upload CV | JobSphere',
+    title: 'Upload CV',
     description: 'Upload your resume and let AI extract your information automatically.',
   }
 }

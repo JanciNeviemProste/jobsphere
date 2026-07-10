@@ -8,7 +8,7 @@ import { prisma } from '@/lib/prisma'
 import { UsersClient } from './users-client'
 
 export const metadata: Metadata = {
-  title: 'Správa používateľov | Admin | JobSphere',
+  title: 'Správa používateľov | Admin',
 }
 
 interface PageProps {

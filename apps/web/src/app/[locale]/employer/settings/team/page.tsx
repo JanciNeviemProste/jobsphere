@@ -3,7 +3,7 @@ import TeamManagementClient from './team-client'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Team Management | JobSphere',
+    title: 'Team Management',
     description: 'Manage your organization team members and their roles.',
   }
 }

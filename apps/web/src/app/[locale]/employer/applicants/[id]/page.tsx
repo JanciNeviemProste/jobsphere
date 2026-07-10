@@ -210,7 +210,7 @@ async function getApplicationDetail(applicationId: string, userId: string) {
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Detail uchádzača | JobSphere',
+    title: 'Detail uchádzača',
     description: 'Zobraziť detaily uchádzača, životopis a históriu prihlášky.',
   }
 }

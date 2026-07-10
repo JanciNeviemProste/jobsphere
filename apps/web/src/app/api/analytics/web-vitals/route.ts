@@ -3,6 +3,7 @@
  * Receives and stores Web Vitals metrics
  */
 
+import { createHash } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
@@ -30,8 +31,20 @@ export const POST = withRateLimit(
 
       // Get user agent and IP for context
       const userAgent = req.headers.get('user-agent') || 'unknown'
-      const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+      const rawIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
       const url = req.headers.get('referer') || 'unknown'
+
+      // Anonymize the IP before storing/logging (GDPR): keep a truncated,
+      // salted one-way hash instead of the raw address so metrics can't be
+      // tied back to an individual visitor.
+      const clientIp = rawIp.split(',')[0].trim()
+      const ipHash =
+        clientIp === 'unknown'
+          ? 'unknown'
+          : createHash('sha256')
+              .update(clientIp + (process.env.NEXTAUTH_SECRET || ''))
+              .digest('hex')
+              .slice(0, 16)
 
       // Log the metric
       logger.info('Web Vital recorded', {
@@ -41,7 +54,7 @@ export const POST = withRateLimit(
         navigationType: metric.navigationType,
         userAgent,
         url,
-        ip: ip.split(',')[0].trim(), // Take first IP if multiple
+        ip: ipHash,
       })
 
       // Store in database for long-term analysis
@@ -56,7 +69,7 @@ export const POST = withRateLimit(
           timestamp: new Date(metric.timestamp),
           userAgent,
           url,
-          ip: ip.split(',')[0].trim(),
+          ip: ipHash,
         },
       })
 

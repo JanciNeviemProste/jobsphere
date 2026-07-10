@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'O nás | JobSphere',
+    title: 'O nás',
     description: 'O JobSphere — AI-powered ATS pre moderný svet.',
   }
 }

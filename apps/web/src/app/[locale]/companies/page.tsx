@@ -10,7 +10,7 @@ import { logger } from '@/lib/logger'
 export const revalidate = 3600 // Revalidate company directory every hour
 
 export const metadata: Metadata = {
-  title: 'Profily firiem | JobSphere',
+  title: 'Profily firiem',
   description: 'Prezrite si firmy, ktoré hľadajú nových kolegov na JobSphere.',
 }
 

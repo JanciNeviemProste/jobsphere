@@ -10,7 +10,7 @@ import { ArrowLeft, CalendarClock, Video, MapPin, Phone } from 'lucide-react'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Kalendár pohovorov | JobSphere',
+    title: 'Kalendár pohovorov',
     description: 'Prehľad naplánovaných pohovorov vašej organizácie.',
   }
 }

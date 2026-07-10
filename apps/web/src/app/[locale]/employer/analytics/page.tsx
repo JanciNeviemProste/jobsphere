@@ -40,7 +40,7 @@ const ApplicationsTrend = dynamic(
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Analytics Dashboard | JobSphere',
+    title: 'Analytics Dashboard',
     description: 'View recruitment analytics, application trends, and hiring metrics.',
   }
 }

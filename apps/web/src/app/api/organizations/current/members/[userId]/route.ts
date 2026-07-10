@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { withCsrfProtection } from '@/lib/csrf'
+import { withRateLimit } from '@/lib/rate-limit'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 
@@ -157,6 +158,7 @@ async function deleteHandler(request: Request, context?: { params?: Record<strin
   }
 }
 
-// Export handlers with CSRF protection
-export const PATCH = withCsrfProtection(patchHandler)
-export const DELETE = withCsrfProtection(deleteHandler)
+// Export handlers with CSRF protection + strict rate limiting (sensitive
+// org-membership mutations)
+export const PATCH = withCsrfProtection(withRateLimit(patchHandler, { preset: 'strict' }))
+export const DELETE = withCsrfProtection(withRateLimit(deleteHandler, { preset: 'strict' }))

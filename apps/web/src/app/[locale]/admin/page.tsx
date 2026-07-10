@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Users, Building2, Briefcase, CreditCard } from 'lucide-react'
 
 export const metadata = {
-  title: 'Admin Dashboard | JobSphere',
+  title: 'Admin Dashboard',
 }
 
 function formatDate(date: Date): string {

@@ -9,12 +9,35 @@ interface LogContext {
   [key: string]: any
 }
 
+// Keys whose values must never be written to logs (case-insensitive substring).
+const SENSITIVE_KEY_PATTERN = /token|secret|password|authorization/i
+
+/**
+ * Recursively redact values whose key looks sensitive so secrets/PII never
+ * reach the log sink. Non-plain values (arrays, primitives) are returned as-is.
+ */
+function redactPii(value: unknown, seen = new WeakSet<object>()): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => redactPii(item, seen))
+  }
+  if (value && typeof value === 'object') {
+    if (seen.has(value as object)) return value
+    seen.add(value as object)
+    const result: Record<string, unknown> = {}
+    for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+      result[key] = SENSITIVE_KEY_PATTERN.test(key) ? '[REDACTED]' : redactPii(val, seen)
+    }
+    return result
+  }
+  return value
+}
+
 class Logger {
   private isDevelopment = process.env.NODE_ENV === 'development'
 
   private formatMessage(level: LogLevel, message: string, context?: LogContext): string {
     const timestamp = new Date().toISOString()
-    const contextStr = context ? `\n${JSON.stringify(context, null, 2)}` : ''
+    const contextStr = context ? `\n${JSON.stringify(redactPii(context), null, 2)}` : ''
     return `[${timestamp}] [${level.toUpperCase()}] ${message}${contextStr}`
   }
 

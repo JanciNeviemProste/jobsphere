@@ -8,6 +8,7 @@ export const runtime = 'nodejs'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
+import { auth } from '@/lib/auth'
 import { withRateLimit } from '@/lib/rate-limit'
 import { withCsrfProtection } from '@/lib/csrf'
 import { logger } from '@/lib/logger'
@@ -19,6 +20,11 @@ export const POST = withCsrfProtection<NextRequest>(
   withRateLimit<NextRequest>(
     async (request: NextRequest) => {
       try {
+        const session = await auth()
+        if (!session?.user?.id) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
         const formData = await request.formData()
         const file = formData.get('file') as File | null
 

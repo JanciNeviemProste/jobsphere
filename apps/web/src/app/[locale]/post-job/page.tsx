@@ -3,7 +3,7 @@ import PostJobClient from './post-job-client'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Post a Job | JobSphere',
+    title: 'Post a Job',
     description: 'Create and publish a job posting to find the best candidates.',
   }
 }

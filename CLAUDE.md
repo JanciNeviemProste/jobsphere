@@ -634,7 +634,9 @@ Príkazy projektu: typecheck=`yarn typecheck` · lint=`yarn lint` · test=`yarn 
 
 ## Security posture
 
-skóre: **100/100** (pred remediáciou 69) | otvorené P0/P1: **0** (všetkých 10 nálezov fixed/verified) | posledný audit: **2026-06-29** (Vrstva 2) | report: `bezpecnostny-audit/SECURITY_REPORT_2026-06-29.md` · tracking: `bezpecnostny-audit/findings.json`
+skóre: **91/100** (po remediácii 2026-07-10; audit odhalil 62, opravené H1 + 5 Medium + 6 Low na vetve `fix/pre-prod-security-remediation`) | otvorené: **0 Critical · 0 High** · 1 Medium deferred (M5 — mŕtve šifrovanie IMAP/SMTP, schema refactor) + scraper consent (legal) | verdikt: **GO** — jadro čisté, build zelený, testy zelené | posledný audit: **2026-07-10** (10-agentový live+kód test) | report: `PRODUCTION_TEST_REPORT.md`
+
+> Predošlá baseline (100/100, 2026-06-29): `bezpecnostny-audit/SECURITY_REPORT_2026-06-29.md` · tracking: `bezpecnostny-audit/findings.json`. M5 = samostatný follow-up PR (workeri + Prisma schéma, testovať mimo prod).
 
 > Re-baseline: `Read SECURITY_AUDIT_TESTS_REPORT.md and execute it as a prompt.` · diff-scoped DoD: `/po-zmene`.
 

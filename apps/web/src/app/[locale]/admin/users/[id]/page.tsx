@@ -25,7 +25,7 @@ import {
 } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'Detail používateľa | Admin | JobSphere',
+  title: 'Detail používateľa | Admin',
 }
 
 interface PageProps {

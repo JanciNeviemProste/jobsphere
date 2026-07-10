@@ -10,7 +10,7 @@ export const revalidate = 60
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Zákazky pre freelancerov | JobSphere',
+    title: 'Zákazky pre freelancerov',
     description: 'Otvorené zákazky od firiem — pošli ponuku a dohodni sa na cene a trvaní.',
   }
 }

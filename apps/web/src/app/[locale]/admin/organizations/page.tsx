@@ -14,6 +14,11 @@ import {
 } from '@/components/ui/table'
 import { OrgActionButton } from './_components/org-action-button'
 import { CreateOrgButton } from './_components/create-org-button'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Správa organizácií | Admin',
+}
 
 export default async function AdminOrganizationsPage({ params }: { params: { locale: string } }) {
   const session = await auth()

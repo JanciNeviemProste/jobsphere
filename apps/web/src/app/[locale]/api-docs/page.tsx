@@ -3,7 +3,7 @@ import ApiDocsClient from './api-docs-client'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'API Documentation | JobSphere',
+    title: 'API Documentation',
     description: 'Complete API reference for the JobSphere ATS platform.',
   }
 }
