@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Kariérne rady | JobSphere',
+    title: 'Kariérne rady',
     description: 'Praktické rady pre uchádzačov o prácu — od CV po nástup.',
   }
 }

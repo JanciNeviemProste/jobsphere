@@ -98,7 +98,7 @@ async function getApplicants(userId: string, page: number, filters: ApplicantsFi
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'All Applicants | JobSphere',
+    title: 'All Applicants',
     description: 'View and manage all job applicants across your organization.',
   }
 }

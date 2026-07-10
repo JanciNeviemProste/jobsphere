@@ -27,9 +27,9 @@ export const GET = withRateLimit(
         return NextResponse.json({ cvs: [] })
       }
 
-      // Get candidate profile for this organization
+      // Get candidate profile for this organization (must belong to the caller)
       const candidate = await prisma.candidate.findFirst({
-        where: { orgId: userOrg.orgId },
+        where: { orgId: userOrg.orgId, userId: session.user.id },
       })
 
       if (!candidate) {

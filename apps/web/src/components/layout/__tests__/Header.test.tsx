@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { Header } from '../Header'
+import { Header } from '../header'
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
@@ -8,6 +8,9 @@ vi.mock('next-intl', () => ({
     const translations: Record<string, string> = {
       'nav.home': 'Home',
       'nav.jobs': 'Jobs',
+      'nav.companies': 'Company Profiles',
+      'nav.freelancers': 'Freelancers',
+      'nav.gigs': 'Gigs',
       'nav.forEmployers': 'For Employers',
       'nav.pricing': 'Pricing',
       'nav.login': 'Log In',

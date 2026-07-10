@@ -7,6 +7,9 @@
   "nav": {
     "home": "Domov",
     "jobs": "Ponuky",
+    "companies": "Profily firiem",
+    "freelancers": "Freelanceri",
+    "gigs": "Zákazky",
     "forEmployers": "Pre zamestnávateľov",
     "pricing": "Cenník",
     "login": "Prihlásiť sa",

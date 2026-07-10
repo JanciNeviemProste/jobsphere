@@ -75,7 +75,7 @@ export async function generateMetadata({
     `${company.name}${company.industry ? ` — ${company.industry}` : ''} | JobSphere`
 
   return {
-    title: `${company.name} | JobSphere`,
+    title: company.name,
     description,
     openGraph: {
       title: `${company.name} | JobSphere`,

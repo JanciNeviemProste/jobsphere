@@ -118,13 +118,7 @@ export const POST = withRateLimit(
       })
     } catch (error) {
       logger.error('Candidate search error:', error)
-      return NextResponse.json(
-        {
-          error: 'Failed to search candidates',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        },
-        { status: 500 },
-      )
+      return NextResponse.json({ error: 'Failed to search candidates' }, { status: 500 })
     }
   },
   { preset: 'api' },

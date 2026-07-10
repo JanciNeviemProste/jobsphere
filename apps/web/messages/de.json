@@ -7,6 +7,9 @@
   "nav": {
     "home": "Startseite",
     "jobs": "Stellenangebote",
+    "companies": "Firmenprofile",
+    "freelancers": "Freelancer",
+    "gigs": "Aufträge",
     "forEmployers": "Für Arbeitgeber",
     "pricing": "Preise",
     "login": "Anmelden",

@@ -5,8 +5,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
+import { z } from 'zod'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { encrypt } from '@/lib/encryption'
+import { withCsrfProtection } from '@/lib/csrf'
+import { withRateLimit } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
@@ -66,72 +70,83 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Manual token payload validation
+const manualTokenSchema = z.object({
+  accessToken: z.string().min(1),
+  refreshToken: z.string().optional(),
+  email: z.string().email(),
+})
+
 /**
  * POST /api/email/oauth/microsoft
  * Manuálne pridanie access tokenu (pre testovanie)
  */
-export async function POST(request: NextRequest) {
-  try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+export const POST = withCsrfProtection<NextRequest>(
+  withRateLimit<NextRequest>(
+    async (request: NextRequest) => {
+      try {
+        const session = await auth()
+        if (!session?.user?.id) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
 
-    const { accessToken, refreshToken, email } = await request.json()
+        const parsed = manualTokenSchema.safeParse(await request.json())
+        if (!parsed.success) {
+          return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+        }
+        const { accessToken, refreshToken, email } = parsed.data
 
-    // Validate tokens
-    if (!accessToken || !email) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-    }
+        // Find user's organization
+        const orgMember = await prisma.userOrgRole.findFirst({
+          where: { userId: session.user.id },
+        })
 
-    // Find user's organization
-    const orgMember = await prisma.userOrgRole.findFirst({
-      where: { userId: session.user.id },
-    })
+        if (!orgMember) {
+          return NextResponse.json({ error: 'User not in organization' }, { status: 400 })
+        }
 
-    if (!orgMember) {
-      return NextResponse.json({ error: 'User not in organization' }, { status: 400 })
-    }
+        // Encrypt OAuth tokens before storing
+        const encryptedTokens = encrypt(
+          JSON.stringify({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+            expires_in: 3600,
+            token_type: 'Bearer',
+          }),
+        )
 
-    // Create or update email account
-    const emailAccount = await prisma.emailAccount.upsert({
-      where: {
-        orgId_email: {
-          email,
-          orgId: orgMember.orgId,
-        },
-      },
-      create: {
-        email,
-        provider: 'MICROSOFT',
-        orgId: orgMember.orgId,
-        oauthJson: {
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          expires_in: 3600,
-          token_type: 'Bearer',
-        },
-        isActive: true,
-      },
-      update: {
-        oauthJson: {
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          expires_in: 3600,
-          token_type: 'Bearer',
-        },
-        isActive: true,
-        lastSyncAt: new Date(),
-      },
-    })
+        // Create or update email account
+        const emailAccount = await prisma.emailAccount.upsert({
+          where: {
+            orgId_email: {
+              email,
+              orgId: orgMember.orgId,
+            },
+          },
+          create: {
+            email,
+            provider: 'MICROSOFT',
+            orgId: orgMember.orgId,
+            oauthJson: encryptedTokens,
+            isActive: true,
+          },
+          update: {
+            oauthJson: encryptedTokens,
+            isActive: true,
+            lastSyncAt: new Date(),
+          },
+        })
 
-    return NextResponse.json({
-      success: true,
-      accountId: emailAccount.id,
-      email: emailAccount.email,
-    })
-  } catch (error) {
-    logger.error('Microsoft OAuth save error', { error })
-    return NextResponse.json({ error: 'Failed to save account' }, { status: 500 })
-  }
-}
+        return NextResponse.json({
+          success: true,
+          accountId: emailAccount.id,
+          email: emailAccount.email,
+        })
+      } catch (error) {
+        logger.error('Microsoft OAuth save error', { error })
+        return NextResponse.json({ error: 'Failed to save account' }, { status: 500 })
+      }
+    },
+    { preset: 'api', byUser: true },
+  ),
+)

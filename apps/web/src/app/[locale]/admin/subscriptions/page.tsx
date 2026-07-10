@@ -11,6 +11,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Predplatné | Admin',
+}
 
 const STATUS_COLORS: Record<string, string> = {
   active: 'bg-green-100 text-green-800 hover:bg-green-100',

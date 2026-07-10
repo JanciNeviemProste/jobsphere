@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'GDPR Compliance | JobSphere',
+    title: 'GDPR Compliance',
     description: 'GDPR compliance a Vaše práva dotknutej osoby.',
   }
 }

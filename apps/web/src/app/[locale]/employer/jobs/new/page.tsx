@@ -7,7 +7,7 @@ type Props = {
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Post New Job | JobSphere',
+    title: 'Post New Job',
     description: 'Create and publish a new job posting for your organization.',
   }
 }

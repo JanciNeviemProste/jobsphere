@@ -7,6 +7,9 @@
   "nav": {
     "home": "Home",
     "jobs": "Jobs",
+    "companies": "Company Profiles",
+    "freelancers": "Freelancers",
+    "gigs": "Gigs",
     "forEmployers": "For Employers",
     "pricing": "Pricing",
     "login": "Log in",

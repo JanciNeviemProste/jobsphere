@@ -3,7 +3,7 @@ import AssessmentBuilderClient from './assessment-builder-client'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Create Assessment | JobSphere',
+    title: 'Create Assessment',
     description: 'Build skills assessments with sections and questions for candidates.',
   }
 }

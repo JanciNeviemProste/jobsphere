@@ -7,7 +7,7 @@ type Props = {
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Forgot Password | JobSphere',
+    title: 'Forgot Password',
     description: 'Reset your JobSphere account password.',
   }
 }

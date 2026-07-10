@@ -23,9 +23,11 @@ export const GET = withRateLimit(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
 
-      // Get user's candidate and their first resume
+      // Get user's candidate and their first resume. Resolve via the canonical
+      // Candidate.userId link (the previous `orgId: session.user.id` compared the
+      // org column against a User id and always returned null).
       const candidate = await prisma.candidate.findFirst({
-        where: { orgId: session.user.id },
+        where: { userId: session.user.id, deletedAt: null },
       })
 
       if (!candidate) {

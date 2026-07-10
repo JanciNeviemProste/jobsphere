@@ -5,6 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { FeatureFlagToggle } from './_components/feature-flag-toggle'
 import { SettingEditDialog } from './_components/setting-edit-dialog'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Nastavenia | Admin',
+}
 
 export default async function AdminSettingsPage({ params }: { params: { locale: string } }) {
   const session = await auth()

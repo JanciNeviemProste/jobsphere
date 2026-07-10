@@ -3,7 +3,7 @@ import SettingsClient from './settings-client'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Company Settings | JobSphere',
+    title: 'Company Settings',
     description: 'Manage your organization settings, team members, and billing.',
   }
 }

@@ -535,10 +535,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const module = moduleContent[params.moduleId]
   if (!module) {
-    return { title: 'Module Not Found | JobSphere' }
+    return { title: 'Module Not Found' }
   }
   return {
-    title: `${module.title} | Career Academy | JobSphere`,
+    title: `${module.title} | Career Academy`,
     description: module.description,
   }
 }

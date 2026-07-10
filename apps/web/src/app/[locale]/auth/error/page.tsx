@@ -3,7 +3,7 @@ import AuthErrorClient from './auth-error-client'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Authentication Error | JobSphere',
+    title: 'Authentication Error',
     description: 'An authentication error occurred. Please try again.',
   }
 }

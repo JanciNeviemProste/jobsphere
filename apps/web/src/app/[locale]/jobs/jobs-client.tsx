@@ -40,6 +40,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { sk, cs, pl, de, enUS } from 'date-fns/locale'
 import { RecommendedJobsSection } from '@/components/jobs/RecommendedJobsSection'
 import { logger } from '@/lib/logger'
+import { stripMarkdown } from '@/lib/utils'
 
 // Job type from database
 interface Job {
@@ -527,7 +528,9 @@ export default function JobsClient({
                     <Badge variant="outline">{getJobTypeLabel(job.type)}</Badge>
                   </div>
                   {job.description && (
-                    <p className="line-clamp-2 text-sm text-muted-foreground">{job.description}</p>
+                    <p className="line-clamp-2 text-sm text-muted-foreground">
+                      {stripMarkdown(job.description)}
+                    </p>
                   )}
                 </CardContent>
                 <CardFooter className="flex items-center justify-between">

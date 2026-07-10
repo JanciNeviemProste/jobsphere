@@ -43,7 +43,7 @@ export async function generateMetadata({
   params: { locale: string }
 }): Promise<Metadata> {
   return {
-    title: 'Saved Jobs | JobSphere',
+    title: 'Saved Jobs',
     description: 'View and manage your saved job listings.',
   }
 }

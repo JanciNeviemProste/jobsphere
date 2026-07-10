@@ -14,6 +14,11 @@ import {
 import { JobStatusSelect } from './_components/job-status-select'
 import { JobStatusFilter } from './_components/job-status-filter'
 import { CreateJobButton } from './_components/create-job-button'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Správa ponúk | Admin',
+}
 
 const STATUS_COLORS: Record<string, string> = {
   PUBLISHED: 'bg-green-100 text-green-800 hover:bg-green-100',

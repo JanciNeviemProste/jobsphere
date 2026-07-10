@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Ochrana súkromia | JobSphere',
+    title: 'Ochrana súkromia',
     description: 'Zásady ochrany osobných údajov platformy JobSphere.',
   }
 }

@@ -18,7 +18,7 @@ const PER_STAGE_CAP = 50
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Pipeline | JobSphere',
+    title: 'Pipeline',
     description: 'Kanban board prehľad kandidátov.',
   }
 }

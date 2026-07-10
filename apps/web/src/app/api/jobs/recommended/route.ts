@@ -52,10 +52,13 @@ export const GET = withRateLimit(
       }
 
       // Fallback to simple matching if AI is not available
-      // Get user's candidate profile first
+      // Get user's candidate profile first. Resolve via the canonical
+      // Candidate.userId link (the previous `orgId: session.user.id` compared the
+      // org column against a User id and always returned null).
       const candidate = await prisma.candidate.findFirst({
         where: {
-          orgId: session.user.id,
+          userId: session.user.id,
+          deletedAt: null,
         },
       })
 

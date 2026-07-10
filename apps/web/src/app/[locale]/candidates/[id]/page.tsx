@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: 'Candidate Profile | JobSphere',
+    title: 'Candidate Profile',
     description: 'View candidate profile, resume, and match scores.',
   }
 }
