@@ -133,9 +133,11 @@ export class ApplicationService {
     input: { status?: string; notes?: string; tags?: string[] },
     userId: string,
   ) {
+    // Only `job.orgId` is read below (for the audit log) — select it rather than
+    // pulling every Job column (description, requirements, JSON blobs, …).
     const existingApplication = await prisma.application.findUnique({
       where: { id: applicationId },
-      include: { job: true },
+      select: { id: true, job: { select: { orgId: true } } },
     })
 
     if (!existingApplication) {
@@ -179,9 +181,11 @@ export class ApplicationService {
   ) {
     const result = await prisma.$transaction(async (tx: any) => {
       // Get organization ID for audit
+      // Only the count and the first row's job.orgId are read — no need for full
+      // Application + Job rows.
       const applications = await tx.application.findMany({
         where: { id: { in: applicationIds } },
-        include: { job: true },
+        select: { id: true, job: { select: { orgId: true } } },
       })
 
       if (applications.length === 0) {
@@ -244,25 +248,93 @@ export class ApplicationService {
       }),
     } as Prisma.ApplicationWhereInput
 
-    const applications = await prisma.application.findMany({
-      where,
-      include: {
-        candidate: {
-          include: {
-            contacts: true,
+    // Explicit select: a bare `include` on Job pulls description (up to 10k chars),
+    // requirements/responsibilities/benefits and the pipeline/translations/
+    // screeningQuestions JSON blobs for every one of up to `limit` rows. Candidate
+    // is all cheap scalars, so it keeps its full row + contacts.
+    // Rows + total are independent — run them concurrently.
+    const [applications, total] = await Promise.all([
+      prisma.application.findMany({
+        where,
+        select: {
+          id: true,
+          candidateId: true,
+          jobId: true,
+          orgId: true,
+          stage: true,
+          score: true,
+          assignedTo: true,
+          tags: true,
+          source: true,
+          referredBy: true,
+          expectedSalary: true,
+          availableFrom: true,
+          lastContactAt: true,
+          lastContactType: true,
+          isStarred: true,
+          isPriority: true,
+          createdAt: true,
+          updatedAt: true,
+          deletedAt: true,
+          // coverLetter / stageHistory / scoreDetails / notes omitted — large
+          // per-row payloads no caller of this search reads.
+          candidate: {
+            select: {
+              id: true,
+              orgId: true,
+              userId: true,
+              source: true,
+              sourceId: true,
+              duplicateOf: true,
+              mergedInto: true,
+              tags: true,
+              createdAt: true,
+              updatedAt: true,
+              deletedAt: true,
+              contacts: true,
+            },
+          },
+          job: {
+            select: {
+              id: true,
+              orgId: true,
+              title: true,
+              city: true,
+              region: true,
+              country: true,
+              remote: true,
+              hybrid: true,
+              employmentType: true,
+              seniority: true,
+              salaryMin: true,
+              salaryMax: true,
+              salaryCurrency: true,
+              salaryPeriod: true,
+              locale: true,
+              status: true,
+              publishedAt: true,
+              closedAt: true,
+              viewCount: true,
+              imageUrl: true,
+              videoUrl: true,
+              requiresAssessment: true,
+              assessmentId: true,
+              assignedRecruiterId: true,
+              slug: true,
+              createdBy: true,
+              createdAt: true,
+              updatedAt: true,
+              deletedAt: true,
+              organization: true,
+            },
           },
         },
-        job: {
-          include: {
-            organization: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      skip: offset,
-      take: limit,
-    })
-    const total = await prisma.application.count({ where })
+        orderBy: { createdAt: 'desc' },
+        skip: offset,
+        take: limit,
+      }),
+      prisma.application.count({ where }),
+    ])
 
     return { applications, total }
   }
@@ -289,9 +361,10 @@ export class ApplicationService {
    * Delete application (soft delete)
    */
   static async deleteApplication(applicationId: string, userId: string) {
+    // Only `job.orgId` is read below (for the audit log).
     const application = await prisma.application.findUnique({
       where: { id: applicationId },
-      include: { job: true },
+      select: { id: true, job: { select: { orgId: true } } },
     })
 
     if (!application) {

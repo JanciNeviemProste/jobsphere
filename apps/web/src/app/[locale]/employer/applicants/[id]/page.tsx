@@ -152,7 +152,9 @@ async function getApplicationDetail(applicationId: string, userId: string) {
   const application = await prisma.application.findFirst({
     where: {
       id: applicationId,
-      job: { orgId: userOrgRole.orgId },
+      // Tenant boundary: Application.orgId is a non-nullable column always written
+      // as job.orgId on create, so this is equivalent to `job: { orgId }` without the join.
+      orgId: userOrgRole.orgId,
     },
     include: {
       job: {

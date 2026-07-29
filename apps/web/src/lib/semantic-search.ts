@@ -24,6 +24,19 @@ export interface CandidateMatch {
   }
 }
 
+/**
+ * Options for the interactive transactions that carry `SET LOCAL hnsw.ef_search`.
+ *
+ * Prisma's default interactive-transaction timeout is 5s, which is SHORTER than the
+ * database's own statement_timeout ('10s', see
+ * packages/db/prisma/migrations/20260120_add_query_timeouts). Until the HNSW indexes
+ * actually exist in production (remediation/pgvector-hnsw-runbook.md) these vector
+ * queries are sequential scans and can legitimately run for several seconds, so the
+ * timeout is raised past the DB's — Postgres stays the arbiter and we get a real
+ * statement_timeout error instead of Prisma's P2028 "Transaction already closed".
+ */
+const VECTOR_TX_OPTIONS = { maxWait: 5_000, timeout: 15_000 } as const
+
 export interface SearchCandidatesParams {
   jobDescription: string
   organizationId?: string
@@ -62,32 +75,43 @@ export async function searchCandidates(params: SearchCandidatesParams): Promise<
     // 2. Convert embedding to pgvector format
     const embeddingString = `[${jobEmbedding.join(',')}]`
 
-    // 2.5. Set HNSW search quality parameter for better recall
-    // ef_search = 100 provides 95-98% recall (recommended for production)
+    // 2.5 + 3. Set the HNSW search-quality parameter and run the vector search on
+    // the SAME connection, inside one interactive transaction.
+    //
+    // Why the transaction is load-bearing: Prisma gives no connection affinity
+    // between two separate `prisma.$…` calls, so a standalone
+    // `SET hnsw.ef_search = 100` frequently lands on a different pooled connection
+    // than the query that is supposed to benefit from it — and because plain `SET`
+    // is session-scoped it then leaks to every unrelated query that later borrows
+    // that connection. `SET LOCAL` inside `$transaction` binds the setting to this
+    // one transaction on this one connection and is rolled back on commit.
+    //
+    // ef_search = 100 provides 95-98% recall (recommended for production).
     // See: apps/web/src/lib/VECTOR_SEARCH_PERFORMANCE.md
-    await prisma.$executeRaw`SET hnsw.ef_search = 100;`
-
-    // 3. Execute vector similarity search using pgvector (uses HNSW index)
-    const results = await prisma.$queryRaw<any[]>`
-      SELECT
-        r.id as "resumeId",
-        r.title as "resumeTitle",
-        r."candidateId" as "candidateId",
-        rs.kind as "sectionType",
-        COALESCE(rs.description, rs.title, '') as "sectionContent",
-        1 - (rs."embeddingVector" <=> ${embeddingString}::vector) as similarity
-      FROM "ResumeSection" rs
-      JOIN "Resume" r ON rs."resumeId" = r.id
-      JOIN "Candidate" c ON r."candidateId" = c.id
-      WHERE
-        rs."embeddingVector" IS NOT NULL
-        AND c."orgId" = ${organizationId}
-        AND c."deletedAt" IS NULL
-        AND r."deletedAt" IS NULL
-        AND (1 - (rs."embeddingVector" <=> ${embeddingString}::vector)) >= ${minSimilarity}
-      ORDER BY rs."embeddingVector" <=> ${embeddingString}::vector ASC
-      LIMIT ${limit}
-    `
+    // (VECTOR_TX_OPTIONS explains why the transaction timeout is raised.)
+    const results = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SET LOCAL hnsw.ef_search = 100`
+      return tx.$queryRaw<any[]>`
+        SELECT
+          r.id as "resumeId",
+          r.title as "resumeTitle",
+          r."candidateId" as "candidateId",
+          rs.kind as "sectionType",
+          COALESCE(rs.description, rs.title, '') as "sectionContent",
+          1 - (rs."embeddingVector" <=> ${embeddingString}::vector) as similarity
+        FROM "ResumeSection" rs
+        JOIN "Resume" r ON rs."resumeId" = r.id
+        JOIN "Candidate" c ON r."candidateId" = c.id
+        WHERE
+          rs."embeddingVector" IS NOT NULL
+          AND c."orgId" = ${organizationId}
+          AND c."deletedAt" IS NULL
+          AND r."deletedAt" IS NULL
+          AND (1 - (rs."embeddingVector" <=> ${embeddingString}::vector)) >= ${minSimilarity}
+        ORDER BY rs."embeddingVector" <=> ${embeddingString}::vector ASC
+        LIMIT ${limit}
+      `
+    }, VECTOR_TX_OPTIONS)
 
     // 4. Transform results
     const matches: CandidateMatch[] = results.map((row) => ({
@@ -169,27 +193,30 @@ export async function findSimilarCandidates(
     // @ts-expect-error - candidate is included
     const orgId: string = resume.candidate.orgId
 
-    // Set HNSW search quality parameter
-    await prisma.$executeRaw`SET hnsw.ef_search = 100;`
-
+    // Set the HNSW search-quality parameter on the SAME connection as the query
+    // (see the long note in searchCandidates above: a bare `SET` outside a
+    // transaction lands on an arbitrary pooled connection and leaks session state).
     // Scope to the source candidate's own organization (multi-tenant isolation).
-    const results = await prisma.$queryRaw<any[]>`
-      SELECT
-        r.id as "resumeId",
-        r.title as "resumeTitle",
-        r."candidateId" as "candidateId",
-        1 - (rs."embeddingVector" <=> ${embeddingString}::vector) as similarity
-      FROM "ResumeSection" rs
-      JOIN "Resume" r ON rs."resumeId" = r.id
-      JOIN "Candidate" c ON r."candidateId" = c.id
-      WHERE
-        rs."embeddingVector" IS NOT NULL
-        AND c."orgId" = ${orgId}
-        AND c."deletedAt" IS NULL
-        AND r."candidateId" != ${candidateId}
-      ORDER BY rs."embeddingVector" <=> ${embeddingString}::vector ASC
-      LIMIT ${limit}
-    `
+    const results = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SET LOCAL hnsw.ef_search = 100`
+      return tx.$queryRaw<any[]>`
+        SELECT
+          r.id as "resumeId",
+          r.title as "resumeTitle",
+          r."candidateId" as "candidateId",
+          1 - (rs."embeddingVector" <=> ${embeddingString}::vector) as similarity
+        FROM "ResumeSection" rs
+        JOIN "Resume" r ON rs."resumeId" = r.id
+        JOIN "Candidate" c ON r."candidateId" = c.id
+        WHERE
+          rs."embeddingVector" IS NOT NULL
+          AND c."orgId" = ${orgId}
+          AND c."deletedAt" IS NULL
+          AND r."candidateId" != ${candidateId}
+        ORDER BY rs."embeddingVector" <=> ${embeddingString}::vector ASC
+        LIMIT ${limit}
+      `
+    }, VECTOR_TX_OPTIONS)
 
     return results.map((row) => ({
       candidateId: row.candidateId,

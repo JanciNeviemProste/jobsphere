@@ -200,7 +200,10 @@ export const GET = withRateLimit(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
 
-      // Get user's DSAR requests
+      // Get user's DSAR requests.
+      // Deliberately unbounded: truncating a data subject's own request history
+      // would undermine GDPR completeness. Growth is bounded by the user's own
+      // request activity and the query is scoped to a single userId.
       const requests = await prisma.dSARRequest.findMany({
         where: { userId: session.user.id },
         orderBy: { createdAt: 'desc' },

@@ -480,9 +480,11 @@ describe('ApplicationService', () => {
 
       expect(result.applications[0]).toHaveProperty('candidate')
       expect(result.applications[0]).toHaveProperty('job')
+      // Explicit `select` (not a bare `include`) so we don't drag the whole Job
+      // row — description/requirements/JSON blobs — into every search result.
       expect(prisma.application.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          include: expect.objectContaining({
+          select: expect.objectContaining({
             candidate: expect.any(Object),
             job: expect.any(Object),
           }),

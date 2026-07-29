@@ -9,10 +9,14 @@ const nextConfig = {
   transpilePackages: ['@jobsphere/db'],
 
   images: {
-    domains: ['jobsphere.com'],
+    // `images.domains` is deprecated in Next 14 — the former entry ['jobsphere.com']
+    // is folded into remotePatterns below with no change to the allowed host set.
     // Company logos are stored in Vercel Blob (public bucket) — allow next/image
     // to optimize them. The blob host is already whitelisted in the CSP img-src.
-    remotePatterns: [{ protocol: 'https', hostname: '*.public.blob.vercel-storage.com' }],
+    remotePatterns: [
+      { protocol: 'https', hostname: '*.public.blob.vercel-storage.com' },
+      { protocol: 'https', hostname: 'jobsphere.com' },
+    ],
     formats: ['image/avif', 'image/webp'],
   },
 
@@ -90,6 +94,17 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    // Rewrite barrel-file imports to deep per-module imports so only the icons /
+    // helpers / chart pieces actually used end up in the client bundle.
+    // lucide-react alone is imported at ~82 call sites.
+    //
+    // NOTE: on Next 14.2 all three of these are ALREADY in the framework's default
+    // optimizePackageImports list (node_modules/next/dist/server/config.js:586-609),
+    // and user entries are merged into that set — so this line currently changes
+    // nothing measurable (verified: "First Load JS shared by all" is 87.7 kB with
+    // and without it). It is kept as an explicit, version-independent declaration
+    // so the optimization survives a future Next release trimming its defaults.
+    optimizePackageImports: ['lucide-react', 'date-fns', 'recharts'],
   },
 
   webpack: (config, { isServer }) => {

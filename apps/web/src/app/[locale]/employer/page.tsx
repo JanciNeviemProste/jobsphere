@@ -65,10 +65,10 @@ async function getEmployerData(userId: string) {
 
   // Get recent applications
   const recentApplications = await prisma.application.findMany({
+    // Scope on Application.orgId (own column) so @@index([orgId, stage, createdAt])
+    // can serve this instead of joining Job.
     where: {
-      job: {
-        orgId: userOrgRole.orgId,
-      },
+      orgId: userOrgRole.orgId,
     },
     include: {
       job: {

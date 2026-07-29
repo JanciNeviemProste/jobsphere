@@ -24,9 +24,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    // Both tables are global config with a handful of rows; `take` is a safety net
+    // against an unbounded scan, not a paging feature (ordering is already
+    // deterministic on the unique `key`).
     const [settings, flags] = await Promise.all([
-      prisma.systemSetting.findMany({ orderBy: { key: 'asc' } }),
-      prisma.featureFlag.findMany({ orderBy: { key: 'asc' } }),
+      prisma.systemSetting.findMany({ orderBy: { key: 'asc' }, take: 500 }),
+      prisma.featureFlag.findMany({ orderBy: { key: 'asc' }, take: 500 }),
     ])
 
     return NextResponse.json({ settings, flags })

@@ -153,25 +153,85 @@ export const GET = withRateLimit(
         ...(jobId && { jobId }),
       }
 
-      const applications = await prisma.application.findMany({
-        where,
-        include: {
-          job: {
-            include: {
-              organization: {
-                select: {
-                  name: true,
-                  logo: true,
+      // Explicit select instead of a bare `include`. A bare include returns every
+      // Job column — description (up to 10k chars), requirements, responsibilities,
+      // benefits and the pipeline/translations/screeningQuestions JSON blobs — plus
+      // every Application column, times `limit` rows per page. This list view needs
+      // none of them, so the heavy text/JSON fields are omitted (see NOTE below);
+      // every cheap scalar is kept so the response shape is otherwise unchanged.
+      // Page rows + total count are independent — run them concurrently.
+      const [applications, total] = await Promise.all([
+        prisma.application.findMany({
+          where,
+          select: {
+            id: true,
+            candidateId: true,
+            jobId: true,
+            orgId: true,
+            stage: true,
+            score: true,
+            assignedTo: true,
+            tags: true,
+            source: true,
+            referredBy: true,
+            expectedSalary: true,
+            availableFrom: true,
+            lastContactAt: true,
+            lastContactType: true,
+            isStarred: true,
+            isPriority: true,
+            createdAt: true,
+            updatedAt: true,
+            deletedAt: true,
+            // NOTE: coverLetter / stageHistory / scoreDetails / notes are omitted —
+            // large per-row payloads and recruiter-internal data that this
+            // candidate-facing list never renders.
+            job: {
+              select: {
+                id: true,
+                orgId: true,
+                title: true,
+                city: true,
+                region: true,
+                country: true,
+                remote: true,
+                hybrid: true,
+                employmentType: true,
+                seniority: true,
+                salaryMin: true,
+                salaryMax: true,
+                salaryCurrency: true,
+                salaryPeriod: true,
+                locale: true,
+                status: true,
+                publishedAt: true,
+                closedAt: true,
+                viewCount: true,
+                imageUrl: true,
+                videoUrl: true,
+                requiresAssessment: true,
+                assessmentId: true,
+                slug: true,
+                createdAt: true,
+                updatedAt: true,
+                // NOTE: description / requirements / responsibilities / benefits /
+                // translations / pipeline / screeningQuestions omitted — the heavy
+                // fields this endpoint was fetching for nothing.
+                organization: {
+                  select: {
+                    name: true,
+                    logo: true,
+                  },
                 },
               },
             },
           },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      })
-      const total = await prisma.application.count({ where })
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+        prisma.application.count({ where }),
+      ])
 
       return NextResponse.json({
         data: applications,
