@@ -87,7 +87,7 @@ export default function AuthErrorClient() {
               <p className="mb-2 font-medium">Čo to znamená?</p>
               <p className="text-muted-foreground">
                 Váš email je už registrovaný pomocou hesla. Prihláste sa pomocou emailu a hesla,
-                alebo použite funkciu "Zabudnuté heslo".
+                alebo použite funkciu &quot;Zabudnuté heslo&quot;.
               </p>
             </div>
           )}

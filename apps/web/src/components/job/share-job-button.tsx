@@ -46,7 +46,7 @@ export function ShareJobButton({
         description: t('linkCopiedDescription'),
       })
       setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
+    } catch {
       showToast({
         title: t('error'),
         description: t('copyError'),

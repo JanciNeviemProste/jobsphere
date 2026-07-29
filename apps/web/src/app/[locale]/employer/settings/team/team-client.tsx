@@ -107,7 +107,7 @@ export default function TeamManagementClient() {
         <div>
           <h1 className="mb-2 text-3xl font-bold">Team Management</h1>
           <p className="text-muted-foreground">
-            Manage your organization's team members and their roles.
+            Manage your organization&apos;s team members and their roles.
           </p>
         </div>
         {isAdmin && <InviteMemberDialog onSuccess={fetchTeam} />}

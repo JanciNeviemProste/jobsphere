@@ -3,7 +3,7 @@
  * Record and manage user consent
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -33,7 +33,7 @@ const consentSchema = z.object({
  * Get user's consent records
  */
 export const GET = withRateLimit(
-  async function GET(request: Request) {
+  async function GET(_request: Request) {
     try {
       const session = await auth()
       if (!session?.user?.id) {

@@ -42,15 +42,15 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
     newTeamMember: true,
     billingUpdates: true,
     weeklyDigest: true,
-    marketingEmails: false
+    marketingEmails: false,
   },
   inAppNotifications: {
     newApplication: true,
     applicationStatusChange: true,
     newTeamMember: true,
-    mentions: true
+    mentions: true,
   },
-  digestFrequency: 'immediate'
+  digestFrequency: 'immediate',
 }
 
 export function NotificationsTab() {
@@ -70,7 +70,7 @@ export function NotificationsTab() {
         if (data.preferences) {
           setPreferences(data.preferences)
         }
-      } catch (error) {
+      } catch {
         toast.error('Failed to load notification preferences')
       } finally {
         setLoading(false)
@@ -89,9 +89,9 @@ export function NotificationsTab() {
       const response = await fetch('/api/user/preferences', {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ preferences })
+        body: JSON.stringify({ preferences }),
       })
 
       if (!response.ok) {
@@ -107,23 +107,29 @@ export function NotificationsTab() {
     }
   }
 
-  const updateEmailPref = (key: keyof NotificationPreferences['emailNotifications'], value: boolean) => {
+  const updateEmailPref = (
+    key: keyof NotificationPreferences['emailNotifications'],
+    value: boolean,
+  ) => {
     setPreferences({
       ...preferences,
       emailNotifications: {
         ...preferences.emailNotifications,
-        [key]: value
-      }
+        [key]: value,
+      },
     })
   }
 
-  const updateInAppPref = (key: keyof NotificationPreferences['inAppNotifications'], value: boolean) => {
+  const updateInAppPref = (
+    key: keyof NotificationPreferences['inAppNotifications'],
+    value: boolean,
+  ) => {
     setPreferences({
       ...preferences,
       inAppNotifications: {
         ...preferences.inAppNotifications,
-        [key]: value
-      }
+        [key]: value,
+      },
     })
   }
 
@@ -351,10 +357,7 @@ export function NotificationsTab() {
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Save Preferences
         </Button>
-        <Button
-          variant="outline"
-          onClick={() => setPreferences(DEFAULT_PREFERENCES)}
-        >
+        <Button variant="outline" onClick={() => setPreferences(DEFAULT_PREFERENCES)}>
           Reset to Defaults
         </Button>
       </div>

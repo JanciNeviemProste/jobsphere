@@ -150,7 +150,7 @@ export async function findSimilarCandidates(
       include: {
         candidate: { select: { orgId: true } },
         sections: {
-          // @ts-ignore - embeddingVector is Unsupported type
+          // @ts-expect-error embeddingVector is a Prisma `Unsupported` (pgvector) column, absent from the generated where-input type
           where: { embeddingVector: { not: null } },
           take: 1,
         },
@@ -163,7 +163,6 @@ export async function findSimilarCandidates(
       return []
     }
 
-    // @ts-ignore - embeddingVector is Unsupported type
     // @ts-expect-error - sections is included
     const sourceEmbedding = resume.sections[0].embeddingVector
     const embeddingString = `[${sourceEmbedding}]`
@@ -217,11 +216,11 @@ export async function getJobCandidateMatchScore(
   try {
     const job = await prisma.job.findUnique({
       where: { id: jobId },
-      // @ts-ignore - embedding is Unsupported type
+      // @ts-expect-error embedding is a Prisma `Unsupported` (pgvector) column, absent from the generated select type
       select: { embedding: true },
     })
 
-    // @ts-ignore - embedding is Unsupported type
+    // @ts-expect-error embedding is a Prisma `Unsupported` (pgvector) column, absent from the generated result type
     if (!job || !job.embedding) {
       logger.warn('Job has no embedding', { jobId })
       return null
@@ -233,7 +232,7 @@ export async function getJobCandidateMatchScore(
         sections: {
           where: {
             kind: 'SUMMARY',
-            // @ts-ignore - embeddingVector is Unsupported type
+            // @ts-expect-error embeddingVector is a Prisma `Unsupported` (pgvector) column, absent from the generated where-input type
             embeddingVector: { not: null },
           },
           take: 1,
@@ -247,9 +246,8 @@ export async function getJobCandidateMatchScore(
       return null
     }
 
-    // @ts-ignore - embedding and embeddingVector are Unsupported types
+    // @ts-expect-error embedding is a Prisma `Unsupported` (pgvector) column, absent from the generated result type
     const jobEmbeddingString = `[${job.embedding}]`
-    // @ts-ignore - embeddingVector is Unsupported type
     // @ts-expect-error - sections is included
     const cvEmbedding = resume.sections[0].embeddingVector
     const cvEmbeddingString = `[${cvEmbedding}]`

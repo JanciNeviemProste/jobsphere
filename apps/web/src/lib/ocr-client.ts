@@ -6,7 +6,6 @@
 import { writeFile, unlink } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
-import { CVErrors } from '@jobsphere/ai'
 import { logger } from './logger'
 
 export interface OCRResult {
@@ -41,7 +40,7 @@ function localeToTesseractLang(locale?: string): string {
 export async function callPythonOCR(
   buffer: ArrayBuffer,
   metadata: { filename: string; mimeType: string; locale?: string },
-  traceId: string
+  traceId: string,
 ): Promise<OCRResult> {
   const startTime = Date.now()
   const enabled = process.env.ENABLE_OCR !== 'false'
@@ -97,7 +96,7 @@ export async function callPythonOCR(
           lang,
           '--output-json',
         ],
-        { timeout }
+        { timeout },
       )
 
       if (stderr) {
@@ -110,19 +109,12 @@ export async function callPythonOCR(
       logger.info('Using direct Python parser (dev mode)', { traceId })
 
       const { execa } = await import('execa')
-      const parserScript = join(
-        process.cwd(),
-        '..',
-        '..',
-        'docker',
-        'python-parser',
-        'parser.py'
-      )
+      const parserScript = join(process.cwd(), '..', '..', 'docker', 'python-parser', 'parser.py')
 
       const { stdout, stderr } = await execa(
         'python',
         [parserScript, '--file', tempPath, '--lang', lang, '--output-json'],
-        { timeout }
+        { timeout },
       )
 
       if (stderr) {

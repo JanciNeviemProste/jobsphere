@@ -70,7 +70,7 @@ export function SaveJobButton({
         title: data.saved ? t('saved') : t('removed'),
         description: data.saved ? t('savedDescription') : t('removedDescription'),
       })
-    } catch (error) {
+    } catch {
       showToast({
         title: t('error'),
         description: t('saveError'),

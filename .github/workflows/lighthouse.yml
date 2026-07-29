@@ -8,11 +8,21 @@ on:
     - cron: '0 2 * * 1'
   workflow_dispatch:  # Allow manual trigger
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lighthouse:
     name: Run Lighthouse Audits
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
+    # The default GITHUB_TOKEN is read-only on this repo, so the
+    # "Comment PR with results" step needs pull-requests: write or it 403s.
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
       - name: Checkout code
@@ -87,28 +97,35 @@ jobs:
               return `${emoji} ${percentage}`;
             };
 
-            const comment = `## ⚡ Lighthouse Performance Report
-
-| Category | Score |
-|----------|-------|
-| Performance | ${formatScore(reports.performance)} |
-| Accessibility | ${formatScore(reports.accessibility)} |
-| Best Practices | ${formatScore(reports['best-practices'])} |
-| SEO | ${formatScore(reports.seo)} |
-
-<details>
-<summary>📊 Core Web Vitals</summary>
-
-| Metric | Value | Status |
-|--------|-------|--------|
-| FCP | ${reports['first-contentful-paint']}ms | ${reports['first-contentful-paint'] < 1800 ? '🟢' : reports['first-contentful-paint'] < 3000 ? '🟡' : '🔴'} |
-| LCP | ${reports['largest-contentful-paint']}ms | ${reports['largest-contentful-paint'] < 2500 ? '🟢' : reports['largest-contentful-paint'] < 4000 ? '🟡' : '🔴'} |
-| CLS | ${reports['cumulative-layout-shift']} | ${reports['cumulative-layout-shift'] < 0.1 ? '🟢' : reports['cumulative-layout-shift'] < 0.25 ? '🟡' : '🔴'} |
-
-</details>
-
-*Lighthouse CI ran at ${new Date().toISOString()}*
-`;
+            // Built line-by-line rather than as a multi-line template literal:
+            // the markdown rows must start at column 0 in the output, but a
+            // column-0 line terminates this YAML block scalar and made the whole
+            // workflow file unparseable (every run failed in 0s with
+            // "workflow file issue"). join('\n') keeps the output identical.
+            const comment = [
+              '## ⚡ Lighthouse Performance Report',
+              '',
+              '| Category | Score |',
+              '|----------|-------|',
+              `| Performance | ${formatScore(reports.performance)} |`,
+              `| Accessibility | ${formatScore(reports.accessibility)} |`,
+              `| Best Practices | ${formatScore(reports['best-practices'])} |`,
+              `| SEO | ${formatScore(reports.seo)} |`,
+              '',
+              '<details>',
+              '<summary>📊 Core Web Vitals</summary>',
+              '',
+              '| Metric | Value | Status |',
+              '|--------|-------|--------|',
+              `| FCP | ${reports['first-contentful-paint']}ms | ${reports['first-contentful-paint'] < 1800 ? '🟢' : reports['first-contentful-paint'] < 3000 ? '🟡' : '🔴'} |`,
+              `| LCP | ${reports['largest-contentful-paint']}ms | ${reports['largest-contentful-paint'] < 2500 ? '🟢' : reports['largest-contentful-paint'] < 4000 ? '🟡' : '🔴'} |`,
+              `| CLS | ${reports['cumulative-layout-shift']} | ${reports['cumulative-layout-shift'] < 0.1 ? '🟢' : reports['cumulative-layout-shift'] < 0.25 ? '🟡' : '🔴'} |`,
+              '',
+              '</details>',
+              '',
+              `*Lighthouse CI ran at ${new Date().toISOString()}*`,
+              '',
+            ].join('\n');
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,

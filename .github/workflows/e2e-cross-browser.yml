@@ -7,6 +7,10 @@ on:
     branches: [main]
   workflow_dispatch: # Allow manual trigger
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: E2E Tests - ${{ matrix.browser }} (${{ matrix.shard }})
@@ -16,8 +20,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [chromium, firefox, webkit, edge]
+        # `browser` is the `playwright install` target ("edge" is not a valid
+        # install target — the channel is called "msedge"); `project` is the
+        # matching project name in apps/web/playwright.config.ts, which still
+        # calls the msedge project "edge". `install` always includes chromium
+        # because tests/setup/global-setup.ts launches chromium for auth state,
+        # so every shard needs it regardless of the browser under test.
+        browser: [chromium, firefox, webkit, msedge]
         shard: [1/3, 2/3, 3/3]
+        include:
+          - browser: chromium
+            project: chromium
+            install: chromium
+          - browser: firefox
+            project: firefox
+            install: firefox chromium
+          - browser: webkit
+            project: webkit
+            install: webkit chromium
+          - browser: msedge
+            project: edge
+            install: msedge chromium
 
     services:
       postgres:
@@ -57,10 +80,17 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      # Workspace packages (e.g. @jobsphere/ai) emit their dist/ via tsup and are
+      # gitignored, so a fresh CI checkout has no build output. apps/web resolves
+      # @jobsphere/ai types from ./dist/index.d.ts — build packages BEFORE any
+      # typecheck/test/build step or every consumer fails to resolve them (QA-001).
+      - name: Build workspace packages
+        run: npx turbo run build --filter='./packages/*'
+
       - name: Install Playwright browsers
         run: |
           cd apps/web
-          npx playwright install --with-deps ${{ matrix.browser }}
+          npx playwright install --with-deps ${{ matrix.install }}
 
       - name: Setup test database
         run: |
@@ -89,7 +119,7 @@ jobs:
       - name: Run E2E tests
         run: |
           cd apps/web
-          npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}
+          npx playwright test --project=${{ matrix.project }} --shard=${{ matrix.shard }}
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
           NEXTAUTH_SECRET: "test-secret-at-least-32-characters-long"
@@ -188,6 +218,13 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      # Same reason as the desktop job: @jobsphere/ai ships a gitignored dist/ that
+      # must exist before apps/web is built or typechecked (QA-001).
+      - name: Build workspace packages
+        run: npx turbo run build --filter='./packages/*'
+
+      # chromium is required even for webkit-only devices because
+      # tests/setup/global-setup.ts launches chromium to capture auth state.
       - name: Install Playwright browsers
         run: |
           cd apps/web
@@ -310,10 +347,17 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      # Same reason as the desktop job: @jobsphere/ai ships a gitignored dist/ that
+      # must exist before apps/web is built or typechecked (QA-001).
+      - name: Build workspace packages
+        run: npx turbo run build --filter='./packages/*'
+
+      # chromium is required even for webkit-only devices because
+      # tests/setup/global-setup.ts launches chromium to capture auth state.
       - name: Install Playwright browsers
         run: |
           cd apps/web
-          npx playwright install --with-deps webkit
+          npx playwright install --with-deps webkit chromium
 
       - name: Setup test database
         run: |

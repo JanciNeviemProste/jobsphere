@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main, master, develop]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality-checks:
     name: Quality Checks
@@ -73,15 +77,19 @@ jobs:
           cd apps/web
           yarn lint
 
-      - name: Run tests
-        run: |
-          cd apps/web
-          yarn test:run
-
-      - name: Check test coverage
+      # `yarn test:coverage` is `vitest run --coverage` over the same suite as
+      # `yarn test:run` — running both executed every unit test twice. Coverage
+      # thresholds are enforced by vitest.config.ts, so this single run gates both.
+      - name: Run tests with coverage
         run: |
           cd apps/web
           yarn test:coverage
+
+      # packages/ai and packages/db carry their own vitest suites but had no
+      # `test` script, so `turbo test` silently skipped them and they had never
+      # run in CI. packages/db self-skips when DATABASE_URL is not local.
+      - name: Run workspace package tests
+        run: npx turbo run test --filter='./packages/*'
 
       # Security integration tests (IDOR/multi-tenant/XSS/SQLi) require a live DB.
       # Routed here via vitest.integration.config.ts rather than the unit run so they
@@ -202,6 +210,12 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
 
+    # The default GITHUB_TOKEN is read-only on modern repos; uploading SARIF to the
+    # code-scanning API needs security-events: write or the upload 403s.
+    permissions:
+      contents: read
+      security-events: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -215,7 +229,7 @@ jobs:
           output: 'trivy-results.sarif'
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
@@ -233,9 +247,13 @@ jobs:
           cd docker/python-parser
           docker build -t jobsphere-python-parser .
 
+      # The image's ENTRYPOINT is ["python", "parser.py"] and parser.py requires
+      # --file, so a bare `docker run ... python --version` becomes
+      # `python parser.py python --version` and argparse exits 2. Override the
+      # entrypoint to smoke-test the interpreter.
       - name: Test Python Parser
         run: |
-          docker run --rm jobsphere-python-parser python --version
+          docker run --rm --entrypoint python jobsphere-python-parser --version
 
   database-migrations:
     name: Database Migrations Test
@@ -269,9 +287,12 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      # The canonical migration history lives in packages/db/prisma/migrations —
+      # point Prisma at that schema explicitly. No `|| echo` fallback: a failing
+      # migration must fail the job instead of being reported as success.
       - name: Test Prisma Migrations
         run: |
           cd apps/web
-          yarn prisma migrate deploy || echo "No pending migrations"
+          yarn prisma migrate deploy --schema ../../packages/db/prisma/schema.prisma
         env:
           DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'

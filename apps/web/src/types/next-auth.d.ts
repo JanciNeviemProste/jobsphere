@@ -1,3 +1,7 @@
+// This import is load-bearing: it makes the file a module, so the `declare module`
+// blocks below perform TypeScript *module augmentation* of next-auth instead of
+// declaring brand-new ambient modules that would shadow the real types.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import NextAuth, { DefaultSession } from 'next-auth'
 
 declare module 'next-auth' {

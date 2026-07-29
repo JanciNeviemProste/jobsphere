@@ -19,6 +19,7 @@ export function getConnection(): IORedisType {
   if (_connection) return _connection
 
   // Lazy require — only loaded if queue API is actually used at runtime.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- intentional lazy load: getConnection() is sync, and a static import would open/bundle ioredis at module load (breaks the "import is free" contract on Vercel)
   const IORedis = require('ioredis').default || require('ioredis')
   const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379'
 
@@ -52,6 +53,7 @@ function getOrCreateQueue(
 ): BullQueue {
   const existing = _queues.get(name)
   if (existing) return existing
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- intentional lazy load: getOrCreateQueue() is sync, and a static import would pull bullmq (and its Redis connection) in at module load
   const { Queue } = require('bullmq') as typeof import('bullmq')
   const q = new Queue(name, buildQueueOptions(extra))
   _queues.set(name, q)

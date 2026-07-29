@@ -92,7 +92,7 @@ export function TeamTab() {
         const data = await response.json()
         setMembers(data.members || [])
         setCurrentUserRole(data.currentUserRole || '')
-      } catch (error) {
+      } catch {
         toast.error('Failed to load team members')
       } finally {
         setLoading(false)

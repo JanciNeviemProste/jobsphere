@@ -71,6 +71,15 @@ prisma/migrations/dev
 migrate-from-mysql.ts
 jobs.png
 
+# ...but SQL that IS part of the repo must stay committable (Prisma migrations,
+# RLS policies, docker seed). Without these negations `git add` silently skips
+# every newly generated migration.
+!**/prisma/migrations/**/*.sql
+!apps/web/prisma/*.sql
+!packages/db/prisma/*.sql
+!docker/*.sql
+!remediation/*.sql
+
 # Uploads
 uploads/
 temp/
@@ -78,6 +87,8 @@ temp/
 # Logs
 logs
 *.log
+build-output*.log
+apps/**/build-output*.log
 
 # Docker
 docker/data

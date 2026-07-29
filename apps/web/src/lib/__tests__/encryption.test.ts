@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import {
   encrypt,
   decrypt,
@@ -13,8 +13,7 @@ describe('Encryption Library', () => {
 
   beforeEach(() => {
     // Set a test encryption key
-    process.env.ENCRYPTION_KEY =
-      '5e7d659701318fd16b0b45bc476cc37358b91a0a4c8ed625d811bec6abb3f1ec'
+    process.env.ENCRYPTION_KEY = '5e7d659701318fd16b0b45bc476cc37358b91a0a4c8ed625d811bec6abb3f1ec'
   })
 
   afterEach(() => {
@@ -104,7 +103,7 @@ describe('Encryption Library', () => {
 
     it('should throw error for corrupted ciphertext', () => {
       const encrypted = encrypt('test')
-      const [iv, authTag, _] = encrypted.split(':')
+      const [iv, authTag] = encrypted.split(':')
       const corrupted = `${iv}:${authTag}:corrupted`
 
       expect(() => decrypt(corrupted)).toThrow()
@@ -112,7 +111,7 @@ describe('Encryption Library', () => {
 
     it('should throw error for wrong auth tag', () => {
       const encrypted = encrypt('test')
-      const [iv, authTag, ciphertext] = encrypted.split(':')
+      const [iv, , ciphertext] = encrypted.split(':')
       const wrongAuthTag = 'a'.repeat(32)
       const tampered = `${iv}:${wrongAuthTag}:${ciphertext}`
 

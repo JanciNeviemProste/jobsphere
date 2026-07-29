@@ -8,7 +8,7 @@ import { requireAuth } from '@/lib/auth'
 export const runtime = 'nodejs'
 
 export const GET = withRateLimit(
-  async (req: Request) => {
+  async (_req: Request) => {
     try {
       logger.apiRequest('GET', '/api/dashboard/stats')
 

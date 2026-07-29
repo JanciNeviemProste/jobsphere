@@ -36,7 +36,7 @@ async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
     // pdf.js loads external worker/font assets that aren't present in the Vercel
     // serverless bundle (extraction silently returned empty -> metadata fallback).
     // v1's self-contained pdf.js works in the bundle and via this entry.
-    // @ts-ignore - v1 inner lib entry ships no type declarations
+    // @ts-expect-error pdf-parse v1 inner lib entry ships no type declarations
     const mod: any = await import('pdf-parse/lib/pdf-parse.js')
     const pdfParse = mod.default || mod
     const data = await pdfParse(Buffer.from(buffer))

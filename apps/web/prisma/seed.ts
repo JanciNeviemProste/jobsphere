@@ -1,3 +1,7 @@
+// TODO: This seed has diverged from `packages/db/seed.ts` (~15 kB here vs ~24 kB there).
+// The Prisma schema is now unified on `packages/db/prisma/schema.prisma`, but the two
+// seed scripts were never reconciled. Merge them into a single canonical seed in a
+// separate follow-up change, then delete whichever copy loses.
 import { PrismaClient } from '@prisma/client'
 import { hash } from 'bcryptjs'
 

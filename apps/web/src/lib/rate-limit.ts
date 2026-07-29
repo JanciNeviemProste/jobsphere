@@ -10,10 +10,6 @@ let redis: Redis | null = null
 let redisUrl: string | undefined = undefined
 let redisToken: string | undefined = undefined
 
-function hasUpstashConfig(): boolean {
-  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)
-}
-
 if (
   process.env.NODE_ENV === 'production' &&
   (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN)
@@ -405,66 +401,62 @@ export function withRateLimit<T extends Request = Request>(
     request: T,
     context?: { params?: Record<string, string> },
   ): Promise<Response> {
-    try {
-      // Get rate limit configuration
-      const config = options.preset
-        ? RateLimitPresets[options.preset]
-        : { limit: options.limit || 100, window: options.window || 60 }
+    // Get rate limit configuration
+    const config = options.preset
+      ? RateLimitPresets[options.preset]
+      : { limit: options.limit || 100, window: options.window || 60 }
 
-      // Determine identifier
-      let identifier: string
-      if (options.byUser) {
-        // Extract user ID from auth session if available
-        const authHeader = request.headers.get('authorization')
-        if (authHeader?.startsWith('Bearer ')) {
-          identifier = authHeader.substring(7)
-        } else {
-          identifier = getClientIp(request)
-        }
+    // Determine identifier
+    let identifier: string
+    if (options.byUser) {
+      // Extract user ID from auth session if available
+      const authHeader = request.headers.get('authorization')
+      if (authHeader?.startsWith('Bearer ')) {
+        identifier = authHeader.substring(7)
       } else {
         identifier = getClientIp(request)
       }
-
-      // Apply rate limit
-      const result = options.strict
-        ? await strictRateLimit(identifier, config.limit, config.window)
-        : await rateLimit({
-            identifier,
-            limit: config.limit,
-            window: config.window,
-            prefix: options.byUser ? 'ratelimit:user' : 'ratelimit:ip',
-          })
-
-      // Return 429 if rate limit exceeded
-      if (!result.success) {
-        return new Response('Too Many Requests', {
-          status: 429,
-          headers: {
-            'X-RateLimit-Limit': String(result.limit),
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': String(result.reset),
-            'Retry-After': String(config.window),
-          },
-        })
-      }
-
-      // Only call handler if rate limit not exceeded
-      const response = await handler(request, context)
-
-      // Add rate limit headers to response
-      const newHeaders = new Headers(response.headers)
-      newHeaders.set('X-RateLimit-Limit', String(result.limit))
-      newHeaders.set('X-RateLimit-Remaining', String(result.remaining))
-      newHeaders.set('X-RateLimit-Reset', String(result.reset))
-
-      return new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: newHeaders,
-      })
-    } catch (error) {
-      throw error
+    } else {
+      identifier = getClientIp(request)
     }
+
+    // Apply rate limit
+    const result = options.strict
+      ? await strictRateLimit(identifier, config.limit, config.window)
+      : await rateLimit({
+          identifier,
+          limit: config.limit,
+          window: config.window,
+          prefix: options.byUser ? 'ratelimit:user' : 'ratelimit:ip',
+        })
+
+    // Return 429 if rate limit exceeded
+    if (!result.success) {
+      return new Response('Too Many Requests', {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': String(result.limit),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': String(result.reset),
+          'Retry-After': String(config.window),
+        },
+      })
+    }
+
+    // Only call handler if rate limit not exceeded
+    const response = await handler(request, context)
+
+    // Add rate limit headers to response
+    const newHeaders = new Headers(response.headers)
+    newHeaders.set('X-RateLimit-Limit', String(result.limit))
+    newHeaders.set('X-RateLimit-Remaining', String(result.remaining))
+    newHeaders.set('X-RateLimit-Reset', String(result.reset))
+
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: newHeaders,
+    })
   }
 }
 

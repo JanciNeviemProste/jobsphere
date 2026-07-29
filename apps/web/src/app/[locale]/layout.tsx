@@ -4,7 +4,6 @@ import { NextIntlClientProvider } from 'next-intl'
 import { getMessages, getTranslations } from 'next-intl/server'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
-import { TRPCProvider } from '@/lib/trpc/provider'
 import { SessionProvider } from '@/components/providers/session-provider'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
@@ -97,17 +96,15 @@ export default async function LocaleLayout({
             disableTransitionOnChange
           >
             <NextIntlClientProvider locale={locale} messages={messages}>
-              <TRPCProvider>
-                <SkipNav />
-                <div className="relative flex min-h-screen flex-col">
-                  <Header />
-                  <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
-                    {children}
-                  </main>
-                  <Footer />
-                </div>
-                <Toaster />
-              </TRPCProvider>
+              <SkipNav />
+              <div className="relative flex min-h-screen flex-col">
+                <Header />
+                <main id="main-content" className="flex-1" role="main" tabIndex={-1}>
+                  {children}
+                </main>
+                <Footer />
+              </div>
+              <Toaster />
             </NextIntlClientProvider>
           </ThemeProvider>
         </SessionProvider>

@@ -32,11 +32,6 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { format } from 'date-fns'
 import { toast } from '@/components/ui/use-toast'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { logger } from '@/lib/logger'
@@ -68,7 +63,7 @@ interface ResumeData {
 
 export default function CVEditClient({ params }: { params: { id: string; locale: string } }) {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const t = useTranslations()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)

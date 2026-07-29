@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { createAuditLog } from '@/lib/audit-log'
 import { AppError } from '@/lib/errors'
 import { hash, compare } from 'bcryptjs'
-import { createMockUser, createMockOrgMember } from '../../../tests/helpers/factories'
+import { createMockUser } from '../../../tests/helpers/factories'
 
 // Mock dependencies
 vi.mock('@/lib/prisma', () => ({

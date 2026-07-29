@@ -20,7 +20,7 @@ interface ApplicantActionsProps {
   locale: string
 }
 
-export function ApplicantActions({ applicationId, currentStage, locale }: ApplicantActionsProps) {
+export function ApplicantActions({ applicationId, currentStage }: ApplicantActionsProps) {
   const router = useRouter()
   const t = useTranslations('applicant')
   const [isLoading, setIsLoading] = useState(false)

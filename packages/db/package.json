@@ -14,7 +14,9 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "tsx ./seed.ts",
     "db:reset": "prisma migrate reset --force",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@prisma/client": "5.22.0",

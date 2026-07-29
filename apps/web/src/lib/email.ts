@@ -117,7 +117,7 @@ export async function sendEmail(data: EmailData): Promise<EmailResult> {
   }
 
   // Apply template variables (subject is plain text — no HTML escaping; html is HTML — escape values)
-  let subject = applyVariables(data.subject, data.variables, false)
+  const subject = applyVariables(data.subject, data.variables, false)
   let html = applyVariables(data.html, data.variables, true)
 
   // Append unsubscribe link if requested (token-signed, per-recipient)
@@ -208,7 +208,7 @@ async function sendSendGridEmail(data: EmailData): Promise<EmailResult> {
   const sgMail = (await import('@sendgrid/mail')).default
   sgMail.setApiKey(process.env.SENDGRID_API_KEY || '')
 
-  const result = await sgMail.send({
+  await sgMail.send({
     from: process.env.EMAIL_FROM || 'noreply@jobsphere.app',
     to: data.to,
     subject: data.subject,

@@ -632,6 +632,13 @@ Príkazy projektu: typecheck=`yarn typecheck` · lint=`yarn lint` · test=`yarn 
 > Hooky v `.claude/settings.json` toto čiastočne vynucujú (PostToolUse: prettier + secret-scan; Stop-gate: typecheck+lint).
 > Manuálne kedykoľvek: `/po-zmene`.
 
+> **2026-07-29 — brány reálne strážia.** Do tohto dátumu `yarn lint` nekontroloval **nič**: `.eslintrc.json`
+> mal v `ignorePatterns` `apps/**` a `packages/**`, takže ESLint (vrátane `eslint-plugin-security`) preskakoval
+> každý zdrojový súbor — „zelený lint" v CI aj v Stop-gate bol bezobsažný. Po zapnutí: 133 errorov, všetky opravené.
+> Rovnako `coverage.exclude` vo `vitest.config.ts` prepisoval defaulty, takže sa do coverage rátali testy a `.next/`;
+> prah 80 % nebol nikdy dosiahnuteľný. Prah je teraz na **nameranej** hodnote (lines 19 / branches 58 / functions 36)
+> a slúži ako ratchet proti regresii.
+
 ## Security posture
 
 skóre: **91/100** (po remediácii 2026-07-10; audit odhalil 62, opravené H1 + 5 Medium + 6 Low na vetve `fix/pre-prod-security-remediation`) | otvorené: **0 Critical · 0 High** · 1 Medium deferred (M5 — mŕtve šifrovanie IMAP/SMTP, schema refactor) + scraper consent (legal) | verdikt: **GO** — jadro čisté, build zelený, testy zelené | posledný audit: **2026-07-10** (10-agentový live+kód test) | report: `PRODUCTION_TEST_REPORT.md`

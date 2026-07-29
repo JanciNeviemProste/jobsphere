@@ -2,9 +2,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { getTranslations } from 'next-intl/server'
 import type { Metadata } from 'next'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, MapPin, Euro, Building2, Heart, Briefcase } from 'lucide-react'
@@ -37,11 +36,7 @@ async function getSavedJobs(userId: string) {
   return savedJobs
 }
 
-export async function generateMetadata({
-  params: { locale },
-}: {
-  params: { locale: string }
-}): Promise<Metadata> {
+export async function generateMetadata(): Promise<Metadata> {
   return {
     title: 'Saved Jobs',
     description: 'View and manage your saved job listings.',
@@ -55,7 +50,6 @@ export default async function SavedJobsPage({ params }: { params: { locale: stri
     redirect(`/${params.locale}/login`)
   }
 
-  const t = await getTranslations()
   const savedJobs = await getSavedJobs(session.user.id)
 
   const getWorkModeLabel = (job: (typeof savedJobs)[number]['job']) => {

@@ -16,7 +16,6 @@ import { logger } from '@/lib/logger'
 export const runtime = 'nodejs'
 
 const MICROSOFT_AUTH_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
-const MICROSOFT_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
 
 const SCOPES = [
   'https://graph.microsoft.com/Mail.ReadWrite',

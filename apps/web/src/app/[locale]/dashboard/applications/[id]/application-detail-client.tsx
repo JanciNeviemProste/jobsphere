@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,7 +23,6 @@ export default function ApplicationDetailClient({
 }: {
   params: { locale: string; id: string }
 }) {
-  const t = useTranslations()
   const locale = params.locale
   const applicationId = params.id
   const [application, setApplication] = useState<any>(null)

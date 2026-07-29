@@ -62,7 +62,7 @@ function createMockJob(overrides: any = {}) {
     title: overrides.title || 'Developer',
     description: overrides.description || '',
     employmentType: overrides.employmentType || 'FULL_TIME',
-    seniority: overrides.seniority || 'MEDIOR',
+    seniority: overrides.seniority || 'MID',
     city: overrides.city || null,
     region: overrides.region || null,
     remote: overrides.remote || false,

@@ -340,7 +340,6 @@ export default function CreateCVClient() {
       const el = printRef.current
       if (!el) return
       // Client-side, on demand — keeps html2pdf/html2canvas out of the SSR bundle.
-      // @ts-ignore - html2pdf.js ships no type declarations
       const html2pdf = (await import('html2pdf.js')).default
       const safeName = (personalInfo.fullName || 'CV').replace(/[^a-zA-Z0-9._-]+/g, '_') || 'CV'
       await html2pdf()

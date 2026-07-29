@@ -460,7 +460,8 @@ jobsphere/
 │       └── package.json
 ├── packages/
 │   └── database/               # Shared Prisma schema
-├── COMPLETE.md                 # Feature checklist
+├── docs/
+│   └── archive/                # Historické reporty (COMPLETE.md, status reporty…)
 └── README.md                   # This file
 ```
 
@@ -890,7 +891,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Documentation:** [COMPLETE.md](COMPLETE.md)
+- **Documentation:** [docs/archive/COMPLETE.md](docs/archive/COMPLETE.md)
 - **Issues:** [GitHub Issues](https://github.com/yourusername/jobsphere/issues)
 - **Email:** support@jobsphere.app
 

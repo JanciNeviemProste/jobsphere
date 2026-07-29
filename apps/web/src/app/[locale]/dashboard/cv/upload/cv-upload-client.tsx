@@ -20,7 +20,8 @@ export default function CVUploadClient() {
   const [status, setStatus] = useState<UploadStatus>('idle')
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [cvId, setCvId] = useState<string | null>(null)
+  // Only the setter is used (it re-renders on success); the value itself is never read.
+  const [, setCvId] = useState<string | null>(null)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
@@ -108,7 +109,7 @@ export default function CVUploadClient() {
             <FileText className="mx-auto mb-4 h-12 w-12 text-primary" />
             <h1 className="mb-2 text-3xl font-bold text-gray-900">Upload Your CV</h1>
             <p className="text-gray-600">
-              Upload your resume and we'll extract the information automatically using AI
+              Upload your resume and we&apos;ll extract the information automatically using AI
             </p>
           </div>
 

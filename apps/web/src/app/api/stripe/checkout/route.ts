@@ -51,7 +51,7 @@ export const POST = withCsrfProtection(
         }
 
         // Get or create Stripe customer
-        let customer = await prisma.orgCustomer.findUnique({
+        const customer = await prisma.orgCustomer.findUnique({
           where: { orgId: userOrgRole.orgId },
         })
 

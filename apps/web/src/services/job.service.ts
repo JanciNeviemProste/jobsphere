@@ -12,7 +12,7 @@ import { AppError } from '@/lib/errors'
 // Define types for enum-like string fields (matches Prisma schema)
 type WorkMode = 'REMOTE' | 'HYBRID' | 'ONSITE'
 type EmploymentType = 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'TEMPORARY' | 'INTERNSHIP'
-type SeniorityLevel = 'ENTRY' | 'MID' | 'MEDIOR' | 'SENIOR' | 'LEAD' | 'EXECUTIVE'
+type SeniorityLevel = 'JUNIOR' | 'MID' | 'SENIOR' | 'LEAD' | 'EXECUTIVE'
 type JobStatus = 'DRAFT' | 'PUBLISHED' | 'PAUSED' | 'CLOSED' | 'ARCHIVED'
 
 export interface CreateJobInput {
@@ -65,7 +65,7 @@ export class JobService {
           salaryMax: input.salaryMax,
           workMode: input.workMode ?? 'HYBRID',
           type: input.type ?? 'FULL_TIME',
-          seniority: input.seniority ?? 'MEDIOR',
+          seniority: input.seniority ?? 'MID',
           status: 'DRAFT',
           orgId: input.orgId,
         },

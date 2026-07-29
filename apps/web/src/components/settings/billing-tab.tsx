@@ -75,7 +75,7 @@ export function BillingTab() {
         const data = await response.json()
         setSubscription(data.subscription)
         setInvoices(data.invoices || [])
-      } catch (error) {
+      } catch {
         toast.error('Failed to load billing information')
       } finally {
         setLoading(false)
@@ -101,7 +101,7 @@ export function BillingTab() {
 
       const data = await response.json()
       window.location.href = data.url
-    } catch (error) {
+    } catch {
       toast.error('Failed to open billing portal')
       setLoadingPortal(false)
     }
@@ -198,7 +198,9 @@ export function BillingTab() {
             </>
           ) : (
             <div className="py-8 text-center">
-              <p className="mb-4 text-muted-foreground">You don't have an active subscription</p>
+              <p className="mb-4 text-muted-foreground">
+                You don&apos;t have an active subscription
+              </p>
               <Button asChild>
                 <a href={`/${locale}/pricing`}>View Plans</a>
               </Button>

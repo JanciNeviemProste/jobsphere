@@ -83,7 +83,7 @@ export function ProfileTab() {
           logo: data.logo || '',
           videoUrl: data.videoUrl || '',
         })
-      } catch (error) {
+      } catch {
         toast.error('Failed to load organization data')
       } finally {
         setLoading(false)

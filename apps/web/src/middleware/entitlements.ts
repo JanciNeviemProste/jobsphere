@@ -13,7 +13,7 @@ import { hasFeature, canCreateJob, canAddCandidate, Feature } from '../lib/entit
  */
 export async function requireFeatureMiddleware(
   request: NextRequest,
-  feature: Feature
+  feature: Feature,
 ): Promise<{ allowed: boolean; error?: string; organizationId?: string }> {
   // Get session
   const session = await auth()
@@ -49,7 +49,7 @@ export async function requireFeatureMiddleware(
  * Check if can create job
  */
 export async function canCreateJobMiddleware(
-  request: NextRequest
+  _request: NextRequest,
 ): Promise<{ allowed: boolean; error?: string }> {
   const session = await auth()
 
@@ -81,7 +81,7 @@ export async function canCreateJobMiddleware(
  * Check if can add candidate
  */
 export async function canAddCandidateMiddleware(
-  request: NextRequest
+  _request: NextRequest,
 ): Promise<{ allowed: boolean; error?: string }> {
   const session = await auth()
 
@@ -120,6 +120,6 @@ export function createEntitlementError(message: string, plan?: string) {
       currentPlan: plan,
       upgradeUrl: '/pricing',
     },
-    { status: 403 }
+    { status: 403 },
   )
 }

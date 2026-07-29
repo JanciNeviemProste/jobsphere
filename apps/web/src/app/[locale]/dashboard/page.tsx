@@ -223,8 +223,6 @@ export default async function DashboardPage({ params }: { params: { locale: stri
     redirect(`/${params.locale}/login`)
   }
 
-  const t = await getTranslations()
-
   return (
     <Suspense fallback={<DashboardLoading />}>
       <DashboardContent params={params} />
