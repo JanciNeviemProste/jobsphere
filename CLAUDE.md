@@ -409,14 +409,19 @@ const t = await getTranslations('JobsPage')
 
 **Mocking Prisma:**
 
-```typescript
-import { mockDeep } from 'vitest-mock-extended'
-import { PrismaClient } from '@prisma/client'
+`vitest-mock-extended` **nie je závislosťou tohto repa** a `mockDeep` sa nepoužíva ani v jednom teste
+(overené 2026-07-29) — nasledujúci vzor by nezbehol. Skutočná konvencia sú plain `vi.fn()` mocky:
 
+```typescript
 vi.mock('@/lib/prisma', () => ({
-  prisma: mockDeep<PrismaClient>(),
+  prisma: {
+    candidate: { findFirst: vi.fn(), findMany: vi.fn() },
+    matchScore: { findMany: vi.fn(), upsert: vi.fn() },
+  },
 }))
 ```
+
+Vzor v praxi: `apps/web/src/app/api/candidates/[id]/__tests__/match-scores.test.ts`.
 
 ## Environment Variables
 
