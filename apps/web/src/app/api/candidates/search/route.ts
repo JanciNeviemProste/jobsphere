@@ -76,11 +76,19 @@ export const POST = withRateLimit(
         includeDetails,
       })
 
-      // 6. Filter out candidates who already applied
-      const applicantIds = await prisma.application.findMany({
-        where: { jobId: job.id },
-        select: { candidateId: true },
-      })
+      // 6. Filter out candidates who already applied.
+      // The set is only ever probed with ids from `matches`, so narrow the query to
+      // those ids instead of loading every Application row for the job (a popular
+      // job can have thousands). `matches` is capped by `limit` (<= 100), which also
+      // bounds this lookup. Behaviour is identical: probes outside the narrowed set
+      // could never have hit the old set either.
+      const matchCandidateIds = matches.map((m) => m.candidateId)
+      const applicantIds = matchCandidateIds.length
+        ? await prisma.application.findMany({
+            where: { jobId: job.id, candidateId: { in: matchCandidateIds } },
+            select: { candidateId: true },
+          })
+        : []
       const appliedCandidateIds = new Set(applicantIds.map((a) => a.candidateId))
 
       const filteredMatches = matches.filter((match) => !appliedCandidateIds.has(match.candidateId))

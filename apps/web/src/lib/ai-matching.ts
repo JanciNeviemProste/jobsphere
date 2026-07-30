@@ -29,24 +29,27 @@ export interface MatchScore {
  */
 export async function calculateMatchScore(resumeId: string, jobId: string): Promise<MatchScore> {
   try {
-    // Fetch resume and job data
-    const resume = await prisma.resume.findUnique({
-      where: { id: resumeId },
-      include: {
-        sections: true,
-        candidate: true,
-      },
-    })
-    const job = await prisma.job.findUnique({
-      where: { id: jobId },
-      include: {
-        organization: {
-          select: {
-            name: true,
+    // Fetch resume and job data. These two reads are independent — issue them
+    // together instead of sequentially so the round-trips overlap (PERF).
+    const [resume, job] = await Promise.all([
+      prisma.resume.findUnique({
+        where: { id: resumeId },
+        include: {
+          sections: true,
+          candidate: true,
+        },
+      }),
+      prisma.job.findUnique({
+        where: { id: jobId },
+        include: {
+          organization: {
+            select: {
+              name: true,
+            },
           },
         },
-      },
-    })
+      }),
+    ])
 
     if (!resume || !job) {
       throw new Error('Resume or job not found')
@@ -187,16 +190,19 @@ Return a JSON response with this structure:
  * Fallback scoring when AI is unavailable
  */
 async function calculateFallbackScore(resumeId: string, jobId: string): Promise<MatchScore> {
-  const resume = await prisma.resume.findUnique({
-    where: { id: resumeId },
-    include: {
-      sections: true,
-      candidate: true,
-    },
-  })
-  const job = await prisma.job.findUnique({
-    where: { id: jobId },
-  })
+  // Same as the AI path: the two reads are independent, so overlap them.
+  const [resume, job] = await Promise.all([
+    prisma.resume.findUnique({
+      where: { id: resumeId },
+      include: {
+        sections: true,
+        candidate: true,
+      },
+    }),
+    prisma.job.findUnique({
+      where: { id: jobId },
+    }),
+  ])
 
   if (!resume || !job) {
     throw new Error('Resume or job not found')
@@ -300,67 +306,14 @@ export async function calculateBulkMatchScores(
 }
 
 /**
- * Get recommended jobs with AI match scores
+ * NOTE (PERF-002): `getRecommendedJobsWithAI()` used to live here. It fanned out
+ * `calculateMatchScore()` — i.e. one Anthropic completion + 2 DB reads — over
+ * `limit * 2` jobs on every request to `/api/jobs/recommended`, so a single page
+ * view cost ~20 LLM calls and ~40 queries.
+ *
+ * Recommendations are now served from the cached `MatchScore` table, with misses
+ * enqueued on the `match-score-cache` queue and computed by
+ * `apps/web/src/workers/match-score-cache.worker.ts`. The LLM is never invoked in
+ * a request path. See `apps/web/src/app/api/jobs/recommended/route.ts` and
+ * `apps/web/src/app/api/candidates/[id]/match-scores/route.ts` for the pattern.
  */
-export async function getRecommendedJobsWithAI(
-  candidateId: string,
-  limit: number = 10,
-): Promise<Array<{ job: any; matchScore: MatchScore }>> {
-  try {
-    // Get candidate's first resume
-    const resume = await prisma.resume.findFirst({
-      where: {
-        candidateId,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
-
-    if (!resume) {
-      return []
-    }
-
-    // Get jobs the candidate hasn't applied to
-    const appliedJobIds = await prisma.application
-      .findMany({
-        where: { candidateId },
-        select: { jobId: true },
-      })
-      .then((apps) => apps.map((a) => a.jobId))
-
-    // Get available jobs
-    const jobs = await prisma.job.findMany({
-      where: {
-        status: 'PUBLISHED',
-        id: {
-          notIn: appliedJobIds,
-        },
-      },
-      include: {
-        organization: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: limit * 2, // Get more to filter by score
-    })
-
-    // Calculate match scores
-    const jobsWithScores = await Promise.all(
-      jobs.map(async (job) => ({
-        job,
-        matchScore: await calculateMatchScore(resume.id, job.id),
-      })),
-    )
-
-    // Sort by overall match score
-    jobsWithScores.sort((a, b) => b.matchScore.overall - a.matchScore.overall)
-
-    // Return top matches
-    return jobsWithScores.slice(0, limit)
-  } catch (error) {
-    logger.error('Failed to get recommended jobs with AI', error)
-    return []
-  }
-}

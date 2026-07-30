@@ -68,7 +68,10 @@ export default async function AnalyticsPage() {
   }
 
   const orgId = membership.orgId
-  const orgScope = { job: { orgId } }
+  // Scope on Application.orgId (its own non-nullable column, always written as
+  // job.orgId on create) rather than the `job` relation — a relation filter forces
+  // a join against Job and cannot use @@index([orgId, stage, createdAt]).
+  const orgScope = { orgId }
 
   // ── DB-side aggregations — no full row scan in JS ──────────────────────────
 
@@ -93,29 +96,25 @@ export default async function AnalyticsPage() {
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-  // groupBy date requires raw query; fetch minimal rows (id + createdAt) instead —
-  // bounded to 30 days so at most a few thousand rows even for large orgs.
-  const recentApps = await prisma.application.findMany({
-    where: {
-      ...orgScope,
-      createdAt: { gte: thirtyDaysAgo },
-    },
-    select: { createdAt: true },
-    orderBy: { createdAt: 'asc' },
-  })
+  // Per-day aggregation happens in Postgres (at most ~31 rows come back) instead of
+  // streaming every application from the window into JS. Prisma's groupBy cannot
+  // bucket a timestamp by calendar day, so this is a parameterised $queryRaw.
+  // `deletedAt IS NULL` is explicit: raw SQL bypasses the soft-delete middleware
+  // in lib/prisma.ts that the previous findMany relied on.
+  const dailyCounts = await prisma.$queryRaw<Array<{ day: Date; count: bigint }>>`
+    SELECT DATE_TRUNC('day', "createdAt") AS day, COUNT(*) AS count
+    FROM "Application"
+    WHERE "orgId" = ${orgId}
+      AND "deletedAt" IS NULL
+      AND "createdAt" >= ${thirtyDaysAgo}
+    GROUP BY 1
+    ORDER BY 1 ASC
+  `
 
-  const dateGroups = recentApps.reduce(
-    (acc, app) => {
-      const date = new Date(app.createdAt).toLocaleDateString()
-      acc[date] = (acc[date] || 0) + 1
-      return acc
-    },
-    {} as Record<string, number>,
-  )
-
-  const trendData = Object.entries(dateGroups)
-    .map(([date, count]) => ({ date, count }))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  const trendData = dailyCounts.map((row) => ({
+    date: new Date(row.day).toLocaleDateString(),
+    count: Number(row.count),
+  }))
 
   // 3. Top jobs by application count — DB aggregation, limit 10
   const jobCounts = await prisma.application.groupBy({

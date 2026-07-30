@@ -40,7 +40,10 @@ export const GET = withRateLimit(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
 
-      // Get user's consent records
+      // Get user's consent records.
+      // Deliberately unbounded: this is a GDPR record-of-consent view and the data
+      // subject must be able to see it in full. Growth is bounded by the user's own
+      // consent activity and the query is indexed on userId.
       const consents = await prisma.consentRecord.findMany({
         where: { userId: session.user.id },
         orderBy: { grantedAt: 'desc' },

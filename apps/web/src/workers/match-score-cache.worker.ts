@@ -23,6 +23,34 @@ export interface CandidateMatchScoreCacheJobData {
 type AnyMatchScoreCacheJobData = MatchScoreCacheJobData | CandidateMatchScoreCacheJobData
 
 /**
+ * How many match scores are computed in parallel. Each unit of work is one
+ * Anthropic completion + a couple of queries, so this trades a serial chain of
+ * up to `candidateLimit` LLM round-trips for a bounded fan-out. Kept modest so
+ * we don't trip provider rate limits or exhaust the Prisma pool.
+ *
+ * No `p-limit` dependency: the chunked helper below is all this needs.
+ */
+const SCORE_CONCURRENCY = 5
+
+/**
+ * Run `fn` over `items` with at most `limit` in flight, preserving input order.
+ * `fn` must never reject — callers handle their own errors so that one failure
+ * cannot abort the batch.
+ */
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = []
+  for (let i = 0; i < items.length; i += limit) {
+    const chunk = items.slice(i, i + limit)
+    results.push(...(await Promise.all(chunk.map(fn))))
+  }
+  return results
+}
+
+/**
  * Upsert a single computed match score, keyed on (jobId, candidateId).
  * Shared by both the per-job and per-candidate cache processors.
  */
@@ -66,7 +94,7 @@ async function upsertMatchScore(params: {
 /**
  * Process match score caching
  */
-async function processMatchScoreCaching(job: Job<MatchScoreCacheJobData>) {
+export async function processMatchScoreCaching(job: Job<MatchScoreCacheJobData>) {
   const { jobId, candidateLimit = 100 } = job.data
 
   logger.info('Starting match score caching', { jobId, candidateLimit, workerJobId: job.id })
@@ -81,9 +109,20 @@ async function processMatchScoreCaching(job: Job<MatchScoreCacheJobData>) {
       throw new Error(`Job ${jobId} not found`)
     }
 
-    // Get top candidates with resumes (most recent first)
+    // Get top candidates with resumes (most recent first).
+    //
+    // SECURITY (multi-tenancy): this MUST be scoped to the job's organization.
+    // Without `orgId` the worker picked the N most recent candidates across every
+    // tenant, wrote MatchScore rows for them tagged with THIS job's orgId
+    // (cross-tenant data in the scores table) and burned Anthropic spend on other
+    // organizations' candidates.
+    //
+    // `deletedAt: null` is intentionally NOT repeated here: the soft-delete
+    // middleware in `apps/web/src/lib/prisma.ts` injects it for `findMany` on
+    // Candidate, and a literal here would shadow that single source of truth.
     const candidates = await prisma.candidate.findMany({
       where: {
+        orgId: jobRecord.orgId,
         resumes: { some: {} },
       },
       include: {
@@ -108,50 +147,61 @@ async function processMatchScoreCaching(job: Job<MatchScoreCacheJobData>) {
     let cached = 0
     let skipped = 0
     let failed = 0
+    let processed = 0
 
-    for (const candidate of candidates) {
-      const resume = candidate.resumes[0]
+    // Bounded concurrency instead of a strictly serial loop: previously this was
+    // up to `candidateLimit` (default 100) sequential LLM round-trips per job.
+    // Error isolation is unchanged — each candidate has its own try/catch, so one
+    // failure never aborts the batch.
+    for (let i = 0; i < candidates.length; i += SCORE_CONCURRENCY) {
+      const chunk = candidates.slice(i, i + SCORE_CONCURRENCY)
 
-      if (!resume) {
-        skipped++
-        continue
-      }
+      await Promise.all(
+        chunk.map(async (candidate) => {
+          const resume = candidate.resumes[0]
 
-      try {
-        // Calculate match score
-        const matchScore = await calculateMatchScore(resume.id, jobId)
+          if (!resume) {
+            skipped++
+            return
+          }
 
-        // Upsert into database
-        await upsertMatchScore({
-          orgId: jobRecord.orgId,
-          jobId,
-          candidateId: candidate.id,
-          resumeId: resume.id,
-          matchScore,
-        })
+          try {
+            // Calculate match score
+            const matchScore = await calculateMatchScore(resume.id, jobId)
 
-        cached++
+            // Upsert into database
+            await upsertMatchScore({
+              orgId: jobRecord.orgId,
+              jobId,
+              candidateId: candidate.id,
+              resumeId: resume.id,
+              matchScore,
+            })
 
-        // Update progress
-        if (cached % 10 === 0) {
-          await job.updateProgress((cached / candidates.length) * 100)
-          logger.info('Match score caching progress', {
-            jobId,
-            cached,
-            total: candidates.length,
-            workerJobId: job.id,
-          })
-        }
-      } catch (error) {
-        failed++
-        logger.error('Failed to cache match score', {
-          candidateId: candidate.id,
-          jobId,
-          error,
-          workerJobId: job.id,
-        })
-        // Continue with next candidate instead of failing the entire job
-      }
+            cached++
+          } catch (error) {
+            failed++
+            logger.error('Failed to cache match score', {
+              candidateId: candidate.id,
+              jobId,
+              error,
+              workerJobId: job.id,
+            })
+            // Continue with next candidate instead of failing the entire job
+          }
+        }),
+      )
+
+      // Update progress once per chunk (the old `cached % 10` check is not
+      // meaningful once work overlaps).
+      processed += chunk.length
+      await job.updateProgress((processed / candidates.length) * 100)
+      logger.info('Match score caching progress', {
+        jobId,
+        cached,
+        total: candidates.length,
+        workerJobId: job.id,
+      })
     }
 
     logger.info('Match score caching completed', {
@@ -223,7 +273,9 @@ export async function processCandidateMatchScoreCaching(job: Job<CandidateMatchS
   let skipped = 0
   let failed = 0
 
-  for (const jobId of jobIds) {
+  // Bounded concurrency (was a strictly serial loop of LLM round-trips). Each
+  // job keeps its own try/catch, so one failure never aborts the batch.
+  await mapWithConcurrency(jobIds, SCORE_CONCURRENCY, async (jobId) => {
     try {
       // Only compute for jobs that still belong to the candidate's org and are
       // published. Guards against stale enqueues / cross-org leakage.
@@ -234,7 +286,7 @@ export async function processCandidateMatchScoreCaching(job: Job<CandidateMatchS
 
       if (!jobRecord || jobRecord.orgId !== candidate.orgId || jobRecord.status !== 'PUBLISHED') {
         skipped++
-        continue
+        return
       }
 
       const matchScore = await calculateMatchScore(resume.id, jobId)
@@ -258,7 +310,7 @@ export async function processCandidateMatchScoreCaching(job: Job<CandidateMatchS
       })
       // Continue with next job instead of failing the whole batch.
     }
-  }
+  })
 
   logger.info('Candidate match score caching completed', {
     candidateId,

@@ -39,7 +39,9 @@ export const GET = withRateLimit(
       // Get all applications for organization
       const applications = await prisma.application.findMany({
         where: {
-          job: { orgId: membership.orgId },
+          // Application.orgId (own column) — avoids a join against Job and lets
+          // @@index([orgId, stage, createdAt]) serve the org scan.
+          orgId: membership.orgId,
         },
         include: {
           job: {

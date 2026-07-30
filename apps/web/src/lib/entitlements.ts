@@ -105,7 +105,9 @@ export async function canAddCandidate(orgId: string): Promise<boolean> {
   if (limit === null) return true
 
   const currentCount = await prisma.application.count({
-    where: { job: { orgId } },
+    // Application.orgId is its own non-nullable column (always set to job.orgId on
+    // create); filtering it directly avoids a join against Job.
+    where: { orgId },
   })
 
   return currentCount < limit

@@ -44,7 +44,10 @@ export const GET = withRateLimit(
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      // Proposals are bounded by the gig (and the gig by tenancy); `take` is a
+      // safety net, with an `id` tiebreaker for a deterministic order.
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 500,
     })
     return NextResponse.json({ proposals })
   },

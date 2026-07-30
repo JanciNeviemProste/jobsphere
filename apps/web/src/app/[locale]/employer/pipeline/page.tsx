@@ -63,7 +63,9 @@ export default async function PipelinePage({
       stagesToLoad.map((stage) =>
         prisma.application.findMany({
           where: {
-            job: { orgId },
+            // Application.orgId directly — a `job: { orgId }` relation filter
+            // cannot use @@index([orgId, stage, createdAt]).
+            orgId,
             stage,
             ...(currentJobId ? { jobId: currentJobId } : {}),
           },

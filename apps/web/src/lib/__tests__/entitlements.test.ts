@@ -159,7 +159,7 @@ describe('Entitlements', () => {
 
       expect(result).toBe(true)
       expect(prisma.application.count).toHaveBeenCalledWith({
-        where: { job: { orgId: 'org-123' } },
+        where: { orgId: 'org-123' },
       })
     })
 

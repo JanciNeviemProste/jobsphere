@@ -33,11 +33,13 @@ async function getApplicants(userId: string, page: number, filters: ApplicantsFi
     return null
   }
 
+  // Scope on Application.orgId (own column) rather than through the `job` relation:
+  // a relation filter forces a join/subquery against Job and cannot use the
+  // purpose-built @@index([orgId, stage, createdAt]). Same for the job filter —
+  // `jobId` is a required FK, so `jobId: x` ⟺ `job: { id: x }`.
   const where = {
-    job: {
-      orgId: userOrgRole.orgId,
-      ...(filters.jobId ? { id: filters.jobId } : {}),
-    },
+    orgId: userOrgRole.orgId,
+    ...(filters.jobId ? { jobId: filters.jobId } : {}),
     ...(filters.stage ? { stage: filters.stage } : {}),
   }
 
@@ -143,11 +145,7 @@ export default async function ApplicantsPage({
   // Stats require DB-side aggregation — org-wide overview (unaffected by filters).
   const stageCounts = await prisma.application.groupBy({
     by: ['stage'],
-    where: {
-      job: {
-        orgId: result.orgId,
-      },
-    },
+    where: { orgId: result.orgId },
     _count: { stage: true },
   })
 

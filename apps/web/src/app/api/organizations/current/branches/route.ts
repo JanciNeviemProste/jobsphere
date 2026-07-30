@@ -35,9 +35,12 @@ export const GET = withRateLimit(
         return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
       }
 
+      // Branches are bounded by tenancy (a handful per org); `take` is a safety net,
+      // and the `id` tiebreaker makes the order fully deterministic.
       const branches = await prisma.branch.findMany({
         where: { orgId: userOrgRole.orgId, deletedAt: null },
-        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }, { id: 'asc' }],
+        take: 500,
       })
 
       return NextResponse.json({ branches })

@@ -46,9 +46,11 @@ export const GET = withRateLimit(
           summary: true,
           createdAt: true,
         },
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        // A person has a handful of CVs; `take` is a safety net against an
+        // unbounded scan. The `id` tiebreaker keeps `isDefault: index === 0`
+        // (below) stable when two resumes share a createdAt.
+        take: 100,
       })
 
       // Format for frontend

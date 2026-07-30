@@ -55,6 +55,9 @@ model Organization {
 
   @@index([slug])
   @@index([deletedAt])
+  // GET /api/jobs searches the employer name with ILIKE '%term%' via the
+  // `organization: { name: { contains } }` relation filter — needs a trigram index.
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 model User {
@@ -319,10 +322,20 @@ model Job {
   @@unique([externalSource, externalId]) // scraper dedup (L65); NULLs are distinct in Postgres
   @@index([orgId, status])
   @@index([publishedAt, status]) // For public job listings sorted by date
+  // GET /api/jobs filters status='PUBLISHED' and sorts by createdAt DESC.
+  // [publishedAt, status] cannot serve it: wrong sort column, and `status` is a
+  // trailing column so it can't drive the equality filter either.
+  @@index([status, createdAt])
   @@index([status, seniority]) // For seniority-filtered public listing
   @@index([status, remote]) // For remote-filtered public listing
   @@index([locale])
   @@index([deletedAt])
+  // GET /api/jobs full-text-ish search is `contains` + mode:'insensitive' →
+  // ILIKE '%term%'. A leading wildcard makes every btree index unusable, so these
+  // pg_trgm GIN indexes are the only structure Postgres can use for that query.
+  // pg_trgm is enabled in the datasource `extensions` list above.
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([description(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 model SavedJob {
@@ -625,6 +638,10 @@ model MatchScore {
   @@unique([jobId, candidateId])
   @@index([orgId])
   @@index([score0to100])
+  // Candidate-first lookups (GET /api/candidates/[id]/match-scores) filter on
+  // candidateId alone; in @@unique([jobId, candidateId]) it is the trailing
+  // column, so it can never lead a btree scan.
+  @@index([candidateId])
 }
 
 // ============ EMAIL MODELS ============

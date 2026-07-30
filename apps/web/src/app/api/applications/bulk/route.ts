@@ -56,7 +56,9 @@ export const POST = withCsrfProtection(
         const ids = payload.applicationIds
 
         const permitted = await prisma.application.findMany({
-          where: { id: { in: ids }, deletedAt: null, job: { orgId } },
+          // Tenant boundary: filter Application.orgId directly (non-nullable column,
+          // always written as job.orgId on create) instead of joining Job.
+          where: { id: { in: ids }, deletedAt: null, orgId },
           select: { id: true },
         })
 

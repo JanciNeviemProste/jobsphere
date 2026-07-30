@@ -22,6 +22,9 @@ export const GET = withRateLimit(
     try {
       const { orgId } = await requireAuth(request as NextRequest)
 
+      // Sequences are bounded by tenancy (a few per org). The query previously had
+      // no ordering at all, so row order was whatever Postgres returned; making it
+      // deterministic is what lets `take` be a safe safety net.
       const sequences = await prisma.emailSequence.findMany({
         where: { orgId },
         include: {
@@ -29,6 +32,8 @@ export const GET = withRateLimit(
             orderBy: { order: 'asc' },
           },
         },
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        take: 200,
       })
 
       return NextResponse.json({ sequences })

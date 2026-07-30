@@ -22,6 +22,7 @@ interface JobRecommendation {
   workMode: string
   seniority?: string | null
   match: number
+  matchPending?: boolean
   matchDetails?: {
     skills: number
     experience: number
@@ -33,6 +34,18 @@ interface JobRecommendation {
   }
 }
 
+/**
+ * PERF-002: the endpoint now returns cached AI scores and reports whether the
+ * remaining ones are still being computed in the background, instead of blocking
+ * the request on ~20 LLM calls.
+ */
+interface RecommendationsResponse {
+  jobs: JobRecommendation[]
+  total: number
+  pending: boolean
+  computing: number
+}
+
 interface RecommendedJobsSectionProps {
   locale: string
 }
@@ -40,6 +53,7 @@ interface RecommendedJobsSectionProps {
 export function RecommendedJobsSection({ locale }: RecommendedJobsSectionProps) {
   const t = useTranslations()
   const [recommendations, setRecommendations] = useState<JobRecommendation[]>([])
+  const [pending, setPending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -61,8 +75,16 @@ export function RecommendedJobsSection({ locale }: RecommendedJobsSectionProps) 
         throw new Error('Failed to fetch recommendations')
       }
 
-      const data = await response.json()
-      setRecommendations(data)
+      const data: RecommendationsResponse | JobRecommendation[] = await response.json()
+
+      // Tolerate the legacy bare-array payload as well as the current object shape.
+      if (Array.isArray(data)) {
+        setRecommendations(data)
+        setPending(false)
+      } else {
+        setRecommendations(data?.jobs ?? [])
+        setPending(Boolean(data?.pending))
+      }
     } catch (err) {
       logger.error('Error fetching recommendations', err)
       setError(err instanceof Error ? err.message : 'Failed to load recommendations')
@@ -132,9 +154,10 @@ export function RecommendedJobsSection({ locale }: RecommendedJobsSectionProps) 
 
   return (
     <div className="mb-12">
-      {/* Header */}
+      {/* Header. The sparkle pulses only while AI scores are still being
+          computed in the background, so the state is visible without blocking. */}
       <div className="mb-6 flex items-center gap-2">
-        <Sparkles className="h-6 w-6 animate-pulse text-primary" />
+        <Sparkles className={`h-6 w-6 text-primary ${pending ? 'animate-pulse' : ''}`} />
         <h2 className="text-2xl font-bold">{t('jobs.recommendedForYou')}</h2>
       </div>
 

@@ -118,9 +118,10 @@ describe('QA-004 — bulk move-stage writes Application.stage, org-scoped', () =
     const body = await res.json()
     expect(body.error).toMatch(/do not belong to your organization/i)
 
-    // The permission query is org-scoped: it filters by job.orgId == caller's org.
+    // The permission query is org-scoped: it filters Application.orgId == caller's org.
     const permissionCall = vi.mocked(prisma.application.findMany).mock.calls[0][0] as any
-    expect(permissionCall.where.job).toEqual({ orgId: ORG_ID })
+    expect(permissionCall.where.orgId).toEqual(ORG_ID)
+    expect(permissionCall.where.job).toBeUndefined()
     expect(permissionCall.where.id).toEqual({ in: [APP_1, APP_2] })
     expect(permissionCall.where.deletedAt).toBeNull()
 

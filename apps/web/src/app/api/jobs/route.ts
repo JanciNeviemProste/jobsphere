@@ -111,36 +111,39 @@ export const GET = withRateLimit(
         }),
       }
 
-      const jobs = await prisma.job.findMany({
-        where,
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          city: true,
-          region: true,
-          remote: true,
-          hybrid: true,
-          employmentType: true,
-          seniority: true,
-          salaryMin: true,
-          salaryMax: true,
-          salaryCurrency: true,
-          status: true,
-          publishedAt: true,
-          createdAt: true,
-          organization: {
-            select: {
-              name: true,
-              logo: true,
+      // Page rows + total count are independent — one round-trip instead of two.
+      const [jobs, total] = await Promise.all([
+        prisma.job.findMany({
+          where,
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            city: true,
+            region: true,
+            remote: true,
+            hybrid: true,
+            employmentType: true,
+            seniority: true,
+            salaryMin: true,
+            salaryMax: true,
+            salaryCurrency: true,
+            status: true,
+            publishedAt: true,
+            createdAt: true,
+            organization: {
+              select: {
+                name: true,
+                logo: true,
+              },
             },
           },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: (params.page - 1) * params.limit,
-        take: params.limit,
-      })
-      const total = await prisma.job.count({ where })
+          orderBy: { createdAt: 'desc' },
+          skip: (params.page - 1) * params.limit,
+          take: params.limit,
+        }),
+        prisma.job.count({ where }),
+      ])
 
       // Transform to match client interface (workMode, type, location)
       const transformedJobs = jobs.map((job) => ({
