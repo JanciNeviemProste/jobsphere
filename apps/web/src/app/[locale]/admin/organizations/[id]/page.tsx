@@ -1,5 +1,5 @@
 import { redirect, notFound } from 'next/navigation'
-import { getFormatter } from 'next-intl/server'
+import { getFormatter, getTranslations } from 'next-intl/server'
 import { SHORT_DATE, SHORT_DATE_TIME } from '@/lib/formats'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -22,6 +22,7 @@ export default async function AdminOrganizationDetailPage({
 }) {
   const session = await auth()
   const format = await getFormatter()
+  const t = await getTranslations('admin')
   if (!session?.user?.isGlobalAdmin) {
     redirect(`/${params.locale}/login?error=forbidden`)
   }
@@ -70,9 +71,11 @@ export default async function AdminOrganizationDetailPage({
         </div>
         <div className="flex items-center gap-3">
           {suspended ? (
-            <Badge variant="destructive">Pozastavená</Badge>
+            <Badge variant="destructive">{t('organizations.suspended')}</Badge>
           ) : (
-            <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Aktívna</Badge>
+            <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+              {t('organizations.active')}
+            </Badge>
           )}
           <OrgActionButton orgId={org.id} suspended={suspended} />
         </div>
@@ -82,35 +85,35 @@ export default async function AdminOrganizationDetailPage({
         <Card>
           <CardContent className="pt-6">
             <p className="text-2xl font-bold">{org.users.length}</p>
-            <p className="text-sm text-slate-500">Členovia</p>
+            <p className="text-sm text-slate-500">{t('organizations.detail.members')}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <p className="text-2xl font-bold">{org.jobs.length}</p>
-            <p className="text-sm text-slate-500">Aktívne joby</p>
+            <p className="text-sm text-slate-500">{t('organizations.detail.activeJobs')}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <p className="text-2xl font-bold">{org.subscriptions.length}</p>
-            <p className="text-sm text-slate-500">Predplatné</p>
+            <p className="text-sm text-slate-500">{t('organizations.detail.subscriptions')}</p>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Členovia</CardTitle>
+          <CardTitle className="text-base">{t('organizations.detail.members')}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Meno</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Rola</TableHead>
-                <TableHead>Priradený od</TableHead>
+                <TableHead>{t('organizations.detail.memberName')}</TableHead>
+                <TableHead>{t('common.email')}</TableHead>
+                <TableHead>{t('common.role')}</TableHead>
+                <TableHead>{t('organizations.detail.memberSince')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -129,7 +132,7 @@ export default async function AdminOrganizationDetailPage({
               {org.users.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="py-6 text-center text-slate-500">
-                    Žiadni členovia
+                    {t('organizations.detail.noMembers')}
                   </TableCell>
                 </TableRow>
               )}
@@ -140,16 +143,16 @@ export default async function AdminOrganizationDetailPage({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Aktívne joby</CardTitle>
+          <CardTitle className="text-base">{t('organizations.detail.activeJobs')}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Pozícia</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Prihlásenia</TableHead>
-                <TableHead>Dátum</TableHead>
+                <TableHead>{t('organizations.detail.position')}</TableHead>
+                <TableHead>{t('common.status')}</TableHead>
+                <TableHead className="text-right">{t('common.applications')}</TableHead>
+                <TableHead>{t('common.date')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -168,7 +171,7 @@ export default async function AdminOrganizationDetailPage({
               {org.jobs.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="py-6 text-center text-slate-500">
-                    Žiadne aktívne joby
+                    {t('organizations.detail.noJobs')}
                   </TableCell>
                 </TableRow>
               )}
@@ -180,16 +183,16 @@ export default async function AdminOrganizationDetailPage({
       {org.subscriptions.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Predplatné</CardTitle>
+            <CardTitle className="text-base">{t('organizations.detail.subscriptions')}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Plán</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Obdobie</TableHead>
-                  <TableHead>Zrušenie</TableHead>
+                  <TableHead>{t('common.plan')}</TableHead>
+                  <TableHead>{t('common.status')}</TableHead>
+                  <TableHead>{t('common.period')}</TableHead>
+                  <TableHead>{t('common.cancellation')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -227,7 +230,9 @@ export default async function AdminOrganizationDetailPage({
       )}
 
       <div className="text-xs text-slate-400">
-        Vytvorená: {format.dateTime(org.createdAt, SHORT_DATE_TIME)}
+        {t('organizations.detail.createdAt', {
+          date: format.dateTime(org.createdAt, SHORT_DATE_TIME),
+        })}
         {org.website && (
           <>
             {' · '}

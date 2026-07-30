@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import {
   Select,
   SelectContent,
@@ -18,6 +19,7 @@ interface JobStatusSelectProps {
 }
 
 export function JobStatusSelect({ jobId, currentStatus }: JobStatusSelectProps) {
+  const t = useTranslations('admin.common')
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
@@ -32,7 +34,7 @@ export function JobStatusSelect({ jobId, currentStatus }: JobStatusSelectProps) 
       })
       if (!res.ok) {
         const data = await res.json()
-        alert(data.error ?? 'Chyba')
+        alert(data.error ?? t('error'))
         return
       }
       router.refresh()

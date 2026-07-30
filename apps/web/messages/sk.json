@@ -1047,5 +1047,209 @@
     "title": "Blog",
     "comingSoon": "Blog pripravujeme. Medzitým si pozrite aktuálne pracovné ponuky.",
     "browseJobs": "Prejsť na ponuky"
+  },
+  "admin": {
+    "nav": {
+      "panelTitle": "Admin Panel",
+      "dashboard": "Dashboard",
+      "users": "Používatelia",
+      "organizations": "Organizácie",
+      "jobs": "Joby",
+      "subscriptions": "Predplatné",
+      "settings": "Nastavenia",
+      "logout": "Odhlásiť sa"
+    },
+    "common": {
+      "id": "ID",
+      "ip": "IP",
+      "email": "Email",
+      "slug": "Slug",
+      "role": "Rola",
+      "status": "Status",
+      "state": "Stav",
+      "date": "Dátum",
+      "plan": "Plán",
+      "period": "Obdobie",
+      "cancellation": "Zrušenie",
+      "organization": "Organizácia",
+      "applications": "Prihlásenia",
+      "action": "Akcia",
+      "actions": "Akcie",
+      "search": "Hľadať",
+      "previous": "Predch.",
+      "next": "Ďalší",
+      "cancel": "Zrušiť",
+      "save": "Uložiť",
+      "saving": "Ukladám…",
+      "create": "Vytvoriť",
+      "edit": "Upraviť",
+      "delete": "Zmazať",
+      "no": "Nie",
+      "error": "Chyba",
+      "actionFailed": "Akcia zlyhala",
+      "actionSuccess": "Akcia bola úspešná",
+      "actionError": "Nepodarilo sa vykonať akciu",
+      "roleAdmin": "Admin",
+      "roleUser": "Používateľ",
+      "pageOf": "Strana {page} z {totalPages}"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "subtitle": "Prehľad systémových štatistík a posledných aktivít",
+      "stats": {
+        "users": "Celkom používateľov",
+        "organizations": "Celkom organizácií",
+        "jobs": "Celkom jobov",
+        "activeSubscriptions": "Aktívne predplatné"
+      },
+      "recentSignups": "Posledné registrácie",
+      "noUsers": "Žiadni používatelia",
+      "table": {
+        "name": "Meno",
+        "registeredAt": "Dátum registrácie"
+      },
+      "totalApplications": "Celkom prihlášok",
+      "orgsWithSubscription": "Org. s aktívnym predplatným",
+      "applicationsPerJob": "Prihlášky / job"
+    },
+    "users": {
+      "metaTitle": "Správa používateľov | Admin",
+      "title": "Správa používateľov",
+      "totalUsers": "Celkom <strong>{count}</strong> používateľov",
+      "searchPlaceholder": "Hľadať podľa mena alebo emailu...",
+      "statusActive": "Aktívny",
+      "statusBanned": "Zablokovaný",
+      "table": {
+        "user": "Používateľ",
+        "registered": "Registrácia",
+        "verified": "Overený",
+        "organizations": "Org."
+      },
+      "viewDetail": "Zobraziť detail",
+      "ban": "Zablokovať",
+      "unban": "Odblokovať",
+      "promote": "Povýšiť na admina",
+      "demote": "Odobrať admina",
+      "empty": "Žiadni používatelia nenájdení",
+      "pagination": "Strana {page} z {totalPages} • {total} výsledkov",
+      "toast": {
+        "banned": "Používateľ bol zablokovaný",
+        "unbanned": "Blokácia bola zrušená",
+        "promoted": "Používateľ bol povýšený na admina",
+        "demoted": "Admin práva boli odobrané"
+      },
+      "detail": {
+        "metaTitle": "Detail používateľa | Admin",
+        "back": "Späť na zoznam",
+        "noName": "Bez mena",
+        "personalInfo": "Osobné informácie",
+        "name": "Meno",
+        "emailVerified": "Email overený",
+        "lastLogin": "Posledné prihlásenie",
+        "lastLoginIp": "IP posledného prihlásenia",
+        "failedAttempts": "Neúspešné pokusy",
+        "bannedUntil": "Zablokovaný do",
+        "registered": "Registrovaný",
+        "applications": "Prihlášky",
+        "organizations": "Organizácie ({count})",
+        "noOrganizations": "Žiadne organizácie",
+        "auditLog": "Posledná aktivita (audit log)",
+        "noActivity": "Žiadna zaznamenaná aktivita",
+        "entity": "Entita",
+        "time": "Čas",
+        "deleteTitle": "Zmazať používateľa?",
+        "deleteDescription": "Táto akcia soft-zmaže používateľa (nastaví deletedAt). Používateľ stratí prístup do systému. Akciu je možné zvrátiť priamo v databáze.",
+        "deleteFailed": "Zmazanie zlyhalo",
+        "deleteError": "Nepodarilo sa zmazať používateľa"
+      }
+    },
+    "organizations": {
+      "metaTitle": "Správa organizácií | Admin",
+      "title": "Organizácie",
+      "totalCount": "Celkovo {count} organizácií",
+      "allOrganizations": "Všetky organizácie",
+      "active": "Aktívna",
+      "suspended": "Pozastavená",
+      "activate": "Aktivovať",
+      "suspend": "Pozastaviť",
+      "empty": "Žiadne organizácie",
+      "table": {
+        "name": "Názov",
+        "industry": "Industry",
+        "members": "Členovia",
+        "jobs": "Joby",
+        "subscriptions": "Predplatné"
+      },
+      "create": {
+        "title": "Nová organizácia",
+        "description": "Vytvorte organizáciu. Ak zadáte e-mail admina, odošle sa mu pozvánka na nastavenie hesla (ORG_ADMIN).",
+        "nameLabel": "Názov *",
+        "slugLabel": "Slug (voliteľné)",
+        "slugPlaceholder": "auto z názvu",
+        "industryLabel": "Industry (voliteľné)",
+        "sizeLabel": "Veľkosť (voliteľné)",
+        "websiteLabel": "Web (voliteľné)",
+        "adminEmailLabel": "E-mail admina (voliteľné — pošle pozvánku)",
+        "error": "Chyba pri vytváraní organizácie",
+        "inviteFailed": "Organizácia vytvorená, ale pozvánku sa nepodarilo odoslať."
+      },
+      "detail": {
+        "members": "Členovia",
+        "activeJobs": "Aktívne joby",
+        "subscriptions": "Predplatné",
+        "memberName": "Meno",
+        "memberSince": "Priradený od",
+        "noMembers": "Žiadni členovia",
+        "position": "Pozícia",
+        "noJobs": "Žiadne aktívne joby",
+        "createdAt": "Vytvorená: {date}"
+      }
+    },
+    "jobs": {
+      "metaTitle": "Správa ponúk | Admin",
+      "title": "Joby",
+      "totalCount": "{count} jobov celkovo",
+      "allJobs": "Všetky joby",
+      "empty": "Žiadne joby",
+      "filterPlaceholder": "Filter statusu",
+      "allStatuses": "Všetky statusy",
+      "table": {
+        "title": "Názov",
+        "changeStatus": "Zmena statusu"
+      },
+      "create": {
+        "title": "Nový job",
+        "description": "Vytvorte job pre zvolenú organizáciu. Popis musí mať aspoň 50 znakov.",
+        "orgLabel": "Organizácia *",
+        "orgPlaceholder": "Vyberte organizáciu…",
+        "titleLabel": "Názov *",
+        "descriptionLabel": "Popis * (min. 50 znakov)",
+        "locationLabel": "Lokalita (voliteľné)",
+        "workModeLabel": "Režim",
+        "typeLabel": "Typ",
+        "seniorityLabel": "Seniorita",
+        "error": "Chyba pri vytváraní jobu"
+      }
+    },
+    "subscriptions": {
+      "metaTitle": "Predplatné | Admin",
+      "title": "Predplatné",
+      "subtitle": "{count} predplatných (Stripe je source of truth)",
+      "allSubscriptions": "Všetky predplatné",
+      "created": "Vytvorené",
+      "empty": "Žiadne predplatné"
+    },
+    "settings": {
+      "metaTitle": "Nastavenia | Admin",
+      "title": "Nastavenia",
+      "subtitle": "Systémové nastavenia a feature flags",
+      "systemSettings": "Systémové nastavenia",
+      "noSettings": "Žiadne nastavenia",
+      "featureFlags": "Feature Flags",
+      "noFlags": "Žiadne feature flags",
+      "editTitle": "Upraviť nastavenie",
+      "key": "Kľúč",
+      "value": "Hodnota"
+    }
   }
 }

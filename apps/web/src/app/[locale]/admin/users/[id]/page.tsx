@@ -5,7 +5,7 @@
 
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { getFormatter } from 'next-intl/server'
+import { getFormatter, getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
@@ -26,12 +26,13 @@ import {
   XCircle,
 } from 'lucide-react'
 
-export const metadata: Metadata = {
-  title: 'Detail používateľa | Admin',
-}
-
 interface PageProps {
   params: { locale: string; id: string }
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const t = await getTranslations({ locale: params.locale, namespace: 'admin' })
+  return { title: t('users.detail.metaTitle') }
 }
 
 function isBanned(lockedUntil: Date | string | null): boolean {
@@ -42,6 +43,7 @@ function isBanned(lockedUntil: Date | string | null): boolean {
 export default async function AdminUserDetailPage({ params }: PageProps) {
   const session = await auth()
   const intl = await getFormatter()
+  const t = await getTranslations('admin')
 
   // '—' when absent, otherwise formatted in the active locale.
   const formatDateTime = (date: Date | string | null): string =>
@@ -108,7 +110,7 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
         className="inline-flex items-center gap-1 text-sm text-slate-500 transition-colors hover:text-slate-800"
       >
         <ArrowLeft className="h-4 w-4" />
-        Späť na zoznam
+        {t('users.detail.back')}
       </Link>
 
       {/* Header card */}
@@ -124,17 +126,19 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl font-bold text-slate-900">
-                  {user.name ?? <span className="italic text-slate-400">Bez mena</span>}
+                  {user.name ?? (
+                    <span className="italic text-slate-400">{t('users.detail.noName')}</span>
+                  )}
                 </h1>
                 {user.isGlobalAdmin && (
                   <Badge className="bg-blue-600 text-xs text-white">
                     <ShieldCheck className="mr-1 h-3 w-3" />
-                    Admin
+                    {t('common.roleAdmin')}
                   </Badge>
                 )}
                 {banned && (
                   <Badge variant="destructive" className="text-xs">
-                    Zablokovaný
+                    {t('users.statusBanned')}
                   </Badge>
                 )}
                 {!user.isGlobalAdmin && !banned && (
@@ -142,7 +146,7 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
                     variant="secondary"
                     className="border-emerald-200 bg-emerald-50 text-xs text-emerald-700"
                   >
-                    Aktívny
+                    {t('users.statusActive')}
                   </Badge>
                 )}
               </div>
@@ -181,15 +185,15 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
         <Card className="border border-slate-200 bg-white shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-700">
-              Osobné informácie
+              {t('users.detail.personalInfo')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <InfoRow label="ID" value={user.id} mono />
-            <InfoRow label="Meno" value={user.name ?? '—'} />
-            <InfoRow label="Email" value={user.email} />
+            <InfoRow label={t('common.id')} value={user.id} mono />
+            <InfoRow label={t('users.detail.name')} value={user.name ?? '—'} />
+            <InfoRow label={t('common.email')} value={user.email} />
             <InfoRow
-              label="Email overený"
+              label={t('users.detail.emailVerified')}
               value={
                 user.emailVerified ? (
                   <span className="flex items-center gap-1 text-emerald-600">
@@ -199,25 +203,28 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
                 ) : (
                   <span className="flex items-center gap-1 text-red-500">
                     <XCircle className="h-4 w-4" />
-                    Nie
+                    {t('common.no')}
                   </span>
                 )
               }
             />
             <Separator />
-            <InfoRow label="Posledné prihlásenie" value={formatDateTime(user.lastLoginAt)} />
-            <InfoRow label="IP posledného prihlásenia" value={user.lastLoginIp ?? '—'} mono />
-            <InfoRow label="Neúspešné pokusy" value={String(user.failedAttempts)} />
+            <InfoRow label={t('users.detail.lastLogin')} value={formatDateTime(user.lastLoginAt)} />
+            <InfoRow label={t('users.detail.lastLoginIp')} value={user.lastLoginIp ?? '—'} mono />
+            <InfoRow label={t('users.detail.failedAttempts')} value={String(user.failedAttempts)} />
             {banned && (
               <InfoRow
-                label="Zablokovaný do"
+                label={t('users.detail.bannedUntil')}
                 value={formatDateTime(user.lockedUntil)}
                 className="text-red-600"
               />
             )}
             <Separator />
-            <InfoRow label="Registrovaný" value={formatDateTime(user.createdAt)} />
-            <InfoRow label="Prihlášky" value={String(user._count.assignedApps)} />
+            <InfoRow label={t('users.detail.registered')} value={formatDateTime(user.createdAt)} />
+            <InfoRow
+              label={t('users.detail.applications')}
+              value={String(user._count.assignedApps)}
+            />
           </CardContent>
         </Card>
 
@@ -225,12 +232,12 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
         <Card className="border border-slate-200 bg-white shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-700">
-              Organizácie ({user.organizations.length})
+              {t('users.detail.organizations', { count: user.organizations.length })}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {user.organizations.length === 0 ? (
-              <p className="text-sm italic text-slate-400">Žiadne organizácie</p>
+              <p className="text-sm italic text-slate-400">{t('users.detail.noOrganizations')}</p>
             ) : (
               <ul className="space-y-3">
                 {user.organizations.map((membership) => (
@@ -260,28 +267,30 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
       <Card className="border border-slate-200 bg-white shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-700">
-            Posledná aktivita (audit log)
+            {t('users.detail.auditLog')}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {user.auditLogs.length === 0 ? (
-            <p className="px-6 py-6 text-sm italic text-slate-400">Žiadna zaznamenaná aktivita</p>
+            <p className="px-6 py-6 text-sm italic text-slate-400">
+              {t('users.detail.noActivity')}
+            </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50">
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Akcia
+                      {t('common.action')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Entita
+                      {t('users.detail.entity')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      IP
+                      {t('common.ip')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Čas
+                      {t('users.detail.time')}
                     </th>
                   </tr>
                 </thead>

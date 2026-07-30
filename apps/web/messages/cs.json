@@ -1047,5 +1047,209 @@
     "title": "Blog",
     "comingSoon": "Blog pripravujeme. Medzitým si pozrite aktuálne pracovné ponuky.",
     "browseJobs": "Prejsť na ponuky"
+  },
+  "admin": {
+    "nav": {
+      "panelTitle": "Admin Panel",
+      "dashboard": "Nástěnka",
+      "users": "Uživatelé",
+      "organizations": "Organizace",
+      "jobs": "Nabídky",
+      "subscriptions": "Předplatná",
+      "settings": "Nastavení",
+      "logout": "Odhlásit se"
+    },
+    "common": {
+      "id": "ID",
+      "ip": "IP",
+      "email": "E-mail",
+      "slug": "Slug",
+      "role": "Role",
+      "status": "Status",
+      "state": "Stav",
+      "date": "Datum",
+      "plan": "Plán",
+      "period": "Období",
+      "cancellation": "Zrušení",
+      "organization": "Organizace",
+      "applications": "Přihlášky",
+      "action": "Akce",
+      "actions": "Akce",
+      "search": "Hledat",
+      "previous": "Předch.",
+      "next": "Další",
+      "cancel": "Zrušit",
+      "save": "Uložit",
+      "saving": "Ukládám…",
+      "create": "Vytvořit",
+      "edit": "Upravit",
+      "delete": "Smazat",
+      "no": "Ne",
+      "error": "Chyba",
+      "actionFailed": "Akce selhala",
+      "actionSuccess": "Akce byla úspěšná",
+      "actionError": "Akci se nepodařilo provést",
+      "roleAdmin": "Admin",
+      "roleUser": "Uživatel",
+      "pageOf": "Strana {page} z {totalPages}"
+    },
+    "dashboard": {
+      "title": "Nástěnka",
+      "subtitle": "Přehled systémových statistik a poslední aktivity",
+      "stats": {
+        "users": "Celkem uživatelů",
+        "organizations": "Celkem organizací",
+        "jobs": "Celkem nabídek",
+        "activeSubscriptions": "Aktivní předplatná"
+      },
+      "recentSignups": "Poslední registrace",
+      "noUsers": "Žádní uživatelé",
+      "table": {
+        "name": "Jméno",
+        "registeredAt": "Datum registrace"
+      },
+      "totalApplications": "Celkem přihlášek",
+      "orgsWithSubscription": "Org. s aktivním předplatným",
+      "applicationsPerJob": "Přihlášky / nabídka"
+    },
+    "users": {
+      "metaTitle": "Správa uživatelů | Admin",
+      "title": "Správa uživatelů",
+      "totalUsers": "Celkem <strong>{count}</strong> uživatelů",
+      "searchPlaceholder": "Hledat podle jména nebo e-mailu...",
+      "statusActive": "Aktivní",
+      "statusBanned": "Zablokovaný",
+      "table": {
+        "user": "Uživatel",
+        "registered": "Registrace",
+        "verified": "Ověřen",
+        "organizations": "Org."
+      },
+      "viewDetail": "Zobrazit detail",
+      "ban": "Zablokovat",
+      "unban": "Odblokovat",
+      "promote": "Povýšit na admina",
+      "demote": "Odebrat admina",
+      "empty": "Nenalezeni žádní uživatelé",
+      "pagination": "Strana {page} z {totalPages} • {total} výsledků",
+      "toast": {
+        "banned": "Uživatel byl zablokován",
+        "unbanned": "Blokace byla zrušena",
+        "promoted": "Uživatel byl povýšen na admina",
+        "demoted": "Admin práva byla odebrána"
+      },
+      "detail": {
+        "metaTitle": "Detail uživatele | Admin",
+        "back": "Zpět na seznam",
+        "noName": "Bez jména",
+        "personalInfo": "Osobní informace",
+        "name": "Jméno",
+        "emailVerified": "E-mail ověřen",
+        "lastLogin": "Poslední přihlášení",
+        "lastLoginIp": "IP posledního přihlášení",
+        "failedAttempts": "Neúspěšné pokusy",
+        "bannedUntil": "Zablokován do",
+        "registered": "Registrován",
+        "applications": "Přihlášky",
+        "organizations": "Organizace ({count})",
+        "noOrganizations": "Žádné organizace",
+        "auditLog": "Poslední aktivita (audit log)",
+        "noActivity": "Žádná zaznamenaná aktivita",
+        "entity": "Entita",
+        "time": "Čas",
+        "deleteTitle": "Smazat uživatele?",
+        "deleteDescription": "Tato akce uživatele měkce smaže (nastaví deletedAt). Uživatel ztratí přístup do systému. Akci lze vrátit přímo v databázi.",
+        "deleteFailed": "Smazání selhalo",
+        "deleteError": "Uživatele se nepodařilo smazat"
+      }
+    },
+    "organizations": {
+      "metaTitle": "Správa organizací | Admin",
+      "title": "Organizace",
+      "totalCount": "Celkem {count} organizací",
+      "allOrganizations": "Všechny organizace",
+      "active": "Aktivní",
+      "suspended": "Pozastavena",
+      "activate": "Aktivovat",
+      "suspend": "Pozastavit",
+      "empty": "Žádné organizace",
+      "table": {
+        "name": "Název",
+        "industry": "Obor",
+        "members": "Členové",
+        "jobs": "Nabídky",
+        "subscriptions": "Předplatná"
+      },
+      "create": {
+        "title": "Nová organizace",
+        "description": "Vytvořte organizaci. Pokud zadáte e-mail admina, odešle se mu pozvánka k nastavení hesla (ORG_ADMIN).",
+        "nameLabel": "Název *",
+        "slugLabel": "Slug (volitelné)",
+        "slugPlaceholder": "automaticky z názvu",
+        "industryLabel": "Obor (volitelné)",
+        "sizeLabel": "Velikost (volitelné)",
+        "websiteLabel": "Web (volitelné)",
+        "adminEmailLabel": "E-mail admina (volitelné — odešle pozvánku)",
+        "error": "Chyba při vytváření organizace",
+        "inviteFailed": "Organizace vytvořena, ale pozvánku se nepodařilo odeslat."
+      },
+      "detail": {
+        "members": "Členové",
+        "activeJobs": "Aktivní nabídky",
+        "subscriptions": "Předplatná",
+        "memberName": "Jméno",
+        "memberSince": "Přiřazen od",
+        "noMembers": "Žádní členové",
+        "position": "Pozice",
+        "noJobs": "Žádné aktivní nabídky",
+        "createdAt": "Vytvořena: {date}"
+      }
+    },
+    "jobs": {
+      "metaTitle": "Správa nabídek | Admin",
+      "title": "Nabídky",
+      "totalCount": "Celkem {count} nabídek",
+      "allJobs": "Všechny nabídky",
+      "empty": "Žádné nabídky",
+      "filterPlaceholder": "Filtr statusu",
+      "allStatuses": "Všechny statusy",
+      "table": {
+        "title": "Název",
+        "changeStatus": "Změna statusu"
+      },
+      "create": {
+        "title": "Nová nabídka",
+        "description": "Vytvořte nabídku pro zvolenou organizaci. Popis musí mít alespoň 50 znaků.",
+        "orgLabel": "Organizace *",
+        "orgPlaceholder": "Vyberte organizaci…",
+        "titleLabel": "Název *",
+        "descriptionLabel": "Popis * (min. 50 znaků)",
+        "locationLabel": "Lokalita (volitelné)",
+        "workModeLabel": "Režim",
+        "typeLabel": "Typ",
+        "seniorityLabel": "Seniorita",
+        "error": "Chyba při vytváření nabídky"
+      }
+    },
+    "subscriptions": {
+      "metaTitle": "Předplatná | Admin",
+      "title": "Předplatná",
+      "subtitle": "{count} předplatných (Stripe je zdroj pravdy)",
+      "allSubscriptions": "Všechna předplatná",
+      "created": "Vytvořeno",
+      "empty": "Žádná předplatná"
+    },
+    "settings": {
+      "metaTitle": "Nastavení | Admin",
+      "title": "Nastavení",
+      "subtitle": "Systémová nastavení a feature flagy",
+      "systemSettings": "Systémová nastavení",
+      "noSettings": "Žádná nastavení",
+      "featureFlags": "Feature flagy",
+      "noFlags": "Žádné feature flagy",
+      "editTitle": "Upravit nastavení",
+      "key": "Klíč",
+      "value": "Hodnota"
+    }
   }
 }
