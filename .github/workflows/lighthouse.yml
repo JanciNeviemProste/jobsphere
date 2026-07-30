@@ -59,6 +59,20 @@ jobs:
           npx wait-on http://localhost:3000 --timeout 60000
         env:
           PORT: 3000
+          # The build step above sets these, but `next start` is a separate
+          # process and needs them at RUNTIME too — without DATABASE_URL the
+          # server boots and then dies with
+          # "Environment variable not found: DATABASE_URL" on the first
+          # Prisma call, so every Lighthouse run 404s. This went unnoticed
+          # because the workflow was invalid YAML and had never executed.
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          NEXTAUTH_SECRET: test-secret-minimum-32-characters-long
+          NEXTAUTH_URL: http://localhost:3000
+          ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          ENABLE_ANTIVIRUS: false
+          ENABLE_OCR: false
+          ENABLE_WORKERS: false
 
       - name: Run Lighthouse CI
         run: |
