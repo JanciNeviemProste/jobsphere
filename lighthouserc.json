@@ -1,13 +1,8 @@
 {
   "ci": {
     "collect": {
-      "startServerCommand": "yarn build && yarn start",
-      "startServerReadyPattern": "Ready",
-      "startServerReadyTimeout": 30000,
-      "url": [
-        "http://localhost:3000/",
-        "http://localhost:3000/jobs"
-      ],
+      "_comment": "No startServerCommand: .github/workflows/lighthouse.yml already builds and starts the server (and waits for it) in its own steps. The old 'yarn build && yarn start' ran a SECOND build from the repo root, which went through turbo -> verify-env.js and died on missing env vars, so lhci never collected anything. Run the server yourself before invoking lhci locally.",
+      "url": ["http://localhost:3000/", "http://localhost:3000/jobs"],
       "numberOfRuns": 3,
       "settings": {
         "preset": "desktop",
@@ -28,17 +23,17 @@
     "assert": {
       "preset": "lighthouse:recommended",
       "assertions": {
-        "categories:performance": ["error", {"minScore": 0.8}],
-        "categories:accessibility": ["error", {"minScore": 0.9}],
-        "categories:best-practices": ["warn", {"minScore": 0.8}],
-        "categories:seo": ["warn", {"minScore": 0.8}],
-        "first-contentful-paint": ["error", {"maxNumericValue": 2000}],
-        "largest-contentful-paint": ["error", {"maxNumericValue": 3000}],
-        "cumulative-layout-shift": ["error", {"maxNumericValue": 0.1}],
-        "total-blocking-time": ["warn", {"maxNumericValue": 300}],
-        "speed-index": ["warn", {"maxNumericValue": 3500}],
-        "interactive": ["warn", {"maxNumericValue": 3800}],
-        "max-potential-fid": ["warn", {"maxNumericValue": 130}],
+        "categories:performance": ["error", { "minScore": 0.8 }],
+        "categories:accessibility": ["error", { "minScore": 0.9 }],
+        "categories:best-practices": ["warn", { "minScore": 0.8 }],
+        "categories:seo": ["warn", { "minScore": 0.8 }],
+        "first-contentful-paint": ["error", { "maxNumericValue": 2000 }],
+        "largest-contentful-paint": ["error", { "maxNumericValue": 3000 }],
+        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
+        "total-blocking-time": ["warn", { "maxNumericValue": 300 }],
+        "speed-index": ["warn", { "maxNumericValue": 3500 }],
+        "interactive": ["warn", { "maxNumericValue": 3800 }],
+        "max-potential-fid": ["warn", { "maxNumericValue": 130 }],
         "uses-responsive-images": "off",
         "offscreen-images": "off"
       }

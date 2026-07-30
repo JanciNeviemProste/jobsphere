@@ -16,7 +16,6 @@ import { logger } from '@/lib/logger'
 export const runtime = 'nodejs'
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
-const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 
 const SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',

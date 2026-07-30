@@ -19,8 +19,6 @@ import OpenAI from 'openai'
 import { prisma } from '@/lib/db'
 import { logger } from '@/lib/logger'
 
-const EMBEDDING_PROVIDER = process.env.EMBEDDING_PROVIDER || 'openai'
-
 let openai: OpenAI | null = null
 
 function getOpenAI(): OpenAI {
@@ -75,7 +73,7 @@ export async function generateEmbeddingsBatch(texts: string[]): Promise<number[]
 
     for (let i = 0; i < texts.length; i += MAX_BATCH_SIZE) {
       const batch = texts.slice(i, i + MAX_BATCH_SIZE)
-      const truncatedBatch = batch.map(t => t.slice(0, 32000))
+      const truncatedBatch = batch.map((t) => t.slice(0, 32000))
 
       const response = await getOpenAI().embeddings.create({
         model: EMBEDDING_MODEL,
@@ -83,7 +81,7 @@ export async function generateEmbeddingsBatch(texts: string[]): Promise<number[]
         dimensions: EMBEDDING_DIMENSIONS,
       })
 
-      batches.push(response.data.map(d => d.embedding))
+      batches.push(response.data.map((d) => d.embedding))
     }
 
     return batches.flat()
@@ -100,7 +98,7 @@ export async function generateCVEmbeddings(resumeId: string): Promise<void> {
   try {
     const sections = await prisma.resumeSection.findMany({
       where: { resumeId },
-      orderBy: { order: 'asc' }
+      orderBy: { order: 'asc' },
     })
 
     if (sections.length === 0) {
@@ -121,26 +119,29 @@ export async function generateCVEmbeddings(resumeId: string): Promise<void> {
 
         await prisma.resumeSection.update({
           where: { id: section.id },
-          // @ts-ignore - embeddingVector is Unsupported type
-          data: { embeddingVector: embedding }
+          // @ts-expect-error embeddingVector is a Prisma `Unsupported` (pgvector) column, so it is absent from the generated update input type
+          data: { embeddingVector: embedding },
         })
 
         logger.info('Generated embedding for resume section', {
           resumeId,
           sectionId: section.id,
-          kind: section.kind
+          kind: section.kind,
         })
       } catch (error) {
         logger.error('Failed to generate section embedding', {
           error,
           resumeId,
-          sectionId: section.id
+          sectionId: section.id,
         })
         // Continue with other sections even if one fails
       }
     }
 
-    logger.info('Completed CV embeddings generation', { resumeId, sectionsProcessed: sections.length })
+    logger.info('Completed CV embeddings generation', {
+      resumeId,
+      sectionsProcessed: sections.length,
+    })
   } catch (error) {
     logger.error('Failed to generate CV embeddings', { error, resumeId })
     throw new Error('Failed to generate CV embeddings')
@@ -158,7 +159,7 @@ export async function generateJobEmbedding(jobId: string): Promise<void> {
         title: true,
         description: true,
         city: true,
-      }
+      },
     })
 
     if (!job) {
@@ -166,11 +167,7 @@ export async function generateJobEmbedding(jobId: string): Promise<void> {
     }
 
     // Combine all job text fields
-    const jobText = [
-      job.title,
-      job.description,
-      job.city,
-    ].filter(Boolean).join('\n\n')
+    const jobText = [job.title, job.description, job.city].filter(Boolean).join('\n\n')
 
     if (jobText.trim().length === 0) {
       logger.warn('Job has no text content', { jobId })
@@ -181,8 +178,8 @@ export async function generateJobEmbedding(jobId: string): Promise<void> {
 
     await prisma.job.update({
       where: { id: jobId },
-      // @ts-ignore - embedding is Unsupported type
-      data: { embedding }
+      // @ts-expect-error embedding is a Prisma `Unsupported` (pgvector) column, so it is absent from the generated update input type
+      data: { embedding },
     })
 
     logger.info('Generated job embedding', { jobId })

@@ -3,8 +3,18 @@
 -- statement_timeout: Maximum execution time for any single statement
 
 -- Set default statement timeout to 10 seconds for all queries
--- This prevents runaway queries from locking database resources
-ALTER DATABASE jobsphere SET statement_timeout = '10s';
+-- This prevents runaway queries from locking database resources.
+--
+-- The database name is resolved at run time. It used to be hardcoded as
+-- `ALTER DATABASE jobsphere`, which fails with 3D000 ("database jobsphere does
+-- not exist") anywhere the database is called anything else — CI uses
+-- `jobsphere_test`, and Neon assigns its own name. ALTER DATABASE takes no
+-- expression for the target, so the name has to go through dynamic SQL.
+DO $$
+BEGIN
+  EXECUTE format('ALTER DATABASE %I SET statement_timeout = %L', current_database(), '10s');
+END
+$$;
 
 -- For the current session (takes effect immediately)
 SET statement_timeout = '10s';

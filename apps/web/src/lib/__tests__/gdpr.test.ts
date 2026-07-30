@@ -3,7 +3,7 @@
  * Tests for consent management, data export, and DSAR requests
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { prisma } from '@/lib/prisma'
 import type { ConsentRecord, DSARRequest } from '@prisma/client'
 

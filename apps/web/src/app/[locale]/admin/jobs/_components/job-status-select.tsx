@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/select'
 
 const STATUSES = ['DRAFT', 'PUBLISHED', 'CLOSED'] as const
-type JobStatus = (typeof STATUSES)[number]
 
 interface JobStatusSelectProps {
   jobId: string

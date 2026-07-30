@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -533,13 +533,13 @@ export async function generateMetadata({
 }: {
   params: { locale: string; moduleId: string }
 }): Promise<Metadata> {
-  const module = moduleContent[params.moduleId]
-  if (!module) {
+  const academyModule = moduleContent[params.moduleId]
+  if (!academyModule) {
     return { title: 'Module Not Found' }
   }
   return {
-    title: `${module.title} | Career Academy`,
-    description: module.description,
+    title: `${academyModule.title} | Career Academy`,
+    description: academyModule.description,
   }
 }
 
@@ -548,13 +548,13 @@ export default async function AcademyModulePage({
 }: {
   params: { locale: string; moduleId: string }
 }) {
-  const module = moduleContent[params.moduleId]
+  const academyModule = moduleContent[params.moduleId]
 
-  if (!module) {
+  if (!academyModule) {
     notFound()
   }
 
-  const Icon = module.icon
+  const Icon = academyModule.icon
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
@@ -569,18 +569,18 @@ export default async function AcademyModulePage({
           </Button>
 
           <div className="flex items-start gap-4">
-            <div className={`rounded-xl p-4 ${module.color} text-white`}>
+            <div className={`rounded-xl p-4 ${academyModule.color} text-white`}>
               <Icon className="h-8 w-8" />
             </div>
             <div>
               <Badge variant="outline" className="mb-2">
-                {module.difficulty}
+                {academyModule.difficulty}
               </Badge>
-              <h1 className="text-3xl font-bold md:text-4xl">{module.title}</h1>
-              <p className="mt-2 max-w-2xl text-muted-foreground">{module.description}</p>
+              <h1 className="text-3xl font-bold md:text-4xl">{academyModule.title}</h1>
+              <p className="mt-2 max-w-2xl text-muted-foreground">{academyModule.description}</p>
               <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="h-4 w-4" />
-                <span>{module.duration} čítania</span>
+                <span>{academyModule.duration} čítania</span>
               </div>
             </div>
           </div>
@@ -590,7 +590,7 @@ export default async function AcademyModulePage({
       {/* Content */}
       <div className="container mx-auto px-4 py-12">
         <div className="mx-auto max-w-3xl">
-          {module.sections.map((section, index) => (
+          {academyModule.sections.map((section, index) => (
             <div key={index} className="mb-12">
               <h2 className="mb-4 text-2xl font-bold">{section.title}</h2>
 
@@ -654,15 +654,15 @@ export default async function AcademyModulePage({
                 </Card>
               )}
 
-              {index < module.sections.length - 1 && <Separator className="mt-8" />}
+              {index < academyModule.sections.length - 1 && <Separator className="mt-8" />}
             </div>
           ))}
 
           {/* Navigation */}
           <div className="flex items-center justify-between border-t pt-8">
-            {module.prevModule ? (
+            {academyModule.prevModule ? (
               <Button variant="outline" asChild>
-                <Link href={`/${params.locale}/academy/${module.prevModule}`}>
+                <Link href={`/${params.locale}/academy/${academyModule.prevModule}`}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Predchádzajúci modul
                 </Link>
@@ -671,9 +671,9 @@ export default async function AcademyModulePage({
               <div />
             )}
 
-            {module.nextModule ? (
+            {academyModule.nextModule ? (
               <Button asChild>
-                <Link href={`/${params.locale}/academy/${module.nextModule}`}>
+                <Link href={`/${params.locale}/academy/${academyModule.nextModule}`}>
                   Ďalší modul
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>

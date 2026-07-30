@@ -9,7 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 import { format } from 'date-fns'
-import { CalendarIcon, ArrowLeft, Upload, FileText, Loader2, CheckCircle } from 'lucide-react'
+import { CalendarIcon, ArrowLeft, Upload, Loader2, CheckCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -33,7 +33,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from '@/components/ui/use-toast'
 import { logger } from '@/lib/logger'
 
@@ -78,7 +77,7 @@ interface UserCV {
 
 export default function ApplyClient({ params }: { params: { id: string; locale: string } }) {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const t = useTranslations()
   const [job, setJob] = useState<JobData | null>(null)
   const [userCVs, setUserCVs] = useState<UserCV[]>([])
@@ -486,7 +485,7 @@ export default function ApplyClient({ params }: { params: { id: string; locale: 
                       <FormField
                         control={form.control}
                         name="cvFile"
-                        render={({ field: { onChange, value, ...field } }) => (
+                        render={({ field: { onChange, value: _value, ...field } }) => (
                           <FormItem>
                             <FormLabel>{t('apply.uploadCV')}</FormLabel>
                             <FormControl>

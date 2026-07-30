@@ -4,7 +4,7 @@ import { logger } from '@/lib/logger'
 import { errorResponse } from '@/lib/errors'
 import { withRateLimit } from '@/lib/rate-limit'
 import { requireAuth } from '@/lib/auth'
-import { getRecommendedJobsWithAI, calculateMatchScore } from '@/lib/ai-matching'
+import { getRecommendedJobsWithAI } from '@/lib/ai-matching'
 
 export const runtime = 'nodejs'
 
@@ -91,7 +91,7 @@ export const GET = withRateLimit(
       }
 
       // Get recommended jobs
-      let recommendedJobs = await prisma.job.findMany({
+      const recommendedJobs = await prisma.job.findMany({
         where: {
           status: 'PUBLISHED',
           id: {

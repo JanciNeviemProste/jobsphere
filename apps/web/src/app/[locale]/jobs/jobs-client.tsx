@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSession } from 'next-auth/react'
-import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -128,7 +128,6 @@ export default function JobsClient({
   const { data: session } = useSession()
   const router = useRouter()
   const pathname = usePathname()
-  const searchParams = useSearchParams()
   const locale = params.locale
   const dateLocale = getDateLocale(locale)
   const [isPending, startTransition] = useTransition()
@@ -591,7 +590,7 @@ export default function JobsClient({
             )}
 
             {/* Page number links */}
-            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+            {Array.from({ length: Math.min(totalPages, 7) }, (_) => {
               // Show first, last, current ±2, and ellipsis
               const first = 1
               const last = totalPages

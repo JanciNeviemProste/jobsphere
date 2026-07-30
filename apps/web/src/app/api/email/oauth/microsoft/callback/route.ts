@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       }
       const rawState = JSON.parse(Buffer.from(payload, 'base64').toString())
       stateData = oauthStateSchema.parse(rawState)
-    } catch (error) {
+    } catch {
       return NextResponse.redirect(`${baseUrl}/employer/settings?error=invalid_state`)
     }
 

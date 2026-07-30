@@ -9,7 +9,6 @@ import { logger } from '@/lib/logger'
 import { createAuditLog } from '@/lib/audit-log'
 import { checkEntitlement, consumeEntitlement } from '@/lib/entitlements'
 import { AppError } from '@/lib/errors'
-import { sendEmail } from '@/lib/email'
 import { ApplicationStage } from '@/lib/constants/application-stages'
 
 export interface CreateApplicationInput {

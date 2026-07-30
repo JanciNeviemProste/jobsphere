@@ -150,7 +150,7 @@ export async function processAssessmentGrading(job: Job<AssessmentJobData>) {
       const mappedType = questionTypeMap[question.type] || 'FREE_TEXT'
 
       switch (mappedType) {
-        case 'MULTIPLE_CHOICE':
+        case 'MULTIPLE_CHOICE': {
           // Simple comparison - check if answer matches correct choice
           const correctChoice = question.choices[question.correctIndexes[0]]
           if (answerValue === correctChoice) {
@@ -160,8 +160,9 @@ export async function processAssessmentGrading(job: Job<AssessmentJobData>) {
             feedback = `Incorrect. Correct answer: ${correctChoice}`
           }
           break
+        }
 
-        case 'CODING':
+        case 'CODING': {
           // Grade with Claude AI
           // Note: Question model doesn't have testCases field, using empty array
           const gradingResult = await gradeCodeWithClaude(question.text || '', answerValue, [])
@@ -169,6 +170,7 @@ export async function processAssessmentGrading(job: Job<AssessmentJobData>) {
           earnedPoints = gradingResult.score * questionPoints
           feedback = gradingResult.feedback
           break
+        }
 
         case 'FREE_TEXT':
           // Store for manual review

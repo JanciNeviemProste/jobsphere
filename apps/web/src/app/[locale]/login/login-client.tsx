@@ -69,7 +69,7 @@ export default function LoginClient({ params }: { params: { locale: string } }) 
         }
         router.refresh()
       }
-    } catch (error) {
+    } catch {
       setError(t('error'))
     } finally {
       setLoading(false)

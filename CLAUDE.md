@@ -409,14 +409,19 @@ const t = await getTranslations('JobsPage')
 
 **Mocking Prisma:**
 
-```typescript
-import { mockDeep } from 'vitest-mock-extended'
-import { PrismaClient } from '@prisma/client'
+`vitest-mock-extended` **nie je závislosťou tohto repa** a `mockDeep` sa nepoužíva ani v jednom teste
+(overené 2026-07-29) — nasledujúci vzor by nezbehol. Skutočná konvencia sú plain `vi.fn()` mocky:
 
+```typescript
 vi.mock('@/lib/prisma', () => ({
-  prisma: mockDeep<PrismaClient>(),
+  prisma: {
+    candidate: { findFirst: vi.fn(), findMany: vi.fn() },
+    matchScore: { findMany: vi.fn(), upsert: vi.fn() },
+  },
 }))
 ```
+
+Vzor v praxi: `apps/web/src/app/api/candidates/[id]/__tests__/match-scores.test.ts`.
 
 ## Environment Variables
 
@@ -631,6 +636,13 @@ Príkazy projektu: typecheck=`yarn typecheck` · lint=`yarn lint` · test=`yarn 
 
 > Hooky v `.claude/settings.json` toto čiastočne vynucujú (PostToolUse: prettier + secret-scan; Stop-gate: typecheck+lint).
 > Manuálne kedykoľvek: `/po-zmene`.
+
+> **2026-07-29 — brány reálne strážia.** Do tohto dátumu `yarn lint` nekontroloval **nič**: `.eslintrc.json`
+> mal v `ignorePatterns` `apps/**` a `packages/**`, takže ESLint (vrátane `eslint-plugin-security`) preskakoval
+> každý zdrojový súbor — „zelený lint" v CI aj v Stop-gate bol bezobsažný. Po zapnutí: 133 errorov, všetky opravené.
+> Rovnako `coverage.exclude` vo `vitest.config.ts` prepisoval defaulty, takže sa do coverage rátali testy a `.next/`;
+> prah 80 % nebol nikdy dosiahnuteľný. Prah je teraz na **nameranej** hodnote (lines 19 / branches 58 / functions 36)
+> a slúži ako ratchet proti regresii.
 
 ## Security posture
 

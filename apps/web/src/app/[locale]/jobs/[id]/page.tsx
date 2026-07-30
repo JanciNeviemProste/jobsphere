@@ -9,8 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator'
 import {
   MapPin,
-  Briefcase,
-  Clock,
   Euro,
   Calendar,
   Building2,
@@ -18,8 +16,6 @@ import {
   Globe,
   CheckCircle,
   ArrowLeft,
-  Share2,
-  Heart,
   Send,
 } from 'lucide-react'
 import { ViewTracker } from '@/components/job/view-tracker'

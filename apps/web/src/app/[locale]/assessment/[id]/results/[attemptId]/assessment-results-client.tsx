@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { CheckCircle2, XCircle, Clock, Award, Loader2 } from 'lucide-react'
+import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { logger } from '@/lib/logger'
 
 interface Question {

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useTranslations } from 'next-intl'
-import { Upload, FileText, Loader2, CheckCircle2, XCircle, Edit3 } from 'lucide-react'
+import { Upload, Loader2, CheckCircle2, XCircle, Edit3 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { logger } from '@/lib/logger'

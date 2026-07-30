@@ -29,7 +29,7 @@ const preferencesSchema = z.object({
 })
 
 export const GET = withRateLimit(
-  async (req: Request) => {
+  async (_req: Request) => {
     try {
       const session = await auth()
       if (!session?.user?.id) {

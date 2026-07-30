@@ -97,7 +97,7 @@ describe('JobService', () => {
         ...input,
         workMode: 'HYBRID',
         type: 'FULL_TIME',
-        seniority: 'MEDIOR',
+        seniority: 'MID',
         status: 'PUBLISHED',
       })
 
@@ -119,7 +119,7 @@ describe('JobService', () => {
 
       expect(capturedData.workMode).toBe('HYBRID')
       expect(capturedData.type).toBe('FULL_TIME')
-      expect(capturedData.seniority).toBe('MEDIOR')
+      expect(capturedData.seniority).toBe('MID')
       expect(capturedData.status).toBe('DRAFT')
     })
 

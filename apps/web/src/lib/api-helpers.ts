@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { auth, UnauthorizedError } from './auth'
 import { prisma } from './prisma'
 
@@ -30,7 +30,7 @@ export interface AuthContext {
  * The request argument is accepted for call-site ergonomics but unused — auth
  * comes from the NextAuth session — so it is optional.
  */
-export async function requireOrgAuth(request?: NextRequest): Promise<AuthContext> {
+export async function requireOrgAuth(_request?: NextRequest): Promise<AuthContext> {
   const session = await auth()
 
   if (!session?.user?.id) {

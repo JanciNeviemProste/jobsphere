@@ -40,7 +40,7 @@ export const POST = withCsrfProtection(
           )
         }
 
-        const { candidateId, jobId } = validation.data
+        const { candidateId } = validation.data
 
         // Get user's organizations
         const userOrgs = await prisma.userOrgRole.findMany({

@@ -657,7 +657,10 @@ describe('Authentication & Authorization Security Tests', () => {
       // Verify wrong password fails
       const isInvalid = await compare('WrongPassword!', hashedPassword)
       expect(isInvalid).toBe(false)
-    })
+      // Three real bcrypt ops at cost 12; under v8 coverage instrumentation this
+      // regularly exceeds vitest's 5s default. The slowness is the point of the
+      // test, so raise the budget rather than weaken the cost factor.
+    }, 30_000)
 
     it('should never return password hash in API responses', async () => {
       // Arrange: Mock user with password

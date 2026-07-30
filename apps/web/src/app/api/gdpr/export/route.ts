@@ -19,7 +19,7 @@ export const runtime = 'nodejs'
  * Export all user data as JSON
  */
 export const GET = withRateLimit(
-  async (req: Request) => {
+  async (_req: Request) => {
     try {
       const session = await auth()
       if (!session?.user?.id) {

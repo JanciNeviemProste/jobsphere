@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createSequenceSchema, type CreateSequenceInput } from '@/schemas/email-sequence.schema'
-import { Plus, Mail, Clock, Trash2, Save, Loader2, Info } from 'lucide-react'
+import { Plus, Clock, Trash2, Save, Loader2, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -30,7 +29,6 @@ interface EmailSequence {
 }
 
 export default function SequencesClient() {
-  const router = useRouter()
   const [sequences, setSequences] = useState<EmailSequence[]>([])
   const [selectedSequenceId, setSelectedSequenceId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)

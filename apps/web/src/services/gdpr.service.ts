@@ -60,12 +60,6 @@ async function eraseCandidateRows(
   })
   const resumeIds = resumes.map((r) => r.id)
 
-  const invites = await tx.assessmentInvite.findMany({
-    where: inCandidates,
-    select: { id: true },
-  })
-  const inviteIds = invites.map((i) => i.id)
-
   const attempts = await tx.attempt.findMany({
     where: inCandidates,
     select: { id: true },

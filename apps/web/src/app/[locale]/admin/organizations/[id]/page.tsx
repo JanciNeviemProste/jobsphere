@@ -11,7 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Separator } from '@/components/ui/separator'
 import { OrgActionButton } from '../_components/org-action-button'
 
 export default async function AdminOrganizationDetailPage({

@@ -15,6 +15,12 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+# Serialize production deploys, but never cancel one mid-flight: a half-finished
+# Vercel promotion is worse than waiting for the previous push to land.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Deploy to Vercel

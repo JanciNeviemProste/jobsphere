@@ -104,7 +104,7 @@ export default function CvsClient() {
     setDownloading(true)
     setDownloadError(false)
     try {
-      // @ts-ignore - html2pdf.js ships no type declarations
+      // Client-side, on demand — keeps html2pdf/html2canvas out of the SSR bundle.
       const html2pdf = (await import('html2pdf.js')).default
       const name =
         (viewData?.personalInfo.fullName || 'CV').replace(/[^a-zA-Z0-9._-]+/g, '_') || 'CV'

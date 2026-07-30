@@ -19,7 +19,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export const POST = withCsrfProtection(
   withRateLimit(
-    async (req: Request) => {
+    async (_req: Request) => {
       try {
         const session = await auth()
         if (!session?.user?.id) {

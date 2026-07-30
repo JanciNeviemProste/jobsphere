@@ -118,8 +118,6 @@ const academyModules = [
 ]
 
 export default async function AcademyPage({ params }: { params: { locale: string } }) {
-  const t = await getTranslations()
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       {/* Hero Section */}
@@ -158,7 +156,7 @@ export default async function AcademyPage({ params }: { params: { locale: string
         <h2 className="mb-8 text-2xl font-bold">Vzdelávacie moduly</h2>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {academyModules.map((module, index) => {
+          {academyModules.map((module) => {
             const Icon = module.icon
             return (
               <Card key={module.id} className="group transition-shadow hover:shadow-lg">

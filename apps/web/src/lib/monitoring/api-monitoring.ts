@@ -133,7 +133,7 @@ function handlePrismaError(error: Error): Partial<ApiErrorResponse> {
  */
 export function withApiMonitoring<T extends (...args: unknown[]) => Promise<Response>>(
   handler: T,
-  options?: {
+  _options?: {
     name?: string
     trackPerformance?: boolean
   },

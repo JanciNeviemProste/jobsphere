@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { idSchema } from './common.schema'
 
 export const emailStepSchema = z.object({
   name: z.string().min(1).max(200).optional(),
@@ -8,14 +7,14 @@ export const emailStepSchema = z.object({
   subject: z.string().min(1).max(200),
   bodyTemplate: z.string().min(1).max(50000),
   conditions: z.record(z.any()).optional(),
-  abGroup: z.string().max(50).optional()
+  abGroup: z.string().max(50).optional(),
 })
 
 export const createSequenceSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(1000).optional(),
   active: z.boolean().default(false),
-  steps: z.array(emailStepSchema).min(1).max(10)
+  steps: z.array(emailStepSchema).min(1).max(10),
 })
 
 export const updateSequenceSchema = createSequenceSchema.partial()
