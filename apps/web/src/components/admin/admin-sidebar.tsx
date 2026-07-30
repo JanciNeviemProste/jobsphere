@@ -16,6 +16,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { NavDrawer } from '@/components/layout/nav-drawer'
 
 interface NavItem {
   label: string
@@ -29,10 +30,8 @@ interface AdminSidebarProps {
   userEmail?: string
 }
 
-export function AdminSidebar({ locale, userName, userEmail }: AdminSidebarProps) {
-  const pathname = usePathname()
-
-  const navItems: NavItem[] = [
+function adminNavItems(locale: string): NavItem[] {
+  return [
     { label: 'Dashboard', href: `/${locale}/admin`, icon: LayoutDashboard },
     { label: 'Používatelia', href: `/${locale}/admin/users`, icon: Users },
     { label: 'Organizácie', href: `/${locale}/admin/organizations`, icon: Building2 },
@@ -40,6 +39,23 @@ export function AdminSidebar({ locale, userName, userEmail }: AdminSidebarProps)
     { label: 'Predplatné', href: `/${locale}/admin/subscriptions`, icon: CreditCard },
     { label: 'Nastavenia', href: `/${locale}/admin/settings`, icon: Settings },
   ]
+}
+
+/**
+ * The panel body — rendered verbatim by both the fixed desktop `<aside>` and the
+ * mobile drawer, so the two can never drift apart.
+ *
+ * `onNavigate` is supplied only by the drawer, which has to close itself on
+ * navigation (client-side routing keeps the layout mounted).
+ */
+function AdminPanelNav({
+  locale,
+  userName,
+  userEmail,
+  onNavigate,
+}: AdminSidebarProps & { onNavigate?: () => void }) {
+  const pathname = usePathname()
+  const navItems = adminNavItems(locale)
 
   const isActive = (href: string) => {
     // Exact match for dashboard root, prefix match for sub-pages
@@ -50,7 +66,7 @@ export function AdminSidebar({ locale, userName, userEmail }: AdminSidebarProps)
   }
 
   return (
-    <aside className="flex h-screen w-[250px] flex-shrink-0 flex-col bg-slate-900 text-white">
+    <>
       {/* Logo / Brand */}
       <div className="flex items-center gap-2 border-b border-slate-700 px-6 py-5">
         <Shield className="h-5 w-5 text-blue-400" />
@@ -67,6 +83,8 @@ export function AdminSidebar({ locale, userName, userEmail }: AdminSidebarProps)
               <li key={item.href}>
                 <Link
                   href={item.href}
+                  onClick={onNavigate}
+                  aria-current={active ? 'page' : undefined}
                   className={cn(
                     'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
                     active
@@ -106,6 +124,50 @@ export function AdminSidebar({ locale, userName, userEmail }: AdminSidebarProps)
           Odhlásiť sa
         </Button>
       </div>
+    </>
+  )
+}
+
+/**
+ * Desktop sidebar. Hidden below `md`, where a 250px fixed column would eat two
+ * thirds of a 375px viewport — see {@link AdminMobileNav} for the small-screen
+ * equivalent. Layout at `md` and above is unchanged.
+ */
+export function AdminSidebar({ locale, userName, userEmail }: AdminSidebarProps) {
+  return (
+    <aside className="hidden h-screen w-[250px] flex-shrink-0 flex-col bg-slate-900 text-white md:flex">
+      <AdminPanelNav locale={locale} userName={userName} userEmail={userEmail} />
     </aside>
+  )
+}
+
+/**
+ * Mobile-only top bar with a hamburger that opens the same panel in a drawer.
+ * `md:hidden`, so it contributes nothing to the desktop layout.
+ */
+export function AdminMobileNav({ locale, userName, userEmail }: AdminSidebarProps) {
+  return (
+    <div className="flex h-14 flex-shrink-0 items-center gap-2 border-b border-slate-700 bg-slate-900 px-3 text-white md:hidden">
+      <NavDrawer
+        label="Open admin menu"
+        title="Admin navigation"
+        triggerClassName="text-white hover:bg-slate-800 hover:text-white"
+        contentClassName="bg-slate-900 text-white"
+        closeClassName="text-white hover:bg-slate-800"
+      >
+        {(close) => (
+          <AdminPanelNav
+            locale={locale}
+            userName={userName}
+            userEmail={userEmail}
+            onNavigate={close}
+          />
+        )}
+      </NavDrawer>
+      <div className="flex items-center gap-2">
+        <Shield className="h-5 w-5 text-blue-400" />
+        <span className="text-base font-semibold tracking-tight">Admin Panel</span>
+      </div>
+    </div>
   )
 }

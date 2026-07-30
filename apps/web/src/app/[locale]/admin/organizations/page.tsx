@@ -1,4 +1,6 @@
 import { redirect } from 'next/navigation'
+import { getFormatter } from 'next-intl/server'
+import { SHORT_DATE } from '@/lib/formats'
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -22,6 +24,7 @@ export const metadata: Metadata = {
 
 export default async function AdminOrganizationsPage({ params }: { params: { locale: string } }) {
   const session = await auth()
+  const format = await getFormatter()
   if (!session?.user?.isGlobalAdmin) {
     redirect(`/${params.locale}/login?error=forbidden`)
   }
@@ -103,7 +106,7 @@ export default async function AdminOrganizationsPage({ params }: { params: { loc
                       )}
                     </TableCell>
                     <TableCell className="text-sm text-slate-500">
-                      {new Date(org.createdAt).toLocaleDateString('sk-SK')}
+                      {format.dateTime(org.createdAt, SHORT_DATE)}
                     </TableCell>
                     <TableCell className="text-right">
                       <OrgActionButton orgId={org.id} suspended={suspended} />

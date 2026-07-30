@@ -864,20 +864,6 @@
     "applications": "Applications",
     "noApplications": "No applications yet"
   },
-  "admin": {
-    "dashboard": "Dashboard",
-    "users": "Users",
-    "organizations": "Organizations",
-    "jobs": "Jobs",
-    "subscriptions": "Subscriptions",
-    "settings": "Settings",
-    "totalUsers": "Total users",
-    "totalOrgs": "Total organizations",
-    "totalJobs": "Total jobs",
-    "activeSubscriptions": "Active subscriptions",
-    "recentRegistrations": "Recent registrations",
-    "adminPanel": "Admin panel"
-  },
   "pageMetadata": {
     "home": {
       "title": "Find Your Dream Job with AI",
@@ -921,16 +907,6 @@
     "filterAllJobs": "All jobs",
     "emptyStage": "No candidates",
     "moveError": "Failed to move candidate"
-  },
-  "EmployerApplicantDetail": {
-    "summary": "Summary",
-    "skills": "Skills",
-    "experience": "Experience",
-    "education": "Education",
-    "matchScore": "Match score",
-    "matchScoreUnavailable": "Match score unavailable",
-    "aiParsingMissing": "AI CV parsing has not been run yet or has failed",
-    "noActivities": "No activities"
   },
   "EmployerBulkActions": {
     "selected_count": "{count} selected",

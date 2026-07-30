@@ -1,9 +1,12 @@
 import { getTranslations } from 'next-intl/server'
 import type { Metadata } from 'next'
+import { ShieldAlert } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import LoginClient from './login-client'
 
 type Props = {
   params: { locale: string }
+  searchParams?: Record<string, string | string[] | undefined>
 }
 
 export async function generateMetadata({ params: { locale } }: Props): Promise<Metadata> {
@@ -11,6 +14,25 @@ export async function generateMetadata({ params: { locale } }: Props): Promise<M
   return { title: t('login.title'), description: t('login.description') }
 }
 
-export default function LoginPage({ params }: Props) {
-  return <LoginClient params={params} />
+export default async function LoginPage({ params, searchParams }: Props) {
+  // `middleware.ts` and the admin layouts bounce unauthorised users here with
+  // `?error=forbidden`. Until now nothing read that param, so the user landed
+  // on a plain login form with no idea why they were thrown out.
+  const rawError = searchParams?.error
+  const error = Array.isArray(rawError) ? rawError[0] : rawError
+
+  let notice: React.ReactNode = null
+  if (error === 'forbidden') {
+    const tEmployer = await getTranslations({ locale: params.locale, namespace: 'employer' })
+    const tLogin = await getTranslations({ locale: params.locale, namespace: 'auth.login' })
+    notice = (
+      <Alert variant="destructive">
+        <ShieldAlert className="h-4 w-4" />
+        <AlertTitle>{tEmployer('accessDenied')}</AlertTitle>
+        <AlertDescription>{tLogin('subtitle')}</AlertDescription>
+      </Alert>
+    )
+  }
+
+  return <LoginClient params={params} notice={notice} />
 }

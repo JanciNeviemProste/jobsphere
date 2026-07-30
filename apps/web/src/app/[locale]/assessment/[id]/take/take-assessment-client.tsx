@@ -9,9 +9,21 @@
  * An `?token=` in the URL (email-invited candidates) is forwarded to both calls.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Clock, ChevronLeft, ChevronRight, AlertCircle, ShieldAlert } from 'lucide-react'
 import { logger } from '@/lib/logger'
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
+import {
+  ASSESSMENT_DRAFT_MAX_AGE_MS,
+  assessmentDraftKey,
+  clearDraft,
+  deserializeAnswers,
+  loadDraft,
+  saveDraft,
+  serializeAnswers,
+  type AnswerValue,
+  type AssessmentDraft,
+} from '@/lib/draft-storage'
 
 // Question types mirror the Prisma `Question.type` values.
 type QuestionType = 'MCQ' | 'MULTI_SELECT' | 'SHORT_TEXT' | 'LONG_TEXT' | 'CODE'
@@ -40,8 +52,6 @@ interface Assessment {
 const VIOLATION_WARN_THRESHOLD = 3
 const VIOLATION_AUTOSUBMIT_THRESHOLD = 5
 
-type AnswerValue = string | string[]
-
 export default function TakeAssessmentClient({ params }: { params: { id: string } }) {
   const [assessment, setAssessment] = useState<Assessment | null>(null)
   const [answers, setAnswers] = useState<Map<string, AnswerValue>>(new Map())
@@ -68,6 +78,13 @@ export default function TakeAssessmentClient({ params }: { params: { id: string 
     if (typeof window === 'undefined') return null
     return new URLSearchParams(window.location.search).get('token')
   })
+
+  // Local autosave. Only the candidate's own answers are persisted — never the
+  // questions, never a deadline (see lib/draft-storage.ts). `restoredRef` gates
+  // the write-back effect so the first render can't clobber the stored draft
+  // with the empty initial state before it has been read.
+  const draftKey = useMemo(() => assessmentDraftKey(params.id, token), [params.id, token])
+  const restoredRef = useRef(false)
 
   const handleSubmit = useCallback(async () => {
     if (submittingRef.current) return
@@ -97,6 +114,8 @@ export default function TakeAssessmentClient({ params }: { params: { id: string 
 
       if (response.ok) {
         const result = await response.json()
+        // Answers are on the server now — the local copy must not outlive them.
+        clearDraft(draftKey)
         window.location.href = `/assessment/${params.id}/results/${result.attemptId}`
       } else {
         submittingRef.current = false
@@ -109,7 +128,7 @@ export default function TakeAssessmentClient({ params }: { params: { id: string 
       setSubmitting(false)
       alert('Failed to submit assessment')
     }
-  }, [answers, params.id, token])
+  }, [answers, draftKey, params.id, token])
 
   useEffect(() => {
     async function loadAssessment() {
@@ -130,6 +149,37 @@ export default function TakeAssessmentClient({ params }: { params: { id: string 
             durationMin: a.durationMin ?? null,
             questions,
           })
+
+          // Restore a locally autosaved draft (refresh / crash / closed tab).
+          // Answers are filtered against the questions the server just served,
+          // so a stale or hand-edited draft cannot introduce unknown ids.
+          const draft = loadDraft<AssessmentDraft>(draftKey, {
+            maxAgeMs: ASSESSMENT_DRAFT_MAX_AGE_MS,
+          })
+          if (draft) {
+            const restored = deserializeAnswers(
+              draft.answers,
+              questions.map((q) => q.id),
+            )
+            if (restored.size > 0) {
+              setAnswers(restored)
+              const index = Number.isInteger(draft.questionIndex) ? draft.questionIndex : 0
+              setCurrentQuestionIndex(
+                Math.min(Math.max(index, 0), Math.max(questions.length - 1, 0)),
+              )
+              // Reloading mid-test is exactly what someone gaming the timer
+              // would do, so it is recorded alongside the focus-loss events
+              // and submitted with the attempt. It deliberately does not use
+              // `recordViolation` (defined later, in the anti-cheat effect):
+              // a browser crash should be visible to the reviewer, not
+              // auto-submit the candidate.
+              violationsRef.current.events.push({
+                type: 'draft_restored',
+                at: new Date().toISOString(),
+              })
+            }
+          }
+          restoredRef.current = true
         } else {
           alert('Failed to load assessment')
         }
@@ -141,9 +191,30 @@ export default function TakeAssessmentClient({ params }: { params: { id: string 
       }
     }
     loadAssessment()
-  }, [params.id, token])
+  }, [params.id, token, draftKey])
+
+  // Autosave — every answer change is mirrored to localStorage so a refresh,
+  // a crashed tab or a stray navigation no longer costs the whole assessment.
+  useEffect(() => {
+    if (!assessment || !restoredRef.current || submittingRef.current) return
+    if (answers.size === 0) return
+    const draft: AssessmentDraft = {
+      answers: serializeAnswers(answers),
+      questionIndex: currentQuestionIndex,
+    }
+    saveDraft(draftKey, draft)
+  }, [answers, assessment, currentQuestionIndex, draftKey])
+
+  // Native "you have unsaved work" prompt while answers exist and the
+  // assessment has not been submitted yet.
+  useUnsavedChangesWarning(!loading && !submitting && answers.size > 0)
 
   // Timer — only when the assessment has a duration.
+  //
+  // The countdown is always seeded from `durationMin` as returned by the server
+  // on THIS page load. It is never read from (or written to) the draft: a
+  // candidate who edits localStorage can restore their own answers but can
+  // never grant themselves more time.
   useEffect(() => {
     if (!assessment || !assessment.durationMin) return
 

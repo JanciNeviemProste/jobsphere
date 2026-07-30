@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useFormatter } from 'next-intl'
 import { CalendarClock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { SHORT_DATE } from '@/lib/formats'
 import { InterviewScheduleDialog } from './interview-schedule-dialog'
 import {
   Table,
@@ -71,6 +73,7 @@ export function ApplicantsTable({ applications, locale }: ApplicantsTableProps) 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [scheduleFor, setScheduleFor] = useState<string | null>(null)
   const router = useRouter()
+  const format = useFormatter()
 
   const allSelected = applications.length > 0 && selectedIds.size === applications.length
   const someSelected = selectedIds.size > 0 && selectedIds.size < applications.length
@@ -199,7 +202,7 @@ export function ApplicantsTable({ applications, locale }: ApplicantsTableProps) 
                 <ScoreCell score={application.score} />
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
-                {new Date(application.createdAt).toLocaleDateString('sk-SK')}
+                {format.dateTime(new Date(application.createdAt), SHORT_DATE)}
               </TableCell>
               <TableCell onClick={(e) => e.stopPropagation()}>
                 <div className="flex justify-end gap-2">

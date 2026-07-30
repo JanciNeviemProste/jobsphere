@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getTranslations } from 'next-intl/server'
+import { getFormatter, getTranslations } from 'next-intl/server'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { SHORT_DATE } from '@/lib/formats'
 import {
   Plus,
   Briefcase,
@@ -102,6 +103,7 @@ async function getEmployerData(userId: string) {
 
 export default async function EmployerDashboardPage({ params }: { params: { locale: string } }) {
   const session = await auth()
+  const format = await getFormatter()
 
   if (!session?.user?.id) {
     redirect(`/${params.locale}/login`)
@@ -262,7 +264,7 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
                             {job.viewCount} zobrazení
                           </span>
                           <span>
-                            Vytvorené {new Date(job.createdAt).toLocaleDateString('sk-SK')}
+                            Vytvorené {format.dateTime(job.createdAt, SHORT_DATE)}
                           </span>
                         </div>
                       </div>
@@ -331,7 +333,7 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
                         </p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <span>
-                            Prihlásený {new Date(application.createdAt).toLocaleDateString('sk-SK')}
+                            Prihlásený {format.dateTime(application.createdAt, SHORT_DATE)}
                           </span>
                         </div>
                       </div>

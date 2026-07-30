@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { useFormatter } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { SHORT_DATE } from '@/lib/formats'
 import { CVPreview, type CVPreviewData } from '../../create-cv/cv-preview'
 import {
   Loader2,
@@ -36,6 +38,7 @@ interface CvListItem {
 export default function CvsClient() {
   const params = useParams()
   const locale = (params?.locale as string) || 'sk'
+  const format = useFormatter()
 
   const [loading, setLoading] = useState(true)
   const [unauthorized, setUnauthorized] = useState(false)
@@ -218,7 +221,7 @@ export default function CvsClient() {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Aktualizované {new Date(cv.updatedAt).toLocaleDateString('sk-SK')}
+                    Aktualizované {format.dateTime(new Date(cv.updatedAt), SHORT_DATE)}
                   </p>
                   <div className="mt-auto flex gap-2 pt-2">
                     <Button size="sm" variant="outline" onClick={() => openView(cv.id)}>

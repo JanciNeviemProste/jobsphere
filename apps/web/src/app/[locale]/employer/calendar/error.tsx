@@ -9,5 +9,5 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  return <RouteError error={error} reset={reset} location="signup-error" />
+  return <RouteError error={error} reset={reset} location="employer-calendar-error" />
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { useFormatter } from 'next-intl'
 import { X, ChevronDown, Mail, Download, UserX } from 'lucide-react'
 import {
   APPLICATION_STAGES,
@@ -27,6 +28,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { BulkEmailDialog } from './bulk-email-dialog'
+import { SHORT_DATE } from '@/lib/formats'
 
 interface ApplicationRow {
   id: string
@@ -50,6 +52,7 @@ export function BulkActionBar({
   onClear,
   onSuccess,
 }: BulkActionBarProps) {
+  const format = useFormatter()
   const [emailDialogOpen, setEmailDialogOpen] = useState(false)
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
 
@@ -109,7 +112,7 @@ export function BulkActionBar({
       a.candidateEmail,
       a.jobTitle,
       a.stage,
-      new Date(a.createdAt).toLocaleDateString('sk-SK'),
+      format.dateTime(new Date(a.createdAt), SHORT_DATE),
     ])
 
     const escape = (val: string) => `"${String(val).replace(/"/g, '""')}"`

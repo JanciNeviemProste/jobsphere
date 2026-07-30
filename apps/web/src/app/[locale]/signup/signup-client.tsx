@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Eye, EyeOff } from 'lucide-react'
 
 const signupSchema = z
   .object({
@@ -45,6 +46,8 @@ export default function SignupClient({ params }: { params: { locale: string } })
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [role, setRole] = useState<'candidate' | 'employer' | 'freelancer'>('candidate')
   const [companyName, setCompanyName] = useState('')
   const [acceptTerms, setAcceptTerms] = useState(false)
@@ -257,6 +260,8 @@ export default function SignupClient({ params }: { params: { locale: string } })
               <Input
                 id="name"
                 type="text"
+                name="name"
+                autoComplete="name"
                 placeholder="John Doe"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -271,6 +276,8 @@ export default function SignupClient({ params }: { params: { locale: string } })
                 <Input
                   id="companyName"
                   type="text"
+                  name="organization"
+                  autoComplete="organization"
                   placeholder="Acme Inc."
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
@@ -285,6 +292,8 @@ export default function SignupClient({ params }: { params: { locale: string } })
               <Input
                 id="email"
                 type="email"
+                name="email"
+                autoComplete="email"
                 placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -295,28 +304,64 @@ export default function SignupClient({ params }: { params: { locale: string } })
 
             <div className="space-y-2">
               <Label htmlFor="password">{t('password')}</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-                minLength={12}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  name="new-password"
+                  autoComplete="new-password"
+                  className="pr-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                  minLength={12}
+                />
+                <button
+                  type="button"
+                  aria-label={t('password')}
+                  aria-pressed={showPassword}
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Eye className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
               <p className="text-xs text-muted-foreground">{t('passwordHint')}</p>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">{t('confirmPassword')}</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirm-password"
+                  autoComplete="new-password"
+                  className="pr-10"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  aria-label={t('confirmPassword')}
+                  aria-pressed={showConfirmPassword}
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Eye className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="flex items-start space-x-2">

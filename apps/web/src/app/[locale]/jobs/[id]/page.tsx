@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { getTranslations } from 'next-intl/server'
+import { getFormatter, getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { formatMoney } from '@/lib/formats'
 import {
   MapPin,
   Euro,
@@ -272,7 +273,11 @@ export default async function JobDetailPage({
 }) {
   const job = await getJob(params.id)
   const t = await getTranslations()
+  const format = await getFormatter()
   const dateLocale = getDateLocale(params.locale)
+
+  // Salaries render in the posting's own currency, not a hardcoded euro sign.
+  const money = (amount: number, currency: string) => formatMoney(format.number, amount, currency)
 
   if (!job) {
     notFound()
@@ -415,10 +420,10 @@ export default async function JobDetailPage({
                       <Euro className="h-4 w-4" />
                       <span>
                         {job.salaryMin && job.salaryMax
-                          ? `€${job.salaryMin.toLocaleString()} - €${job.salaryMax.toLocaleString()}`
+                          ? `${money(job.salaryMin, job.salaryCurrency)} - ${money(job.salaryMax, job.salaryCurrency)}`
                           : job.salaryMin
-                            ? `€${job.salaryMin.toLocaleString()}+`
-                            : `${t('jobDetail.upTo')} €${job.salaryMax?.toLocaleString()}`}{' '}
+                            ? `${money(job.salaryMin, job.salaryCurrency)}+`
+                            : `${t('jobDetail.upTo')} ${money(job.salaryMax ?? 0, job.salaryCurrency)}`}{' '}
                         / {t('jobs.perMonth')}
                       </span>
                     </div>
@@ -581,10 +586,10 @@ export default async function JobDetailPage({
                       {(similarJob.salaryMin || similarJob.salaryMax) && (
                         <p className="text-sm font-medium text-primary">
                           {similarJob.salaryMin && similarJob.salaryMax
-                            ? `€${similarJob.salaryMin.toLocaleString()} - €${similarJob.salaryMax.toLocaleString()}`
+                            ? `${money(similarJob.salaryMin, similarJob.salaryCurrency)} - ${money(similarJob.salaryMax, similarJob.salaryCurrency)}`
                             : similarJob.salaryMin
-                              ? `€${similarJob.salaryMin.toLocaleString()}+`
-                              : `${t('jobDetail.upTo')} €${similarJob.salaryMax?.toLocaleString()}`}
+                              ? `${money(similarJob.salaryMin, similarJob.salaryCurrency)}+`
+                              : `${t('jobDetail.upTo')} ${money(similarJob.salaryMax ?? 0, similarJob.salaryCurrency)}`}
                         </p>
                       )}
                     </Link>

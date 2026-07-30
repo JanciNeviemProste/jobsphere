@@ -77,6 +77,12 @@ jobs:
           cd apps/web
           yarn lint
 
+      # The five message catalogs had drifted apart (employer.editJob existed only
+      # in en/sk, so /de, /cs and /pl rendered the raw key path "employer.editJob.title"
+      # as the page heading). This fails the build if they diverge again.
+      - name: Check i18n key parity
+        run: node scripts/check-i18n-parity.mjs
+
       # `yarn test:coverage` is `vitest run --coverage` over the same suite as
       # `yarn test:run` — running both executed every unit test twice. Coverage
       # thresholds are enforced by vitest.config.ts, so this single run gates both.

@@ -1,4 +1,6 @@
 import { redirect, notFound } from 'next/navigation'
+import { getFormatter } from 'next-intl/server'
+import { SHORT_DATE, SHORT_DATE_TIME } from '@/lib/formats'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +21,7 @@ export default async function AdminOrganizationDetailPage({
   params: { locale: string; id: string }
 }) {
   const session = await auth()
+  const format = await getFormatter()
   if (!session?.user?.isGlobalAdmin) {
     redirect(`/${params.locale}/login?error=forbidden`)
   }
@@ -119,7 +122,7 @@ export default async function AdminOrganizationDetailPage({
                     <Badge variant="outline">{m.role}</Badge>
                   </TableCell>
                   <TableCell className="text-sm text-slate-500">
-                    {new Date(m.createdAt).toLocaleDateString('sk-SK')}
+                    {format.dateTime(m.createdAt, SHORT_DATE)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -158,7 +161,7 @@ export default async function AdminOrganizationDetailPage({
                   </TableCell>
                   <TableCell className="text-right">{job._count.applications}</TableCell>
                   <TableCell className="text-sm text-slate-500">
-                    {new Date(job.createdAt).toLocaleDateString('sk-SK')}
+                    {format.dateTime(job.createdAt, SHORT_DATE)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -209,11 +212,11 @@ export default async function AdminOrganizationDetailPage({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-slate-500">
-                      {new Date(sub.currentPeriodStart).toLocaleDateString('sk-SK')} –{' '}
-                      {new Date(sub.currentPeriodEnd).toLocaleDateString('sk-SK')}
+                      {format.dateTime(sub.currentPeriodStart, SHORT_DATE)} –{' '}
+                      {format.dateTime(sub.currentPeriodEnd, SHORT_DATE)}
                     </TableCell>
                     <TableCell className="text-sm text-slate-500">
-                      {sub.cancelAt ? new Date(sub.cancelAt).toLocaleDateString('sk-SK') : '—'}
+                      {sub.cancelAt ? format.dateTime(sub.cancelAt, SHORT_DATE) : '—'}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -224,7 +227,7 @@ export default async function AdminOrganizationDetailPage({
       )}
 
       <div className="text-xs text-slate-400">
-        Vytvorená: {new Date(org.createdAt).toLocaleString('sk-SK')}
+        Vytvorená: {format.dateTime(org.createdAt, SHORT_DATE_TIME)}
         {org.website && (
           <>
             {' · '}

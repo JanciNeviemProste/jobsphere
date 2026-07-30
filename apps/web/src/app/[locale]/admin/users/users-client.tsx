@@ -6,6 +6,7 @@
  */
 
 import { useState, useTransition } from 'react'
+import { useFormatter } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
+import { SHORT_DATE } from '@/lib/formats'
 import {
   Search,
   MoreHorizontal,
@@ -59,14 +61,6 @@ type Action = 'ban' | 'unban' | 'promote_admin' | 'demote_admin'
 function isBanned(lockedUntil: Date | string | null): boolean {
   if (!lockedUntil) return false
   return new Date(lockedUntil) > new Date()
-}
-
-function formatDate(date: Date | string): string {
-  return new Intl.DateTimeFormat('sk-SK', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(new Date(date))
 }
 
 function UserStatusBadge({ user }: { user: UserRow }) {
@@ -113,6 +107,7 @@ export function UsersClient({
   locale,
 }: UsersClientProps) {
   const router = useRouter()
+  const format = useFormatter()
   const [isPending, startTransition] = useTransition()
   const [search, setSearch] = useState(initialSearch)
   const [actionPending, setActionPending] = useState<string | null>(null)
@@ -274,7 +269,7 @@ export function UsersClient({
                             {user.email}
                           </td>
                           <td className="whitespace-nowrap px-6 py-4 text-slate-500">
-                            {formatDate(user.createdAt)}
+                            {format.dateTime(new Date(user.createdAt), SHORT_DATE)}
                           </td>
                           <td className="px-6 py-4 text-center">
                             {user.emailVerified ? (

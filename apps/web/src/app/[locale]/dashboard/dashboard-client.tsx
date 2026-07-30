@@ -1,10 +1,11 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { SHORT_DATE } from '@/lib/formats'
 import { Briefcase, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
 
 interface DashboardData {
@@ -53,10 +54,13 @@ interface DashboardData {
 interface DashboardClientProps {
   locale: string
   initialData: DashboardData
+  /** Server-rendered explanation for a redirect (e.g. `?error=no_organization`). */
+  notice?: React.ReactNode
 }
 
-export default function DashboardClient({ locale, initialData }: DashboardClientProps) {
+export default function DashboardClient({ locale, initialData, notice }: DashboardClientProps) {
   const t = useTranslations()
+  const format = useFormatter()
   const { user, stats, profileCompletion, profileSteps, applications, recommendedJobs } =
     initialData
 
@@ -91,10 +95,7 @@ export default function DashboardClient({ locale, initialData }: DashboardClient
     }
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString(locale === 'sk' ? 'sk-SK' : 'en-US')
-  }
+  const formatDate = (dateString: string) => format.dateTime(new Date(dateString), SHORT_DATE)
 
   const formatSalary = (min?: number | null, max?: number | null) => {
     if (!min && !max) return t('dashboard.salary.negotiable')
@@ -107,6 +108,9 @@ export default function DashboardClient({ locale, initialData }: DashboardClient
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <div className="container mx-auto px-4 py-8">
+        {/* Why-are-you-here notice (e.g. bounced out of /employer) */}
+        {notice ? <div className="mb-6">{notice}</div> : null}
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="mb-2 text-3xl font-bold">{t('dashboard.welcome', { name: user.name })}</h1>

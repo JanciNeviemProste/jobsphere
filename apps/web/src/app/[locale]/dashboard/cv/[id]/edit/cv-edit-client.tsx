@@ -5,7 +5,7 @@
  * Review and edit AI-parsed CV data
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
@@ -36,6 +36,14 @@ import { toast } from '@/components/ui/use-toast'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { logger } from '@/lib/logger'
 import { Switch } from '@/components/ui/switch'
+import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning'
+import {
+  CV_DRAFT_MAX_AGE_MS,
+  clearDraft,
+  cvEditDraftKey,
+  loadDraft,
+  saveDraft,
+} from '@/lib/draft-storage'
 
 interface ResumeSection {
   id?: string
@@ -71,6 +79,20 @@ export default function CVEditClient({ params }: { params: { id: string; locale:
   const [resumeData, setResumeData] = useState<ResumeData | null>(null)
   const [activeTab, setActiveTab] = useState('personal')
 
+  // Local autosave. This form is long (22 inputs across 7 tabs) and used to
+  // lose everything on a refresh, so every edit is mirrored to localStorage and
+  // dropped again the moment the server confirms a save.
+  const draftKey = useMemo(() => cvEditDraftKey(params.id), [params.id])
+  // JSON of the last state known to be on the server — the dirty baseline.
+  const savedSnapshotRef = useRef<string | null>(null)
+  const currentSnapshot = resumeData ? JSON.stringify(resumeData) : null
+  const isDirty =
+    currentSnapshot !== null &&
+    savedSnapshotRef.current !== null &&
+    currentSnapshot !== savedSnapshotRef.current
+
+  useUnsavedChangesWarning(isDirty)
+
   // Check authentication
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -88,7 +110,19 @@ export default function CVEditClient({ params }: { params: { id: string; locale:
         if (!response.ok) throw new Error('Failed to load CV')
 
         const data = await response.json()
-        setResumeData(data)
+        // The server copy is the "saved" baseline for dirty-tracking, even when
+        // we then show a newer local draft on top of it.
+        savedSnapshotRef.current = JSON.stringify(data)
+
+        const draft = loadDraft<ResumeData>(draftKey, { maxAgeMs: CV_DRAFT_MAX_AGE_MS })
+        if (draft && draft.id === params.id && Array.isArray(draft.sections)) {
+          // Unsaved edits from a previous visit — restore them and let the
+          // "unsaved" badge + beforeunload guard make it obvious they are local.
+          setResumeData(draft)
+        } else {
+          if (draft) clearDraft(draftKey)
+          setResumeData(data)
+        }
       } catch (error) {
         logger.error('Load CV error', error)
         toast.error(t('cvEdit.error'), {
@@ -102,7 +136,18 @@ export default function CVEditClient({ params }: { params: { id: string; locale:
     if (status === 'authenticated') {
       loadResume()
     }
-  }, [params.id, status, t])
+  }, [params.id, status, t, draftKey])
+
+  // Mirror every unsaved edit to localStorage; drop the draft as soon as the
+  // form matches what the server has.
+  useEffect(() => {
+    if (!currentSnapshot || savedSnapshotRef.current === null) return
+    if (isDirty) {
+      saveDraft(draftKey, JSON.parse(currentSnapshot) as ResumeData)
+    } else {
+      clearDraft(draftKey)
+    }
+  }, [currentSnapshot, isDirty, draftKey])
 
   const handleSave = async () => {
     if (!resumeData) return
@@ -118,6 +163,11 @@ export default function CVEditClient({ params }: { params: { id: string; locale:
       })
 
       if (!response.ok) throw new Error('Failed to save CV')
+
+      // Server now holds this exact state — reset the dirty baseline and drop
+      // the local draft so a later visit does not resurrect stale edits.
+      savedSnapshotRef.current = JSON.stringify(resumeData)
+      clearDraft(draftKey)
 
       setSaved(true)
       toast.success(t('cvEdit.success'), {
@@ -274,6 +324,11 @@ export default function CVEditClient({ params }: { params: { id: string; locale:
               <p className="mt-1 text-muted-foreground">{t('cvEdit.description')}</p>
             </div>
             <div className="flex items-center gap-3">
+              {isDirty && !saving && (
+                <Badge variant="outline" className="capitalize">
+                  {t('employer.newJob.draft')}
+                </Badge>
+              )}
               {saved && (
                 <div className="flex items-center gap-2 text-green-600">
                   <CheckCircle2 className="h-5 w-5" />

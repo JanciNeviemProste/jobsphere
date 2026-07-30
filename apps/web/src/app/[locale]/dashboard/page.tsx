@@ -2,9 +2,34 @@ import { Suspense } from 'react'
 import { getTranslations } from 'next-intl/server'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import { Building2 } from 'lucide-react'
 import { auth } from '@/lib/auth'
 import DashboardClient from './dashboard-client'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+
+type DashboardSearchParams = Record<string, string | string[] | undefined>
+
+/**
+ * `app/[locale]/employer/layout.tsx` redirects here with
+ * `?error=no_organization` when a signed-in user without an organization opens
+ * the employer area. Nothing used to read that param, so the user silently
+ * bounced back to the dashboard with no explanation.
+ */
+async function buildRedirectNotice(locale: string, searchParams?: DashboardSearchParams) {
+  const rawError = searchParams?.error
+  const error = Array.isArray(rawError) ? rawError[0] : rawError
+  if (error !== 'no_organization') return null
+
+  const t = await getTranslations({ locale, namespace: 'employer' })
+  return (
+    <Alert>
+      <Building2 className="h-4 w-4" />
+      <AlertTitle>{t('accessDenied')}</AlertTitle>
+      <AlertDescription>{t('noAccess')}</AlertDescription>
+    </Alert>
+  )
+}
 
 export async function generateMetadata({
   params: { locale },
@@ -217,7 +242,13 @@ function DashboardLoading() {
   )
 }
 
-export default async function DashboardPage({ params }: { params: { locale: string } }) {
+export default async function DashboardPage({
+  params,
+  searchParams,
+}: {
+  params: { locale: string }
+  searchParams?: DashboardSearchParams
+}) {
   const session = await auth()
   if (!session) {
     redirect(`/${params.locale}/login`)
@@ -225,17 +256,25 @@ export default async function DashboardPage({ params }: { params: { locale: stri
 
   return (
     <Suspense fallback={<DashboardLoading />}>
-      <DashboardContent params={params} />
+      <DashboardContent params={params} searchParams={searchParams} />
     </Suspense>
   )
 }
 
-async function DashboardContent({ params }: { params: { locale: string } }) {
+async function DashboardContent({
+  params,
+  searchParams,
+}: {
+  params: { locale: string }
+  searchParams?: DashboardSearchParams
+}) {
   const dashboardData = await getDashboardData()
 
   if (!dashboardData) {
     redirect(`/${params.locale}/login`)
   }
 
-  return <DashboardClient locale={params.locale} initialData={dashboardData} />
+  const notice = await buildRedirectNotice(params.locale, searchParams)
+
+  return <DashboardClient locale={params.locale} initialData={dashboardData} notice={notice} />
 }

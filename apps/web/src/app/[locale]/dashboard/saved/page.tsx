@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { getFormatter } from 'next-intl/server'
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, MapPin, Euro, Building2, Heart, Briefcase } from 'lucide-react'
 import { SaveJobButton } from '@/components/job/save-job-button'
+import { SHORT_DATE, formatMoney } from '@/lib/formats'
 
 async function getSavedJobs(userId: string) {
   const savedJobs = await prisma.savedJob.findMany({
@@ -45,12 +47,16 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SavedJobsPage({ params }: { params: { locale: string } }) {
   const session = await auth()
+  const format = await getFormatter()
 
   if (!session?.user?.id) {
     redirect(`/${params.locale}/login`)
   }
 
   const savedJobs = await getSavedJobs(session.user.id)
+
+  // Each row carries its own currency — a PLN job must not render as euros.
+  const money = (amount: number, currency: string) => formatMoney(format.number, amount, currency)
 
   const getWorkModeLabel = (job: (typeof savedJobs)[number]['job']) => {
     if (job.remote) return 'Remote'
@@ -175,15 +181,15 @@ export default async function SavedJobsPage({ params }: { params: { locale: stri
                             <Euro className="h-4 w-4" />
                             <span>
                               {job.salaryMin && job.salaryMax
-                                ? `€${job.salaryMin.toLocaleString()} - €${job.salaryMax.toLocaleString()}`
+                                ? `${money(job.salaryMin, job.salaryCurrency)} - ${money(job.salaryMax, job.salaryCurrency)}`
                                 : job.salaryMin
-                                  ? `€${job.salaryMin.toLocaleString()}+`
-                                  : `Do €${job.salaryMax?.toLocaleString()}`}
+                                  ? `${money(job.salaryMin, job.salaryCurrency)}+`
+                                  : `Do ${money(job.salaryMax ?? 0, job.salaryCurrency)}`}
                             </span>
                           </div>
                         )}
                         <span className="text-muted-foreground/50">•</span>
-                        <span>Uložené {new Date(createdAt).toLocaleDateString('sk-SK')}</span>
+                        <span>Uložené {format.dateTime(new Date(createdAt), SHORT_DATE)}</span>
                       </div>
 
                       {/* Badges */}

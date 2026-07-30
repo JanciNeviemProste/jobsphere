@@ -226,19 +226,7 @@
     "or": "Lub kontynuuj z e-mailem"
   },
   "dashboard": {
-    "welcome": "Witamy ponownie",
-    "overview": "Oto przegląd Twoich możliwości pracy",
-    "totalApplications": "Wszystkie aplikacje",
-    "pending": "Oczekujące",
-    "inProcess": "W trakcie",
-    "accepted": "Zaakceptowane",
-    "myApplications": "Moje aplikacje",
-    "allApplications": "Wszystkie Twoje wysłane aplikacje",
-    "searchJobs": "Szukaj pracy",
-    "appliedOn": "Aplikowano",
-    "detail": "Szczegóły",
-    "noApplications": "Nie masz jeszcze żadnych aplikacji",
-    "browseOffers": "Przeglądaj oferty",
+    "welcome": "Witamy ponownie, {name}!",
     "profile": {
       "title": "Profil",
       "subtitle": "Uzupełnij swój profil dla lepszych dopasowań",
@@ -251,21 +239,12 @@
         "preferences": "Preferencje zawodowe"
       }
     },
-    "completeProfile": "Uzupełnij swój profil, aby uzyskać lepsze sugestie",
-    "completion": "Ukończenie profilu",
     "recommended": {
       "title": "Rekomendowane dla ciebie",
       "subtitle": "Sugestie AI oparte na twoim profilu",
       "view": "Zobacz",
       "empty": "Uzupełnij swój profil, aby otrzymać rekomendacje ofert"
     },
-    "aiSuggestions": "Sugestie AI oparte na Twoim profilu",
-    "basicInfo": "Podstawowe informacje",
-    "cvUploaded": "CV przesłane",
-    "skillsExperience": "Umiejętności i doświadczenie",
-    "workPreferences": "Preferencje pracy",
-    "finishProfile": "Ukończ profil",
-    "match": "dopasowanie",
     "subtitle": "Oto przegląd twoich możliwości zawodowych",
     "stats": {
       "total": "Wszystkie aplikacje",
@@ -414,6 +393,12 @@
       "selectAssessmentPlaceholder": "Wybierz test",
       "noAssessments": "Nie znaleziono testów. Najpierw utwórz test w sekcji Testy.",
       "draft": "wersja robocza"
+    },
+    "editJob": {
+      "title": "Edytuj ofertę pracy",
+      "subtitle": "Zaktualizuj szczegóły swojej oferty pracy",
+      "save": "Zapisz zmiany",
+      "saving": "Zapisywanie..."
     }
   },
   "common": {

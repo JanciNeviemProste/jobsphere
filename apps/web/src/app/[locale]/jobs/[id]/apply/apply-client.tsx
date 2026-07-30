@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -11,6 +11,7 @@ import * as z from 'zod'
 import { format } from 'date-fns'
 import { CalendarIcon, ArrowLeft, Upload, Loader2, CheckCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { SHORT_DATE, formatMoney } from '@/lib/formats'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -64,6 +65,7 @@ interface JobData {
   location: string
   salaryMin?: number
   salaryMax?: number
+  salaryCurrency?: string
   requiresAssessment?: boolean
   assessmentId?: string | null
 }
@@ -79,6 +81,7 @@ export default function ApplyClient({ params }: { params: { id: string; locale: 
   const router = useRouter()
   const { status } = useSession()
   const t = useTranslations()
+  const intl = useFormatter()
   const [job, setJob] = useState<JobData | null>(null)
   const [userCVs, setUserCVs] = useState<UserCV[]>([])
   const [loading, setLoading] = useState(true)
@@ -110,6 +113,7 @@ export default function ApplyClient({ params }: { params: { id: string; locale: 
           location: data.location,
           salaryMin: data.salaryMin,
           salaryMax: data.salaryMax,
+          salaryCurrency: data.salaryCurrency,
           requiresAssessment: data.requiresAssessment,
           assessmentId: data.assessmentId,
         })
@@ -138,7 +142,7 @@ export default function ApplyClient({ params }: { params: { id: string; locale: 
             (cv: { id: string; title: string; updatedAt: string }, i: number) => ({
               id: cv.id,
               title: cv.title,
-              uploadedAt: new Date(cv.updatedAt).toLocaleDateString('sk-SK'),
+              uploadedAt: intl.dateTime(new Date(cv.updatedAt), SHORT_DATE),
               isDefault: i === 0,
             }),
           )
@@ -156,7 +160,8 @@ export default function ApplyClient({ params }: { params: { id: string; locale: 
     }
 
     fetchUserCVs()
-  }, [status, form])
+    // `intl` is memoised by next-intl, so it is referentially stable here.
+  }, [status, form, intl])
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -669,7 +674,10 @@ export default function ApplyClient({ params }: { params: { id: string; locale: 
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">{t('apply.salary')}:</span>
                           <span>
-                            €{job.salaryMin?.toLocaleString()} - €{job.salaryMax?.toLocaleString()}
+                            {[job.salaryMin, job.salaryMax]
+                              .filter((amount): amount is number => amount != null)
+                              .map((amount) => formatMoney(intl.number, amount, job.salaryCurrency))
+                              .join(' - ')}
                           </span>
                         </div>
                       )}
