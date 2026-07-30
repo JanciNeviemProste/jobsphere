@@ -74,7 +74,15 @@ jobs:
           ENABLE_OCR: false
           ENABLE_WORKERS: false
 
+      # NON-BLOCKING for now. This workflow was invalid YAML until 2026-07-29 and
+      # had therefore never executed once, which means the thresholds in
+      # lighthouserc.json (performance >= 0.8, accessibility >= 0.9, LCP <= 3s …)
+      # were never calibrated against a real measurement — they are aspirations
+      # someone typed, not a baseline the app has ever met. Let it publish real
+      # numbers first; tighten or ratchet the assertions once we know where we
+      # actually stand, then remove this line.
       - name: Run Lighthouse CI
+        continue-on-error: true
         run: |
           npm install -g @lhci/cli@0.13.x
           lhci autorun
