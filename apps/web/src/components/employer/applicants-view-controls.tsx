@@ -1,18 +1,20 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { LayoutList, Kanban } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { APPLICATION_STAGES, STAGE_LABELS_SK } from '@/lib/constants/application-stages'
+import { APPLICATION_STAGES } from '@/lib/constants/application-stages'
 
 export type ApplicantsView = 'kanban' | 'list'
 export type ApplicantsSort = 'date_desc' | 'date_asc' | 'score_desc'
 
 export const APPLICANTS_SORTS: ApplicantsSort[] = ['date_desc', 'date_asc', 'score_desc']
 
-const SORT_LABELS_SK: Record<ApplicantsSort, string> = {
-  date_desc: 'Najnovšie',
-  date_asc: 'Najstaršie',
-  score_desc: 'Najvyššie skóre',
+/** Sort option -> key inside the `employer.viewControls` namespace. */
+const SORT_LABEL_KEYS: Record<ApplicantsSort, string> = {
+  date_desc: 'sortDateDesc',
+  date_asc: 'sortDateAsc',
+  score_desc: 'sortScoreDesc',
 }
 
 interface Props {
@@ -38,6 +40,9 @@ export function ApplicantsViewControls({
   currentStage,
   currentSort,
 }: Props) {
+  const t = useTranslations('employer.viewControls')
+  const tStages = useTranslations('employer.stages')
+
   const buildHref = (targetView: ApplicantsView) => {
     const params = new URLSearchParams()
     if (currentJobId) params.set('jobId', currentJobId)
@@ -76,14 +81,14 @@ export function ApplicantsViewControls({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="inline-flex rounded-lg border bg-muted/40 p-0.5">
-        {toggleBtn('kanban', 'Kanban', <Kanban className="h-4 w-4" />)}
-        {toggleBtn('list', 'Zoznam', <LayoutList className="h-4 w-4" />)}
+        {toggleBtn('kanban', t('kanban'), <Kanban className="h-4 w-4" />)}
+        {toggleBtn('list', t('list'), <LayoutList className="h-4 w-4" />)}
       </div>
 
       {/* Server Component: no onChange handlers — submit via the button. */}
       <form method="GET" action={formAction} className="flex flex-wrap items-center gap-2">
         <select name="jobId" defaultValue={currentJobId ?? ''} className={selectClass}>
-          <option value="">Všetky pozície</option>
+          <option value="">{t('allPositions')}</option>
           {jobs.map((job) => (
             <option key={job.id} value={job.id}>
               {job.title}
@@ -92,10 +97,10 @@ export function ApplicantsViewControls({
         </select>
 
         <select name="stage" defaultValue={currentStage ?? ''} className={selectClass}>
-          <option value="">Všetky fázy</option>
+          <option value="">{t('allStages')}</option>
           {APPLICATION_STAGES.map((stage) => (
             <option key={stage} value={stage}>
-              {STAGE_LABELS_SK[stage]}
+              {tStages(stage)}
             </option>
           ))}
         </select>
@@ -103,13 +108,13 @@ export function ApplicantsViewControls({
         <select name="sort" defaultValue={currentSort ?? 'date_desc'} className={selectClass}>
           {APPLICANTS_SORTS.map((sort) => (
             <option key={sort} value={sort}>
-              {SORT_LABELS_SK[sort]}
+              {t(SORT_LABEL_KEYS[sort])}
             </option>
           ))}
         </select>
 
         <Button type="submit" variant="outline" size="sm">
-          Filtrovať
+          {t('filter')}
         </Button>
       </form>
     </div>

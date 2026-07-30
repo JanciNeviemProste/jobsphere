@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -54,6 +55,8 @@ export function InterviewScheduleDialog({
   onScheduled,
 }: InterviewScheduleDialogProps) {
   const router = useRouter()
+  const t = useTranslations('employer.interviewDialog')
+  const tCommon = useTranslations('common')
   const [isLoading, setIsLoading] = useState(false)
   const [type, setType] = useState<InterviewType>(defaultType)
   const [scheduledAt, setScheduledAt] = useState('')
@@ -98,13 +101,13 @@ export function InterviewScheduleDialog({
 
   const handleSubmit = async () => {
     if (!scheduledAt) {
-      toast.error('Zadajte dátum a čas pohovoru')
+      toast.error(t('dateTimeRequired'))
       return
     }
 
     const scheduledIso = new Date(scheduledAt)
     if (Number.isNaN(scheduledIso.getTime())) {
-      toast.error('Neplatný dátum a čas')
+      toast.error(t('invalidDateTime'))
       return
     }
 
@@ -131,14 +134,14 @@ export function InterviewScheduleDialog({
         throw new Error('Failed to schedule interview')
       }
 
-      toast.success('Pohovor bol naplánovaný')
+      toast.success(t('scheduled'))
       resetForm()
       onOpenChange(false)
       onScheduled?.()
       router.refresh()
     } catch (error) {
       logger.error('Error scheduling interview', error)
-      toast.error('Nepodarilo sa naplánovať pohovor')
+      toast.error(t('scheduleFailed'))
     } finally {
       setIsLoading(false)
     }
@@ -148,28 +151,28 @@ export function InterviewScheduleDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Naplánovať pohovor</DialogTitle>
-          <DialogDescription>Naplánujte pohovor s kandidátom</DialogDescription>
+          <DialogTitle>{t('title')}</DialogTitle>
+          <DialogDescription>{t('description')}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="interview-type">Typ pohovoru</Label>
+            <Label htmlFor="interview-type">{t('typeLabel')}</Label>
             <Select value={type} onValueChange={(v) => setType(v as InterviewType)}>
               <SelectTrigger id="interview-type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="VIDEO">Videopohovor</SelectItem>
-                <SelectItem value="ONSITE">Osobne (fyzicky)</SelectItem>
-                <SelectItem value="PHONE">Telefonicky</SelectItem>
+                <SelectItem value="VIDEO">{t('typeVideo')}</SelectItem>
+                <SelectItem value="ONSITE">{t('typeOnsite')}</SelectItem>
+                <SelectItem value="PHONE">{t('typePhone')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="interview-datetime">Dátum a čas</Label>
+              <Label htmlFor="interview-datetime">{t('dateTimeLabel')}</Label>
               <Input
                 id="interview-datetime"
                 type="datetime-local"
@@ -178,7 +181,7 @@ export function InterviewScheduleDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="interview-duration">Trvanie (min)</Label>
+              <Label htmlFor="interview-duration">{t('durationLabel')}</Label>
               <Input
                 id="interview-duration"
                 type="number"
@@ -191,7 +194,7 @@ export function InterviewScheduleDialog({
 
           {type === 'VIDEO' && (
             <div className="space-y-2">
-              <Label htmlFor="interview-url">Odkaz na video hovor</Label>
+              <Label htmlFor="interview-url">{t('meetingUrlLabel')}</Label>
               <Input
                 id="interview-url"
                 type="url"
@@ -204,31 +207,31 @@ export function InterviewScheduleDialog({
 
           {type === 'ONSITE' && (
             <div className="space-y-2">
-              <Label htmlFor="interview-branch">Pobočka</Label>
+              <Label htmlFor="interview-branch">{t('branchLabel')}</Label>
               <Select value={branchId} onValueChange={setBranchId}>
                 <SelectTrigger id="interview-branch">
-                  <SelectValue placeholder="Vyberte pobočku" />
+                  <SelectValue placeholder={t('branchPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   {branches.length === 0 ? (
                     <SelectItem value="none" disabled>
-                      Žiadne pobočky — pridajte ich v nastaveniach
+                      {t('noBranches')}
                     </SelectItem>
                   ) : (
                     branches.map((b) => (
                       <SelectItem key={b.id} value={b.id}>
                         {b.name}
                         {b.city ? ` — ${b.city}` : ''}
-                        {b.isPrimary ? ' (hlavná)' : ''}
+                        {b.isPrimary ? ` ${t('branchPrimary')}` : ''}
                       </SelectItem>
                     ))
                   )}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">Alebo zadajte adresu ručne nižšie.</p>
+              <p className="text-xs text-muted-foreground">{t('addressHint')}</p>
               <Input
-                aria-label="Adresa"
-                placeholder="Adresa (voliteľné)"
+                aria-label={t('addressAriaLabel')}
+                placeholder={t('addressPlaceholder')}
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
@@ -236,10 +239,10 @@ export function InterviewScheduleDialog({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="interview-notes">Poznámka</Label>
+            <Label htmlFor="interview-notes">{t('notesLabel')}</Label>
             <Textarea
               id="interview-notes"
-              placeholder="Poznámka k pohovoru (voliteľné)"
+              placeholder={t('notesPlaceholder')}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
@@ -249,11 +252,11 @@ export function InterviewScheduleDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-            Zrušiť
+            {tCommon('cancel')}
           </Button>
           <Button onClick={handleSubmit} disabled={isLoading}>
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Naplánovať
+            {t('submit')}
           </Button>
         </DialogFooter>
       </DialogContent>

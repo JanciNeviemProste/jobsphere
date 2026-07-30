@@ -10,10 +10,12 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 export default function SettingsClient() {
   const params = useParams()
   const locale = params.locale as string
+  const t = useTranslations('employer')
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
@@ -35,7 +37,7 @@ export default function SettingsClient() {
           <TabsList className="grid w-full grid-cols-5 lg:w-auto">
             <TabsTrigger value="profile">Company Profile</TabsTrigger>
             <TabsTrigger value="team">Team Members</TabsTrigger>
-            <TabsTrigger value="branches">Pobočky</TabsTrigger>
+            <TabsTrigger value="branches">{t('branches')}</TabsTrigger>
             <TabsTrigger value="billing">Billing</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>

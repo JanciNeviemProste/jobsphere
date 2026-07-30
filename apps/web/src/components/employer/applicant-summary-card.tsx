@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl'
 import { Mail, Phone, MapPin, Briefcase } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +33,7 @@ interface Props {
 }
 
 function ScoreBadge({ score }: { score: number }) {
+  const t = useTranslations('employer.summaryCard')
   let colorClass = 'bg-red-100 text-red-800'
   if (score >= 80) colorClass = 'bg-green-100 text-green-800'
   else if (score >= 60) colorClass = 'bg-amber-100 text-amber-800'
@@ -40,13 +42,14 @@ function ScoreBadge({ score }: { score: number }) {
     <span
       className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${colorClass}`}
     >
-      {score}% zhoda
+      {t('matchBadge', { score })}
     </span>
   )
 }
 
 export function ApplicantSummaryCard({ contact, resume, matchScore, applicationId }: Props) {
-  const displayName = contact?.fullName ?? contact?.email ?? 'Kandidát'
+  const t = useTranslations('employer.summaryCard')
+  const displayName = contact?.fullName ?? contact?.email ?? t('candidateFallback')
   const location = contact?.city ?? contact?.location ?? null
   const topSkills = resume?.skills?.slice(0, 5) ?? []
 
@@ -85,13 +88,7 @@ export function ApplicantSummaryCard({ contact, resume, matchScore, applicationI
               {resume?.yearsOfExperience != null && (
                 <span className="flex items-center gap-1.5 text-muted-foreground">
                   <Briefcase className="h-4 w-4" />
-                  {resume.yearsOfExperience}{' '}
-                  {resume.yearsOfExperience === 1
-                    ? 'rok'
-                    : resume.yearsOfExperience < 5
-                      ? 'roky'
-                      : 'rokov'}{' '}
-                  skúseností
+                  {t('experience', { years: resume.yearsOfExperience })}
                 </span>
               )}
             </div>
@@ -120,7 +117,7 @@ export function ApplicantSummaryCard({ contact, resume, matchScore, applicationI
               )
             ) : (
               <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground">
-                Match score nedostupné
+                {t('noMatchScore')}
               </span>
             )}
           </div>
