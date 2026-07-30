@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import { getFormatter } from 'next-intl/server'
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -25,23 +26,9 @@ import {
 import { ApplicantActions } from '@/components/applicant-actions'
 import { ApplicantSummaryCard } from '@/components/employer/applicant-summary-card'
 import { STAGE_LABELS_EN, STAGE_COLORS } from '@/lib/constants/application-stages'
+import { LONG_DATE, SHORT_DATE } from '@/lib/formats'
 
 // ---- helpers ----
-
-function relativeTime(date: Date): string {
-  const diff = Date.now() - date.getTime()
-  const rtf = new Intl.RelativeTimeFormat('sk', { numeric: 'auto' })
-  const minutes = Math.round(diff / 60_000)
-  if (Math.abs(minutes) < 60) return rtf.format(-minutes, 'minute')
-  const hours = Math.round(diff / 3_600_000)
-  if (Math.abs(hours) < 24) return rtf.format(-hours, 'hour')
-  const days = Math.round(diff / 86_400_000)
-  return rtf.format(-days, 'day')
-}
-
-function dayLabel(date: Date): string {
-  return date.toLocaleDateString('sk-SK', { day: 'numeric', month: 'long', year: 'numeric' })
-}
 
 function activityIcon(type: string) {
   if (type === 'EMAIL_SENT' || type === 'EMAIL_RECEIVED') return <Mail className="h-4 w-4" />
@@ -61,16 +48,6 @@ const INTERVIEW_STATUS_LABELS: Record<string, string> = {
   SCHEDULED: 'Naplánovaný',
   DONE: 'Uskutočnený',
   CANCELED: 'Zrušený',
-}
-
-function formatInterviewDateTime(date: Date): string {
-  return new Date(date).toLocaleString('sk-SK', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 interface ParsedResume {
@@ -229,6 +206,14 @@ export default async function EmployerApplicationDetailPage({
     redirect(`/${params.locale}/login`)
   }
 
+  const format = await getFormatter()
+
+  // Locale-aware date helpers, bound to the formatter for this request.
+  const relativeTime = (date: Date) => format.relativeTime(date, Date.now())
+  const dayLabel = (date: Date) => format.dateTime(date, LONG_DATE)
+  const formatInterviewDateTime = (date: Date) =>
+    format.dateTime(new Date(date), { ...LONG_DATE, hour: '2-digit', minute: '2-digit' })
+
   const result = await getApplicationDetail(params.id, session.user.id)
   if (!result) {
     redirect(`/${params.locale}/employer/applicants`)
@@ -377,7 +362,7 @@ export default async function EmployerApplicationDetailPage({
                 </div>
                 <Separator />
                 <div className="text-sm text-muted-foreground">
-                  Prihlásené {new Date(application.createdAt).toLocaleDateString('sk-SK')}
+                  Prihlásené {format.dateTime(application.createdAt, SHORT_DATE)}
                 </div>
               </CardContent>
             </Card>
@@ -775,7 +760,7 @@ export default async function EmployerApplicationDetailPage({
                               {note.createdByName && <span>{note.createdByName}</span>}
                               {note.createdByName && note.createdAt && <span>•</span>}
                               {note.createdAt && (
-                                <span>{new Date(note.createdAt).toLocaleDateString('sk-SK')}</span>
+                                <span>{format.dateTime(new Date(note.createdAt), SHORT_DATE)}</span>
                               )}
                             </div>
                           )}

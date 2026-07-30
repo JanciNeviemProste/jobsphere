@@ -226,19 +226,7 @@
     "or": "Oder fortfahren mit E-Mail"
   },
   "dashboard": {
-    "welcome": "Willkommen zurück",
-    "overview": "Hier ist eine Übersicht Ihrer Jobmöglichkeiten",
-    "totalApplications": "Bewerbungen insgesamt",
-    "pending": "Ausstehend",
-    "inProcess": "In Bearbeitung",
-    "accepted": "Angenommen",
-    "myApplications": "Meine Bewerbungen",
-    "allApplications": "Alle Ihre eingereichten Bewerbungen",
-    "searchJobs": "Jobs suchen",
-    "appliedOn": "Beworben",
-    "detail": "Details",
-    "noApplications": "Sie haben noch keine Bewerbungen",
-    "browseOffers": "Angebote durchsuchen",
+    "welcome": "Willkommen zurück, {name}!",
     "profile": {
       "title": "Profil",
       "subtitle": "Vervollständigen Sie Ihr Profil für bessere Übereinstimmungen",
@@ -251,21 +239,12 @@
         "preferences": "Stellenpräferenzen"
       }
     },
-    "completeProfile": "Vervollständigen Sie Ihr Profil für bessere Vorschläge",
-    "completion": "Profil Vervollständigung",
     "recommended": {
       "title": "Empfohlen für Sie",
       "subtitle": "KI-Vorschläge basierend auf Ihrem Profil",
       "view": "Anzeigen",
       "empty": "Vervollständigen Sie Ihr Profil, um Stellenempfehlungen zu erhalten"
     },
-    "aiSuggestions": "AI-Vorschläge basierend auf Ihrem Profil",
-    "basicInfo": "Grundinformationen",
-    "cvUploaded": "Lebenslauf hochgeladen",
-    "skillsExperience": "Fähigkeiten und Erfahrung",
-    "workPreferences": "Arbeitspräferenzen",
-    "finishProfile": "Profil fertigstellen",
-    "match": "Übereinstimmung",
     "subtitle": "Hier ist eine Übersicht über Ihre beruflichen Möglichkeiten",
     "stats": {
       "total": "Bewerbungen gesamt",
@@ -414,6 +393,12 @@
       "selectAssessmentPlaceholder": "Test auswählen",
       "noAssessments": "Keine Tests gefunden. Erstellen Sie zuerst einen im Bereich Tests.",
       "draft": "Entwurf"
+    },
+    "editJob": {
+      "title": "Stelle bearbeiten",
+      "subtitle": "Aktualisieren Sie die Details Ihrer Stellenanzeige",
+      "save": "Änderungen speichern",
+      "saving": "Speichern..."
     }
   },
   "common": {

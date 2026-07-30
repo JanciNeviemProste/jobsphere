@@ -864,20 +864,6 @@
     "applications": "Prihlášky",
     "noApplications": "Zatiaľ žiadne prihlášky"
   },
-  "admin": {
-    "dashboard": "Dashboard",
-    "users": "Používatelia",
-    "organizations": "Organizácie",
-    "jobs": "Joby",
-    "subscriptions": "Predplatné",
-    "settings": "Nastavenia",
-    "totalUsers": "Celkom používateľov",
-    "totalOrgs": "Celkom organizácií",
-    "totalJobs": "Celkom jobov",
-    "activeSubscriptions": "Aktívne predplatné",
-    "recentRegistrations": "Posledné registrácie",
-    "adminPanel": "Admin panel"
-  },
   "pageMetadata": {
     "home": {
       "title": "Nájdite svoju vysnívanú prácu s AI",
@@ -921,16 +907,6 @@
     "filterAllJobs": "Všetky pozície",
     "emptyStage": "Žiadni kandidáti",
     "moveError": "Nepodarilo sa presunúť kandidáta"
-  },
-  "EmployerApplicantDetail": {
-    "summary": "Súhrn",
-    "skills": "Zručnosti",
-    "experience": "Skúsenosti",
-    "education": "Vzdelanie",
-    "matchScore": "Zhoda s pozíciou",
-    "matchScoreUnavailable": "Match score nedostupné",
-    "aiParsingMissing": "AI parsing CV ešte nebol spustený alebo zlyhal",
-    "noActivities": "Žiadne aktivity"
   },
   "EmployerBulkActions": {
     "selected_count": "{count} vybraných",

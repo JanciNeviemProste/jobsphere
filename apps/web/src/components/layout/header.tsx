@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { LanguageSwitcher } from './language-switcher'
+import { NavDrawer } from './nav-drawer'
 
 export function Header() {
   const t = useTranslations()
@@ -51,7 +52,32 @@ export function Header() {
       aria-label="Site header"
     >
       <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-3 md:gap-8">
+          {/* Below md the desktop <nav> is display:none, so this drawer is the
+              ONLY way to reach the main navigation. It renders the very same
+              `navItems` array — the list is defined once, above. */}
+          <NavDrawer label="Open main menu" title="Main navigation" triggerClassName="md:hidden">
+            {(close) => (
+              <nav
+                className="flex flex-col gap-1 px-3 pb-6 pt-16"
+                role="navigation"
+                aria-label="Mobile navigation"
+              >
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={close}
+                    className="rounded-md px-3 py-2.5 text-base font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-primary aria-[current=page]:text-primary"
+                    aria-current={pathname === item.href ? 'page' : undefined}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            )}
+          </NavDrawer>
+
           <Link href={`/${locale}`} className="flex items-center" aria-label="JobSphere home">
             <Image
               src="/images/jobsphere_logo.png"
@@ -81,7 +107,11 @@ export function Header() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-4" role="navigation" aria-label="User actions">
+        <div
+          className="flex items-center gap-2 md:gap-4"
+          role="navigation"
+          aria-label="User actions"
+        >
           <LanguageSwitcher />
           {status === 'loading' ? (
             <Button variant="ghost" size="sm" disabled>

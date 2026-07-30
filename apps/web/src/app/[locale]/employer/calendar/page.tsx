@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import { getFormatter } from 'next-intl/server'
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -7,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, CalendarClock, Video, MapPin, Phone } from 'lucide-react'
+import { LONG_DATE, TIME_ONLY } from '@/lib/formats'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -31,19 +33,6 @@ function typeIcon(type: string) {
   if (type === 'VIDEO') return <Video className="h-4 w-4" />
   if (type === 'PHONE') return <Phone className="h-4 w-4" />
   return <MapPin className="h-4 w-4" />
-}
-
-function dayLabel(date: Date): string {
-  return new Date(date).toLocaleDateString('sk-SK', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
-}
-
-function timeLabel(date: Date): string {
-  return new Date(date).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
 }
 
 async function getInterviews(userId: string) {
@@ -92,6 +81,10 @@ export default async function EmployerCalendarPage({ params }: { params: { local
   if (!result) {
     redirect(`/${params.locale}/dashboard`)
   }
+
+  const format = await getFormatter()
+  const dayLabel = (date: Date) => format.dateTime(new Date(date), { weekday: 'long', ...LONG_DATE })
+  const timeLabel = (date: Date) => format.dateTime(new Date(date), TIME_ONLY)
 
   const { interviews } = result
 

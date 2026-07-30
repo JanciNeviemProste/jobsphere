@@ -18,18 +18,27 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Eye, EyeOff } from 'lucide-react'
 
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
 })
 
-export default function LoginClient({ params }: { params: { locale: string } }) {
+export default function LoginClient({
+  params,
+  notice,
+}: {
+  params: { locale: string }
+  /** Server-rendered explanation for a redirect (e.g. `?error=forbidden`). */
+  notice?: React.ReactNode
+}) {
   const t = useTranslations('auth.login')
   const router = useRouter()
   const locale = params.locale
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -94,6 +103,7 @@ export default function LoginClient({ params }: { params: { locale: string } }) 
           <CardDescription>{t('subtitle')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {notice}
           <Button
             variant="outline"
             className="w-full"
@@ -153,6 +163,8 @@ export default function LoginClient({ params }: { params: { locale: string } }) 
               <Input
                 id="email"
                 type="email"
+                name="email"
+                autoComplete="email"
                 placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -171,14 +183,32 @@ export default function LoginClient({ params }: { params: { locale: string } }) 
                   {t('forgotPassword')}
                 </Link>
               </div>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  autoComplete="current-password"
+                  className="pr-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  aria-label={t('password')}
+                  aria-pressed={showPassword}
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Eye className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center space-x-2">

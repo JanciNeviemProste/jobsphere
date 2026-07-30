@@ -1,14 +1,22 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
+  APPLICATION_STAGES,
   KANBAN_COLUMNS,
   STAGE_LABELS_SK,
   STAGE_COLORS,
   type ApplicationStage,
 } from '@/lib/constants/application-stages'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { toast } from 'sonner'
 
 export interface ApplicationCard {
@@ -27,6 +35,12 @@ interface PipelineBoardProps {
   applications: ApplicationCard[]
   jobs?: { id: string; title: string }[]
   currentJobId?: string
+  /**
+   * True number of applications per stage on the server, before the per-stage
+   * cap the page applies. Without it the column header would print the capped
+   * count as if it were the total and quietly hide the overflow.
+   */
+  stageTotals?: Partial<Record<ApplicationStage, number>>
 }
 
 function relativeTime(date: Date | string): string {
@@ -88,7 +102,7 @@ function CardAvatar({ name, avatar }: { name: string; avatar?: string | null }) 
   )
 }
 
-export function PipelineBoard({ applications, currentJobId }: PipelineBoardProps) {
+export function PipelineBoard({ applications, currentJobId, stageTotals }: PipelineBoardProps) {
   const pathname = usePathname()
   const locale = pathname.split('/')[1] || 'en'
   const [cards, setCards] = useState<ApplicationCard[]>(applications)
@@ -97,6 +111,23 @@ export function PipelineBoard({ applications, currentJobId }: PipelineBoardProps
   const [pendingResult, setPendingResult] = useState<{ id: string; name: string } | null>(null)
 
   const columnCards = (stages: readonly string[]) => cards.filter((c) => stages.includes(c.stage))
+
+  // How many applications the server holds back per stage. Derived from the
+  // ORIGINAL `applications` prop, not from `cards`, so the number stays stable
+  // while the recruiter moves cards between columns.
+  const hiddenByStage = useMemo(() => {
+    const loaded = new Map<string, number>()
+    for (const a of applications) loaded.set(a.stage, (loaded.get(a.stage) ?? 0) + 1)
+
+    const hidden: Partial<Record<ApplicationStage, number>> = {}
+    for (const stage of APPLICATION_STAGES) {
+      const total = stageTotals?.[stage]
+      if (typeof total === 'number') {
+        hidden[stage] = Math.max(0, total - (loaded.get(stage) ?? 0))
+      }
+    }
+    return hidden
+  }, [applications, stageTotals])
 
   const applyStage = async (id: string, targetStage: ApplicationStage) => {
     const card = cards.find((c) => c.id === id)
@@ -147,16 +178,31 @@ export function PipelineBoard({ applications, currentJobId }: PipelineBoardProps
           {KANBAN_COLUMNS.map((column) => {
             const stageCards = columnCards(column.stages)
             const isMultiStage = column.stages.length > 1
+            const hidden = column.stages.reduce(
+              (sum, stage) => sum + (hiddenByStage[stage as ApplicationStage] ?? 0),
+              0,
+            )
             return (
               <div
                 key={column.key}
                 className="flex min-w-[260px] flex-1 flex-col rounded-xl border bg-muted/40"
+                role="group"
+                aria-label={column.label}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => handleDrop(column)}
               >
                 <div className="flex items-center justify-between rounded-t-xl border-b bg-background px-3 py-2">
                   <span className="text-sm font-semibold">{column.label}</span>
-                  <span className="text-xs text-muted-foreground">{stageCards.length}</span>
+                  {hidden > 0 ? (
+                    <span
+                      className="text-xs text-muted-foreground"
+                      title={`Zobrazených ${stageCards.length} z ${stageCards.length + hidden} kandidátov — zvyšok zúžte filtrom.`}
+                    >
+                      {stageCards.length} z {stageCards.length + hidden}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">{stageCards.length}</span>
+                  )}
                 </div>
                 <div className="flex flex-1 flex-col gap-2 p-2">
                   {stageCards.length === 0 ? (
@@ -210,6 +256,36 @@ export function PipelineBoard({ applications, currentJobId }: PipelineBoardProps
                                 )}
                               </div>
                             </div>
+                          </div>
+
+                          {/* Keyboard-equivalent of the drag gesture: drag-and-drop
+                              alone leaves the board unusable without a mouse, so the
+                              same `applyStage` handler is reachable from a listbox.
+                              Unlike a drop on the grouped RESULT column this needs no
+                              disambiguation — HIRED and REJECTED are separate options. */}
+                          {/* draggable={false} keeps a click-drag on the trigger from
+                              turning into a card drag. */}
+                          <div className="mt-2" draggable={false}>
+                            <Select
+                              value={card.stage}
+                              onValueChange={(next) =>
+                                applyStage(card.id, next as ApplicationStage)
+                              }
+                            >
+                              <SelectTrigger
+                                className="h-8 w-full text-xs"
+                                aria-label={`Zmeniť fázu kandidáta ${name}`}
+                              >
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {APPLICATION_STAGES.map((stage) => (
+                                  <SelectItem key={stage} value={stage} className="text-xs">
+                                    {STAGE_LABELS_SK[stage]}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                       )

@@ -1,21 +1,16 @@
+import { getFormatter } from 'next-intl/server'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Users, Building2, Briefcase, CreditCard } from 'lucide-react'
+import { SHORT_DATE } from '@/lib/formats'
 
 export const metadata = {
   title: 'Admin Dashboard',
 }
 
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat('sk-SK', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(date)
-}
-
 export default async function AdminDashboardPage() {
+  const format = await getFormatter()
   const [totalUsers, totalOrgs, totalJobs, totalApplications, recentUsers, activeSubscriptions] =
     await Promise.all([
       prisma.user.count({ where: { deletedAt: null } }),
@@ -91,7 +86,7 @@ export default async function AdminDashboardPage() {
                   <div>
                     <p className="text-sm font-medium text-slate-500">{stat.label}</p>
                     <p className="mt-2 text-3xl font-bold text-slate-900">
-                      {stat.value.toLocaleString('sk-SK')}
+                      {format.number(stat.value)}
                     </p>
                   </div>
                   <div
@@ -153,7 +148,7 @@ export default async function AdminDashboardPage() {
                           </Badge>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-slate-500">{formatDate(user.createdAt)}</td>
+                      <td className="px-6 py-4 text-slate-500">{format.dateTime(user.createdAt, SHORT_DATE)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -169,7 +164,7 @@ export default async function AdminDashboardPage() {
           <div className="flex flex-wrap gap-6">
             <div className="text-center">
               <p className="text-2xl font-bold text-slate-900">
-                {totalApplications.toLocaleString('sk-SK')}
+                {format.number(totalApplications)}
               </p>
               <p className="mt-1 text-xs text-slate-500">Celkom prihlášok</p>
             </div>

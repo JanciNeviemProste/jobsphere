@@ -56,8 +56,9 @@ export default async function PipelinePage({
     ? [currentStage]
     : APPLICATION_STAGES
 
-  // Load capped card sets per stage + job list in parallel — all scoped to orgId
-  const [stageResults, jobs] = await Promise.all([
+  // Load capped card sets per stage + true per-stage totals + job list in
+  // parallel — all scoped to orgId
+  const [stageResults, stageCounts, jobs] = await Promise.all([
     // One bounded query per stage (all filtered to org + optional job)
     Promise.all(
       stagesToLoad.map((stage) =>
@@ -91,6 +92,17 @@ export default async function PipelinePage({
         }),
       ),
     ),
+    // Uncapped counts, so the board can say "50 z 63" instead of silently
+    // presenting the capped 50 as the whole stage.
+    prisma.application.groupBy({
+      by: ['stage'],
+      where: {
+        orgId,
+        stage: { in: [...stagesToLoad] },
+        ...(currentJobId ? { jobId: currentJobId } : {}),
+      },
+      _count: { _all: true },
+    }),
     prisma.job.findMany({
       where: { orgId },
       select: { id: true, title: true },
@@ -99,6 +111,11 @@ export default async function PipelinePage({
   ])
 
   const applications = stageResults.flat()
+
+  const stageTotals: Partial<Record<ApplicationStage, number>> = {}
+  for (const row of stageCounts) {
+    stageTotals[row.stage as ApplicationStage] = row._count._all
+  }
 
   // MatchScore isn't a direct relation from Application, so batch-load by the
   // model's unique compound (jobId, candidateId) and prefer the HR override.
@@ -156,7 +173,12 @@ export default async function PipelinePage({
           />
         </div>
 
-        <PipelineBoard applications={cards} jobs={jobs} currentJobId={currentJobId} />
+        <PipelineBoard
+          applications={cards}
+          jobs={jobs}
+          currentJobId={currentJobId}
+          stageTotals={stageTotals}
+        />
       </div>
     </div>
   )

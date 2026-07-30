@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useFormatter } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { SHORT_DATE } from '@/lib/formats'
 import {
   ArrowLeft,
   MapPin,
@@ -25,6 +27,7 @@ export default function ApplicationDetailClient({
 }) {
   const locale = params.locale
   const applicationId = params.id
+  const format = useFormatter()
   const [application, setApplication] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -159,7 +162,7 @@ export default function ApplicationDetailClient({
                 </div>
                 <Separator />
                 <div className="text-sm text-muted-foreground">
-                  Prihlásené {new Date(application.createdAt).toLocaleDateString('sk-SK')}
+                  Prihlásené {format.dateTime(new Date(application.createdAt), SHORT_DATE)}
                 </div>
               </CardContent>
             </Card>
@@ -197,7 +200,7 @@ export default function ApplicationDetailClient({
                           <p className="font-medium">{activity.type.replace('_', ' ')}</p>
                           <p className="text-sm text-muted-foreground">{activity.description}</p>
                           <p className="mt-1 text-xs text-muted-foreground">
-                            {new Date(activity.createdAt).toLocaleDateString('sk-SK')}
+                            {format.dateTime(new Date(activity.createdAt), SHORT_DATE)}
                           </p>
                         </div>
                       </div>

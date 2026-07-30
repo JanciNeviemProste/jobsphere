@@ -226,19 +226,7 @@
     "or": "Nebo pokračovat s emailem"
   },
   "dashboard": {
-    "welcome": "Vítejte zpět",
-    "overview": "Zde je přehled vašich pracovních příležitostí",
-    "totalApplications": "Celkem přihlášek",
-    "pending": "Čeká se",
-    "inProcess": "V procesu",
-    "accepted": "Přijato",
-    "myApplications": "Moje přihlášky",
-    "allApplications": "Všechny vaše odeslané přihlášky",
-    "searchJobs": "Hledat práci",
-    "appliedOn": "Přihlášeno",
-    "detail": "Detail",
-    "noApplications": "Zatím nemáte žádné přihlášky",
-    "browseOffers": "Procházet nabídky",
+    "welcome": "Vítejte zpět, {name}!",
     "profile": {
       "title": "Profil",
       "subtitle": "Dokončete svůj profil pro lepší shody",
@@ -251,21 +239,12 @@
         "preferences": "Pracovní preference"
       }
     },
-    "completeProfile": "Dokončete svůj profil pro lepší návrhy",
-    "completion": "Dokončení profilu",
     "recommended": {
       "title": "Doporučeno pro vás",
       "subtitle": "AI návrhy založené na vašem profilu",
       "view": "Zobrazit",
       "empty": "Dokončete svůj profil pro získání doporučení pozic"
     },
-    "aiSuggestions": "AI návrhy na základě vašeho profilu",
-    "basicInfo": "Základní informace",
-    "cvUploaded": "CV nahráno",
-    "skillsExperience": "Dovednosti a zkušenosti",
-    "workPreferences": "Preference práce",
-    "finishProfile": "Dokončit profil",
-    "match": "shoda",
     "subtitle": "Zde je přehled vašich pracovních příležitostí",
     "stats": {
       "total": "Celkem přihlášek",
@@ -414,6 +393,12 @@
       "selectAssessmentPlaceholder": "Vyberte test",
       "noAssessments": "Nebyly nalezeny žádné testy. Nejprve vytvořte test v sekci Testy.",
       "draft": "koncept"
+    },
+    "editJob": {
+      "title": "Upravit pozici",
+      "subtitle": "Aktualizujte detaily pracovní nabídky",
+      "save": "Uložit změny",
+      "saving": "Ukládání..."
     }
   },
   "common": {

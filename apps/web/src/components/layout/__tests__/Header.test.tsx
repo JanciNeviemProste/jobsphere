@@ -1,6 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { Header } from '../header'
+
+// The mobile drawer is a Radix dialog; its scroll-lock layer expects
+// ResizeObserver, which happy-dom does not implement.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver
+}
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
@@ -161,5 +171,98 @@ describe('Header', () => {
 
     const signupButton = screen.getByLabelText('Create a new account')
     expect(signupButton).toBeInTheDocument()
+  })
+
+  describe('mobile navigation drawer', () => {
+    // Below `md` the desktop <nav> is display:none, so without this drawer the
+    // whole main navigation is unreachable on a phone.
+    it('should render a hamburger trigger with aria-label and aria-expanded', () => {
+      render(<Header />)
+
+      const trigger = screen.getByLabelText('Open main menu')
+      expect(trigger).toBeInTheDocument()
+      expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    })
+
+    it('should not render the drawer navigation until the trigger is used', () => {
+      render(<Header />)
+
+      expect(
+        screen.queryByRole('navigation', { name: 'Mobile navigation' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('should expose every main nav link through the drawer', () => {
+      render(<Header />)
+
+      fireEvent.click(screen.getByLabelText('Open main menu'))
+
+      const drawerNav = screen.getByRole('navigation', { name: 'Mobile navigation' })
+      const drawer = within(drawerNav)
+
+      // Same labels and hrefs as the desktop nav — both map the one `navItems` array.
+      expect(drawer.getByText('Home').closest('a')).toHaveAttribute('href', '/en')
+      expect(drawer.getByText('Jobs').closest('a')).toHaveAttribute('href', '/en/jobs')
+      expect(drawer.getByText('Company Profiles').closest('a')).toHaveAttribute(
+        'href',
+        '/en/companies',
+      )
+      expect(drawer.getByText('Freelancers').closest('a')).toHaveAttribute(
+        'href',
+        '/en/freelancers',
+      )
+      expect(drawer.getByText('Gigs').closest('a')).toHaveAttribute('href', '/en/gigs')
+      expect(drawer.getByText('For Employers').closest('a')).toHaveAttribute(
+        'href',
+        '/en/for-employers',
+      )
+      expect(drawer.getByText('Pricing').closest('a')).toHaveAttribute('href', '/en/pricing')
+
+      expect(drawer.getAllByRole('link')).toHaveLength(7)
+    })
+
+    it('should mark the trigger expanded and the drawer modal while open', () => {
+      render(<Header />)
+
+      fireEvent.click(screen.getByLabelText('Open main menu'))
+
+      expect(screen.getByLabelText('Open main menu')).toHaveAttribute('aria-expanded', 'true')
+
+      // Radix names the dialog from its (visually hidden) title.
+      const dialog = screen.getByRole('dialog', { name: 'Main navigation' })
+      expect(dialog).toHaveAttribute('data-state', 'open')
+      expect(screen.getByLabelText('Close menu')).toBeInTheDocument()
+    })
+
+    it('should close on navigation', () => {
+      render(<Header />)
+
+      fireEvent.click(screen.getByLabelText('Open main menu'))
+      const drawerNav = screen.getByRole('navigation', { name: 'Mobile navigation' })
+      fireEvent.click(within(drawerNav).getByText('Jobs'))
+
+      expect(
+        screen.queryByRole('navigation', { name: 'Mobile navigation' }),
+      ).not.toBeInTheDocument()
+      expect(screen.getByLabelText('Open main menu')).toHaveAttribute('aria-expanded', 'false')
+    })
+
+    it('should close on Escape', () => {
+      render(<Header />)
+
+      fireEvent.click(screen.getByLabelText('Open main menu'))
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+      fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape', code: 'Escape' })
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('should keep the desktop navigation intact alongside the drawer', () => {
+      render(<Header />)
+
+      const mainNav = screen.getByRole('navigation', { name: 'Main navigation' })
+      expect(within(mainNav).getAllByRole('link')).toHaveLength(7)
+    })
   })
 })

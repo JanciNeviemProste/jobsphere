@@ -5,12 +5,14 @@
 
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { getFormatter } from 'next-intl/server'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { SHORT_DATE_TIME } from '@/lib/formats'
 import { UserDetailActions } from './user-detail-actions'
 import {
   ArrowLeft,
@@ -32,17 +34,6 @@ interface PageProps {
   params: { locale: string; id: string }
 }
 
-function formatDateTime(date: Date | string | null): string {
-  if (!date) return '—'
-  return new Intl.DateTimeFormat('sk-SK', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(date))
-}
-
 function isBanned(lockedUntil: Date | string | null): boolean {
   if (!lockedUntil) return false
   return new Date(lockedUntil) > new Date()
@@ -50,6 +41,11 @@ function isBanned(lockedUntil: Date | string | null): boolean {
 
 export default async function AdminUserDetailPage({ params }: PageProps) {
   const session = await auth()
+  const intl = await getFormatter()
+
+  // '—' when absent, otherwise formatted in the active locale.
+  const formatDateTime = (date: Date | string | null): string =>
+    date ? intl.dateTime(new Date(date), SHORT_DATE_TIME) : '—'
 
   const user = await prisma.user.findUnique({
     where: { id: params.id, deletedAt: null },

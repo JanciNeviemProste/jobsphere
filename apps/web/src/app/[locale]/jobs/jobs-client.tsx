@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useTransition } from 'react'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import { useSession } from 'next-auth/react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -41,6 +41,7 @@ import { sk, cs, pl, de, enUS } from 'date-fns/locale'
 import { RecommendedJobsSection } from '@/components/jobs/RecommendedJobsSection'
 import { logger } from '@/lib/logger'
 import { stripMarkdown } from '@/lib/utils'
+import { formatMoney } from '@/lib/formats'
 
 // Job type from database
 interface Job {
@@ -50,6 +51,7 @@ interface Job {
   description?: string | null
   salaryMin?: number | null
   salaryMax?: number | null
+  salaryCurrency?: string | null
   workMode: string
   type: string
   seniority?: string | null
@@ -125,6 +127,10 @@ export default function JobsClient({
   initialFilters = {},
 }: Props) {
   const t = useTranslations()
+  const format = useFormatter()
+  // Each posting renders in its own currency — a PLN job must not show euros.
+  const money = (amount: number, currency?: string | null) =>
+    formatMoney(format.number, amount, currency)
   const { data: session } = useSession()
   const router = useRouter()
   const pathname = usePathname()
@@ -515,11 +521,11 @@ export default function JobsClient({
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Euro className="h-4 w-4" />
                       {job.salaryMin && job.salaryMax
-                        ? `${job.salaryMin.toLocaleString()} - ${job.salaryMax.toLocaleString()}`
+                        ? `${money(job.salaryMin, job.salaryCurrency)} - ${money(job.salaryMax, job.salaryCurrency)}`
                         : job.salaryMin
-                          ? `${job.salaryMin.toLocaleString()}+`
-                          : `${t('jobs.upTo')} ${job.salaryMax?.toLocaleString()}`}{' '}
-                      € / {t('jobs.perMonth')}
+                          ? `${money(job.salaryMin, job.salaryCurrency)}+`
+                          : `${t('jobs.upTo')} ${money(job.salaryMax ?? 0, job.salaryCurrency)}`}{' '}
+                      / {t('jobs.perMonth')}
                     </div>
                   )}
                   <div className="flex flex-wrap gap-2">

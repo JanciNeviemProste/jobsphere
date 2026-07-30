@@ -1,4 +1,6 @@
 import { redirect } from 'next/navigation'
+import { getFormatter } from 'next-intl/server'
+import { SHORT_DATE } from '@/lib/formats'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Badge } from '@/components/ui/badge'
@@ -35,6 +37,7 @@ export default async function AdminJobsPage({
   searchParams: { status?: string; search?: string; page?: string }
 }) {
   const session = await auth()
+  const format = await getFormatter()
   if (!session?.user?.isGlobalAdmin) {
     redirect(`/${params.locale}/login?error=forbidden`)
   }
@@ -126,7 +129,7 @@ export default async function AdminJobsPage({
                   </TableCell>
                   <TableCell className="text-right text-sm">{job._count.applications}</TableCell>
                   <TableCell className="text-sm text-slate-500">
-                    {new Date(job.createdAt).toLocaleDateString('sk-SK')}
+                    {format.dateTime(job.createdAt, SHORT_DATE)}
                   </TableCell>
                   <TableCell className="text-right">
                     <JobStatusSelect jobId={job.id} currentStatus={job.status} />
