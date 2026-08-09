@@ -26,8 +26,8 @@ jobs:
       matrix:
         # `browser` is the `playwright install` target ("edge" is not a valid
         # install target — the channel is called "msedge"); `project` is the
-        # matching project name in apps/web/playwright.config.ts, which still
-        # calls the msedge project "edge". `install` always includes chromium
+        # matching project name in apps/web/playwright.cross-browser.config.ts,
+        # which still calls the msedge project "edge". `install` always includes chromium
         # because tests/setup/global-setup.ts launches chromium for auth state,
         # so every shard needs it regardless of the browser under test.
         browser: [chromium, firefox, webkit, msedge]
