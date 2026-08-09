@@ -1,16 +1,31 @@
 import { defineConfig, devices } from '@playwright/test'
 
+/**
+ * Default E2E config — the smoke run that gates every PR.
+ *
+ * It used to declare all ten browser projects, which made it unrunnable in CI:
+ * the workflow installs only chromium, so firefox/webkit/msedge and every mobile
+ * and tablet project (all WebKit- or Edge-backed) died with
+ * "browserType.launch: Executable doesn't exist". Not a flake — a certainty, on
+ * every run. The other nine projects now live in playwright.cross-browser.config.ts
+ * and run on their own schedule.
+ *
+ * See also PLAYWRIGHT.md for how the four configs relate.
+ */
 export default defineConfig({
-  testDir: './tests',
+  // Scoped to e2e only. Previously './tests', which swept in tests/a11y/** —
+  // 92 accessibility tests running once per project, under this file's 30s
+  // timeout instead of the 60s their own config gives them.
+  testDir: './tests/e2e',
   testMatch: ['**/*.spec.ts', '**/*.e2e.ts'],
   // Visual-regression specs run via their own opt-in config (playwright.visual.config.ts)
   // so missing baselines never fail the default e2e run.
-  testIgnore: ['**/e2e/visual/**'],
+  testIgnore: ['**/visual/**'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'html',
 
   // Global setup and teardown
   globalSetup: require.resolve('./tests/setup/global-setup'),
@@ -33,59 +48,25 @@ export default defineConfig({
   },
 
   projects: [
-    // Desktop Browsers
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-    {
-      name: 'edge',
-      use: {
-        ...devices['Desktop Edge'],
-        channel: 'msedge', // Use MS Edge browser
-      },
-    },
-
-    // Mobile Phones
-    {
-      name: 'iPhone 12',
-      use: { ...devices['iPhone 12'] },
-    },
-    {
-      name: 'iPhone 13 Pro',
-      use: { ...devices['iPhone 13 Pro'] },
-    },
-    {
-      name: 'Pixel 5',
-      use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'Galaxy S9+',
-      use: { ...devices['Galaxy S9+'] },
-    },
-
-    // Tablets
-    {
-      name: 'iPad Air',
-      use: { ...devices['iPad (gen 7)'] },
-    },
-    {
-      name: 'iPad Mini',
-      use: { ...devices['iPad Mini'] },
-    },
   ],
 
   webServer: {
-    command: 'npm run dev',
+    // In CI, serve the production build. The workflows run `yarn build` and then
+    // this command threw that build away by starting `next dev`, so CI spent the
+    // build time and still tested a development bundle — different chunking,
+    // different error overlays, no minification.
+    command: process.env.CI ? 'yarn start' : 'yarn dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
+    // Playwright's default is 60s. A cold Next start in CI regularly exceeds it,
+    // and the resulting "Timed out waiting from config.webServer" reads like an
+    // application failure rather than a budget that was simply too small.
+    timeout: 300 * 1000,
+    stdout: 'pipe',
+    stderr: 'pipe',
   },
 })

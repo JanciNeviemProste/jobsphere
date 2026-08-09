@@ -212,19 +212,44 @@ jobs:
       - name: Install Playwright
         run: |
           cd apps/web
-          yarn playwright install chromium
+          yarn playwright install --with-deps chromium
 
       - name: Setup test database
         run: |
           cd apps/web
-          yarn db:push
+          yarn prisma migrate deploy --schema ../../packages/db/prisma/schema.prisma
         env:
           DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
 
+      # Build here rather than letting the Playwright webServer do it: the config
+      # runs `yarn start` under CI, which needs .next to already exist.
+      - name: Build application
+        run: |
+          cd apps/web
+          yarn build:skip-verify
+        env:
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
+          NEXTAUTH_SECRET: 'test-secret-at-least-32-characters-long'
+          NEXTAUTH_URL: 'http://localhost:3000'
+          REDIS_URL: 'redis://localhost:6379'
+          NEXT_PUBLIC_APP_URL: 'http://localhost:3000'
+          NEXT_PUBLIC_API_URL: 'http://localhost:3000/api'
+          ENCRYPTION_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+          OPENROUTER_API_KEY: 'test-key'
+          ANTHROPIC_API_KEY: 'test-key'
+          OPENAI_API_KEY: 'test-key'
+
+      # Calls Playwright directly instead of `yarn test:e2e` (which is
+      # `turbo test:e2e`). Turborepo 2 defaults to envMode "strict", and the
+      # test:e2e task declares only NODE_ENV and DATABASE_URL — so every variable
+      # below except DATABASE_URL was being filtered out before it reached the
+      # Next server that Playwright starts. Without NEXTAUTH_SECRET the logins in
+      # global-setup cannot succeed, which made this job unpassable by
+      # construction, independently of the missing browser binaries above.
       - name: Run E2E tests
         run: |
           cd apps/web
-          yarn test:e2e
+          npx playwright test --project=chromium
         env:
           DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
           NEXTAUTH_SECRET: 'test-secret-at-least-32-characters-long'
