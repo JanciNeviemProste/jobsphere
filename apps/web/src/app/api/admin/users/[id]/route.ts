@@ -25,7 +25,11 @@ async function requireGlobalAdmin() {
  * GET /api/admin/users/[id]
  * Returns full user detail including organizations, application count and last 10 audit logs.
  */
-export const GET = async (_req: Request, { params }: { params: { id: string } }) => {
+const getUserDetail = async (_req: Request, context?: { params?: Record<string, string> }) => {
+  const params = context?.params as { id: string }
+  if (!params?.id) {
+    return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 })
+  }
   const authResult = await requireGlobalAdmin()
   if (authResult instanceof NextResponse) return authResult
 
@@ -145,3 +149,7 @@ export const DELETE = withCsrfProtection(
     { preset: 'api' },
   ),
 )
+
+// Rate limiting was missing on this handler until the route wrapper contract
+// test (tests/security/route-wrapper-contract.test.ts) enumerated the API surface.
+export const GET = withRateLimit(getUserDetail, { preset: 'api', byUser: true })

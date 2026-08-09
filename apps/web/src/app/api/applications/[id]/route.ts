@@ -10,7 +10,11 @@ import { APPLICATION_STAGES } from '@/lib/constants/application-stages'
 
 export const runtime = 'nodejs'
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+async function getApplication(req: Request, context?: { params?: Record<string, string> }) {
+  const params = context?.params as { id: string }
+  if (!params?.id) {
+    return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 })
+  }
   try {
     const session = await auth()
     if (!session?.user?.id) {
@@ -224,3 +228,7 @@ export const DELETE = withCsrfProtection(
     { preset: 'api', byUser: true }, // 100 requests per minute
   ),
 )
+
+// Rate limiting was missing on this handler until the route wrapper contract
+// test (tests/security/route-wrapper-contract.test.ts) enumerated the API surface.
+export const GET = withRateLimit(getApplication, { preset: 'api', byUser: true })

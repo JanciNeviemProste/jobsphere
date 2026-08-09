@@ -10,7 +10,7 @@ import { generateUniqueOrgSlug } from '@/lib/org-slug'
 
 export const runtime = 'nodejs'
 
-export async function GET() {
+async function listOrganizations() {
   try {
     const session = await requireGlobalAdmin()
     if (!session) {
@@ -139,3 +139,7 @@ export const POST = withCsrfProtection(
     { preset: 'api' },
   ),
 )
+
+// Rate limiting was missing on this handler until the route wrapper contract
+// test (tests/security/route-wrapper-contract.test.ts) enumerated the API surface.
+export const GET = withRateLimit(listOrganizations, { preset: 'api', byUser: true })

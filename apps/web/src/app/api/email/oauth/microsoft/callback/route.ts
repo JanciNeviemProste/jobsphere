@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { encrypt } from '@/lib/encryption'
 import { logger } from '@/lib/logger'
+import { withRateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -21,7 +22,7 @@ const oauthStateSchema = z.object({
   timestamp: z.number().positive('Timestamp must be positive'),
 })
 
-export async function GET(request: NextRequest) {
+async function handleMicrosoftCallback(request: NextRequest) {
   const baseUrl = request.nextUrl.origin
 
   try {
@@ -158,3 +159,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${baseUrl}/employer/settings?error=callback_failed`)
   }
 }
+
+// Rate limiting was missing on this handler until the route wrapper contract
+// test (tests/security/route-wrapper-contract.test.ts) enumerated the API surface.
+export const GET = withRateLimit(handleMicrosoftCallback, { preset: 'strict' })

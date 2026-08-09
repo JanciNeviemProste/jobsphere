@@ -40,7 +40,7 @@ const patchBodySchema = z.object({
  * GET /api/admin/users
  * Returns paginated list of users with org count, searchable by name/email.
  */
-export const GET = async (req: Request) => {
+const listUsers = async (req: Request) => {
   const authResult = await requireGlobalAdmin()
   if (authResult instanceof NextResponse) return authResult
 
@@ -185,3 +185,7 @@ export const PATCH = withCsrfProtection(
     { preset: 'api' },
   ),
 )
+
+// Rate limiting was missing on this handler until the route wrapper contract
+// test (tests/security/route-wrapper-contract.test.ts) enumerated the API surface.
+export const GET = withRateLimit(listUsers, { preset: 'api', byUser: true })

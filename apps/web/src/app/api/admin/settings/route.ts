@@ -17,7 +17,7 @@ async function requireGlobalAdmin() {
   return session
 }
 
-export async function GET() {
+async function getSettings() {
   try {
     const session = await requireGlobalAdmin()
     if (!session) {
@@ -93,3 +93,7 @@ export const PATCH = withCsrfProtection(
     { preset: 'api' },
   ),
 )
+
+// Rate limiting was missing on this handler until the route wrapper contract
+// test (tests/security/route-wrapper-contract.test.ts) enumerated the API surface.
+export const GET = withRateLimit(getSettings, { preset: 'api', byUser: true })

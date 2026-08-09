@@ -28,7 +28,7 @@ const SCOPES = [
  * GET /api/email/oauth/microsoft
  * Inicializuje OAuth flow
  */
-export async function GET(request: NextRequest) {
+async function startMicrosoftOAuth(request: NextRequest) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
@@ -149,3 +149,7 @@ export const POST = withCsrfProtection<NextRequest>(
     { preset: 'api', byUser: true },
   ),
 )
+
+// Rate limiting was missing on this handler until the route wrapper contract
+// test (tests/security/route-wrapper-contract.test.ts) enumerated the API surface.
+export const GET = withRateLimit(startMicrosoftOAuth, { preset: 'strict', byUser: true })
