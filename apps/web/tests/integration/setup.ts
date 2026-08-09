@@ -5,6 +5,7 @@ import {
   cleanupAllTestData,
   disconnectDb,
 } from './helpers/test-db'
+import { assertTestDatabase } from './helpers/assert-test-database'
 
 /**
  * Integration Test Setup
@@ -29,16 +30,18 @@ process.env.STRIPE_SECRET_KEY = 'sk_test_fake'
 // detection was fragile across CI/Windows and caused tests to silently
 // skip seeding when loaded from the unified vitest.config.ts.
 
-if (!process.env.DATABASE_URL?.includes('test')) {
-  console.warn(
-    '⚠️  WARNING: DATABASE_URL does not contain "test". Are you sure you want to run integration tests?',
-  )
-  console.warn('   Current DATABASE_URL:', process.env.DATABASE_URL)
-  console.warn('   Set DATABASE_URL to a test database to continue.')
-  process.exit(1)
-}
+// Refuse to run against anything but a local *_test database. The previous check
+// was `DATABASE_URL?.includes('test')`, which passes for a Neon branch named
+// "testing" — and the developer .env here points at the same Neon instance that
+// serves production, while this suite truncates and re-seeds on every file.
+//
+// It also used to print the whole DATABASE_URL on failure, which put the database
+// password into CI logs. The guard reports host and database name only.
+const target = assertTestDatabase(process.env.DATABASE_URL, {
+  allowRemote: process.env.ALLOW_REMOTE_TEST_DB === '1',
+})
 
-console.log('Integration test environment configured')
+console.log(`Integration test environment configured — ${target.host}/${target.database}`)
 
 beforeAll(async () => {
   console.log('\n=== Setting up integration tests ===\n')

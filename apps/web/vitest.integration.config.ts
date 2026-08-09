@@ -28,11 +28,24 @@ export default defineConfig({
     testTimeout: 30000,
     hookTimeout: 30000,
 
-    // Sequential execution to avoid database conflicts
-    // Set to false if you want parallel execution (requires careful test design)
+    // Sequential execution to avoid database conflicts.
+    // `sequence.concurrent` only orders tests WITHIN a file — it says nothing
+    // about files running alongside each other, and `fileParallelism` defaults
+    // to true. All 17 files share one fixture organisation (`test-org-id`), and
+    // setup.ts registers a global afterAll that deletes that organisation and its
+    // users. So a file finishing its run tore the fixture out from under whatever
+    // was still executing, the request under test 4xx'd, and the assertion blew up
+    // on `data.job.id` with "Cannot read properties of undefined (reading 'id')".
+    //
+    // That symptom read as "the seed is missing" and sent the CI step to
+    // continue-on-error. It was a race, not a seed: `beforeAll` does call
+    // seedTestData(). Serialising the files is the smallest fix that addresses the
+    // cause; per-worker fixture namespacing would be the larger one, and needs a
+    // green baseline first.
     sequence: {
       concurrent: false,
     },
+    fileParallelism: false,
 
     // Coverage configuration
     coverage: {

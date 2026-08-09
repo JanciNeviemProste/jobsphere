@@ -100,23 +100,37 @@ jobs:
       # Security integration tests (IDOR/multi-tenant/XSS/SQLi) require a live DB.
       # Routed here via vitest.integration.config.ts rather than the unit run so they
       # do not break `yarn test:run` when no DB is present.
-      - name: Push database schema (security integration tests)
+      # `migrate deploy`, not `db:push`: the migrations are what create the
+      # extensions (vector, pg_trgm, btree_gin, uuid-ossp) and the HNSW indexes,
+      # and it is the same command the database-migrations job runs — so CI and a
+      # local `yarn test:db:reset` end up with an identical schema.
+      - name: Apply database schema (security integration tests)
         run: |
           cd apps/web
-          yarn db:push
+          yarn prisma migrate deploy --schema ../../packages/db/prisma/schema.prisma
         env:
           DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
 
-      # NON-BLOCKING, and that is a known debt, not an oversight.
-      # This step had never actually executed until 2026-07-29: the coverage step
-      # above always failed first (80% threshold vs ~20% real coverage), so CI
-      # never reached it. Its first real run fails broadly with
-      # "Cannot read properties of undefined (reading 'id')" — the fixtures in
-      # tests/integration/** assume seeded data that db:push alone does not create.
-      # Repairing that suite is its own piece of work; until then this runs and
-      # reports without gating, so the checks above (typecheck, lint, unit tests,
-      # coverage, build) can gate for real instead of being bypassed wholesale.
-      # TODO: fix tests/integration fixtures, then delete continue-on-error.
+      # STILL NON-BLOCKING, but the diagnosis has changed.
+      #
+      # This step never executed at all until 2026-07-29: the coverage step above
+      # failed first (80% threshold vs ~20% real coverage), so CI never reached it.
+      # Its first real run failed broadly with "Cannot read properties of undefined
+      # (reading 'id')", which was read as "the fixtures assume seed data that
+      # db:push does not create".
+      #
+      # That was the wrong cause. beforeAll DOES call seedTestData(). The failure
+      # was a race: vitest runs test FILES in parallel by default, all 17 share one
+      # fixture organisation, and the global afterAll in tests/integration/setup.ts
+      # deletes that organisation — so a finishing file pulled the fixture out from
+      # under a running one, the request 4xx'd, and `data.job.id` blew up.
+      # vitest.integration.config.ts now sets fileParallelism: false.
+      #
+      # Kept non-blocking only because that fix has not yet been observed green:
+      # it needs a local Docker run (yarn test:db:up) that has not been possible
+      # here. Delete continue-on-error once this step passes on its own for a few
+      # consecutive runs — not on the first green, so flakes have a chance to show.
+      # TODO: verify green locally + 3-5 CI runs, then delete continue-on-error.
       - name: Run security integration tests
         continue-on-error: true
         run: |
