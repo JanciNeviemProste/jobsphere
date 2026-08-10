@@ -352,3 +352,47 @@ jobs:
           yarn prisma migrate deploy --schema ../../packages/db/prisma/schema.prisma
         env:
           DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
+
+      # Prisma resets the shadow database, so it must not be the one we just
+      # migrated into.
+      - name: Create shadow database for drift check
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d postgres \
+            -c 'DROP DATABASE IF EXISTS prisma_shadow' \
+            -c 'CREATE DATABASE prisma_shadow'
+
+      # THE POINT OF THIS JOB.
+      #
+      # "migrate deploy succeeded" only proves the migration files run without
+      # erroring on an empty database. It says nothing about whether the result
+      # matches schema.prisma — and here it does not. The migrations do not create
+      # User.sessionEpoch or Job.country, so an application pointed at a
+      # migration-built database dies with P2022 (this is what the E2E job hit).
+      #
+      # Schema reaches production through `db push` (see deploy.yml and CLAUDE.md),
+      # so production has those columns while the migration history does not. That
+      # makes this job's green tick meaningless in exactly the way ESLint's
+      # ignorePatterns and the unreachable coverage thresholds were: it passes
+      # without checking the thing it appears to check.
+      #
+      # The real cost is not CI. It is that rebuilding from the migration history —
+      # disaster recovery, a new environment, a Neon preview branch — produces a
+      # database the application cannot use.
+      - name: Check migrations reproduce schema.prisma
+        run: |
+          cd apps/web
+          echo "--- Drift (empty means migrations and schema agree) ---"
+          yarn prisma migrate diff \
+            --from-migrations ../../packages/db/prisma/migrations \
+            --to-schema-datamodel ../../packages/db/prisma/schema.prisma \
+            --shadow-database-url "$SHADOW_DATABASE_URL" \
+            --script
+          echo "--- Gate ---"
+          yarn prisma migrate diff \
+            --from-migrations ../../packages/db/prisma/migrations \
+            --to-schema-datamodel ../../packages/db/prisma/schema.prisma \
+            --shadow-database-url "$SHADOW_DATABASE_URL" \
+            --exit-code
+        env:
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
+          SHADOW_DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/prisma_shadow'
