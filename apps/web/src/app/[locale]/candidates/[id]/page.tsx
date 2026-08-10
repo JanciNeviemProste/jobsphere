@@ -84,10 +84,13 @@ export default async function CandidateProfilePage({
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <div className="container mx-auto px-4 py-10">
         {/* Back Button */}
-        <Link href={`/${params.locale}/employer/candidates`}>
+        {/* Was /employer/candidates, which does not exist — no such page has
+            ever been created. The applicants list is where a recruiter actually
+            comes from. */}
+        <Link href={`/${params.locale}/employer/applicants`}>
           <Button variant="ghost" size="sm" className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Candidates
+            Back to Applicants
           </Button>
         </Link>
 

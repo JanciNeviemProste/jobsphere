@@ -22,6 +22,7 @@ interface Props {
   currentJobId?: string
   currentStage?: string
   currentSort?: ApplicantsSort
+  currentSearch?: string
 }
 
 /**
@@ -37,12 +38,14 @@ export function ApplicantsViewControls({
   currentJobId,
   currentStage,
   currentSort,
+  currentSearch,
 }: Props) {
   const buildHref = (targetView: ApplicantsView) => {
     const params = new URLSearchParams()
     if (currentJobId) params.set('jobId', currentJobId)
     if (currentStage) params.set('stage', currentStage)
     if (currentSort) params.set('sort', currentSort)
+    if (currentSearch) params.set('search', currentSearch)
     const qs = params.toString()
     const base =
       targetView === 'kanban' ? `/${locale}/employer/pipeline` : `/${locale}/employer/applicants`
@@ -82,6 +85,18 @@ export function ApplicantsViewControls({
 
       {/* Server Component: no onChange handlers — submit via the button. */}
       <form method="GET" action={formAction} className="flex flex-wrap items-center gap-2">
+        {/* The list had no way to find a person by name — only the two selects.
+            A GET input needs no debounce and no client component; the URL stays
+            the single source of truth for both views. */}
+        <input
+          type="search"
+          name="search"
+          defaultValue={currentSearch ?? ''}
+          placeholder="Meno alebo e-mail"
+          aria-label="Hľadať kandidáta"
+          className="h-9 w-48 rounded-md border bg-background px-3 text-sm"
+        />
+
         <select name="jobId" defaultValue={currentJobId ?? ''} className={selectClass}>
           <option value="">Všetky pozície</option>
           {jobs.map((job) => (
