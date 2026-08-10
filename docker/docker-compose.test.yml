@@ -25,6 +25,11 @@
 #
 # The suite refuses to start unless DATABASE_URL points at a local *_test
 # database — see apps/web/tests/integration/helpers/assert-test-database.ts.
+#
+# For `yarn check:drift` you also need a scratch database that Prisma is allowed
+# to wipe, which this container can host:
+#   docker exec jobsphere-postgres-test createdb -U postgres prisma_shadow
+#   $env:SHADOW_DATABASE_URL = "postgresql://postgres:postgres@localhost:5433/prisma_shadow"
 
 services:
   postgres-test:

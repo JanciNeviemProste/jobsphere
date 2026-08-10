@@ -378,21 +378,12 @@ jobs:
       # The real cost is not CI. It is that rebuilding from the migration history —
       # disaster recovery, a new environment, a Neon preview branch — produces a
       # database the application cannot use.
+      #
+      # The gate does not require the diff to be empty — it requires it to equal
+      # the documented residual in packages/db/prisma/expected-drift.sql. Prisma
+      # 5.22 cannot express `type: Hnsw`, so the two pgvector indexes will always
+      # look like drift, and a plain `--exit-code` check could never go green.
       - name: Check migrations reproduce schema.prisma
-        run: |
-          cd apps/web
-          echo "--- Drift (empty means migrations and schema agree) ---"
-          yarn prisma migrate diff \
-            --from-migrations ../../packages/db/prisma/migrations \
-            --to-schema-datamodel ../../packages/db/prisma/schema.prisma \
-            --shadow-database-url "$SHADOW_DATABASE_URL" \
-            --script
-          echo "--- Gate ---"
-          yarn prisma migrate diff \
-            --from-migrations ../../packages/db/prisma/migrations \
-            --to-schema-datamodel ../../packages/db/prisma/schema.prisma \
-            --shadow-database-url "$SHADOW_DATABASE_URL" \
-            --exit-code
+        run: node scripts/check-migration-drift.mjs
         env:
-          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
           SHADOW_DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/prisma_shadow'

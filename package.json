@@ -31,6 +31,7 @@
     "test:db:down": "docker compose -f docker/docker-compose.test.yml down -v",
     "test:db:reset": "yarn test:db:down && yarn test:db:up && yarn test:db:migrate",
     "test:db:migrate": "yarn --cwd apps/web prisma migrate deploy --schema ../../packages/db/prisma/schema.prisma",
+    "check:drift": "node scripts/check-migration-drift.mjs",
     "prepare": "husky install"
   },
   "devDependencies": {
