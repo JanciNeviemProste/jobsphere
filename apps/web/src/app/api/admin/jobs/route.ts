@@ -66,7 +66,10 @@ const patchSchema = z.object({
   jobId: z.string().min(1),
   // PAUSED was missing here while job-status-filter.tsx offered it as a filter,
   // so an admin could search for paused jobs and then had no way to change one.
-  status: z.enum(['DRAFT', 'PUBLISHED', 'PAUSED', 'CLOSED']),
+  status: z.enum(['DRAFT', 'PUBLISHED', 'PAUSED', 'CLOSED']).optional(),
+  // Job.deletedAt has always existed and admin had no way to set it: a posting
+  // could be closed but never removed from the platform.
+  deleted: z.boolean().optional(),
 })
 
 export const PATCH = withCsrfProtection(
@@ -79,7 +82,11 @@ export const PATCH = withCsrfProtection(
         }
 
         const body = await req.json()
-        const { jobId, status } = patchSchema.parse(body)
+        const { jobId, status, deleted } = patchSchema.parse(body)
+
+        if (status === undefined && deleted === undefined) {
+          return NextResponse.json({ error: 'Nothing to change' }, { status: 400 })
+        }
 
         const job = await prisma.job.findUnique({ where: { id: jobId } })
         if (!job) {
@@ -88,11 +95,20 @@ export const PATCH = withCsrfProtection(
 
         const updated = await prisma.job.update({
           where: { id: jobId },
-          data: { status },
-          select: { id: true, title: true, status: true },
+          data: {
+            ...(status !== undefined && { status }),
+            // Deleting also closes it: a soft-deleted posting that still says
+            // PUBLISHED is a contradiction waiting to confuse whoever reads the
+            // row next.
+            ...(deleted !== undefined && {
+              deletedAt: deleted ? new Date() : null,
+              ...(deleted && { status: 'CLOSED' }),
+            }),
+          },
+          select: { id: true, title: true, status: true, deletedAt: true },
         })
 
-        logger.info(`Admin set job ${jobId} status=${status} by ${session.user.id}`)
+        logger.info(`Admin updated job ${jobId} by ${session.user.id}`, { status, deleted })
 
         await createAuditLog({
           userId: session.user.id,
@@ -100,8 +116,11 @@ export const PATCH = withCsrfProtection(
           action: 'JOB_UPDATED',
           resource: 'JOB',
           resourceId: jobId,
-          previous: { status: job.status },
-          metadata: { status: updated.status },
+          previous: { status: job.status, deletedAt: job.deletedAt?.toISOString() ?? null },
+          metadata: {
+            status: updated.status,
+            deletedAt: updated.deletedAt?.toISOString() ?? null,
+          },
           ...getRequestMetadata(req),
         })
 
