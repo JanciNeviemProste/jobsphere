@@ -399,6 +399,19 @@
       "subtitle": "Aktualisieren Sie die Details Ihrer Stellenanzeige",
       "save": "Änderungen speichern",
       "saving": "Speichern..."
+    },
+    "assessments": {
+      "title": "Assessments",
+      "subtitle": "Kompetenztests, die du an Kandidaten sendest",
+      "create": "Neues Assessment",
+      "published": "Veröffentlicht",
+      "draft": "Entwurf",
+      "emptyTitle": "Noch keine Assessments",
+      "emptyDescription": "Erstelle einen Kompetenztest und sende ihn aus einer Bewerbung an Kandidaten.",
+      "viewResults": "Ergebnisse ansehen",
+      "sectionCount": "{count, plural, =0 {keine Abschnitte} one {# Abschnitt} other {# Abschnitte}}",
+      "inviteCount": "{count, plural, =0 {noch nicht gesendet} one {# Einladung} other {# Einladungen}}",
+      "duration": "{minutes} Min."
     }
   },
   "common": {

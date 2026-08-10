@@ -18,6 +18,9 @@ import {
   XCircle,
   Eye,
   CalendarClock,
+  BarChart3,
+  Mail,
+  FileText,
 } from 'lucide-react'
 import { STAGE_LABELS_EN, STAGE_COLORS } from '@/lib/constants/application-stages'
 
@@ -263,9 +266,7 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
                             <Eye className="h-4 w-4" />
                             {job.viewCount} zobrazení
                           </span>
-                          <span>
-                            Vytvorené {format.dateTime(job.createdAt, SHORT_DATE)}
-                          </span>
+                          <span>Vytvorené {format.dateTime(job.createdAt, SHORT_DATE)}</span>
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -392,6 +393,26 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
                   <Link href={`/${params.locale}/employer/gigs`}>
                     <Briefcase className="mr-2 h-4 w-4" />
                     Zákazky pre freelancerov
+                  </Link>
+                </Button>
+                {/* Analytics, sequences and assessments were reachable only by
+                    typing the URL — nothing in the app linked to them. */}
+                <Button className="w-full justify-start" variant="outline" asChild>
+                  <Link href={`/${params.locale}/employer/analytics`}>
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    Štatistiky náboru
+                  </Link>
+                </Button>
+                <Button className="w-full justify-start" variant="outline" asChild>
+                  <Link href={`/${params.locale}/employer/sequences`}>
+                    <Mail className="mr-2 h-4 w-4" />
+                    E-mailové sekvencie
+                  </Link>
+                </Button>
+                <Button className="w-full justify-start" variant="outline" asChild>
+                  <Link href={`/${params.locale}/employer/assessments`}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Testy zručností
                   </Link>
                 </Button>
                 <Button className="w-full justify-start" variant="outline" asChild>

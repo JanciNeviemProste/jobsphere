@@ -399,6 +399,19 @@
       "subtitle": "Zaktualizuj szczegóły swojej oferty pracy",
       "save": "Zapisz zmiany",
       "saving": "Zapisywanie..."
+    },
+    "assessments": {
+      "title": "Testy",
+      "subtitle": "Testy umiejętności wysyłane kandydatom",
+      "create": "Nowy test",
+      "published": "Opublikowany",
+      "draft": "Szkic",
+      "emptyTitle": "Brak testów",
+      "emptyDescription": "Utwórz test umiejętności i wyślij go kandydatowi z aplikacji.",
+      "viewResults": "Zobacz wyniki",
+      "sectionCount": "{count, plural, =0 {brak sekcji} one {# sekcja} few {# sekcje} many {# sekcji} other {# sekcji}}",
+      "inviteCount": "{count, plural, =0 {jeszcze nie wysłano} one {# zaproszenie} few {# zaproszenia} many {# zaproszeń} other {# zaproszeń}}",
+      "duration": "{minutes} min"
     }
   },
   "common": {

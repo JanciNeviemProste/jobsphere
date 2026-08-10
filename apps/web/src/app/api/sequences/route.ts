@@ -25,8 +25,11 @@ export const GET = withRateLimit(
       // Sequences are bounded by tenancy (a few per org). The query previously had
       // no ordering at all, so row order was whatever Postgres returned; making it
       // deterministic is what lets `take` be a safe safety net.
+      // `deletedAt: null` explicitly: EmailSequence is not one of the five models
+      // the soft-delete middleware in lib/prisma.ts covers, so without this a
+      // deleted sequence keeps appearing in the list and DELETE looks like a no-op.
       const sequences = await prisma.emailSequence.findMany({
-        where: { orgId },
+        where: { orgId, deletedAt: null },
         include: {
           steps: {
             orderBy: { order: 'asc' },

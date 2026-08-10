@@ -421,6 +421,19 @@
       "selectAssessmentPlaceholder": "Vyberte test",
       "noAssessments": "Nenašli sa žiadne testy. Najprv vytvorte test v sekcii Testy.",
       "draft": "koncept"
+    },
+    "assessments": {
+      "title": "Testy",
+      "subtitle": "Testy zručností, ktoré posielaš kandidátom",
+      "create": "Nový test",
+      "published": "Publikovaný",
+      "draft": "Koncept",
+      "emptyTitle": "Zatiaľ žiadne testy",
+      "emptyDescription": "Vytvor test zručností a pošli ho kandidátovi z prihlášky.",
+      "viewResults": "Zobraziť výsledky",
+      "sectionCount": "{count, plural, =0 {žiadne sekcie} one {# sekcia} few {# sekcie} other {# sekcií}}",
+      "inviteCount": "{count, plural, =0 {zatiaľ neodoslaný} one {# pozvánka} few {# pozvánky} other {# pozvánok}}",
+      "duration": "{minutes} min"
     }
   },
   "common": {
