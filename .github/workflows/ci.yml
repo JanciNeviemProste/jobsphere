@@ -3,8 +3,17 @@ name: CI Pipeline
 on:
   push:
     branches: [main, master, develop]
+  # Every pull request, whatever it targets — not just those aimed at main.
+  #
+  # The base-branch filter meant a stacked PR got no CI at all. PRs #15, #16 and
+  # #18 each target the branch below them rather than main, so the pipeline
+  # never ran on any of them: typecheck, lint, tests, coverage, the i18n parity
+  # check and the migration drift gate were all silently skipped. GitHub still
+  # showed a tick from Vercel and GitGuardian, so the PRs looked checked.
+  #
+  # That is the same shape as the ESLint ignorePatterns and the unreachable
+  # coverage thresholds: a gate that appears to run and does not.
   pull_request:
-    branches: [main, master, develop]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
