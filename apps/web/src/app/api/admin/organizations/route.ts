@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireGlobalAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { createAuditLog, getRequestMetadata } from '@/lib/audit-log'
 import { handleApiError } from '@/lib/errors'
 import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
@@ -73,6 +74,17 @@ export const PATCH = withCsrfProtection(
         })
 
         logger.info(`Admin ${action} organization ${orgId} by ${session.user.id}`)
+
+        await createAuditLog({
+          userId: session.user.id,
+          orgId,
+          action: action === 'suspend' ? 'SUSPEND' : 'ACTIVATE',
+          resource: 'ORGANIZATION',
+          resourceId: orgId,
+          previous: { deletedAt: action === 'suspend' ? null : 'set' },
+          metadata: { deletedAt: updated.deletedAt?.toISOString() ?? null },
+          ...getRequestMetadata(req),
+        })
         return NextResponse.json({ organization: updated })
       } catch (error) {
         logger.error('Admin PATCH /organizations error:', error)
@@ -124,6 +136,16 @@ export const POST = withCsrfProtection(
         })
 
         logger.info(`Admin created organization ${org.id} by ${session.user.id}`)
+
+        await createAuditLog({
+          userId: session.user.id,
+          orgId: org.id,
+          action: 'CREATE',
+          resource: 'ORGANIZATION',
+          resourceId: org.id,
+          metadata: { name: org.name, slug: org.slug },
+          ...getRequestMetadata(req),
+        })
         return NextResponse.json({ organization: org }, { status: 201 })
       } catch (error) {
         if (error instanceof z.ZodError) {

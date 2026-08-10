@@ -6,6 +6,11 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
+vi.mock('@/lib/audit-log', () => ({
+  createAuditLog: vi.fn(),
+  getRequestMetadata: () => ({ ipAddress: '127.0.0.1', userAgent: 'vitest' }),
+}))
+
 vi.mock('@/lib/csrf', () => ({ withCsrfProtection: (handler: any) => handler }))
 vi.mock('@/lib/rate-limit', () => ({ withRateLimit: (handler: any) => handler }))
 vi.mock('@/lib/logger', () => ({

@@ -39,6 +39,16 @@ export type AuditAction =
   | 'UPDATE'
   | 'DELETE'
   | 'BULK_UPDATE'
+  // Platform-admin actions. These are the ones nobody could reconstruct before:
+  // no admin route wrote an audit entry at all, so who banned whom, and who
+  // handed out global admin, existed only in application logs.
+  | 'BAN'
+  | 'UNBAN'
+  | 'PROMOTE_ADMIN'
+  | 'DEMOTE_ADMIN'
+  | 'SUSPEND'
+  | 'ACTIVATE'
+  | 'DSAR_PROCESSED'
 
 export type AuditResource =
   | 'USER'
@@ -50,6 +60,11 @@ export type AuditResource =
   | 'SUBSCRIPTION'
   | 'CONSENT'
   | 'DSAR'
+  // Admin-only surfaces
+  | 'ORGANIZATION'
+  | 'SETTING'
+  | 'FEATURE_FLAG'
+  | 'SCRAPER'
 
 export interface AuditLogEntry {
   userId?: string
@@ -58,6 +73,16 @@ export interface AuditLogEntry {
   resource: AuditResource
   resourceId?: string
   metadata?: Prisma.InputJsonValue
+  /**
+   * State before the change.
+   *
+   * The AuditLog row has always had an `oldValues` column and this helper never
+   * wrote it. For an admin action that omission is most of the point: "was
+   * promoted to admin" without what they were before answers half the question,
+   * and "organisation suspended" without whether it was already suspended
+   * answers none of it.
+   */
+  previous?: Prisma.InputJsonValue
   ipAddress?: string
   userAgent?: string
 }
@@ -76,6 +101,7 @@ export async function createAuditLog(entry: AuditLogEntry): Promise<void> {
         entityId: entry.resourceId || 'SYSTEM',
         // Store metadata in newValues field (changes field doesn't exist in schema)
         newValues: entry.metadata || {},
+        oldValues: entry.previous,
         ipAddress: entry.ipAddress,
         userAgent: entry.userAgent,
       },

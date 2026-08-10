@@ -8,6 +8,15 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { createAuditLog, getRequestMetadata, type AuditAction } from '@/lib/audit-log'
+
+/** The four admin actions, mapped onto audit vocabulary. */
+const AUDIT_ACTION: Record<'ban' | 'unban' | 'promote_admin' | 'demote_admin', AuditAction> = {
+  ban: 'BAN',
+  unban: 'UNBAN',
+  promote_admin: 'PROMOTE_ADMIN',
+  demote_admin: 'DEMOTE_ADMIN',
+}
 import * as z from 'zod'
 import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
@@ -129,7 +138,10 @@ export const PATCH = withCsrfProtection(
 
         const target = await prisma.user.findUnique({
           where: { id: userId },
-          select: { id: true, deletedAt: true },
+          // isGlobalAdmin and lockedUntil come along so the audit entry can say
+          // what the user WAS. "Promoted to admin" without the previous value
+          // answers half the question.
+          select: { id: true, deletedAt: true, isGlobalAdmin: true, lockedUntil: true },
         })
 
         if (!target || target.deletedAt !== null) {
@@ -169,6 +181,22 @@ export const PATCH = withCsrfProtection(
         })
 
         logger.info('Admin: user action applied', { adminId: authResult.user.id, userId, action })
+
+        await createAuditLog({
+          userId: authResult.user.id,
+          action: AUDIT_ACTION[action],
+          resource: 'USER',
+          resourceId: userId,
+          previous: {
+            isGlobalAdmin: target.isGlobalAdmin,
+            lockedUntil: target.lockedUntil?.toISOString() ?? null,
+          },
+          metadata: {
+            isGlobalAdmin: updated.isGlobalAdmin,
+            lockedUntil: updated.lockedUntil?.toISOString() ?? null,
+          },
+          ...getRequestMetadata(req),
+        })
 
         return NextResponse.json({ user: updated })
       } catch (error) {

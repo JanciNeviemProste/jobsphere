@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireGlobalAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { createAuditLog, getRequestMetadata } from '@/lib/audit-log'
 import { handleApiError } from '@/lib/errors'
 import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
@@ -92,6 +93,18 @@ export const PATCH = withCsrfProtection(
         })
 
         logger.info(`Admin set job ${jobId} status=${status} by ${session.user.id}`)
+
+        await createAuditLog({
+          userId: session.user.id,
+          orgId: job.orgId,
+          action: 'JOB_UPDATED',
+          resource: 'JOB',
+          resourceId: jobId,
+          previous: { status: job.status },
+          metadata: { status: updated.status },
+          ...getRequestMetadata(req),
+        })
+
         return NextResponse.json({ job: updated })
       } catch (error) {
         logger.error('Admin PATCH /jobs error:', error)
@@ -175,6 +188,16 @@ export const POST = withCsrfProtection(
         })
 
         logger.info(`Admin created job ${job.id} for org ${org.id} by ${session.user.id}`)
+
+        await createAuditLog({
+          userId: session.user.id,
+          orgId: org.id,
+          action: 'JOB_CREATED',
+          resource: 'JOB',
+          resourceId: job.id,
+          metadata: { title: job.title, status: job.status },
+          ...getRequestMetadata(req),
+        })
         return NextResponse.json({ job }, { status: 201 })
       } catch (error) {
         if (error instanceof z.ZodError) {

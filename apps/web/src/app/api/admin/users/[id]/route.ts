@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { createAuditLog, getRequestMetadata } from '@/lib/audit-log'
 import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
 
@@ -101,7 +102,7 @@ const getUserDetail = async (_req: Request, context?: { params?: Record<string, 
  */
 export const DELETE = withCsrfProtection(
   withRateLimit(
-    async (_req: Request, context?: { params?: Record<string, string> }) => {
+    async (req: Request, context?: { params?: Record<string, string> }) => {
       const params = context?.params as { id: string }
       if (!params?.id) {
         return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 })
@@ -132,12 +133,26 @@ export const DELETE = withCsrfProtection(
 
         await prisma.user.update({
           where: { id: params.id },
-          data: { deletedAt: new Date() },
+          // sessionEpoch bumped as well. Without it a soft-deleted user keeps a
+          // valid JWT until it expires on its own — `ban` on the sibling route
+          // has always done this, so deleting an account was the weaker of the
+          // two ways to lock someone out.
+          data: { deletedAt: new Date(), sessionEpoch: { increment: 1 } },
         })
 
         logger.info('Admin: soft-deleted user', {
           adminId: authResult.user.id,
           targetId: params.id,
+        })
+
+        await createAuditLog({
+          userId: authResult.user.id,
+          action: 'USER_DELETED',
+          resource: 'USER',
+          resourceId: params.id,
+          previous: { deletedAt: null },
+          metadata: { softDelete: true, sessionsRevoked: true },
+          ...getRequestMetadata(req),
         })
 
         return NextResponse.json({ success: true })
