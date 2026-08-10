@@ -541,6 +541,12 @@ model Application {
   stage         String   @default("NEW") // NEW, SCREENING, PHONE, etc.
   stageHistory  Json     @default("[]")
 
+  // Why a candidate was turned down, and when. Rejection used to be nothing but
+  // `stage = 'REJECTED'`, so a recruiter reopening a file months later — or a
+  // candidate asking for feedback — had no record of the reason at all.
+  rejectionReason String?
+  rejectedAt      DateTime?
+
   // Scoring and assignment
   score         Float?
   scoreDetails  Json?

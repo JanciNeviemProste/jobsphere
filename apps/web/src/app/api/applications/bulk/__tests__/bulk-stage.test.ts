@@ -97,9 +97,14 @@ describe('QA-004 — bulk move-stage writes Application.stage, org-scoped', () =
     // (1) The write targets `stage`, NOT the legacy `status` column.
     expect(txUpdateMany).toHaveBeenCalledTimes(1)
     const writeArg = txUpdateMany.mock.calls[0][0]
-    expect(writeArg.data).toEqual({ stage: 'INTERVIEW' })
     expect(writeArg.data).not.toHaveProperty('status')
     expect(writeArg.data.stage).toBe('INTERVIEW')
+
+    // A move to anything other than REJECTED clears the rejection record. Leaving
+    // a stale "why they were turned down" on a candidate who has been brought
+    // back into the process is a lie the next reader has no way to spot.
+    expect(writeArg.data.rejectedAt).toBeNull()
+    expect(writeArg.data.rejectionReason).toBeNull()
 
     // (2) The write only touches the permitted (org-resolved) ids.
     expect(writeArg.where).toMatchObject({ id: { in: [APP_1, APP_2] } })

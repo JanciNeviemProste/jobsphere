@@ -22,6 +22,9 @@ const bulkSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('reject'),
     applicationIds: z.array(z.string().cuid()).min(1).max(200),
+    // Optional, so existing callers keep working, but this is the path where a
+    // reason matters most: it turns down up to 200 people in one request.
+    rejectionReason: z.string().max(2000).optional(),
   }),
   z.object({
     action: z.literal('send-email'),
@@ -99,6 +102,7 @@ export const POST = withCsrfProtection(
             permittedIds,
             'REJECTED',
             session.user.id,
+            payload.rejectionReason,
           )
 
           await createAuditLog({
