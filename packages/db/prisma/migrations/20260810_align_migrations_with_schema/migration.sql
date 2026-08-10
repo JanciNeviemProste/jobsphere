@@ -21,11 +21,10 @@
 -- Generated from `prisma migrate diff --from-migrations --to-schema-datamodel`,
 -- with two deliberate omissions documented at the bottom.
 
--- ---------------------------------------------------------------- Extensions
-CREATE EXTENSION IF NOT EXISTS "btree_gin";
-CREATE EXTENSION IF NOT EXISTS "pg_trgm";
-CREATE EXTENSION IF NOT EXISTS "vector";
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Extensions are NOT recreated here. 20250114_complete_schema already creates
+-- btree_gin, pg_trgm, vector and uuid-ossp. `migrate diff` proposes them on every
+-- run regardless — see expected-drift.sql — so repeating them here would be a
+-- no-op that makes this file look like it does more than it does.
 
 -- ------------------------------------------------------------------ Columns
 ALTER TABLE "Candidate" ADD COLUMN IF NOT EXISTS "userId" TEXT;
