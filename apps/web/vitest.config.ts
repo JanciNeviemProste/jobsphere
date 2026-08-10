@@ -44,6 +44,11 @@ export default defineConfig({
       //   2026-07-29  lines 19.81  branches 58.69  functions 36.95
       //   2026-08-09  lines 21.43  branches 60.01  functions 38.62  (+ server actions,
       //               route/server-action contract tests)
+      //   2026-08-10  all-files 23.65 / 62.17 / 40.40  (+ stripe portal, GDPR export
+      //               and DSAR, password-reset lifecycle). The global figures below
+      //               are set a point under the derived value rather than on it —
+      //               vitest only prints the true global number when it FAILS, so
+      //               the exact figure is unknown while the gate is green.
       //
       // The global numbers are a floor against regression, not a real gate: with
       // 76 API routes in the tree, an untested one is easily offset by covering a
@@ -57,10 +62,10 @@ export default defineConfig({
       // (22.00 -> 21.43 lines) even though nothing about the tests changed. Always
       // re-measure after adding a glob rather than reusing the previous run's value.
       thresholds: {
-        lines: 21,
-        functions: 38,
-        branches: 60,
-        statements: 21,
+        lines: 22,
+        functions: 39,
+        branches: 61,
+        statements: 22,
         'src/lib/actions/**': {
           lines: 90,
           functions: 100,
