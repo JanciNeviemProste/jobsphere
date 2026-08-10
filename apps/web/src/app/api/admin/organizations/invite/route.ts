@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { createAuditLog, getRequestMetadata } from '@/lib/audit-log'
 import { handleApiError } from '@/lib/errors'
+import { NotFoundError } from '@/lib/api-helpers'
 import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
 import { generateUniqueOrgSlug } from '@/lib/org-slug'
@@ -14,11 +15,26 @@ import { sendEmail, getInvitationEmail } from '@/lib/email'
 
 export const runtime = 'nodejs'
 
-const inviteOrgSchema = z.object({
-  orgName: z.string().min(1, 'Organization name is required').max(200),
-  adminEmail: z.string().email('A valid admin email is required'),
-  industry: z.string().max(100).optional(),
-})
+/**
+ * Two shapes, because this route was doing one job and being asked to do two.
+ *
+ * Without `orgId` it provisions a brand-new company plus its first admin — the
+ * original behaviour. With `orgId` it invites someone into an organisation that
+ * already exists, which was previously impossible: the handler called
+ * `organization.create` unconditionally, so "invite this person to that company"
+ * silently produced a second company with the same name.
+ */
+const inviteOrgSchema = z
+  .object({
+    orgId: z.string().min(1).optional(),
+    orgName: z.string().min(1).max(200).optional(),
+    adminEmail: z.string().email('A valid admin email is required'),
+    industry: z.string().max(100).optional(),
+    role: z.enum(['ORG_ADMIN', 'RECRUITER', 'SUB_HR', 'HIRING_MANAGER', 'AGENCY']).optional(),
+  })
+  .refine((data) => Boolean(data.orgId) !== Boolean(data.orgName), {
+    message: 'Provide either orgId (existing organization) or orgName (new one), not both',
+  })
 
 /**
  * POST /api/admin/organizations/invite
@@ -42,7 +58,8 @@ export const POST = withCsrfProtection(
         }
 
         const body = await req.json()
-        const { orgName, adminEmail, industry } = inviteOrgSchema.parse(body)
+        const { orgId, orgName, adminEmail, industry, role } = inviteOrgSchema.parse(body)
+        const memberRole = role ?? 'ORG_ADMIN'
         const email = adminEmail.toLowerCase()
 
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
@@ -50,16 +67,27 @@ export const POST = withCsrfProtection(
         // Provision org + admin user + membership atomically. `actionUrl` / the
         // email are computed here but only SENT after the txn commits.
         const result = await prisma.$transaction(async (tx) => {
-          const slug = await generateUniqueOrgSlug(orgName, tx)
-
-          const organization = await tx.organization.create({
-            data: {
-              name: orgName.trim(),
-              slug,
-              industry: industry || null,
-            },
-            select: { id: true, name: true, slug: true },
-          })
+          let organization
+          if (orgId) {
+            const existing = await tx.organization.findUnique({
+              where: { id: orgId },
+              select: { id: true, name: true, slug: true },
+            })
+            if (!existing) {
+              throw new NotFoundError('Organization not found')
+            }
+            organization = existing
+          } else {
+            const slug = await generateUniqueOrgSlug(orgName!, tx)
+            organization = await tx.organization.create({
+              data: {
+                name: orgName!.trim(),
+                slug,
+                industry: industry || null,
+              },
+              select: { id: true, name: true, slug: true },
+            })
+          }
 
           let user = await tx.user.findUnique({ where: { email } })
           const isNewUser = !user
@@ -90,12 +118,13 @@ export const POST = withCsrfProtection(
             actionUrl = `${appUrl}/reset-password?token=${inviteToken}`
           }
 
-          await tx.userOrgRole.create({
-            data: {
-              userId: user.id,
-              orgId: organization.id,
-              role: 'ORG_ADMIN',
-            },
+          // upsert, not create: inviting someone who is already in this
+          // organisation should adjust their role rather than blow up on the
+          // composite unique key.
+          await tx.userOrgRole.upsert({
+            where: { userId_orgId: { userId: user.id, orgId: organization.id } },
+            create: { userId: user.id, orgId: organization.id, role: memberRole },
+            update: { role: memberRole },
           })
 
           return { organization, userEmail: user.email, isNewUser, actionUrl }
@@ -106,13 +135,16 @@ export const POST = withCsrfProtection(
         try {
           const emailResult = await sendEmail({
             to: result.userEmail,
+            // The organisation's real name, not the request field: with `orgId`
+            // there is no orgName in the body at all, and using it would have
+            // emailed "You've been added to undefined".
             subject: result.isNewUser
-              ? `You're invited to join ${orgName} on JobSphere`
-              : `You've been added to ${orgName}`,
+              ? `You're invited to join ${result.organization.name} on JobSphere`
+              : `You've been added to ${result.organization.name}`,
             html: getInvitationEmail({
               isNewUser: result.isNewUser,
-              orgName,
-              role: 'ORG_ADMIN',
+              orgName: result.organization.name,
+              role: memberRole,
               actionUrl: result.actionUrl,
             }),
           })
