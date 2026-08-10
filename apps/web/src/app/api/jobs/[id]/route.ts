@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { JOB_STATUSES, canTransition, shouldStampPublishedAt } from '@/lib/job-status'
 import { errorResponse } from '@/lib/errors'
 import { withRateLimit } from '@/lib/rate-limit'
 import { withCsrfProtection } from '@/lib/csrf'
@@ -23,6 +24,22 @@ const updateJobSchema = z.object({
   hybrid: z.boolean().optional(),
   employmentType: z.string().optional(),
   seniority: z.string().optional(),
+  region: z.string().max(100).optional().nullable(),
+
+  // Everything below was accepted by POST /api/jobs and silently dropped here:
+  // zod without .strict() discards unknown keys, so a job created with an
+  // assessment and an assigned recruiter lost both the first time anyone saved
+  // an edit — and `status` being absent is why a posting could not be paused or
+  // reopened through the API at all.
+  status: z.enum(JOB_STATUSES).optional(),
+  department: z.string().max(100).optional().nullable(),
+  keywords: z.array(z.string().max(50)).max(50).optional(),
+  imageUrl: z.string().url().max(500).optional().nullable(),
+  videoUrl: z.string().url().max(500).optional().nullable(),
+  requiresAssessment: z.boolean().optional(),
+  assessmentId: z.string().optional().nullable(),
+  screeningQuestions: z.any().optional(),
+  assignedRecruiterId: z.string().optional().nullable(),
 })
 
 export const GET = withRateLimit(
@@ -103,7 +120,10 @@ export const PUT = withCsrfProtection(
         }
 
         // Check if user owns the job through organization
-        const job = await prisma.job.findUnique({
+        // findFirst, not findUnique: the soft-delete middleware in lib/prisma.ts
+        // only augments findFirst/findMany/count, so findUnique returned
+        // soft-deleted jobs and left them mutable.
+        const job = await prisma.job.findFirst({
           where: { id: params.id },
           include: {
             organization: {
@@ -132,9 +152,26 @@ export const PUT = withCsrfProtection(
         // Validate and update job
         const rawData = await req.json()
         const data = updateJobSchema.parse(rawData)
+
+        if (data.status && !canTransition(job.status, data.status)) {
+          return NextResponse.json(
+            { error: 'Invalid status transition', from: job.status, to: data.status },
+            { status: 400 },
+          )
+        }
+
         const updated = await prisma.job.update({
           where: { id: params.id },
-          data,
+          data: {
+            ...data,
+            // Stamped once, on the first publish only. Re-stamping on every
+            // resume would keep resetting the posting's age, so "posted 3 days
+            // ago" would quietly become false after every pause.
+            ...(data.status &&
+              shouldStampPublishedAt(data.status, job.publishedAt) && {
+                publishedAt: new Date(),
+              }),
+          },
         })
 
         // Re-generate embedding if description changed
@@ -191,7 +228,10 @@ export const DELETE = withCsrfProtection(
         }
 
         // Check if user owns the job through organization
-        const job = await prisma.job.findUnique({
+        // findFirst, not findUnique: the soft-delete middleware in lib/prisma.ts
+        // only augments findFirst/findMany/count, so findUnique returned
+        // soft-deleted jobs and left them mutable.
+        const job = await prisma.job.findFirst({
           where: { id: params.id },
           include: {
             organization: {
@@ -221,7 +261,12 @@ export const DELETE = withCsrfProtection(
         const updated = await prisma.job.update({
           where: { id: params.id },
           data: {
+            // Both fields, matching deleteJob in lib/actions/jobs.ts. This route
+            // set only `status`, so the same "delete" left the row visible to
+            // every findFirst/findMany in the app depending on which door the
+            // user happened to come through.
             status: 'CLOSED',
+            deletedAt: new Date(),
           },
         })
 

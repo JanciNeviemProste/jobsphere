@@ -63,7 +63,9 @@ async function listJobs(req: Request) {
 
 const patchSchema = z.object({
   jobId: z.string().min(1),
-  status: z.enum(['DRAFT', 'PUBLISHED', 'CLOSED']),
+  // PAUSED was missing here while job-status-filter.tsx offered it as a filter,
+  // so an admin could search for paused jobs and then had no way to change one.
+  status: z.enum(['DRAFT', 'PUBLISHED', 'PAUSED', 'CLOSED']),
 })
 
 export const PATCH = withCsrfProtection(

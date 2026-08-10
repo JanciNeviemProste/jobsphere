@@ -95,21 +95,6 @@ function createRecruiterSession(overrides?: Partial<MockSessionUser>): MockSessi
   }
 }
 
-function createOrgAdminSession(overrides?: Partial<MockSessionUser>): MockSession {
-  return {
-    user: {
-      id: overrides?.id || 'test-user-admin',
-      email: overrides?.email || 'admin@test.com',
-      name: overrides?.name || 'Test Admin',
-      role: 'ORG_ADMIN',
-      orgId: overrides?.orgId || 'test-org-id',
-      orgName: overrides?.orgName || 'Test Organization',
-      ...overrides,
-    },
-    expires: new Date(Date.now() + 86400000).toISOString(),
-  }
-}
-
 function createHiringManagerSession(overrides?: Partial<MockSessionUser>): MockSession {
   return {
     user: {
@@ -184,6 +169,10 @@ vi.mock('@/lib/prisma', () => ({
     },
     job: {
       findUnique: vi.fn(),
+      // PUT and DELETE /api/jobs/[id] moved to findFirst so the soft-delete
+      // middleware applies — findUnique is not covered by it, which left
+      // soft-deleted jobs editable. GET still uses findUnique.
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
@@ -266,7 +255,7 @@ describe('Authentication & Authorization Security Tests', () => {
       mockAuthFn.mockResolvedValue(hiringManagerSession)
 
       // Mock: Job exists in same org, but user is not admin
-      ;(prisma.job.findUnique as any).mockResolvedValue({
+      ;(prisma.job.findFirst as any).mockResolvedValue({
         id: 'job-1',
         orgId: 'org-1',
         title: 'Test Job',
@@ -309,8 +298,6 @@ describe('Authentication & Authorization Security Tests', () => {
 
       // Mock: Candidate has no organization
       ;(prisma.userOrgRole.findFirst as any).mockResolvedValue(null)
-
-      const request = createTestRequest('GET')
 
       // Act: Attempt to get organization
       const response = await GetOrganization(
@@ -358,7 +345,7 @@ describe('Authentication & Authorization Security Tests', () => {
       mockAuthFn.mockResolvedValue(orgASession)
 
       // Mock: Job exists in Org B
-      ;(prisma.job.findUnique as any).mockResolvedValue({
+      ;(prisma.job.findFirst as any).mockResolvedValue({
         id: 'job-org-b',
         orgId: 'org-b',
         title: 'Job from Org B',
@@ -438,10 +425,10 @@ describe('Authentication & Authorization Security Tests', () => {
       // Mock: User is NOT member of Org B
       ;(prisma.userOrgRole.findFirst as any).mockResolvedValue(null)
 
-      const request = createTestRequest('GET')
-
       // Act
-      const response = await GetApplication(request, { params: { id: 'app-org-b' } } as any)
+      const response = await GetApplication(createTestRequest('GET'), {
+        params: { id: 'app-org-b' },
+      } as any)
       const data = await parseResponse(response)
 
       // Assert: Should return 403 (don't leak existence)
@@ -455,7 +442,7 @@ describe('Authentication & Authorization Security Tests', () => {
       mockAuthFn.mockResolvedValue(session)
 
       // Mock: Job doesn't exist OR is in different org
-      ;(prisma.job.findUnique as any).mockResolvedValue(null)
+      ;(prisma.job.findFirst as any).mockResolvedValue(null)
 
       const request = createTestRequest('PUT', { title: 'Test' })
 
@@ -497,8 +484,6 @@ describe('Authentication & Authorization Security Tests', () => {
     it('should reject invalid JWT signature when accessing protected route', async () => {
       // Arrange: Session with tampered data (simulated by returning null)
       mockAuthFn.mockResolvedValue(null)
-
-      const request = createTestRequest('GET')
 
       // Act: Attempt to get organization info
       const response = await GetOrganization(
@@ -575,16 +560,10 @@ describe('Authentication & Authorization Security Tests', () => {
     })
 
     it('should reject JWT with expired timestamp', async () => {
-      // Arrange: Expired JWT
-      const expiredSession = {
-        user: { id: 'user-1', email: 'user@test.com' },
-        expires: new Date(Date.now() - 1000).toISOString(), // Expired 1 second ago
-      }
-
-      // In real NextAuth, expired sessions return null
+      // Arrange: an expired JWT. NextAuth resolves an expired session to null
+      // before the handler ever sees it, so that is what is mocked here — there
+      // is no expired-session object to hand in.
       mockAuthFn.mockResolvedValue(null)
-
-      const request = createTestRequest('GET')
 
       // Act
       const response = await GetOrganization(
@@ -705,7 +684,7 @@ describe('Authentication & Authorization Security Tests', () => {
       mockAuthFn.mockResolvedValue(attackerSession)
 
       // Mock: Job exists in different org
-      ;(prisma.job.findUnique as any).mockResolvedValue({
+      ;(prisma.job.findFirst as any).mockResolvedValue({
         id: 'job-org-b-secret',
         orgId: 'org-b',
         title: 'Confidential Job',
@@ -792,8 +771,6 @@ describe('Authentication & Authorization Security Tests', () => {
     it('should enforce authentication on billing access', async () => {
       // Arrange: Unauthenticated request to billing
       mockAuthFn.mockResolvedValue(null)
-
-      const request = createTestRequest('GET')
 
       // Act
       const response = await GetBilling(

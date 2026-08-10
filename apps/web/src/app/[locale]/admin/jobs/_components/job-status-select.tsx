@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-const STATUSES = ['DRAFT', 'PUBLISHED', 'CLOSED'] as const
+const STATUSES = ['DRAFT', 'PUBLISHED', 'PAUSED', 'CLOSED'] as const
 
 interface JobStatusSelectProps {
   jobId: string
