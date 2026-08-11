@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterAll } from 'vitest'
 import { prisma, createTestUser } from '../../helpers/test-db'
-import { compare } from 'bcryptjs'
+import { compare, hash } from 'bcryptjs'
 
 /**
  * Integration tests for Authentication Login Flow
@@ -10,22 +10,36 @@ import { compare } from 'bcryptjs'
 describe('Authentication Login Flow', () => {
   let testUser: any
 
-  beforeEach(async () => {
-    // Clean up test login users
-    await prisma.user.deleteMany({
-      where: {
-        email: {
-          contains: 'login-test',
-        },
-      },
+  // Everything this file makes lives OUTSIDE TEST_IDS.org, so the global
+  // cleanup in setup.ts never touched it. Deleting the users while their
+  // UserOrgRole rows still pointed at them raised P2003 in beforeEach, which
+  // took every test after the third one down — all 16 of them.
+  async function purgeLoginFixtures() {
+    const users = await prisma.user.findMany({
+      where: { email: { contains: 'login-test' } },
+      select: { id: true },
     })
+    const userIds = users.map((u) => u.id)
+
+    if (userIds.length > 0) {
+      await prisma.userOrgRole.deleteMany({ where: { userId: { in: userIds } } })
+      await prisma.auditLog.deleteMany({ where: { userId: { in: userIds } } })
+    }
+    await prisma.organization.deleteMany({
+      where: { slug: { in: ['login-test-org', 'login-org-1', 'login-org-2'] } },
+    })
+    await prisma.user.deleteMany({ where: { email: { contains: 'login-test' } } })
+  }
+
+  beforeEach(async () => {
+    await purgeLoginFixtures()
 
     // Create a test user for login
-    testUser = await createTestUser(
-      'login-test@test.com',
-      'Login Test User',
-      'SecurePassword123!'
-    )
+    testUser = await createTestUser('login-test@test.com', 'Login Test User', 'SecurePassword123!')
+  })
+
+  afterAll(async () => {
+    await purgeLoginFixtures()
   })
 
   describe('Successful Login', () => {
@@ -69,7 +83,7 @@ describe('Authentication Login Flow', () => {
       const employer = await createTestUser(
         'login-test-employer@test.com',
         'Employer User',
-        'SecurePassword123!'
+        'SecurePassword123!',
       )
 
       const org = await prisma.organization.create({
@@ -163,7 +177,7 @@ describe('Authentication Login Flow', () => {
 
     it('should reject user without password (OAuth-only user)', async () => {
       // Arrange - create OAuth user without password
-      const oauthUser = await prisma.user.create({
+      await prisma.user.create({
         data: {
           email: 'login-test-oauth@test.com',
           name: 'OAuth User',
@@ -246,16 +260,12 @@ describe('Authentication Login Flow', () => {
 
     it('should hash different passwords differently', async () => {
       // Arrange - create two users with different passwords
-      const user1 = await createTestUser(
-        'login-test-user1@test.com',
-        'User 1',
-        'Password123!'
-      )
+      const user1 = await createTestUser('login-test-user1@test.com', 'User 1', 'Password123!')
 
       const user2 = await createTestUser(
         'login-test-user2@test.com',
         'User 2',
-        'DifferentPassword456!'
+        'DifferentPassword456!',
       )
 
       // Assert
@@ -267,13 +277,13 @@ describe('Authentication Login Flow', () => {
       const user1 = await createTestUser(
         'login-test-same1@test.com',
         'Same Pass 1',
-        'SamePassword123!'
+        'SamePassword123!',
       )
 
       const user2 = await createTestUser(
         'login-test-same2@test.com',
         'Same Pass 2',
-        'SamePassword123!'
+        'SamePassword123!',
       )
 
       // Assert - even with same password, hashes should differ due to salt
@@ -325,7 +335,7 @@ describe('Authentication Login Flow', () => {
         data: {
           email: 'login-test-avatar@test.com',
           name: 'Avatar User',
-          password: await require('bcryptjs').hash('Password123!', 12),
+          password: await hash('Password123!', 12),
           avatar: 'https://example.com/avatar.jpg',
           locale: 'en',
         },
@@ -347,15 +357,15 @@ describe('Authentication Login Flow', () => {
       const user = await createTestUser(
         'login-test-multi-org@test.com',
         'Multi Org User',
-        'Password123!'
+        'Password123!',
       )
 
       const org1 = await prisma.organization.create({
-        data: { name: 'Org 1', slug: 'org-1' },
+        data: { name: 'Org 1', slug: 'login-org-1' },
       })
 
       const org2 = await prisma.organization.create({
-        data: { name: 'Org 2', slug: 'org-2' },
+        data: { name: 'Org 2', slug: 'login-org-2' },
       })
 
       await prisma.userOrgRole.create({
@@ -374,8 +384,8 @@ describe('Authentication Login Flow', () => {
 
       // Assert
       expect(userOrgs).toHaveLength(2)
-      expect(userOrgs.map(o => o.organization.name)).toContain('Org 1')
-      expect(userOrgs.map(o => o.organization.name)).toContain('Org 2')
+      expect(userOrgs.map((o) => o.organization.name)).toContain('Org 1')
+      expect(userOrgs.map((o) => o.organization.name)).toContain('Org 2')
     })
 
     it('should use first organization for JWT token', async () => {
@@ -383,7 +393,7 @@ describe('Authentication Login Flow', () => {
       const user = await createTestUser(
         'login-test-first-org@test.com',
         'First Org User',
-        'Password123!'
+        'Password123!',
       )
 
       const org = await prisma.organization.create({

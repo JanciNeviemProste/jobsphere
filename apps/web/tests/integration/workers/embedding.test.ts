@@ -17,7 +17,9 @@ vi.mock('openai', () => {
         create: vi.fn().mockResolvedValue({
           data: [
             {
-              embedding: Array(1536).fill(0).map(() => Math.random()),
+              embedding: Array(1536)
+                .fill(0)
+                .map(() => Math.random()),
             },
           ],
         }),
@@ -56,7 +58,8 @@ describe('Embedding Worker Integration Tests', () => {
     // Create test job
     testJob = await createTestJob({
       title: 'Senior Software Engineer',
-      description: 'Looking for an experienced software engineer with expertise in Node.js, React, and TypeScript. Must have 5+ years of experience.',
+      description:
+        'Looking for an experienced software engineer with expertise in Node.js, React, and TypeScript. Must have 5+ years of experience.',
       city: 'San Francisco',
     })
 
@@ -71,7 +74,9 @@ describe('Embedding Worker Integration Tests', () => {
     testResume = await prisma.resume.create({
       data: {
         candidateId: testCandidate.id,
-        version: 1,
+        // Resume has no `version` column — it never has. Passing one made every
+        // test in this file fail in beforeEach with a validation error.
+        language: 'en',
       },
     })
   })
@@ -138,7 +143,7 @@ describe('Embedding Worker Integration Tests', () => {
       const job = await embeddingQueue.add(
         'generate-embedding',
         { resumeId: testResume.id },
-        { priority: 2 }
+        { priority: 2 },
       )
 
       // Assert
@@ -183,7 +188,7 @@ describe('Embedding Worker Integration Tests', () => {
           }
           throw new Error('resumeId is required')
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -227,7 +232,7 @@ describe('Embedding Worker Integration Tests', () => {
           }
           throw new Error('resumeId is required')
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -242,7 +247,7 @@ describe('Embedding Worker Integration Tests', () => {
 
     it('should skip sections with no text content', async () => {
       // Arrange - Section with only title, no text
-      const section = await prisma.resumeSection.create({
+      await prisma.resumeSection.create({
         data: {
           resumeId: testResume.id,
           kind: 'CUSTOM',
@@ -266,7 +271,7 @@ describe('Embedding Worker Integration Tests', () => {
           }
           throw new Error('resumeId is required')
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -296,7 +301,7 @@ describe('Embedding Worker Integration Tests', () => {
           }
           throw new Error('jobId is required')
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -323,7 +328,9 @@ describe('Embedding Worker Integration Tests', () => {
       const mockCreate = vi.fn().mockResolvedValue({
         data: [
           {
-            embedding: Array(1536).fill(0).map(() => Math.random()),
+            embedding: Array(1536)
+              .fill(0)
+              .map(() => Math.random()),
           },
         ],
       })
@@ -345,7 +352,7 @@ describe('Embedding Worker Integration Tests', () => {
           }
           throw new Error('jobId is required')
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -373,7 +380,7 @@ describe('Embedding Worker Integration Tests', () => {
             type: 'exponential',
             delay: 2000,
           },
-        }
+        },
       )
 
       // Assert
@@ -388,14 +395,10 @@ describe('Embedding Worker Integration Tests', () => {
       // Arrange
       const OpenAI = (await import('openai')).default
       vi.spyOn(OpenAI.prototype.embeddings, 'create').mockRejectedValue(
-        new Error('OpenAI API rate limit exceeded')
+        new Error('OpenAI API rate limit exceeded'),
       )
 
-      await embeddingQueue.add(
-        'generate-embedding',
-        { resumeId: testResume.id },
-        { attempts: 1 }
-      )
+      await embeddingQueue.add('generate-embedding', { resumeId: testResume.id }, { attempts: 1 })
 
       worker = new Worker<EmbeddingJobData>(
         'embeddings-test',
@@ -407,7 +410,7 @@ describe('Embedding Worker Integration Tests', () => {
           }
           throw new Error('resumeId is required')
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -439,7 +442,7 @@ describe('Embedding Worker Integration Tests', () => {
           }
           return { success: false }
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -471,7 +474,7 @@ describe('Embedding Worker Integration Tests', () => {
           }
           throw new Error('resumeId is required')
         },
-        { connection }
+        { connection },
       )
 
       // Act - Should complete (no sections found is not an error)
@@ -501,7 +504,7 @@ describe('Embedding Worker Integration Tests', () => {
           }
           throw new Error('jobId is required')
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -537,7 +540,7 @@ describe('Embedding Worker Integration Tests', () => {
           }
           throw new Error('jobId is required')
         },
-        { connection }
+        { connection },
       )
 
       // Act - Should complete gracefully
@@ -558,7 +561,7 @@ describe('Embedding Worker Integration Tests', () => {
       // Arrange - Worker with rate limiter
       const rateLimitedWorker = new Worker<EmbeddingJobData>(
         'embeddings-rate-limited',
-        async (job: Job<EmbeddingJobData>) => {
+        async (_job: Job<EmbeddingJobData>) => {
           return { processed: true }
         },
         {
@@ -567,13 +570,12 @@ describe('Embedding Worker Integration Tests', () => {
             max: 50, // Max 50 jobs per minute (OpenAI limit)
             duration: 60000,
           },
-        }
+        },
       )
 
-      const rateLimitedQueue = new Queue<EmbeddingJobData>(
-        'embeddings-rate-limited',
-        { connection }
-      )
+      const rateLimitedQueue = new Queue<EmbeddingJobData>('embeddings-rate-limited', {
+        connection,
+      })
 
       // Act - Add multiple jobs
       await Promise.all([
@@ -604,19 +606,17 @@ describe('Embedding Worker Integration Tests', () => {
 
     it('should have lower concurrency than other workers', async () => {
       // Arrange
-      const WORKER_CONCURRENCY = parseInt(
-        process.env.WORKER_CONCURRENCY || '3'
-      )
+      const WORKER_CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || '3')
 
       const worker = new Worker<EmbeddingJobData>(
         'embeddings-concurrency-test',
-        async (job: Job<EmbeddingJobData>) => {
+        async (_job: Job<EmbeddingJobData>) => {
           return { processed: true }
         },
         {
           connection,
           concurrency: WORKER_CONCURRENCY,
-        }
+        },
       )
 
       // Assert - Embeddings should have lower concurrency (3 vs 5 for other workers)
@@ -673,7 +673,7 @@ describe('Embedding Worker Integration Tests', () => {
           }
           throw new Error('resumeId is required')
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -720,7 +720,7 @@ describe('Embedding Worker Integration Tests', () => {
           }
           throw new Error('resumeId is required')
         },
-        { connection }
+        { connection },
       )
 
       // Act

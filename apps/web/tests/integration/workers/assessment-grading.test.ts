@@ -6,11 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { Queue, Worker, Job } from 'bullmq'
 import IORedis from 'ioredis'
-import {
-  prisma,
-  TEST_IDS,
-  createTestCandidateWithContact,
-} from '../helpers/test-db'
+import { prisma, TEST_IDS, createTestCandidateWithContact } from '../helpers/test-db'
 import type { AssessmentJobData } from '@/lib/queue'
 
 // Mock Anthropic to prevent actual API calls
@@ -50,7 +46,6 @@ describe('Assessment Grading Worker Integration Tests', () => {
   let assessment: any
   let section: any
   let candidate: any
-  let contact: any
   let invite: any
   let attempt: any
 
@@ -77,8 +72,12 @@ describe('Assessment Grading Worker Integration Tests', () => {
         name: 'JavaScript Fundamentals Test',
         orgId: TEST_IDS.org,
         description: 'Test your JavaScript knowledge',
-        duration: 60,
-        status: 'PUBLISHED',
+        // The schema calls these durationMin and isPublished, and createdBy is
+        // required — this create had been failing in beforeEach, which is why
+        // every test in the file went down with it.
+        durationMin: 60,
+        isPublished: true,
+        createdBy: TEST_IDS.recruiter,
       },
     })
 
@@ -96,12 +95,13 @@ describe('Assessment Grading Worker Integration Tests', () => {
       fullName: 'Jane Doe',
     })
     candidate = result.candidate
-    contact = result.contact
 
     invite = await prisma.assessmentInvite.create({
       data: {
         assessmentId: assessment.id,
         candidateId: candidate.id,
+        // token is String @unique with no default — required.
+        token: `test-invite-token-1`,
         status: 'SENT',
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
@@ -154,6 +154,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
       // Arrange
       attempt = await prisma.attempt.create({
         data: {
+          candidateId: candidate.id,
           inviteId: invite.id,
           startedAt: new Date(),
           status: 'SUBMITTED',
@@ -166,7 +167,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
         {
           attemptId: attempt.id,
         },
-        { priority: 1 }
+        { priority: 1 },
       )
 
       // Assert
@@ -182,6 +183,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
       // Arrange
       attempt = await prisma.attempt.create({
         data: {
+          candidateId: candidate.id,
           inviteId: invite.id,
           startedAt: new Date(),
           status: 'SUBMITTED',
@@ -192,7 +194,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
       const job = await assessmentQueue.add(
         'grade-assessment',
         { attemptId: attempt.id },
-        { priority: 1 }
+        { priority: 1 },
       )
 
       // Assert
@@ -217,6 +219,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
 
       attempt = await prisma.attempt.create({
         data: {
+          candidateId: candidate.id,
           inviteId: invite.id,
           startedAt: new Date(),
           status: 'SUBMITTED',
@@ -243,7 +246,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
           )
           return processAssessmentGrading(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -282,6 +285,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
 
       attempt = await prisma.attempt.create({
         data: {
+          candidateId: candidate.id,
           inviteId: invite.id,
           startedAt: new Date(),
           status: 'SUBMITTED',
@@ -308,7 +312,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
           )
           return processAssessmentGrading(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -348,6 +352,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
 
       attempt = await prisma.attempt.create({
         data: {
+          candidateId: candidate.id,
           inviteId: invite.id,
           startedAt: new Date(),
           status: 'SUBMITTED',
@@ -376,7 +381,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
           )
           return processAssessmentGrading(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -427,6 +432,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
 
       attempt = await prisma.attempt.create({
         data: {
+          candidateId: candidate.id,
           inviteId: invite.id,
           startedAt: new Date(),
           status: 'SUBMITTED',
@@ -437,7 +443,9 @@ describe('Assessment Grading Worker Integration Tests', () => {
         data: {
           attemptId: attempt.id,
           questionId: question.id,
-          response: { answer: 'function isPalindrome(s) { return s === s.split("").reverse().join(""); }' },
+          response: {
+            answer: 'function isPalindrome(s) { return s === s.split("").reverse().join(""); }',
+          },
         },
       })
 
@@ -453,7 +461,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
           )
           return processAssessmentGrading(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -484,6 +492,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
 
       attempt = await prisma.attempt.create({
         data: {
+          candidateId: candidate.id,
           inviteId: invite.id,
           startedAt: new Date(),
           status: 'SUBMITTED',
@@ -494,7 +503,9 @@ describe('Assessment Grading Worker Integration Tests', () => {
         data: {
           attemptId: attempt.id,
           questionId: question.id,
-          response: { answer: 'The event loop is a mechanism that handles asynchronous operations...' },
+          response: {
+            answer: 'The event loop is a mechanism that handles asynchronous operations...',
+          },
         },
       })
 
@@ -510,7 +521,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
           )
           return processAssessmentGrading(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -565,6 +576,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
 
       attempt = await prisma.attempt.create({
         data: {
+          candidateId: candidate.id,
           inviteId: invite.id,
           startedAt: new Date(),
           status: 'SUBMITTED',
@@ -603,7 +615,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
           )
           return processAssessmentGrading(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -639,6 +651,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
 
       attempt = await prisma.attempt.create({
         data: {
+          candidateId: candidate.id,
           inviteId: invite.id,
           startedAt: new Date(),
           status: 'SUBMITTED',
@@ -665,7 +678,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
           )
           return processAssessmentGrading(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -679,7 +692,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
           to: 'test-candidate@example.com',
           subject: expect.stringContaining('Assessment Results'),
           html: expect.stringContaining('Jane Doe'),
-        })
+        }),
       )
     })
 
@@ -702,6 +715,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
 
       attempt = await prisma.attempt.create({
         data: {
+          candidateId: candidate.id,
           inviteId: invite.id,
           startedAt: new Date(),
           status: 'SUBMITTED',
@@ -728,7 +742,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
           )
           return processAssessmentGrading(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -748,6 +762,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
       // Arrange
       attempt = await prisma.attempt.create({
         data: {
+          candidateId: candidate.id,
           inviteId: invite.id,
           startedAt: new Date(),
           status: 'SUBMITTED',
@@ -763,7 +778,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
             type: 'exponential',
             delay: 2000,
           },
-        }
+        },
       )
 
       // Assert
@@ -775,7 +790,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
       // Arrange
       const Anthropic = (await import('@anthropic-ai/sdk')).default
       vi.spyOn(Anthropic.prototype.messages, 'create').mockRejectedValue(
-        new Error('Claude API error')
+        new Error('Claude API error'),
       )
 
       const question = await prisma.question.create({
@@ -790,6 +805,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
 
       attempt = await prisma.attempt.create({
         data: {
+          candidateId: candidate.id,
           inviteId: invite.id,
           startedAt: new Date(),
           status: 'SUBMITTED',
@@ -804,11 +820,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
         },
       })
 
-      await assessmentQueue.add(
-        'grade-assessment',
-        { attemptId: attempt.id },
-        { attempts: 1 }
-      )
+      await assessmentQueue.add('grade-assessment', { attemptId: attempt.id }, { attempts: 1 })
 
       worker = new Worker<AssessmentJobData>(
         'assessments-test',
@@ -818,7 +830,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
           )
           return processAssessmentGrading(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act - Worker should still complete (fallback to 0 score with manual review message)
@@ -855,7 +867,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
           )
           return processAssessmentGrading(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -874,6 +886,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
       // Arrange - Attempt with no answers
       attempt = await prisma.attempt.create({
         data: {
+          candidateId: candidate.id,
           inviteId: invite.id,
           startedAt: new Date(),
           status: 'SUBMITTED',
@@ -892,7 +905,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
           )
           return processAssessmentGrading(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -920,6 +933,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
         data: {
           assessmentId: assessment.id,
           candidateId: candidateNoEmail.id,
+          token: 'test-invite-token-no-email',
           status: 'SENT',
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         },
@@ -927,6 +941,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
 
       const attemptNoEmail = await prisma.attempt.create({
         data: {
+          candidateId: candidateNoEmail.id,
           inviteId: inviteNoEmail.id,
           startedAt: new Date(),
           status: 'SUBMITTED',
@@ -965,7 +980,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
           )
           return processAssessmentGrading(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act - Should complete without sending email
@@ -1013,6 +1028,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
 
       attempt = await prisma.attempt.create({
         data: {
+          candidateId: candidate.id,
           inviteId: invite.id,
           startedAt: new Date(),
           status: 'SUBMITTED',
@@ -1046,7 +1062,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
           )
           return processAssessmentGrading(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -1076,6 +1092,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
 
       attempt = await prisma.attempt.create({
         data: {
+          candidateId: candidate.id,
           inviteId: invite.id,
           startedAt: new Date(),
           status: 'SUBMITTED',
@@ -1102,7 +1119,7 @@ describe('Assessment Grading Worker Integration Tests', () => {
           )
           return processAssessmentGrading(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -1123,19 +1140,17 @@ describe('Assessment Grading Worker Integration Tests', () => {
   describe('Concurrency', () => {
     it('should respect worker concurrency settings', async () => {
       // Arrange
-      const WORKER_CONCURRENCY = parseInt(
-        process.env.WORKER_CONCURRENCY || '5'
-      )
+      const WORKER_CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || '5')
 
       const testWorker = new Worker<AssessmentJobData>(
         'assessments-concurrency-test',
-        async (job: Job<AssessmentJobData>) => {
+        async (_job: Job<AssessmentJobData>) => {
           return { processed: true }
         },
         {
           connection,
           concurrency: WORKER_CONCURRENCY,
-        }
+        },
       )
 
       // Assert
