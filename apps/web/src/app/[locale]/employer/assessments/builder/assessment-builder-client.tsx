@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createAssessmentSchema, type CreateAssessmentInput } from '@/schemas/assessment.schema'
@@ -23,6 +24,7 @@ import { toast } from 'sonner'
 
 export default function AssessmentBuilderClient() {
   const router = useRouter()
+  const t = useTranslations('employer')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set([0]))
   // AI draft generation state.
@@ -242,7 +244,7 @@ export default function AssessmentBuilderClient() {
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Vygenerovať AI
+                  {t('generateWithAi')}
                 </>
               )}
             </Button>

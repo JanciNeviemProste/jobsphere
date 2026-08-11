@@ -7,15 +7,19 @@
 import { describe, it, expect } from 'vitest'
 import {
   APPLICATION_STAGES,
-  STAGE_LABELS_SK,
-  STAGE_LABELS_EN,
   STAGE_COLORS,
   ACTIVE_STAGES,
   TERMINAL_STAGES,
   KANBAN_COLUMNS,
-  getStageLabel,
   type ApplicationStage,
 } from '../application-stages'
+import en from '../../../../messages/en.json'
+import de from '../../../../messages/de.json'
+import cs from '../../../../messages/cs.json'
+import sk from '../../../../messages/sk.json'
+import pl from '../../../../messages/pl.json'
+
+const CATALOGS = { en, de, cs, sk, pl } as const
 
 describe('application-stages — 5 canonical stages', () => {
   it('has exactly the 5 canonical stages and no legacy stages', () => {
@@ -24,12 +28,10 @@ describe('application-stages — 5 canonical stages', () => {
     expect(APPLICATION_STAGES).not.toContain('OFFER')
   })
 
-  it('label + color maps cover exactly the 5 stages', () => {
-    for (const map of [STAGE_LABELS_SK, STAGE_LABELS_EN, STAGE_COLORS]) {
-      expect(Object.keys(map).sort()).toEqual([...APPLICATION_STAGES].sort())
-      expect(map).not.toHaveProperty('PHONE_SCREEN')
-      expect(map).not.toHaveProperty('OFFER')
-    }
+  it('the color map covers exactly the 5 stages', () => {
+    expect(Object.keys(STAGE_COLORS).sort()).toEqual([...APPLICATION_STAGES].sort())
+    expect(STAGE_COLORS).not.toHaveProperty('PHONE_SCREEN')
+    expect(STAGE_COLORS).not.toHaveProperty('OFFER')
   })
 
   it('splits stages into active vs terminal', () => {
@@ -44,20 +46,33 @@ describe('application-stages — 5 canonical stages', () => {
     }
   })
 
-  it('uses the client SK labels', () => {
-    expect(STAGE_LABELS_SK).toEqual({
+  // Labels used to live in this module as STAGE_LABELS_SK / STAGE_LABELS_EN,
+  // which meant three screens rendered English and five rendered Slovak with no
+  // regard for the reader's locale. They are message-catalog keys now, so what
+  // this file has to guarantee is that every stage HAS a translation in every
+  // locale — a stronger contract than pinning two hardcoded maps.
+  it('every stage has a translation in all five catalogs', () => {
+    for (const [locale, catalog] of Object.entries(CATALOGS)) {
+      const stages = (catalog as Record<string, any>).employer?.stages
+      expect(stages, `${locale}: employer.stages missing`).toBeDefined()
+      expect(Object.keys(stages).sort(), `${locale}: employer.stages`).toEqual(
+        [...APPLICATION_STAGES].sort(),
+      )
+      for (const stage of APPLICATION_STAGES) {
+        expect(typeof stages[stage], `${locale}.employer.stages.${stage}`).toBe('string')
+        expect(stages[stage].trim(), `${locale}.employer.stages.${stage} is blank`).not.toBe('')
+      }
+    }
+  })
+
+  it('the Slovak stage labels still read the way the client specified', () => {
+    expect((sk as Record<string, any>).employer.stages).toEqual({
       NEW: 'Noví záujemcovia',
       SCREENING: 'Posudzovanie',
       INTERVIEW: 'Pozvaný na pohovor',
       HIRED: 'Prijatý',
       REJECTED: 'Odmietnutý',
     })
-  })
-
-  it('getStageLabel resolves SK/EN and falls back to the raw value', () => {
-    expect(getStageLabel('INTERVIEW', 'sk')).toBe('Pozvaný na pohovor')
-    expect(getStageLabel('INTERVIEW', 'en')).toBe('Interview')
-    expect(getStageLabel('UNKNOWN_STAGE')).toBe('UNKNOWN_STAGE')
   })
 })
 
@@ -86,5 +101,16 @@ describe('KANBAN_COLUMNS — 4 columns', () => {
     // No legacy stages leaked into a column.
     expect(seen.has('PHONE_SCREEN')).toBe(false)
     expect(seen.has('OFFER')).toBe(false)
+  })
+
+  // `key` doubles as the translation key, so a renamed column silently loses its
+  // heading unless the catalogs move with it.
+  it('every column key has a translation in all five catalogs', () => {
+    const keys = KANBAN_COLUMNS.map((c) => c.key).sort()
+    for (const [locale, catalog] of Object.entries(CATALOGS)) {
+      const columns = (catalog as Record<string, any>).employer?.kanbanColumns
+      expect(columns, `${locale}: employer.kanbanColumns missing`).toBeDefined()
+      expect(Object.keys(columns).sort(), `${locale}: employer.kanbanColumns`).toEqual(keys)
+    }
   })
 })

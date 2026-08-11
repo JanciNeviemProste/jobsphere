@@ -47,7 +47,13 @@ function icuArgs(value) {
 function loadCatalogs() {
   let files
   try {
-    files = readdirSync(MESSAGES_DIR).filter((f) => f.endsWith('.json'))
+    // Underscore-prefixed files are working fragments, not locale catalogs.
+    // Large i18n migrations are split across parallel workers that each write
+    // `_fragment-<area>.json` (all five locales in one file) instead of editing
+    // the shared catalogs concurrently; those get merged in and deleted. Without
+    // this filter the fragment is compared against `en` as if it were a locale
+    // and the check fails with thousands of bogus "missing key" lines.
+    files = readdirSync(MESSAGES_DIR).filter((f) => f.endsWith('.json') && !f.startsWith('_'))
   } catch (error) {
     console.error(`i18n-parity: cannot read ${MESSAGES_DIR}\n  ${error.message}`)
     process.exit(1)

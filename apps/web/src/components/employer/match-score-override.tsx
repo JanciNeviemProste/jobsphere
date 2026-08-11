@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { Pencil, Check, X, Loader2 } from 'lucide-react'
 
@@ -22,6 +23,7 @@ function badgeColor(score: number): string {
  * Editing PATCHes /api/applications/{id}/match-score; clearing sends null.
  */
 export function MatchScoreOverride({ applicationId, score0to100, overrideScore }: Props) {
+  const t = useTranslations('employer.matchOverride')
   const [override, setOverride] = useState<number | null>(overrideScore ?? null)
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState<string>(String(overrideScore ?? score0to100))
@@ -43,9 +45,9 @@ export function MatchScoreOverride({ applicationId, score0to100, overrideScore }
       setOverride(nextOverride)
       setValue(String(nextOverride ?? score0to100))
       setEditing(false)
-      toast.success(next === null ? 'Úprava HR zrušená' : 'Skóre upravené')
+      toast.success(next === null ? t('overrideCleared') : t('overrideSaved'))
     } catch {
-      toast.error('Nepodarilo sa uložiť skóre')
+      toast.error(t('saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -54,7 +56,7 @@ export function MatchScoreOverride({ applicationId, score0to100, overrideScore }
   const handleSave = () => {
     const n = parseInt(value, 10)
     if (Number.isNaN(n) || n < 0 || n > 100) {
-      toast.error('Zadajte číslo 0 – 100')
+      toast.error(t('invalidValue'))
       return
     }
     save(n)
@@ -71,7 +73,7 @@ export function MatchScoreOverride({ applicationId, score0to100, overrideScore }
           onChange={(e) => setValue(e.target.value)}
           className="w-16 rounded-md border px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           disabled={saving}
-          aria-label="Skóre zhody (0 – 100)"
+          aria-label={t('inputAriaLabel')}
         />
         <span className="text-sm text-muted-foreground">%</span>
         <button
@@ -79,7 +81,7 @@ export function MatchScoreOverride({ applicationId, score0to100, overrideScore }
           onClick={handleSave}
           disabled={saving}
           className="rounded-md p-1 text-green-700 hover:bg-green-50"
-          aria-label="Uložiť"
+          aria-label={t('save')}
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
         </button>
@@ -91,7 +93,7 @@ export function MatchScoreOverride({ applicationId, score0to100, overrideScore }
           }}
           disabled={saving}
           className="rounded-md p-1 text-muted-foreground hover:bg-muted"
-          aria-label="Zrušiť úpravu"
+          aria-label={t('cancelEdit')}
         >
           <X className="h-4 w-4" />
         </button>
@@ -105,7 +107,7 @@ export function MatchScoreOverride({ applicationId, score0to100, overrideScore }
         <span
           className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${badgeColor(display)}`}
         >
-          {display}% zhoda
+          {t('matchBadge', { score: display })}
         </span>
         <button
           type="button"
@@ -114,22 +116,22 @@ export function MatchScoreOverride({ applicationId, score0to100, overrideScore }
             setEditing(true)
           }}
           className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-          title="Upraviť skóre (HR)"
-          aria-label="Upraviť skóre"
+          title={t('editTitle')}
+          aria-label={t('editAriaLabel')}
         >
           <Pencil className="h-3.5 w-3.5" />
         </button>
       </div>
       {override !== null && (
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <span className="rounded bg-muted px-1.5 py-0.5 font-medium">upravené HR</span>
+          <span className="rounded bg-muted px-1.5 py-0.5 font-medium">{t('overriddenBadge')}</span>
           <button
             type="button"
             onClick={() => save(null)}
             disabled={saving}
             className="underline hover:text-foreground"
           >
-            zrušiť
+            {t('clear')}
           </button>
         </div>
       )}
