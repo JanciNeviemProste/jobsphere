@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { UnauthorizedError } from '@/lib/api-helpers'
 import { POST } from '@/app/api/jobs/route'
 import {
   createTestRequest,
@@ -28,7 +29,10 @@ vi.mock('@/lib/auth', async (importOriginal) => ({
   requireAuth: vi.fn(async () => {
     const session = await mockAuthFn()
     if (!session?.user?.id) {
-      throw new Error('You must be logged in to access this resource')
+      // UnauthorizedError, not a bare Error: handleApiError maps the former to
+      // 401 and everything else to 500. With the module previously mocked away
+      // wholesale this never got far enough to matter; now it does.
+      throw new UnauthorizedError()
     }
     return session
   }),
