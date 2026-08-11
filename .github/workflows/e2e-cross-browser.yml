@@ -1,8 +1,12 @@
 name: E2E Cross-Browser Tests
 
+# Not on every pull request. This workflow fans out to 19 sharded jobs with a
+# 60-minute timeout each; paying that on every push to a PR branch buys little,
+# because a cross-browser rendering difference is rarely what a PR breaks. The
+# chromium smoke run in ci.yml gates PRs; this gates main.
+# Use workflow_dispatch to run it against a branch before merging something
+# browser-sensitive (CSS, layout, media queries, date/number formatting).
 on:
-  pull_request:
-    branches: [main, develop]
   push:
     branches: [main]
   workflow_dispatch: # Allow manual trigger
@@ -22,8 +26,8 @@ jobs:
       matrix:
         # `browser` is the `playwright install` target ("edge" is not a valid
         # install target — the channel is called "msedge"); `project` is the
-        # matching project name in apps/web/playwright.config.ts, which still
-        # calls the msedge project "edge". `install` always includes chromium
+        # matching project name in apps/web/playwright.cross-browser.config.ts,
+        # which still calls the msedge project "edge". `install` always includes chromium
         # because tests/setup/global-setup.ts launches chromium for auth state,
         # so every shard needs it regardless of the browser under test.
         browser: [chromium, firefox, webkit, msedge]
@@ -97,41 +101,41 @@ jobs:
           cd apps/web
           yarn db:push
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
 
       - name: Build application
         run: |
           cd apps/web
           yarn build
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
-          NEXTAUTH_SECRET: "test-secret-at-least-32-characters-long"
-          NEXTAUTH_URL: "http://localhost:3000"
-          REDIS_URL: "redis://localhost:6379"
-          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
-          NEXT_PUBLIC_API_URL: "http://localhost:3000/api"
-          ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-          OPENROUTER_API_KEY: "test-key"
-          ANTHROPIC_API_KEY: "test-key"
-          OPENAI_API_KEY: "test-key"
-          SKIP_ENV_VALIDATION: "true"
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
+          NEXTAUTH_SECRET: 'test-secret-at-least-32-characters-long'
+          NEXTAUTH_URL: 'http://localhost:3000'
+          REDIS_URL: 'redis://localhost:6379'
+          NEXT_PUBLIC_APP_URL: 'http://localhost:3000'
+          NEXT_PUBLIC_API_URL: 'http://localhost:3000/api'
+          ENCRYPTION_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+          OPENROUTER_API_KEY: 'test-key'
+          ANTHROPIC_API_KEY: 'test-key'
+          OPENAI_API_KEY: 'test-key'
+          SKIP_ENV_VALIDATION: 'true'
 
       - name: Run E2E tests
         run: |
           cd apps/web
-          npx playwright test --project=${{ matrix.project }} --shard=${{ matrix.shard }}
+          npx playwright test --config=playwright.cross-browser.config.ts --project=${{ matrix.project }} --shard=${{ matrix.shard }}
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
-          NEXTAUTH_SECRET: "test-secret-at-least-32-characters-long"
-          NEXTAUTH_URL: "http://localhost:3000"
-          REDIS_URL: "redis://localhost:6379"
-          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
-          NEXT_PUBLIC_API_URL: "http://localhost:3000/api"
-          ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-          OPENROUTER_API_KEY: "test-key"
-          ANTHROPIC_API_KEY: "test-key"
-          OPENAI_API_KEY: "test-key"
-          CI: "true"
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
+          NEXTAUTH_SECRET: 'test-secret-at-least-32-characters-long'
+          NEXTAUTH_URL: 'http://localhost:3000'
+          REDIS_URL: 'redis://localhost:6379'
+          NEXT_PUBLIC_APP_URL: 'http://localhost:3000'
+          NEXT_PUBLIC_API_URL: 'http://localhost:3000/api'
+          ENCRYPTION_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+          OPENROUTER_API_KEY: 'test-key'
+          ANTHROPIC_API_KEY: 'test-key'
+          OPENAI_API_KEY: 'test-key'
+          CI: 'true'
 
       - name: Upload test results
         if: always()
@@ -235,41 +239,41 @@ jobs:
           cd apps/web
           yarn db:push
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
 
       - name: Build application
         run: |
           cd apps/web
           yarn build
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
-          NEXTAUTH_SECRET: "test-secret-at-least-32-characters-long"
-          NEXTAUTH_URL: "http://localhost:3000"
-          REDIS_URL: "redis://localhost:6379"
-          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
-          NEXT_PUBLIC_API_URL: "http://localhost:3000/api"
-          ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-          OPENROUTER_API_KEY: "test-key"
-          ANTHROPIC_API_KEY: "test-key"
-          OPENAI_API_KEY: "test-key"
-          SKIP_ENV_VALIDATION: "true"
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
+          NEXTAUTH_SECRET: 'test-secret-at-least-32-characters-long'
+          NEXTAUTH_URL: 'http://localhost:3000'
+          REDIS_URL: 'redis://localhost:6379'
+          NEXT_PUBLIC_APP_URL: 'http://localhost:3000'
+          NEXT_PUBLIC_API_URL: 'http://localhost:3000/api'
+          ENCRYPTION_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+          OPENROUTER_API_KEY: 'test-key'
+          ANTHROPIC_API_KEY: 'test-key'
+          OPENAI_API_KEY: 'test-key'
+          SKIP_ENV_VALIDATION: 'true'
 
       - name: Run E2E tests on ${{ matrix.device }}
         run: |
           cd apps/web
-          npx playwright test --project="${{ matrix.device }}"
+          npx playwright test --config=playwright.cross-browser.config.ts --project="${{ matrix.device }}"
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
-          NEXTAUTH_SECRET: "test-secret-at-least-32-characters-long"
-          NEXTAUTH_URL: "http://localhost:3000"
-          REDIS_URL: "redis://localhost:6379"
-          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
-          NEXT_PUBLIC_API_URL: "http://localhost:3000/api"
-          ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-          OPENROUTER_API_KEY: "test-key"
-          ANTHROPIC_API_KEY: "test-key"
-          OPENAI_API_KEY: "test-key"
-          CI: "true"
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
+          NEXTAUTH_SECRET: 'test-secret-at-least-32-characters-long'
+          NEXTAUTH_URL: 'http://localhost:3000'
+          REDIS_URL: 'redis://localhost:6379'
+          NEXT_PUBLIC_APP_URL: 'http://localhost:3000'
+          NEXT_PUBLIC_API_URL: 'http://localhost:3000/api'
+          ENCRYPTION_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+          OPENROUTER_API_KEY: 'test-key'
+          ANTHROPIC_API_KEY: 'test-key'
+          OPENAI_API_KEY: 'test-key'
+          CI: 'true'
 
       - name: Upload test results
         if: always()
@@ -364,41 +368,41 @@ jobs:
           cd apps/web
           yarn db:push
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
 
       - name: Build application
         run: |
           cd apps/web
           yarn build
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
-          NEXTAUTH_SECRET: "test-secret-at-least-32-characters-long"
-          NEXTAUTH_URL: "http://localhost:3000"
-          REDIS_URL: "redis://localhost:6379"
-          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
-          NEXT_PUBLIC_API_URL: "http://localhost:3000/api"
-          ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-          OPENROUTER_API_KEY: "test-key"
-          ANTHROPIC_API_KEY: "test-key"
-          OPENAI_API_KEY: "test-key"
-          SKIP_ENV_VALIDATION: "true"
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
+          NEXTAUTH_SECRET: 'test-secret-at-least-32-characters-long'
+          NEXTAUTH_URL: 'http://localhost:3000'
+          REDIS_URL: 'redis://localhost:6379'
+          NEXT_PUBLIC_APP_URL: 'http://localhost:3000'
+          NEXT_PUBLIC_API_URL: 'http://localhost:3000/api'
+          ENCRYPTION_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+          OPENROUTER_API_KEY: 'test-key'
+          ANTHROPIC_API_KEY: 'test-key'
+          OPENAI_API_KEY: 'test-key'
+          SKIP_ENV_VALIDATION: 'true'
 
       - name: Run E2E tests on ${{ matrix.device }}
         run: |
           cd apps/web
-          npx playwright test --project="${{ matrix.device }}"
+          npx playwright test --config=playwright.cross-browser.config.ts --project="${{ matrix.device }}"
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/jobsphere_test"
-          NEXTAUTH_SECRET: "test-secret-at-least-32-characters-long"
-          NEXTAUTH_URL: "http://localhost:3000"
-          REDIS_URL: "redis://localhost:6379"
-          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
-          NEXT_PUBLIC_API_URL: "http://localhost:3000/api"
-          ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-          OPENROUTER_API_KEY: "test-key"
-          ANTHROPIC_API_KEY: "test-key"
-          OPENAI_API_KEY: "test-key"
-          CI: "true"
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jobsphere_test'
+          NEXTAUTH_SECRET: 'test-secret-at-least-32-characters-long'
+          NEXTAUTH_URL: 'http://localhost:3000'
+          REDIS_URL: 'redis://localhost:6379'
+          NEXT_PUBLIC_APP_URL: 'http://localhost:3000'
+          NEXT_PUBLIC_API_URL: 'http://localhost:3000/api'
+          ENCRYPTION_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+          OPENROUTER_API_KEY: 'test-key'
+          ANTHROPIC_API_KEY: 'test-key'
+          OPENAI_API_KEY: 'test-key'
+          CI: 'true'
 
       - name: Upload test results
         if: always()

@@ -13,6 +13,8 @@ import {
   Settings,
   LogOut,
   Shield,
+  ScrollText,
+  FileWarning,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -39,6 +41,10 @@ function adminNavItems(locale: string): NavItem[] {
     { labelKey: 'organizations', href: `/${locale}/admin/organizations`, icon: Building2 },
     { labelKey: 'jobs', href: `/${locale}/admin/jobs`, icon: Briefcase },
     { labelKey: 'subscriptions', href: `/${locale}/admin/subscriptions`, icon: CreditCard },
+    // Both of these had routes and no way to reach them: the DSAR endpoint could
+    // only be driven by hand-crafted HTTP, and queryAuditLogs() had no caller.
+    { labelKey: 'gdpr', href: `/${locale}/admin/gdpr`, icon: FileWarning },
+    { labelKey: 'audit', href: `/${locale}/admin/audit`, icon: ScrollText },
     { labelKey: 'settings', href: `/${locale}/admin/settings`, icon: Settings },
   ]
 }

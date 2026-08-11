@@ -13,6 +13,13 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { z } from 'zod'
+import { createAuditLog, getRequestMetadata } from '@/lib/audit-log'
+
+const processSchema = z.object({
+  action: z.enum(['EXECUTE_DELETE', 'MARK_COMPLETED', 'REJECT']),
+  rejectionReason: z.string().max(2000).optional(),
+})
 import { GdprService } from '@/services/gdpr.service'
 import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
@@ -42,7 +49,11 @@ export const POST = withCsrfProtection(
       if (authResult instanceof NextResponse) return authResult
 
       try {
-        const { action, rejectionReason } = await req.json()
+        // Was a bare destructure of raw JSON: an unparseable body threw into the
+        // 500 branch and a wrong-typed `rejectionReason` went straight to the
+        // database. This route can hard-erase a person's data — it should be the
+        // strictest input on the admin surface, not the loosest.
+        const { action, rejectionReason } = processSchema.parse(await req.json())
 
         const dsar = await prisma.dSARRequest.findUnique({ where: { id: params.id } })
         if (!dsar) {
@@ -81,6 +92,22 @@ export const POST = withCsrfProtection(
             },
           })
 
+          await createAuditLog({
+            userId: authResult.user.id,
+            action: 'DSAR_PROCESSED',
+            resource: 'DSAR',
+            resourceId: dsar.id,
+            previous: { status: dsar.status },
+            metadata: {
+              action: 'EXECUTE_DELETE',
+              subjectUserId: dsar.userId,
+              // Spread into a plain object: EraseUserResult is an interface
+              // without an index signature, so Prisma's InputJsonValue rejects it.
+              ...result,
+            },
+            ...getRequestMetadata(req),
+          })
+
           logger.info('Admin: executed DSAR erasure', {
             adminId: authResult.user.id,
             requestId: dsar.id,
@@ -94,6 +121,23 @@ export const POST = withCsrfProtection(
             where: { id: dsar.id },
             data: { status: 'COMPLETED', completedAt: new Date() },
           })
+
+          // Neither this branch nor REJECT logged anything at all — the two ways
+          // to close a statutory request without acting on it left no trace.
+          logger.info('Admin: marked DSAR completed', {
+            adminId: authResult.user.id,
+            requestId: dsar.id,
+          })
+          await createAuditLog({
+            userId: authResult.user.id,
+            action: 'DSAR_PROCESSED',
+            resource: 'DSAR',
+            resourceId: dsar.id,
+            previous: { status: dsar.status },
+            metadata: { action: 'MARK_COMPLETED' },
+            ...getRequestMetadata(req),
+          })
+
           return NextResponse.json({ success: true, request: updated })
         }
 
@@ -106,11 +150,32 @@ export const POST = withCsrfProtection(
               rejectionReason: rejectionReason || 'Rejected by administrator',
             },
           })
+
+          logger.info('Admin: rejected DSAR', {
+            adminId: authResult.user.id,
+            requestId: dsar.id,
+          })
+          await createAuditLog({
+            userId: authResult.user.id,
+            action: 'DSAR_PROCESSED',
+            resource: 'DSAR',
+            resourceId: dsar.id,
+            previous: { status: dsar.status },
+            metadata: { action: 'REJECT', rejectionReason: rejectionReason ?? null },
+            ...getRequestMetadata(req),
+          })
+
           return NextResponse.json({ success: true, request: updated })
         }
 
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
       } catch (error) {
+        if (error instanceof z.ZodError) {
+          return NextResponse.json(
+            { error: 'Invalid request', issues: error.issues },
+            { status: 400 },
+          )
+        }
         logger.error('Admin DSAR processing failed', error)
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
       }
@@ -123,7 +188,11 @@ export const POST = withCsrfProtection(
  * GET /api/admin/gdpr/dsar/[id]
  * Returns a single DSAR request for admin inspection.
  */
-export const GET = async (_req: Request, { params }: { params: { id: string } }) => {
+const getDsarRequest = async (_req: Request, context?: { params?: Record<string, string> }) => {
+  const params = context?.params as { id: string }
+  if (!params?.id) {
+    return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 })
+  }
   const authResult = await requireGlobalAdmin()
   if (authResult instanceof NextResponse) return authResult
 
@@ -138,3 +207,7 @@ export const GET = async (_req: Request, { params }: { params: { id: string } })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+
+// Rate limiting was missing on this handler until the route wrapper contract
+// test (tests/security/route-wrapper-contract.test.ts) enumerated the API surface.
+export const GET = withRateLimit(getDsarRequest, { preset: 'api', byUser: true })

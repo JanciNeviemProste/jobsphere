@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { createAuditLog, getRequestMetadata } from '@/lib/audit-log'
 import { handleApiError } from '@/lib/errors'
 import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
@@ -17,7 +18,7 @@ async function requireGlobalAdmin() {
   return session
 }
 
-export async function GET() {
+async function getSettings() {
   try {
     const session = await requireGlobalAdmin()
     if (!session) {
@@ -71,6 +72,15 @@ export const PATCH = withCsrfProtection(
             create: { key: parsed.key, value: parsed.value },
           })
           logger.info(`Admin upsert setting ${parsed.key} by ${session.user.id}`)
+
+          await createAuditLog({
+            userId: session.user.id,
+            action: 'UPDATE',
+            resource: 'SETTING',
+            resourceId: parsed.key,
+            metadata: { value: parsed.value },
+            ...getRequestMetadata(req),
+          })
           return NextResponse.json({ setting: result })
         }
 
@@ -84,6 +94,16 @@ export const PATCH = withCsrfProtection(
           data: { enabled: parsed.value },
         })
         logger.info(`Admin toggle flag ${parsed.key}=${parsed.value} by ${session.user.id}`)
+
+        await createAuditLog({
+          userId: session.user.id,
+          action: 'UPDATE',
+          resource: 'FEATURE_FLAG',
+          resourceId: parsed.key,
+          previous: { enabled: !parsed.value },
+          metadata: { enabled: parsed.value },
+          ...getRequestMetadata(req),
+        })
         return NextResponse.json({ flag: result })
       } catch (error) {
         logger.error('Admin PATCH /settings error:', error)
@@ -93,3 +113,7 @@ export const PATCH = withCsrfProtection(
     { preset: 'api' },
   ),
 )
+
+// Rate limiting was missing on this handler until the route wrapper contract
+// test (tests/security/route-wrapper-contract.test.ts) enumerated the API surface.
+export const GET = withRateLimit(getSettings, { preset: 'api', byUser: true })

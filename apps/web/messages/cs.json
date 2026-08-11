@@ -646,6 +646,19 @@
       "INTERVIEW": "Pozván na pohovor",
       "SCREENING": "Posuzování",
       "RESULT": "Přijat / Odmítnut"
+    },
+    "assessments": {
+      "title": "Testy",
+      "subtitle": "Testy dovedností, které posíláš kandidátům",
+      "create": "Nový test",
+      "published": "Publikovaný",
+      "draft": "Koncept",
+      "emptyTitle": "Zatím žádné testy",
+      "emptyDescription": "Vytvoř test dovedností a pošli ho kandidátovi z přihlášky.",
+      "viewResults": "Zobrazit výsledky",
+      "sectionCount": "{count, plural, =0 {žádné sekce} one {# sekce} few {# sekce} other {# sekcí}}",
+      "inviteCount": "{count, plural, =0 {zatím neodeslaný} one {# pozvánka} few {# pozvánky} other {# pozvánek}}",
+      "duration": "{minutes} min"
     }
   },
   "common": {
@@ -1281,6 +1294,8 @@
       "organizations": "Organizace",
       "jobs": "Nabídky",
       "subscriptions": "Předplatná",
+      "gdpr": "GDPR žádosti",
+      "audit": "Audit log",
       "settings": "Nastavení",
       "logout": "Odhlásit se"
     },

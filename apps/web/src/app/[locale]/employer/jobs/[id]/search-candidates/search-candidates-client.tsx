@@ -51,6 +51,46 @@ export default function SearchCandidatesClient({
   const [limit, setLimit] = useState(10)
   const [minSimilarity, setMinSimilarity] = useState(0.5)
 
+  // Published assessments, for the "Send assessment" action. Loaded once; an
+  // empty list is why that button renders disabled rather than absent.
+  const [assessments, setAssessments] = useState<{ id: string; name: string }[]>([])
+  const [invitingCandidateId, setInvitingCandidateId] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/assessments')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.assessments) {
+          setAssessments(
+            data.assessments.map((a: { id: string; name: string }) => ({ id: a.id, name: a.name })),
+          )
+        }
+      })
+      .catch(() => {
+        // Non-fatal: the search results are still useful without this action.
+      })
+  }, [])
+
+  const sendAssessment = async (candidateId: string, assessmentId: string) => {
+    setInvitingCandidateId(candidateId)
+    try {
+      const response = await fetch(`/api/assessments/${assessmentId}/invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candidateId, jobId: params.id }),
+      })
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || 'Failed to send assessment')
+      }
+      toast.success('Assessment sent')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to send assessment')
+    } finally {
+      setInvitingCandidateId(null)
+    }
+  }
+
   // Load job title on mount
   useEffect(() => {
     const loadJob = async () => {
@@ -293,17 +333,50 @@ export default function SearchCandidatesClient({
                       )}
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button variant="default" size="sm">
-                        View Profile
+                    {/* All three of these used to be decoration — rendered, styled,
+                        and with no onClick. A button that does nothing is worse
+                        than a missing one: it reads as a broken product. */}
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="default" size="sm" asChild>
+                        <Link href={`/${params.locale}/candidates/${match.candidateId}`}>
+                          View Profile
+                        </Link>
                       </Button>
-                      <Button variant="outline" size="sm">
-                        <Mail className="mr-1 h-4 w-4" />
-                        Contact
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        Send Assessment
-                      </Button>
+                      {match.contact?.email && (
+                        <Button variant="outline" size="sm" asChild>
+                          {/* These candidates have not applied, so there is no
+                              application thread to send from — mailto is the honest
+                              wiring rather than a dialog that cannot deliver. */}
+                          <a
+                            href={`mailto:${match.contact.email}?subject=${encodeURIComponent(jobTitle)}`}
+                          >
+                            <Mail className="mr-1 h-4 w-4" />
+                            Contact
+                          </a>
+                        </Button>
+                      )}
+                      {assessments.length > 0 && (
+                        <select
+                          className="h-8 rounded-md border bg-background px-2 text-sm"
+                          value=""
+                          disabled={invitingCandidateId === match.candidateId}
+                          onChange={(e) => {
+                            if (e.target.value) sendAssessment(match.candidateId, e.target.value)
+                          }}
+                          aria-label={`Send an assessment to ${match.contact?.fullName || 'this candidate'}`}
+                        >
+                          <option value="">
+                            {invitingCandidateId === match.candidateId
+                              ? 'Sending…'
+                              : 'Send assessment…'}
+                          </option>
+                          {assessments.map((a) => (
+                            <option key={a.id} value={a.id}>
+                              {a.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

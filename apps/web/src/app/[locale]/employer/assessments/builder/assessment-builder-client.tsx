@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -24,6 +24,8 @@ import { toast } from 'sonner'
 
 export default function AssessmentBuilderClient() {
   const router = useRouter()
+  const params = useParams()
+  const locale = (params?.locale as string) || 'en'
   const t = useTranslations('employer')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set([0]))
@@ -133,7 +135,11 @@ export default function AssessmentBuilderClient() {
         description: `Created assessment with ${result.assessment.sections.length} sections`,
       })
 
-      router.push(`/employer/assessments/${result.assessment.id}`)
+      // Was `/employer/assessments/${result.assessment.id}` — wrong twice over:
+      // that page does not exist (only `[id]/results` does), and the missing
+      // locale prefix threw the user out of the `[locale]` segment. Saving an
+      // assessment therefore ended on a 404 even though it had been created.
+      router.push(`/${locale}/employer/assessments/${result.assessment.id}/results`)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create assessment'
       toast.error('Error', { description: message })

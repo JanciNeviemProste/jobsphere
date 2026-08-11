@@ -36,16 +36,42 @@ export default defineConfig({
       // meaningless (and the 80% threshold below it unreachable by design).
       include: ['src/**/*.{ts,tsx}'],
       exclude: [...coverageConfigDefaults.exclude, 'src/**/types.ts'],
-      // Ratchet, not aspiration. These are the values actually measured on
-      // 2026-07-29 (lines 19.81 / branches 58.69 / functions 36.95), rounded
-      // down. The previous 80/75 numbers were never met by any run — a gate
+      // Ratchet, not aspiration. These track values actually measured, rounded
+      // down. The original 80/75 numbers were never met by any run — a gate
       // that always fails gates nothing, which is why CI had to be bypassed.
       // Raise these as coverage improves; never lower them to green a build.
+      //
+      //   2026-07-29  lines 19.81  branches 58.69  functions 36.95
+      //   2026-08-09  lines 21.43  branches 60.01  functions 38.62  (+ server actions,
+      //               route/server-action contract tests)
+      //   2026-08-10  all-files 23.65 / 62.17 / 40.40  (+ stripe portal, GDPR export
+      //               and DSAR, password-reset lifecycle). The global figures below
+      //               are set a point under the derived value rather than on it —
+      //               vitest only prints the true global number when it FAILS, so
+      //               the exact figure is unknown while the gate is green.
+      //
+      // The global numbers are a floor against regression, not a real gate: with
+      // 76 API routes in the tree, an untested one is easily offset by covering a
+      // formatting helper. The per-glob entries below are the actual gate — they
+      // put the requirement where the risk is (money, tenant boundary, GDPR,
+      // and the soft-delete middleware every read depends on).
+      //
+      // Note when adding a glob: vitest EXCLUDES files matching a per-glob entry
+      // from the global calculation and checks them only against their own
+      // numbers. Adding `src/lib/actions/**` therefore lowered the global figures
+      // (22.00 -> 21.43 lines) even though nothing about the tests changed. Always
+      // re-measure after adding a glob rather than reusing the previous run's value.
       thresholds: {
-        lines: 19,
-        functions: 36,
-        branches: 58,
-        statements: 19,
+        lines: 22,
+        functions: 39,
+        branches: 61,
+        statements: 22,
+        'src/lib/actions/**': {
+          lines: 90,
+          functions: 100,
+          branches: 80,
+          statements: 90,
+        },
       },
     },
     globals: true,

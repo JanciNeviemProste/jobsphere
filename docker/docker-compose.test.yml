@@ -1,0 +1,76 @@
+# Disposable Postgres for the integration suite.
+#
+# Deliberately separate from docker-compose.yml rather than an extra service in
+# it. Three reasons:
+#
+#   1. Port 5433, so it cannot collide with a dev stack already on 5432 — and,
+#      more importantly, so a stale DATABASE_URL pointing at the dev database
+#      cannot silently reach this one.
+#   2. tmpfs storage instead of a named volume. The integration suite truncates
+#      and re-seeds constantly; its data has no reason to survive a restart, and
+#      making it impossible to persist removes a whole class of "leftover row
+#      from a previous run" mysteries.
+#   3. docker/init-db.sql is NOT mounted here. That script is not runnable:
+#      `CREATE EXTENSION "pgvector"` names an extension that does not exist (the
+#      extension is `vector`), and it goes on to create indexes on snake_case
+#      tables that Prisma never creates — the schema has no @@map, so the real
+#      tables are "Job", "Application". Extensions are created by the migrations
+#      themselves (see 20250114_complete_schema/migration.sql), so
+#      `prisma migrate deploy` is self-sufficient.
+#
+# Usage:
+#   yarn test:db:up
+#   yarn --cwd apps/web prisma migrate deploy --schema ../../packages/db/prisma/schema.prisma
+#   yarn --cwd apps/web test:integration:run
+#
+# The suite refuses to start unless DATABASE_URL points at a local *_test
+# database — see apps/web/tests/integration/helpers/assert-test-database.ts.
+#
+# For `yarn check:drift` you also need a scratch database that Prisma is allowed
+# to wipe, which this container can host:
+#   docker exec jobsphere-postgres-test createdb -U postgres prisma_shadow
+#   $env:SHADOW_DATABASE_URL = "postgresql://postgres:postgres@localhost:5433/prisma_shadow"
+
+services:
+  postgres-test:
+    # Same extension set the migrations expect: vector, pg_trgm, btree_gin, uuid-ossp.
+    image: pgvector/pgvector:pg16
+    container_name: jobsphere-postgres-test
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: jobsphere_test
+    ports:
+      # Host 5433 -> container 5432.
+      - '5433:5432'
+    tmpfs:
+      # Nothing here is worth keeping; this also makes the container start clean
+      # every time without a separate `docker volume rm` step.
+      - /var/lib/postgresql/data
+    command:
+      # fsync off is safe for a throwaway database and noticeably faster for a
+      # suite that re-seeds on every file.
+      - postgres
+      - -c
+      - fsync=off
+      - -c
+      - synchronous_commit=off
+      - -c
+      - full_page_writes=off
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d jobsphere_test']
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  redis-test:
+    image: redis:7-alpine
+    container_name: jobsphere-redis-test
+    ports:
+      # 6380, for the same collision reason as Postgres above.
+      - '6380:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      timeout: 5s
+      retries: 15

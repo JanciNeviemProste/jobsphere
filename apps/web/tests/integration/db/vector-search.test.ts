@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
-import { getPrismaClient, seedTestData, cleanupDynamicData, cleanupAllTestData, disconnectDb, TEST_IDS, createTestJob, createTestCandidate } from '../helpers/test-db'
+import { describe, it, expect } from 'vitest'
+import { getPrismaClient, TEST_IDS, createTestJob, createTestCandidate } from '../helpers/test-db'
 
 /**
  * Vector Search Integration Tests
@@ -9,25 +9,22 @@ import { getPrismaClient, seedTestData, cleanupDynamicData, cleanupAllTestData, 
 const prisma = getPrismaClient()
 
 describe('Vector Search (pgvector)', () => {
-  beforeAll(async () => {
-    await seedTestData()
-  })
-
-  beforeEach(async () => {
-    await cleanupDynamicData()
-  })
-
-  afterAll(async () => {
-    await cleanupAllTestData()
-    await disconnectDb()
-  })
+  // Seeding, per-test cleanup and teardown are all handled globally in
+  // tests/integration/setup.ts. This file used to repeat them, and its afterAll
+  // called cleanupAllTestData() + disconnectDb() — deleting the shared fixture
+  // organisation and closing the client while other files were still using them.
+  // With fileParallelism now off that is no longer destructive, but duplicating
+  // the lifecycle here would still disconnect the client mid-run for every file
+  // scheduled after this one.
 
   describe('Vector Storage', () => {
     it('should store job embedding as vector', async () => {
       // Create a mock embedding (1536 dimensions for OpenAI embeddings)
       const embedding = Array.from({ length: 1536 }, () => Math.random())
 
-      const job = await prisma.$executeRaw`
+      // $executeRaw returns an affected-row count, not the row — the assertions
+      // below read the job back with a separate query.
+      await prisma.$executeRaw`
         INSERT INTO "Job" (
           id, "orgId", title, description, "createdBy", locale, status,
           "employmentType", seniority, "salaryMin", "salaryMax", "salaryCurrency",
@@ -318,9 +315,7 @@ describe('Vector Search (pgvector)', () => {
           )
       `
 
-      const results = await prisma.$queryRaw<
-        Array<{ id: string; l2_distance: number }>
-      >`
+      const results = await prisma.$queryRaw<Array<{ id: string; l2_distance: number }>>`
         SELECT
           id,
           embedding <-> ${`[${queryEmbedding.join(',')}]`}::vector as l2_distance
@@ -363,9 +358,7 @@ describe('Vector Search (pgvector)', () => {
           )
       `
 
-      const results = await prisma.$queryRaw<
-        Array<{ id: string; inner_product: number }>
-      >`
+      const results = await prisma.$queryRaw<Array<{ id: string; inner_product: number }>>`
         SELECT
           id,
           embedding <#> ${`[${queryEmbedding.join(',')}]`}::vector as inner_product
@@ -566,16 +559,14 @@ describe('Vector Search (pgvector)', () => {
               false,
               ${`[${embedding.join(',')}]`}::vector
             )
-          `
+          `,
         )
       }
       await Promise.all(insertPromises)
 
       const startTime = Date.now()
 
-      const results = await prisma.$queryRaw<
-        Array<{ id: string; similarity: number }>
-      >`
+      const results = await prisma.$queryRaw<Array<{ id: string; similarity: number }>>`
         SELECT
           id,
           1 - (embedding <=> ${`[${queryEmbedding.join(',')}]`}::vector) as similarity
@@ -617,10 +608,7 @@ describe('Vector Search (pgvector)', () => {
             skills: ['JavaScript', 'React', 'TypeScript'],
             experience: ['5 years web development'],
           },
-          explanation: [
-            'Strong match on technical skills',
-            'Relevant experience in similar role',
-          ],
+          explanation: ['Strong match on technical skills', 'Relevant experience in similar role'],
           version: 'v1.0',
         },
       })

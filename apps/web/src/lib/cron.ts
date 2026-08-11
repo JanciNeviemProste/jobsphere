@@ -13,6 +13,7 @@ import {
 } from '@/lib/queue'
 import { eraseCandidatesPII } from '@/services/gdpr.service'
 import { logger } from '@/lib/logger'
+import { BULK_TX_OPTIONS } from '@/lib/transaction-options'
 
 /**
  * Retention window (days) before soft-deleted candidates are HARD-erased.
@@ -344,9 +345,14 @@ export async function runRetentionJob() {
       })
 
       // FK-safe erasure inside a single transaction, reusing GdprService logic.
+      // BULK_TX_OPTIONS, not the default: this deletes up to
+      // RETENTION_CANDIDATE_BATCH (500) candidates and everything cascading from
+      // them in one transaction. On Prisma's 5s default it would raise P2028, the
+      // catch below would log "erasure phase failed", and the Article 17 deletions
+      // would never happen — visible only in a log nobody reads.
       await prisma.$transaction(async (tx) => {
         await eraseCandidatesPII(tx, candidateIds)
-      })
+      }, BULK_TX_OPTIONS)
 
       candidatesErased = candidateIds.length
       logger.info('Candidate retention erasure complete', { candidatesErased })

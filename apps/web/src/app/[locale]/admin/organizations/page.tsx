@@ -15,6 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { OrgActionButton } from './_components/org-action-button'
+import { EditOrgDialog } from './_components/edit-org-dialog'
 import { CreateOrgButton } from './_components/create-org-button'
 import type { Metadata } from 'next'
 
@@ -41,6 +42,8 @@ export default async function AdminOrganizationsPage({ params }: { params: { loc
       name: true,
       slug: true,
       industry: true,
+      size: true,
+      website: true,
       createdAt: true,
       deletedAt: true,
       _count: {
@@ -119,6 +122,14 @@ export default async function AdminOrganizationsPage({ params }: { params: { loc
                       {format.dateTime(org.createdAt, SHORT_DATE)}
                     </TableCell>
                     <TableCell className="text-right">
+                      <EditOrgDialog
+                        orgId={org.id}
+                        slug={org.slug}
+                        name={org.name}
+                        industry={org.industry}
+                        size={org.size}
+                        website={org.website}
+                      />
                       <OrgActionButton orgId={org.id} suspended={suspended} />
                     </TableCell>
                   </TableRow>

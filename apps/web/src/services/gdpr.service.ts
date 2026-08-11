@@ -17,6 +17,7 @@ import { getCandidateIdsForUser } from '@/lib/identity'
 import { createAuditLog } from '@/lib/audit-log'
 import { AppError } from '@/lib/errors'
 import { logger } from '@/lib/logger'
+import { BULK_TX_OPTIONS } from '@/lib/transaction-options'
 
 type Tx = Prisma.TransactionClient
 
@@ -192,7 +193,13 @@ export class GdprService {
       }
 
       return candidateCounts
-    })
+      // BULK_TX_OPTIONS, not Prisma's 5s default: this erases one user's entire
+      // footprint — every candidate row they map to, plus documents, resumes,
+      // applications, consents, audit logs, saved jobs, notifications and DSAR
+      // records. For anyone with real history that exceeds five seconds, and the
+      // failure mode is P2028, which the DSAR route correctly refuses to report as
+      // a completed erasure — so the request stalls instead of finishing.
+    }, BULK_TX_OPTIONS)
 
     // Best-effort blob deletion AFTER the DB transaction has committed.
     let blobsDeleted = 0

@@ -6,6 +6,9 @@
 import { prisma } from '@/lib/prisma'
 import { generateEmbedding } from '@/lib/embeddings'
 import { logger } from '@/lib/logger'
+// Timeout profile lives in lib/transaction-options.ts so its relationship with
+// the database's statement_timeout is documented in one place.
+import { VECTOR_TX_OPTIONS } from '@/lib/transaction-options'
 
 export interface CandidateMatch {
   candidateId: string
@@ -23,19 +26,6 @@ export interface CandidateMatch {
     source: string | null
   }
 }
-
-/**
- * Options for the interactive transactions that carry `SET LOCAL hnsw.ef_search`.
- *
- * Prisma's default interactive-transaction timeout is 5s, which is SHORTER than the
- * database's own statement_timeout ('10s', see
- * packages/db/prisma/migrations/20260120_add_query_timeouts). Until the HNSW indexes
- * actually exist in production (remediation/pgvector-hnsw-runbook.md) these vector
- * queries are sequential scans and can legitimately run for several seconds, so the
- * timeout is raised past the DB's — Postgres stays the arbiter and we get a real
- * statement_timeout error instead of Prisma's P2028 "Transaction already closed".
- */
-const VECTOR_TX_OPTIONS = { maxWait: 5_000, timeout: 15_000 } as const
 
 export interface SearchCandidatesParams {
   jobDescription: string

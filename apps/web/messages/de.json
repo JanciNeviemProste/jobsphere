@@ -646,6 +646,19 @@
       "INTERVIEW": "Zum Gespräch eingeladen",
       "SCREENING": "Prüfung",
       "RESULT": "Eingestellt / Abgelehnt"
+    },
+    "assessments": {
+      "title": "Assessments",
+      "subtitle": "Kompetenztests, die du an Kandidaten sendest",
+      "create": "Neues Assessment",
+      "published": "Veröffentlicht",
+      "draft": "Entwurf",
+      "emptyTitle": "Noch keine Assessments",
+      "emptyDescription": "Erstelle einen Kompetenztest und sende ihn aus einer Bewerbung an Kandidaten.",
+      "viewResults": "Ergebnisse ansehen",
+      "sectionCount": "{count, plural, =0 {keine Abschnitte} one {# Abschnitt} other {# Abschnitte}}",
+      "inviteCount": "{count, plural, =0 {noch nicht gesendet} one {# Einladung} other {# Einladungen}}",
+      "duration": "{minutes} Min."
     }
   },
   "common": {
@@ -1281,6 +1294,8 @@
       "organizations": "Organisationen",
       "jobs": "Stellenangebote",
       "subscriptions": "Abonnements",
+      "gdpr": "DSGVO-Anfragen",
+      "audit": "Audit-Log",
       "settings": "Einstellungen",
       "logout": "Abmelden"
     },

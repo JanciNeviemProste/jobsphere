@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { ALLOWED_TRANSITIONS, isJobStatus, type JobStatus } from '@/lib/job-status'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
@@ -46,6 +47,11 @@ export default function EditJobClient({ params }: { params: { locale: string; id
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState(false)
+  // Current status, so the lifecycle buttons know which moves to offer. Until
+  // now the edit form neither showed nor sent it: `status` was absent from
+  // updateJobSchema, so a posting could not be paused or reopened at all.
+  const [status, setStatus] = useState<JobStatus | null>(null)
+  const [isChangingStatus, setIsChangingStatus] = useState(false)
 
   const {
     register,
@@ -73,6 +79,7 @@ export default function EditJobClient({ params }: { params: { locale: string; id
         }
 
         const job = await response.json()
+        setStatus(isJobStatus(job.status) ? job.status : null)
 
         // Determine work mode from remote/hybrid flags
         let workMode: 'REMOTE' | 'HYBRID' | 'ONSITE' = 'ONSITE'
@@ -150,6 +157,27 @@ export default function EditJobClient({ params }: { params: { locale: string; id
     }
   }
 
+  const changeStatus = async (next: JobStatus) => {
+    setIsChangingStatus(true)
+    try {
+      const response = await fetch(`/api/jobs/${params.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: next }),
+      })
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || 'Failed to change status')
+      }
+      setStatus(next)
+      router.refresh()
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to change status')
+    } finally {
+      setIsChangingStatus(false)
+    }
+  }
+
   const handleDelete = async () => {
     if (
       !confirm('Are you sure you want to close this job posting? This action cannot be undone.')
@@ -206,9 +234,34 @@ export default function EditJobClient({ params }: { params: { locale: string; id
               <h1 className="mb-2 text-3xl font-bold">{t('employer.editJob.title')}</h1>
               <p className="text-muted-foreground">{t('employer.editJob.subtitle')}</p>
             </div>
-            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting ? 'Closing...' : 'Close Job'}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              {status && (
+                <span className="rounded-full border px-3 py-1 text-xs font-medium">{status}</span>
+              )}
+              {/* Only moves the API will accept — the same table it validates
+                  against, so the UI cannot offer a button that returns 400. */}
+              {status &&
+                ALLOWED_TRANSITIONS[status]
+                  .filter((next) => next !== 'CLOSED')
+                  .map((next) => (
+                    <Button
+                      key={next}
+                      variant="outline"
+                      disabled={isChangingStatus}
+                      onClick={() => changeStatus(next)}
+                    >
+                      {next === 'PUBLISHED' && status === 'PAUSED' && 'Resume'}
+                      {next === 'PUBLISHED' && status === 'DRAFT' && 'Publish'}
+                      {next === 'PAUSED' && 'Pause'}
+                      {next === 'DRAFT' && 'Back to draft'}
+                    </Button>
+                  ))}
+              {status !== 'CLOSED' && (
+                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                  {isDeleting ? 'Closing...' : 'Close Job'}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 

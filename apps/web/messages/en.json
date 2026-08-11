@@ -717,6 +717,19 @@
       "INTERVIEW": "Interview",
       "SCREENING": "Screening",
       "RESULT": "Hired / Rejected"
+    },
+    "assessments": {
+      "title": "Assessments",
+      "subtitle": "Skills tests you send to candidates",
+      "create": "New assessment",
+      "published": "Published",
+      "draft": "Draft",
+      "emptyTitle": "No assessments yet",
+      "emptyDescription": "Create a skills test and send it to candidates from an application.",
+      "viewResults": "View results",
+      "sectionCount": "{count, plural, =0 {no sections} one {# section} other {# sections}}",
+      "inviteCount": "{count, plural, =0 {not sent yet} one {# invite} other {# invites}}",
+      "duration": "{minutes} min"
     }
   },
   "common": {
@@ -1281,6 +1294,8 @@
       "organizations": "Organizations",
       "jobs": "Jobs",
       "subscriptions": "Subscriptions",
+      "gdpr": "GDPR requests",
+      "audit": "Audit log",
       "settings": "Settings",
       "logout": "Logout"
     },

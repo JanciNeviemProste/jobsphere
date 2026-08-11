@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { requireGlobalAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { createAuditLog, getRequestMetadata } from '@/lib/audit-log'
 import { handleApiError } from '@/lib/errors'
 import { withCsrfProtection } from '@/lib/csrf'
 import { withRateLimit } from '@/lib/rate-limit'
@@ -124,6 +125,16 @@ export const POST = withCsrfProtection(
         logger.info(
           `Admin invited organization ${result.organization.id} (${orgName}) by ${session.user.id}`,
         )
+
+        await createAuditLog({
+          userId: session.user.id,
+          orgId: result.organization.id,
+          action: 'CREATE',
+          resource: 'ORGANIZATION',
+          resourceId: result.organization.id,
+          metadata: { name: orgName, adminEmail, emailSent, viaInvite: true },
+          ...getRequestMetadata(req),
+        })
 
         return NextResponse.json(
           {
