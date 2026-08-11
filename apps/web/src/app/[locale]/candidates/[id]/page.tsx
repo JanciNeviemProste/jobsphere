@@ -10,6 +10,7 @@ import { AlertCircle, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { CandidateApplications } from '@/components/candidates/candidate-applications'
+import { CandidateTags } from '@/components/candidates/candidate-tags'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -120,6 +121,8 @@ export default async function CandidateProfilePage({
 
         {/* Resume Sections */}
         <ResumeSection resume={candidate.resumes[0] || null} />
+
+        <CandidateTags candidateId={candidate.id} />
 
         <CandidateApplications applications={candidate.applications} locale={params.locale} />
       </div>

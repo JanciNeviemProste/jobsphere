@@ -398,6 +398,12 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
                 {/* Analytics, sequences and assessments were reachable only by
                     typing the URL — nothing in the app linked to them. */}
                 <Button className="w-full justify-start" variant="outline" asChild>
+                  <Link href={`/${params.locale}/employer/tasks`}>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Úlohy a pripomienky
+                  </Link>
+                </Button>
+                <Button className="w-full justify-start" variant="outline" asChild>
                   <Link href={`/${params.locale}/employer/analytics`}>
                     <BarChart3 className="mr-2 h-4 w-4" />
                     Štatistiky náboru
