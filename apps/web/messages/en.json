@@ -1047,5 +1047,209 @@
     "title": "Blog",
     "comingSoon": "Our blog is coming soon. In the meantime, check out current job openings.",
     "browseJobs": "Browse jobs"
+  },
+  "admin": {
+    "nav": {
+      "panelTitle": "Admin Panel",
+      "dashboard": "Dashboard",
+      "users": "Users",
+      "organizations": "Organizations",
+      "jobs": "Jobs",
+      "subscriptions": "Subscriptions",
+      "settings": "Settings",
+      "logout": "Logout"
+    },
+    "common": {
+      "id": "ID",
+      "ip": "IP",
+      "email": "Email",
+      "slug": "Slug",
+      "role": "Role",
+      "status": "Status",
+      "state": "State",
+      "date": "Date",
+      "plan": "Plan",
+      "period": "Period",
+      "cancellation": "Cancellation",
+      "organization": "Organization",
+      "applications": "Applications",
+      "action": "Action",
+      "actions": "Actions",
+      "search": "Search",
+      "previous": "Prev.",
+      "next": "Next",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving…",
+      "create": "Create",
+      "edit": "Edit",
+      "delete": "Delete",
+      "no": "No",
+      "error": "Error",
+      "actionFailed": "Action failed",
+      "actionSuccess": "Action completed successfully",
+      "actionError": "The action could not be performed",
+      "roleAdmin": "Admin",
+      "roleUser": "User",
+      "pageOf": "Page {page} of {totalPages}"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "subtitle": "Overview of system statistics and recent activity",
+      "stats": {
+        "users": "Total users",
+        "organizations": "Total organizations",
+        "jobs": "Total jobs",
+        "activeSubscriptions": "Active subscriptions"
+      },
+      "recentSignups": "Recent sign-ups",
+      "noUsers": "No users",
+      "table": {
+        "name": "Name",
+        "registeredAt": "Registration date"
+      },
+      "totalApplications": "Total applications",
+      "orgsWithSubscription": "Orgs with an active subscription",
+      "applicationsPerJob": "Applications / job"
+    },
+    "users": {
+      "metaTitle": "User Management | Admin",
+      "title": "User Management",
+      "totalUsers": "Total <strong>{count}</strong> users",
+      "searchPlaceholder": "Search by name or email...",
+      "statusActive": "Active",
+      "statusBanned": "Banned",
+      "table": {
+        "user": "User",
+        "registered": "Registered",
+        "verified": "Verified",
+        "organizations": "Org."
+      },
+      "viewDetail": "View details",
+      "ban": "Ban",
+      "unban": "Unban",
+      "promote": "Promote to admin",
+      "demote": "Revoke admin",
+      "empty": "No users found",
+      "pagination": "Page {page} of {totalPages} • {total} results",
+      "toast": {
+        "banned": "User has been banned",
+        "unbanned": "The ban has been lifted",
+        "promoted": "User has been promoted to admin",
+        "demoted": "Admin rights have been revoked"
+      },
+      "detail": {
+        "metaTitle": "User Detail | Admin",
+        "back": "Back to list",
+        "noName": "No name",
+        "personalInfo": "Personal information",
+        "name": "Name",
+        "emailVerified": "Email verified",
+        "lastLogin": "Last login",
+        "lastLoginIp": "Last login IP",
+        "failedAttempts": "Failed attempts",
+        "bannedUntil": "Banned until",
+        "registered": "Registered",
+        "applications": "Applications",
+        "organizations": "Organizations ({count})",
+        "noOrganizations": "No organizations",
+        "auditLog": "Recent activity (audit log)",
+        "noActivity": "No recorded activity",
+        "entity": "Entity",
+        "time": "Time",
+        "deleteTitle": "Delete user?",
+        "deleteDescription": "This action soft-deletes the user (sets deletedAt). The user will lose access to the system. The action can be reverted directly in the database.",
+        "deleteFailed": "Deletion failed",
+        "deleteError": "The user could not be deleted"
+      }
+    },
+    "organizations": {
+      "metaTitle": "Organization Management | Admin",
+      "title": "Organizations",
+      "totalCount": "{count} organizations in total",
+      "allOrganizations": "All organizations",
+      "active": "Active",
+      "suspended": "Suspended",
+      "activate": "Activate",
+      "suspend": "Suspend",
+      "empty": "No organizations",
+      "table": {
+        "name": "Name",
+        "industry": "Industry",
+        "members": "Members",
+        "jobs": "Jobs",
+        "subscriptions": "Subscriptions"
+      },
+      "create": {
+        "title": "New organization",
+        "description": "Create an organization. If you provide an admin e-mail, an invitation to set a password will be sent to them (ORG_ADMIN).",
+        "nameLabel": "Name *",
+        "slugLabel": "Slug (optional)",
+        "slugPlaceholder": "auto from name",
+        "industryLabel": "Industry (optional)",
+        "sizeLabel": "Size (optional)",
+        "websiteLabel": "Website (optional)",
+        "adminEmailLabel": "Admin e-mail (optional — sends an invitation)",
+        "error": "Error while creating the organization",
+        "inviteFailed": "Organization created, but the invitation could not be sent."
+      },
+      "detail": {
+        "members": "Members",
+        "activeJobs": "Active jobs",
+        "subscriptions": "Subscriptions",
+        "memberName": "Name",
+        "memberSince": "Assigned since",
+        "noMembers": "No members",
+        "position": "Position",
+        "noJobs": "No active jobs",
+        "createdAt": "Created: {date}"
+      }
+    },
+    "jobs": {
+      "metaTitle": "Job Management | Admin",
+      "title": "Jobs",
+      "totalCount": "{count} jobs in total",
+      "allJobs": "All jobs",
+      "empty": "No jobs",
+      "filterPlaceholder": "Status filter",
+      "allStatuses": "All statuses",
+      "table": {
+        "title": "Title",
+        "changeStatus": "Change status"
+      },
+      "create": {
+        "title": "New job",
+        "description": "Create a job for the selected organization. The description must be at least 50 characters long.",
+        "orgLabel": "Organization *",
+        "orgPlaceholder": "Select an organization…",
+        "titleLabel": "Title *",
+        "descriptionLabel": "Description * (min. 50 characters)",
+        "locationLabel": "Location (optional)",
+        "workModeLabel": "Work mode",
+        "typeLabel": "Type",
+        "seniorityLabel": "Seniority",
+        "error": "Error while creating the job"
+      }
+    },
+    "subscriptions": {
+      "metaTitle": "Subscriptions | Admin",
+      "title": "Subscriptions",
+      "subtitle": "{count} subscriptions (Stripe is the source of truth)",
+      "allSubscriptions": "All subscriptions",
+      "created": "Created",
+      "empty": "No subscriptions"
+    },
+    "settings": {
+      "metaTitle": "Settings | Admin",
+      "title": "Settings",
+      "subtitle": "System settings and feature flags",
+      "systemSettings": "System settings",
+      "noSettings": "No settings",
+      "featureFlags": "Feature Flags",
+      "noFlags": "No feature flags",
+      "editTitle": "Edit setting",
+      "key": "Key",
+      "value": "Value"
+    }
   }
 }

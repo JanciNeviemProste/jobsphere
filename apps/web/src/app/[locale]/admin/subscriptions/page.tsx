@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getFormatter } from 'next-intl/server'
+import { getFormatter, getTranslations } from 'next-intl/server'
 import { SHORT_DATE } from '@/lib/formats'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -15,8 +15,13 @@ import {
 } from '@/components/ui/table'
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: 'Predplatné | Admin',
+export async function generateMetadata({
+  params,
+}: {
+  params: { locale: string }
+}): Promise<Metadata> {
+  const t = await getTranslations({ locale: params.locale, namespace: 'admin' })
+  return { title: t('subscriptions.metaTitle') }
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -30,6 +35,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default async function AdminSubscriptionsPage({ params }: { params: { locale: string } }) {
   const session = await auth()
   const format = await getFormatter()
+  const t = await getTranslations('admin')
   if (!session?.user?.isGlobalAdmin) {
     redirect(`/${params.locale}/login?error=forbidden`)
   }
@@ -51,9 +57,9 @@ export default async function AdminSubscriptionsPage({ params }: { params: { loc
   return (
     <div className="space-y-6 p-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Predplatné</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{t('subscriptions.title')}</h1>
         <p className="mt-1 text-sm text-slate-500">
-          {subscriptions.length} predplatných (Stripe je source of truth)
+          {t('subscriptions.subtitle', { count: subscriptions.length })}
         </p>
       </div>
 
@@ -70,18 +76,18 @@ export default async function AdminSubscriptionsPage({ params }: { params: { loc
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Všetky predplatné</CardTitle>
+          <CardTitle className="text-base">{t('subscriptions.allSubscriptions')}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Organizácia</TableHead>
-                <TableHead>Plán</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Obdobie</TableHead>
-                <TableHead>Zrušenie</TableHead>
-                <TableHead>Vytvorené</TableHead>
+                <TableHead>{t('common.organization')}</TableHead>
+                <TableHead>{t('common.plan')}</TableHead>
+                <TableHead>{t('common.status')}</TableHead>
+                <TableHead>{t('common.period')}</TableHead>
+                <TableHead>{t('common.cancellation')}</TableHead>
+                <TableHead>{t('subscriptions.created')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -114,7 +120,7 @@ export default async function AdminSubscriptionsPage({ params }: { params: { loc
               {subscriptions.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="py-8 text-center text-slate-500">
-                    Žiadne predplatné
+                    {t('subscriptions.empty')}
                   </TableCell>
                 </TableRow>
               )}

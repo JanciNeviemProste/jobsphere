@@ -1047,5 +1047,209 @@
     "title": "Blog",
     "comingSoon": "Our blog is coming soon. In the meantime, check out current job openings.",
     "browseJobs": "Browse jobs"
+  },
+  "admin": {
+    "nav": {
+      "panelTitle": "Admin Panel",
+      "dashboard": "Dashboard",
+      "users": "Benutzer",
+      "organizations": "Organisationen",
+      "jobs": "Stellenangebote",
+      "subscriptions": "Abonnements",
+      "settings": "Einstellungen",
+      "logout": "Abmelden"
+    },
+    "common": {
+      "id": "ID",
+      "ip": "IP",
+      "email": "E-Mail",
+      "slug": "Slug",
+      "role": "Rolle",
+      "status": "Status",
+      "state": "Status",
+      "date": "Datum",
+      "plan": "Plan",
+      "period": "Zeitraum",
+      "cancellation": "Kündigung",
+      "organization": "Organisation",
+      "applications": "Bewerbungen",
+      "action": "Aktion",
+      "actions": "Aktionen",
+      "search": "Suchen",
+      "previous": "Zurück",
+      "next": "Weiter",
+      "cancel": "Abbrechen",
+      "save": "Speichern",
+      "saving": "Speichern…",
+      "create": "Erstellen",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "no": "Nein",
+      "error": "Fehler",
+      "actionFailed": "Aktion fehlgeschlagen",
+      "actionSuccess": "Aktion erfolgreich",
+      "actionError": "Die Aktion konnte nicht ausgeführt werden",
+      "roleAdmin": "Admin",
+      "roleUser": "Benutzer",
+      "pageOf": "Seite {page} von {totalPages}"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "subtitle": "Übersicht über Systemstatistiken und die letzten Aktivitäten",
+      "stats": {
+        "users": "Benutzer gesamt",
+        "organizations": "Organisationen gesamt",
+        "jobs": "Stellenangebote gesamt",
+        "activeSubscriptions": "Aktive Abonnements"
+      },
+      "recentSignups": "Neueste Registrierungen",
+      "noUsers": "Keine Benutzer",
+      "table": {
+        "name": "Name",
+        "registeredAt": "Registrierungsdatum"
+      },
+      "totalApplications": "Bewerbungen gesamt",
+      "orgsWithSubscription": "Orgs mit aktivem Abonnement",
+      "applicationsPerJob": "Bewerbungen / Stelle"
+    },
+    "users": {
+      "metaTitle": "Benutzerverwaltung | Admin",
+      "title": "Benutzerverwaltung",
+      "totalUsers": "Insgesamt <strong>{count}</strong> Benutzer",
+      "searchPlaceholder": "Nach Name oder E-Mail suchen...",
+      "statusActive": "Aktiv",
+      "statusBanned": "Gesperrt",
+      "table": {
+        "user": "Benutzer",
+        "registered": "Registrierung",
+        "verified": "Verifiziert",
+        "organizations": "Org."
+      },
+      "viewDetail": "Details anzeigen",
+      "ban": "Sperren",
+      "unban": "Entsperren",
+      "promote": "Zum Admin befördern",
+      "demote": "Admin-Rechte entziehen",
+      "empty": "Keine Benutzer gefunden",
+      "pagination": "Seite {page} von {totalPages} • {total} Ergebnisse",
+      "toast": {
+        "banned": "Benutzer wurde gesperrt",
+        "unbanned": "Die Sperre wurde aufgehoben",
+        "promoted": "Benutzer wurde zum Admin befördert",
+        "demoted": "Admin-Rechte wurden entzogen"
+      },
+      "detail": {
+        "metaTitle": "Benutzerdetail | Admin",
+        "back": "Zurück zur Liste",
+        "noName": "Ohne Namen",
+        "personalInfo": "Persönliche Informationen",
+        "name": "Name",
+        "emailVerified": "E-Mail verifiziert",
+        "lastLogin": "Letzte Anmeldung",
+        "lastLoginIp": "IP der letzten Anmeldung",
+        "failedAttempts": "Fehlgeschlagene Versuche",
+        "bannedUntil": "Gesperrt bis",
+        "registered": "Registriert",
+        "applications": "Bewerbungen",
+        "organizations": "Organisationen ({count})",
+        "noOrganizations": "Keine Organisationen",
+        "auditLog": "Letzte Aktivität (Audit-Log)",
+        "noActivity": "Keine aufgezeichnete Aktivität",
+        "entity": "Entität",
+        "time": "Zeit",
+        "deleteTitle": "Benutzer löschen?",
+        "deleteDescription": "Diese Aktion löscht den Benutzer weich (setzt deletedAt). Der Benutzer verliert den Zugang zum System. Die Aktion kann direkt in der Datenbank rückgängig gemacht werden.",
+        "deleteFailed": "Löschen fehlgeschlagen",
+        "deleteError": "Der Benutzer konnte nicht gelöscht werden"
+      }
+    },
+    "organizations": {
+      "metaTitle": "Organisationsverwaltung | Admin",
+      "title": "Organisationen",
+      "totalCount": "Insgesamt {count} Organisationen",
+      "allOrganizations": "Alle Organisationen",
+      "active": "Aktiv",
+      "suspended": "Gesperrt",
+      "activate": "Aktivieren",
+      "suspend": "Sperren",
+      "empty": "Keine Organisationen",
+      "table": {
+        "name": "Name",
+        "industry": "Branche",
+        "members": "Mitglieder",
+        "jobs": "Stellenangebote",
+        "subscriptions": "Abonnements"
+      },
+      "create": {
+        "title": "Neue Organisation",
+        "description": "Erstellen Sie eine Organisation. Wenn Sie eine Admin-E-Mail angeben, wird ihm eine Einladung zum Festlegen des Passworts gesendet (ORG_ADMIN).",
+        "nameLabel": "Name *",
+        "slugLabel": "Slug (optional)",
+        "slugPlaceholder": "automatisch aus dem Namen",
+        "industryLabel": "Branche (optional)",
+        "sizeLabel": "Größe (optional)",
+        "websiteLabel": "Website (optional)",
+        "adminEmailLabel": "Admin-E-Mail (optional — sendet eine Einladung)",
+        "error": "Fehler beim Erstellen der Organisation",
+        "inviteFailed": "Organisation erstellt, aber die Einladung konnte nicht gesendet werden."
+      },
+      "detail": {
+        "members": "Mitglieder",
+        "activeJobs": "Aktive Stellenangebote",
+        "subscriptions": "Abonnements",
+        "memberName": "Name",
+        "memberSince": "Zugewiesen seit",
+        "noMembers": "Keine Mitglieder",
+        "position": "Position",
+        "noJobs": "Keine aktiven Stellenangebote",
+        "createdAt": "Erstellt: {date}"
+      }
+    },
+    "jobs": {
+      "metaTitle": "Stellenverwaltung | Admin",
+      "title": "Stellenangebote",
+      "totalCount": "Insgesamt {count} Stellenangebote",
+      "allJobs": "Alle Stellenangebote",
+      "empty": "Keine Stellenangebote",
+      "filterPlaceholder": "Statusfilter",
+      "allStatuses": "Alle Status",
+      "table": {
+        "title": "Titel",
+        "changeStatus": "Status ändern"
+      },
+      "create": {
+        "title": "Neues Stellenangebot",
+        "description": "Erstellen Sie ein Stellenangebot für die ausgewählte Organisation. Die Beschreibung muss mindestens 50 Zeichen lang sein.",
+        "orgLabel": "Organisation *",
+        "orgPlaceholder": "Organisation auswählen…",
+        "titleLabel": "Titel *",
+        "descriptionLabel": "Beschreibung * (min. 50 Zeichen)",
+        "locationLabel": "Standort (optional)",
+        "workModeLabel": "Arbeitsmodus",
+        "typeLabel": "Typ",
+        "seniorityLabel": "Senioritätsstufe",
+        "error": "Fehler beim Erstellen des Stellenangebots"
+      }
+    },
+    "subscriptions": {
+      "metaTitle": "Abonnements | Admin",
+      "title": "Abonnements",
+      "subtitle": "{count} Abonnements (Stripe ist die maßgebliche Quelle)",
+      "allSubscriptions": "Alle Abonnements",
+      "created": "Erstellt",
+      "empty": "Keine Abonnements"
+    },
+    "settings": {
+      "metaTitle": "Einstellungen | Admin",
+      "title": "Einstellungen",
+      "subtitle": "Systemeinstellungen und Feature-Flags",
+      "systemSettings": "Systemeinstellungen",
+      "noSettings": "Keine Einstellungen",
+      "featureFlags": "Feature-Flags",
+      "noFlags": "Keine Feature-Flags",
+      "editTitle": "Einstellung bearbeiten",
+      "key": "Schlüssel",
+      "value": "Wert"
+    }
   }
 }

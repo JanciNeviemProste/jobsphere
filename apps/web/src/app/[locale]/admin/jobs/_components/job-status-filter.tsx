@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import {
   Select,
@@ -14,6 +15,7 @@ interface JobStatusFilterProps {
 }
 
 export function JobStatusFilter({ currentStatus }: JobStatusFilterProps) {
+  const t = useTranslations('admin')
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -32,10 +34,10 @@ export function JobStatusFilter({ currentStatus }: JobStatusFilterProps) {
   return (
     <Select defaultValue={currentStatus ?? 'ALL'} onValueChange={handleChange}>
       <SelectTrigger className="w-[160px]">
-        <SelectValue placeholder="Filter statusu" />
+        <SelectValue placeholder={t('jobs.filterPlaceholder')} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="ALL">Všetky statusy</SelectItem>
+        <SelectItem value="ALL">{t('jobs.allStatuses')}</SelectItem>
         <SelectItem value="PUBLISHED">PUBLISHED</SelectItem>
         <SelectItem value="DRAFT">DRAFT</SelectItem>
         <SelectItem value="CLOSED">CLOSED</SelectItem>

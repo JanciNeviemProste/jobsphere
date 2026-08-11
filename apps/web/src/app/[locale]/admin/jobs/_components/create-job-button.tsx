@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,6 +31,7 @@ const SELECT_CLASS =
  */
 export function CreateJobButton({ orgs }: { orgs: OrgOption[] }) {
   const router = useRouter()
+  const t = useTranslations('admin')
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -67,7 +69,7 @@ export function CreateJobButton({ orgs }: { orgs: OrgOption[] }) {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        setError(data.error ?? 'Chyba pri vytváraní jobu')
+        setError(data.error ?? t('jobs.create.error'))
         return
       }
       setForm({
@@ -89,20 +91,18 @@ export function CreateJobButton({ orgs }: { orgs: OrgOption[] }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">Nový job</Button>
+        <Button size="sm">{t('jobs.create.title')}</Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Nový job</DialogTitle>
-            <DialogDescription>
-              Vytvorte job pre zvolenú organizáciu. Popis musí mať aspoň 50 znakov.
-            </DialogDescription>
+            <DialogTitle>{t('jobs.create.title')}</DialogTitle>
+            <DialogDescription>{t('jobs.create.description')}</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="job-org">Organizácia *</Label>
+              <Label htmlFor="job-org">{t('jobs.create.orgLabel')}</Label>
               <select
                 id="job-org"
                 required
@@ -111,7 +111,7 @@ export function CreateJobButton({ orgs }: { orgs: OrgOption[] }) {
                 onChange={(e) => update('orgId', e.target.value)}
               >
                 <option value="" disabled>
-                  Vyberte organizáciu…
+                  {t('jobs.create.orgPlaceholder')}
                 </option>
                 {orgs.map((o) => (
                   <option key={o.id} value={o.id}>
@@ -121,7 +121,7 @@ export function CreateJobButton({ orgs }: { orgs: OrgOption[] }) {
               </select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="job-title">Názov *</Label>
+              <Label htmlFor="job-title">{t('jobs.create.titleLabel')}</Label>
               <Input
                 id="job-title"
                 required
@@ -130,7 +130,7 @@ export function CreateJobButton({ orgs }: { orgs: OrgOption[] }) {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="job-description">Popis * (min. 50 znakov)</Label>
+              <Label htmlFor="job-description">{t('jobs.create.descriptionLabel')}</Label>
               <Textarea
                 id="job-description"
                 required
@@ -140,7 +140,7 @@ export function CreateJobButton({ orgs }: { orgs: OrgOption[] }) {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="job-location">Lokalita (voliteľné)</Label>
+              <Label htmlFor="job-location">{t('jobs.create.locationLabel')}</Label>
               <Input
                 id="job-location"
                 value={form.location}
@@ -149,7 +149,7 @@ export function CreateJobButton({ orgs }: { orgs: OrgOption[] }) {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="grid gap-2">
-                <Label htmlFor="job-workmode">Režim</Label>
+                <Label htmlFor="job-workmode">{t('jobs.create.workModeLabel')}</Label>
                 <select
                   id="job-workmode"
                   className={SELECT_CLASS}
@@ -162,7 +162,7 @@ export function CreateJobButton({ orgs }: { orgs: OrgOption[] }) {
                 </select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="job-type">Typ</Label>
+                <Label htmlFor="job-type">{t('jobs.create.typeLabel')}</Label>
                 <select
                   id="job-type"
                   className={SELECT_CLASS}
@@ -177,7 +177,7 @@ export function CreateJobButton({ orgs }: { orgs: OrgOption[] }) {
                 </select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="job-seniority">Seniorita</Label>
+                <Label htmlFor="job-seniority">{t('jobs.create.seniorityLabel')}</Label>
                 <select
                   id="job-seniority"
                   className={SELECT_CLASS}
@@ -202,7 +202,7 @@ export function CreateJobButton({ orgs }: { orgs: OrgOption[] }) {
                 loading || !form.orgId || !form.title.trim() || form.description.trim().length < 50
               }
             >
-              {loading ? 'Ukladám…' : 'Vytvoriť'}
+              {loading ? t('common.saving') : t('common.create')}
             </Button>
           </DialogFooter>
         </form>

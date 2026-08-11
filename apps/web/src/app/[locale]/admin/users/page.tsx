@@ -4,16 +4,18 @@
  */
 
 import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 import { prisma } from '@/lib/prisma'
 import { UsersClient } from './users-client'
-
-export const metadata: Metadata = {
-  title: 'Správa používateľov | Admin',
-}
 
 interface PageProps {
   params: { locale: string }
   searchParams: { search?: string; page?: string }
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const t = await getTranslations({ locale: params.locale, namespace: 'admin' })
+  return { title: t('users.metaTitle') }
 }
 
 export default async function AdminUsersPage({ params, searchParams }: PageProps) {

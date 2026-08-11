@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,6 +40,7 @@ export function UserDetailActions({
   locale,
 }: UserDetailActionsProps) {
   const router = useRouter()
+  const t = useTranslations('admin')
   const [pending, setPending] = useState<Action | 'delete' | null>(null)
   const [toast, setToast] = useState<{ message: string; ok: boolean } | null>(null)
 
@@ -57,13 +59,13 @@ export function UserDetailActions({
       })
       const data: { error?: string } = await res.json()
       if (!res.ok) {
-        showToast(data.error ?? 'Akcia zlyhala', false)
+        showToast(data.error ?? t('common.actionFailed'), false)
         return
       }
-      showToast('Akcia bola úspešná', true)
+      showToast(t('common.actionSuccess'), true)
       router.refresh()
     } catch {
-      showToast('Nepodarilo sa vykonať akciu', false)
+      showToast(t('common.actionError'), false)
     } finally {
       setPending(null)
     }
@@ -75,12 +77,12 @@ export function UserDetailActions({
       const res = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' })
       const data: { error?: string } = await res.json()
       if (!res.ok) {
-        showToast(data.error ?? 'Zmazanie zlyhalo', false)
+        showToast(data.error ?? t('users.detail.deleteFailed'), false)
         return
       }
       router.push(`/${locale}/admin/users`)
     } catch {
-      showToast('Nepodarilo sa zmazať používateľa', false)
+      showToast(t('users.detail.deleteError'), false)
     } finally {
       setPending(null)
     }
@@ -116,7 +118,7 @@ export function UserDetailActions({
             ) : (
               <CheckCircle className="mr-2 h-4 w-4" />
             )}
-            Odblokovať
+            {t('users.unban')}
           </Button>
         ) : (
           <Button
@@ -131,7 +133,7 @@ export function UserDetailActions({
             ) : (
               <Ban className="mr-2 h-4 w-4" />
             )}
-            Zablokovať
+            {t('users.ban')}
           </Button>
         )}
 
@@ -149,7 +151,7 @@ export function UserDetailActions({
             ) : (
               <ShieldOff className="mr-2 h-4 w-4" />
             )}
-            Odobrať admina
+            {t('users.demote')}
           </Button>
         ) : (
           <Button
@@ -163,7 +165,7 @@ export function UserDetailActions({
             ) : (
               <ShieldCheck className="mr-2 h-4 w-4" />
             )}
-            Povýšiť na admina
+            {t('users.promote')}
           </Button>
         )}
 
@@ -181,24 +183,21 @@ export function UserDetailActions({
               ) : (
                 <Trash2 className="mr-2 h-4 w-4" />
               )}
-              Zmazať
+              {t('common.delete')}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Zmazať používateľa?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Táto akcia soft-zmaže používateľa (nastaví deletedAt). Používateľ stratí prístup do
-                systému. Akciu je možné zvrátiť priamo v databáze.
-              </AlertDialogDescription>
+              <AlertDialogTitle>{t('users.detail.deleteTitle')}</AlertDialogTitle>
+              <AlertDialogDescription>{t('users.detail.deleteDescription')}</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Zrušiť</AlertDialogCancel>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={performDelete}
                 className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
               >
-                Zmazať
+                {t('common.delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
