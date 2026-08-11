@@ -36,11 +36,18 @@ describe('POST /api/auth/signup', () => {
 
       // Assert
       expect(response.status).toBe(201)
-      expect(data.user).toBeDefined()
-      expect(data.user.email).toBe('signup-test-candidate@test.com')
-      expect(data.user.name).toBe('Test Candidate User')
-      expect(data.user.role).toBe('candidate')
-      expect(data.user.id).toBeDefined()
+      // AUTH-008: the response is identical whether the account was created or
+      // the email was already registered, so it deliberately carries NO user
+      // object — returning one would be the enumeration oracle the generic
+      // message exists to remove. The account is verified in the database.
+      expect(data.success).toBe(true)
+      expect(data.user).toBeUndefined()
+
+      const created = await prisma.user.findUnique({
+        where: { email: 'signup-test-candidate@test.com' },
+      })
+      expect(created).not.toBeNull()
+      expect(created?.name).toBe('Test Candidate User')
 
       // Verify user was created in database
       const user = await prisma.user.findUnique({
@@ -73,7 +80,7 @@ describe('POST /api/auth/signup', () => {
 
       // Assert
       expect(response.status).toBe(201)
-      expect(data.user.role).toBe('candidate')
+      expect(data.user).toBeUndefined()
     })
   })
 
@@ -94,8 +101,11 @@ describe('POST /api/auth/signup', () => {
 
       // Assert
       expect(response.status).toBe(201)
-      expect(data.user.email).toBe('signup-test-employer@test.com')
-      expect(data.user.role).toBe('employer')
+      expect(data.user).toBeUndefined()
+      const employer = await prisma.user.findUnique({
+        where: { email: 'signup-test-employer@test.com' },
+      })
+      expect(employer).not.toBeNull()
 
       // Verify user was created
       const user = await prisma.user.findUnique({
@@ -195,7 +205,7 @@ describe('POST /api/auth/signup', () => {
       expect(data.issues.length).toBeGreaterThan(0)
     })
 
-    it('should reject duplicate email address', async () => {
+    it('returns an indistinguishable response for an already-registered email', async () => {
       // Arrange - create first user
       const firstRequest = createTestRequest('POST', {
         email: 'signup-test-duplicate@test.com',
@@ -213,9 +223,13 @@ describe('POST /api/auth/signup', () => {
       const response = await POST(secondRequest)
       const data = await parseResponse(response)
 
-      // Assert
-      expect(response.status).toBe(400)
-      expect(data.error).toContain('already exists')
+      // Assert — AUTH-008 again, and this is the case it exists for: telling a
+      // caller "already exists" is exactly how an attacker enumerates which
+      // addresses have accounts. The response is indistinguishable from a
+      // successful signup; what must NOT happen is a second user row.
+      expect(response.status).toBe(201)
+      expect(data.success).toBe(true)
+      expect(data.error).toBeUndefined()
 
       // Verify only one user exists
       const users = await prisma.user.findMany({
@@ -262,7 +276,8 @@ describe('POST /api/auth/signup', () => {
 
       // Assert
       expect(response.status).toBe(201)
-      expect(data.user.password).toBeUndefined()
+      // Nothing about the user comes back at all, so the password cannot.
+      expect(JSON.stringify(data)).not.toContain('password')
       expect(JSON.stringify(data)).not.toContain('SecurePassword123!')
     })
   })

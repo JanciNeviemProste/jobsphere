@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { POST } from '@/app/api/jobs/route'
-import { auth } from '@/lib/auth'
 import {
   createTestRequest,
   createRecruiterSession,
@@ -20,7 +19,11 @@ const { mockAuthFn } = vi.hoisted(() => ({
   mockAuthFn: vi.fn(),
 }))
 
-vi.mock('@/lib/auth', () => ({
+// Partial mock. lib/errors.ts reaches UnauthorizedError through @/lib/auth, so
+// replacing the module wholesale makes handleApiError throw while handling an
+// error — which is every validation and auth path in these files.
+vi.mock('@/lib/auth', async (importOriginal) => ({
+  ...((await importOriginal()) as object),
   auth: mockAuthFn,
   requireAuth: vi.fn(async () => {
     const session = await mockAuthFn()
