@@ -3,10 +3,10 @@
 import { useState, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import {
   APPLICATION_STAGES,
   KANBAN_COLUMNS,
-  STAGE_LABELS_SK,
   STAGE_COLORS,
   type ApplicationStage,
 } from '@/lib/constants/application-stages'
@@ -43,12 +43,15 @@ interface PipelineBoardProps {
   stageTotals?: Partial<Record<ApplicationStage, number>>
 }
 
-function relativeTime(date: Date | string): string {
+// `locale` is threaded in rather than hardcoded: this used to construct
+// RelativeTimeFormat('sk'), so every reader — German, Czech, Polish — got
+// Slovak relative dates ("pred 3 dňami") on their kanban cards.
+function relativeTime(date: Date | string, locale: string): string {
   const now = Date.now()
   const then = new Date(date).getTime()
   const diffMs = now - then
   const diffDays = Math.floor(diffMs / 86400000)
-  const rtf = new Intl.RelativeTimeFormat('sk', { numeric: 'auto' })
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
   if (diffDays === 0) return rtf.format(0, 'day')
   if (diffDays < 30) return rtf.format(-diffDays, 'day')
   const diffMonths = Math.floor(diffDays / 30)
@@ -56,9 +59,9 @@ function relativeTime(date: Date | string): string {
   return rtf.format(-Math.floor(diffMonths / 12), 'year')
 }
 
-function candidateName(app: ApplicationCard): string {
+function candidateName(app: ApplicationCard, fallback: string): string {
   const contact = app.candidate.contacts[0]
-  return contact?.fullName || contact?.email || 'Kandidát'
+  return contact?.fullName || contact?.email || fallback
 }
 
 function initials(name: string): string {
@@ -104,6 +107,10 @@ function CardAvatar({ name, avatar }: { name: string; avatar?: string | null }) 
 
 export function PipelineBoard({ applications, currentJobId, stageTotals }: PipelineBoardProps) {
   const pathname = usePathname()
+  const t = useTranslations('employer.pipelineBoard')
+  const tCommon = useTranslations('common')
+  const tStages = useTranslations('employer.stages')
+  const tColumns = useTranslations('employer.kanbanColumns')
   const locale = pathname.split('/')[1] || 'en'
   const [cards, setCards] = useState<ApplicationCard[]>(applications)
   const dragId = useRef<string | null>(null)
@@ -146,7 +153,7 @@ export function PipelineBoard({ applications, currentJobId, stageTotals }: Pipel
     } catch {
       // Rollback the optimistic move.
       setCards((prev) => prev.map((c) => (c.id === id ? { ...c, stage: previousStage } : c)))
-      toast.error('Nepodarilo sa presunúť kandidáta')
+      toast.error(t('moveFailed'))
     }
   }
 
@@ -158,7 +165,7 @@ export function PipelineBoard({ applications, currentJobId, stageTotals }: Pipel
     if (column.key === 'RESULT') {
       const card = cards.find((c) => c.id === id)
       if (!card) return
-      setPendingResult({ id, name: candidateName(card) })
+      setPendingResult({ id, name: candidateName(card, t('candidateFallback')) })
       return
     }
 
@@ -187,18 +194,24 @@ export function PipelineBoard({ applications, currentJobId, stageTotals }: Pipel
                 key={column.key}
                 className="flex min-w-[260px] flex-1 flex-col rounded-xl border bg-muted/40"
                 role="group"
-                aria-label={column.label}
+                aria-label={tColumns(column.key)}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => handleDrop(column)}
               >
                 <div className="flex items-center justify-between rounded-t-xl border-b bg-background px-3 py-2">
-                  <span className="text-sm font-semibold">{column.label}</span>
+                  <span className="text-sm font-semibold">{tColumns(column.key)}</span>
                   {hidden > 0 ? (
                     <span
                       className="text-xs text-muted-foreground"
-                      title={`Zobrazených ${stageCards.length} z ${stageCards.length + hidden} kandidátov — zvyšok zúžte filtrom.`}
+                      title={t('truncatedTitle', {
+                        shown: stageCards.length,
+                        total: stageCards.length + hidden,
+                      })}
                     >
-                      {stageCards.length} z {stageCards.length + hidden}
+                      {t('truncatedCount', {
+                        shown: stageCards.length,
+                        total: stageCards.length + hidden,
+                      })}
                     </span>
                   ) : (
                     <span className="text-xs text-muted-foreground">{stageCards.length}</span>
@@ -207,11 +220,11 @@ export function PipelineBoard({ applications, currentJobId, stageTotals }: Pipel
                 <div className="flex flex-1 flex-col gap-2 p-2">
                   {stageCards.length === 0 ? (
                     <div className="flex flex-1 items-center justify-center py-10 text-center text-sm text-muted-foreground">
-                      Žiadni kandidáti
+                      {t('emptyStage')}
                     </div>
                   ) : (
                     stageCards.map((card) => {
-                      const name = candidateName(card)
+                      const name = candidateName(card, t('candidateFallback'))
                       return (
                         <div
                           key={card.id}
@@ -243,7 +256,7 @@ export function PipelineBoard({ applications, currentJobId, stageTotals }: Pipel
                               )}
                               <div className="mt-1 flex items-center justify-between gap-2">
                                 <p className="text-xs text-muted-foreground">
-                                  {relativeTime(card.createdAt)}
+                                  {relativeTime(card.createdAt, locale)}
                                 </p>
                                 {isMultiStage && (
                                   <span
@@ -251,7 +264,9 @@ export function PipelineBoard({ applications, currentJobId, stageTotals }: Pipel
                                       STAGE_COLORS[card.stage as ApplicationStage] ?? ''
                                     }`}
                                   >
-                                    {STAGE_LABELS_SK[card.stage as ApplicationStage] ?? card.stage}
+                                    {(APPLICATION_STAGES as readonly string[]).includes(card.stage)
+                                      ? tStages(card.stage)
+                                      : card.stage}
                                   </span>
                                 )}
                               </div>
@@ -274,14 +289,14 @@ export function PipelineBoard({ applications, currentJobId, stageTotals }: Pipel
                             >
                               <SelectTrigger
                                 className="h-8 w-full text-xs"
-                                aria-label={`Zmeniť fázu kandidáta ${name}`}
+                                aria-label={t('changeStageAriaLabel', { name })}
                               >
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 {APPLICATION_STAGES.map((stage) => (
                                   <SelectItem key={stage} value={stage} className="text-xs">
-                                    {STAGE_LABELS_SK[stage]}
+                                    {tStages(stage)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -307,9 +322,9 @@ export function PipelineBoard({ applications, currentJobId, stageTotals }: Pipel
             className="mx-4 w-full max-w-sm rounded-xl border bg-background p-6 shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-semibold">Rozhodnutie o kandidátovi</h3>
+            <h3 className="text-lg font-semibold">{t('resultTitle')}</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Vyberte výsledok pre kandidáta {pendingResult.name}.
+              {t('resultDescription', { name: pendingResult.name })}
             </p>
             <div className="mt-4 flex gap-2">
               <button
@@ -317,14 +332,14 @@ export function PipelineBoard({ applications, currentJobId, stageTotals }: Pipel
                 onClick={() => confirmResult('HIRED')}
                 className="flex-1 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
               >
-                Prijať
+                {t('hire')}
               </button>
               <button
                 type="button"
                 onClick={() => confirmResult('REJECTED')}
                 className="flex-1 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
               >
-                Odmietnuť
+                {t('reject')}
               </button>
             </div>
             <button
@@ -332,7 +347,7 @@ export function PipelineBoard({ applications, currentJobId, stageTotals }: Pipel
               onClick={() => setPendingResult(null)}
               className="mt-3 w-full rounded-md border px-3 py-2 text-sm hover:bg-muted"
             >
-              Zrušiť
+              {tCommon('cancel')}
             </button>
           </div>
         </div>

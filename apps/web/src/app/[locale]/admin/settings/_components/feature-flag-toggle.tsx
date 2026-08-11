@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Switch } from '@/components/ui/switch'
 
 interface FeatureFlagToggleProps {
@@ -10,6 +11,7 @@ interface FeatureFlagToggleProps {
 }
 
 export function FeatureFlagToggle({ flagKey, enabled }: FeatureFlagToggleProps) {
+  const t = useTranslations('admin.common')
   const router = useRouter()
   const [checked, setChecked] = useState(enabled)
   const [loading, setLoading] = useState(false)
@@ -25,7 +27,7 @@ export function FeatureFlagToggle({ flagKey, enabled }: FeatureFlagToggleProps) 
       })
       if (!res.ok) {
         const data = await res.json()
-        alert(data.error ?? 'Chyba')
+        alert(data.error ?? t('error'))
         setChecked(!value)
         return
       }

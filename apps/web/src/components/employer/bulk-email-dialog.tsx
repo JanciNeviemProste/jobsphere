@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -28,6 +29,8 @@ export function BulkEmailDialog({
   onOpenChange,
   onSuccess,
 }: BulkEmailDialogProps) {
+  const t = useTranslations('employer.bulkEmail')
+  const tCommon = useTranslations('common')
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
   // Templates exist so the considered message is the cheap one. Loaded lazily
@@ -53,7 +56,7 @@ export function BulkEmailDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!subject.trim() || !body.trim()) {
-      toast.error('Predmet a telo správy sú povinné')
+      toast.error(t('requiredFields'))
       return
     }
 
@@ -75,22 +78,22 @@ export function BulkEmailDialog({
       const data = await res.json()
 
       if (!res.ok) {
-        toast.error(data.error || 'Nepodarilo sa odoslať emaily')
+        toast.error(data.error || t('sendFailed'))
         return
       }
 
       if (data.failed > 0) {
-        toast.warning(`Odoslaných ${data.processed}, zlyhaných ${data.failed}`)
+        toast.warning(t('partialSuccess', { sent: data.processed, failed: data.failed }))
         setPartialErrors(data.errors || [])
       } else {
-        toast.success(`Odoslaných ${data.processed} emailov`)
+        toast.success(t('sendSuccess', { count: data.processed }))
         setSubject('')
         setBody('')
         onSuccess()
         onOpenChange(false)
       }
     } catch {
-      toast.error('Nepodarilo sa odoslať emaily')
+      toast.error(t('sendFailed'))
     } finally {
       setLoading(false)
     }
@@ -100,7 +103,7 @@ export function BulkEmailDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Hromadný email ({selectedIds.length} kandidátov)</DialogTitle>
+          <DialogTitle>{t('title', { count: selectedIds.length })}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {templates.length > 0 && (
@@ -132,23 +135,23 @@ export function BulkEmailDialog({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="bulk-subject">Predmet</Label>
+            <Label htmlFor="bulk-subject">{t('subjectLabel')}</Label>
             <Input
               id="bulk-subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              placeholder="Predmet emailu"
+              placeholder={t('subjectPlaceholder')}
               maxLength={200}
               disabled={loading}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="bulk-body">Telo správy</Label>
+            <Label htmlFor="bulk-body">{t('bodyLabel')}</Label>
             <Textarea
               id="bulk-body"
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="Text emailu..."
+              placeholder={t('bodyPlaceholder')}
               rows={8}
               maxLength={10000}
               disabled={loading}
@@ -156,7 +159,7 @@ export function BulkEmailDialog({
           </div>
           {partialErrors.length > 0 && (
             <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-              <p className="mb-2 font-medium">Niektoré emaily zlyhali:</p>
+              <p className="mb-2 font-medium">{t('partialErrorsTitle')}</p>
               <ul className="list-inside list-disc space-y-1">
                 {partialErrors.map((e) => (
                   <li key={e.applicationId}>
@@ -174,11 +177,11 @@ export function BulkEmailDialog({
               onClick={() => onOpenChange(false)}
               disabled={loading}
             >
-              Zrušiť
+              {tCommon('cancel')}
             </Button>
             <Button type="submit" disabled={loading || !subject.trim() || !body.trim()}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Odoslať
+              {t('send')}
             </Button>
           </DialogFooter>
         </form>

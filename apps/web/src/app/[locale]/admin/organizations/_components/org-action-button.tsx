@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 
@@ -11,6 +12,7 @@ interface OrgActionButtonProps {
 
 export function OrgActionButton({ orgId, suspended }: OrgActionButtonProps) {
   const router = useRouter()
+  const t = useTranslations('admin')
   const [loading, setLoading] = useState(false)
 
   async function handleAction() {
@@ -23,7 +25,7 @@ export function OrgActionButton({ orgId, suspended }: OrgActionButtonProps) {
       })
       if (!res.ok) {
         const data = await res.json()
-        alert(data.error ?? 'Chyba')
+        alert(data.error ?? t('common.error'))
         return
       }
       router.refresh()
@@ -39,7 +41,7 @@ export function OrgActionButton({ orgId, suspended }: OrgActionButtonProps) {
       disabled={loading}
       onClick={handleAction}
     >
-      {suspended ? 'Aktivovať' : 'Pozastaviť'}
+      {suspended ? t('organizations.activate') : t('organizations.suspend')}
     </Button>
   )
 }

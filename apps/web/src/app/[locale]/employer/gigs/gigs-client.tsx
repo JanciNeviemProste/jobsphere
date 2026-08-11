@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -36,21 +37,26 @@ interface Proposal {
   }
 }
 
-const gigStatusLabel: Record<string, string> = {
-  OPEN: 'Otvorená',
-  IN_PROGRESS: 'Prebieha',
-  CLOSED: 'Uzavretá',
-}
-
-const proposalStatusLabel: Record<string, string> = {
-  PENDING: 'Čaká',
-  ACCEPTED: 'Prijatá',
-  REJECTED: 'Odmietnutá',
-  WITHDRAWN: 'Stiahnutá',
-}
-
 export default function GigsClient({ params }: { params: { locale: string } }) {
   const { locale } = params
+  const t = useTranslations('employer.gigs')
+  const tAuth = useTranslations('auth')
+
+  // Enum -> label maps built from the catalog; an unknown enum value still falls
+  // through to the raw value, exactly as before the i18n migration.
+  const gigStatusLabel: Record<string, string> = {
+    OPEN: t('status.OPEN'),
+    IN_PROGRESS: t('status.IN_PROGRESS'),
+    CLOSED: t('status.CLOSED'),
+  }
+
+  const proposalStatusLabel: Record<string, string> = {
+    PENDING: t('proposalStatus.PENDING'),
+    ACCEPTED: t('proposalStatus.ACCEPTED'),
+    REJECTED: t('proposalStatus.REJECTED'),
+    WITHDRAWN: t('proposalStatus.WITHDRAWN'),
+  }
+
   const [loading, setLoading] = useState(true)
   const [unauthorized, setUnauthorized] = useState(false)
   const [gigs, setGigs] = useState<Gig[]>([])
@@ -76,11 +82,11 @@ export default function GigsClient({ params }: { params: { locale: string } }) {
       const { gigs } = await res.json()
       setGigs(gigs ?? [])
     } catch {
-      setMessage('Nepodarilo sa načítať zákazky.')
+      setMessage(t('loadError'))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     loadGigs()
@@ -102,10 +108,10 @@ export default function GigsClient({ params }: { params: { locale: string } }) {
       })
       if (!res.ok) throw new Error('create failed')
       setForm({ title: '', description: '', budget: '', durationDays: '' })
-      setMessage('✓ Zákazka zverejnená.')
+      setMessage(`✓ ${t('publishedOk')}`)
       await loadGigs()
     } catch {
-      setMessage('Zverejnenie zlyhalo. Skús znova.')
+      setMessage(t('publishFailed'))
     } finally {
       setCreating(false)
     }
@@ -141,7 +147,7 @@ export default function GigsClient({ params }: { params: { locale: string } }) {
       if (!res.ok) throw new Error('decision failed')
       await Promise.all([toggleProposalsRefresh(gigId), loadGigs()])
     } catch {
-      setMessage('Akcia zlyhala. Skús znova.')
+      setMessage(t('actionFailed'))
     } finally {
       setDeciding(null)
     }
@@ -169,9 +175,9 @@ export default function GigsClient({ params }: { params: { locale: string } }) {
   if (unauthorized) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
-        <p className="text-lg">Pre správu zákaziek sa prihlás ako firma.</p>
+        <p className="text-lg">{t('unauthorized')}</p>
         <Button asChild>
-          <Link href={`/${locale}/login`}>Prihlásiť sa</Link>
+          <Link href={`/${locale}/login`}>{tAuth('signIn')}</Link>
         </Button>
       </div>
     )
@@ -182,59 +188,57 @@ export default function GigsClient({ params }: { params: { locale: string } }) {
       <div className="container mx-auto max-w-3xl px-4">
         <div className="mb-6">
           <h1 className="flex items-center gap-2 text-3xl font-bold">
-            <Briefcase className="h-7 w-7 text-primary" /> Zákazky pre freelancerov
+            <Briefcase className="h-7 w-7 text-primary" /> {t('title')}
           </h1>
-          <p className="text-muted-foreground">
-            Zadaj prácu, freelanceri pošlú ponuky a vy sa dohodnete na cene a trvaní.
-          </p>
+          <p className="text-muted-foreground">{t('subtitle')}</p>
         </div>
 
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
-              <Plus className="h-5 w-5" /> Nová zákazka
+              <Plus className="h-5 w-5" /> {t('newGig')}
             </CardTitle>
-            <CardDescription>Bez online platby — platbu si dohodnete priamo.</CardDescription>
+            <CardDescription>{t('newGigDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Názov</Label>
+              <Label htmlFor="title">{t('titleLabel')}</Label>
               <Input
                 id="title"
-                placeholder="napr. Logo + vizuálna identita pre kaviareň"
+                placeholder={t('titlePlaceholder')}
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description">Popis</Label>
+              <Label htmlFor="description">{t('descriptionLabel')}</Label>
               <textarea
                 id="description"
                 className="min-h-[110px] w-full rounded-md border px-3 py-2 text-sm"
-                placeholder="Čo potrebuješ spraviť, očakávania, termíny…"
+                placeholder={t('descriptionPlaceholder')}
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="budget">Rozpočet (€, voliteľné)</Label>
+                <Label htmlFor="budget">{t('budgetLabel')}</Label>
                 <Input
                   id="budget"
                   type="number"
                   min={0}
-                  placeholder="napr. 800"
+                  placeholder={t('budgetPlaceholder')}
                   value={form.budget}
                   onChange={(e) => setForm({ ...form, budget: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="durationDays">Trvanie (dni, voliteľné)</Label>
+                <Label htmlFor="durationDays">{t('durationLabel')}</Label>
                 <Input
                   id="durationDays"
                   type="number"
                   min={1}
-                  placeholder="napr. 14"
+                  placeholder={t('durationPlaceholder')}
                   value={form.durationDays}
                   onChange={(e) => setForm({ ...form, durationDays: e.target.value })}
                 />
@@ -245,17 +249,17 @@ export default function GigsClient({ params }: { params: { locale: string } }) {
                 onClick={createGig}
                 disabled={creating || !form.title.trim() || !form.description.trim()}
               >
-                {creating ? 'Zverejňujem…' : 'Zverejniť zákazku'}
+                {creating ? t('publishing') : t('publish')}
               </Button>
               {message && <span className="text-sm text-muted-foreground">{message}</span>}
             </div>
           </CardContent>
         </Card>
 
-        <h2 className="mb-4 text-xl font-semibold">Moje zákazky ({gigs.length})</h2>
+        <h2 className="mb-4 text-xl font-semibold">{t('myGigs', { count: gigs.length })}</h2>
         {gigs.length === 0 ? (
           <div className="rounded-lg border bg-background p-10 text-center text-muted-foreground">
-            Zatiaľ žiadne zákazky. Zadaj prvú vyššie.
+            {t('empty')}
           </div>
         ) : (
           <div className="space-y-4">
@@ -283,23 +287,25 @@ export default function GigsClient({ params }: { params: { locale: string } }) {
                     {gig.durationDays != null && (
                       <span className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {gig.durationDays} dní
+                        {t('days', { count: gig.durationDays })}
                       </span>
                     )}
                   </div>
                   <Button variant="outline" size="sm" onClick={() => toggleProposals(gig.id)}>
                     <Users className="mr-2 h-4 w-4" />
-                    {openGigId === gig.id ? 'Skryť ponuky' : `Ponuky (${gig._count.proposals})`}
+                    {openGigId === gig.id
+                      ? t('hideProposals')
+                      : t('proposalsCount', { count: gig._count.proposals })}
                   </Button>
 
                   {openGigId === gig.id && (
                     <div className="mt-2 space-y-3 border-t pt-3">
                       {proposalsLoading ? (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Loader2 className="h-4 w-4 animate-spin" /> Načítavam ponuky…
+                          <Loader2 className="h-4 w-4 animate-spin" /> {t('loadingProposals')}
                         </div>
                       ) : proposals.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">Zatiaľ žiadne ponuky.</p>
+                        <p className="text-sm text-muted-foreground">{t('noProposals')}</p>
                       ) : (
                         proposals.map((p) => (
                           <div key={p.id} className="rounded-md border bg-muted/30 p-3">
@@ -337,7 +343,7 @@ export default function GigsClient({ params }: { params: { locale: string } }) {
                               {p.proposedDurationDays != null && (
                                 <span className="flex items-center gap-1">
                                   <Clock className="h-3.5 w-3.5" />
-                                  {p.proposedDurationDays} dní
+                                  {t('days', { count: p.proposedDurationDays })}
                                 </span>
                               )}
                             </div>
@@ -351,7 +357,7 @@ export default function GigsClient({ params }: { params: { locale: string } }) {
                                   disabled={deciding === p.id}
                                   onClick={() => decide(gig.id, p.id, 'ACCEPT')}
                                 >
-                                  {deciding === p.id ? '…' : 'Prijať'}
+                                  {deciding === p.id ? '…' : t('accept')}
                                 </Button>
                                 <Button
                                   size="sm"
@@ -359,7 +365,7 @@ export default function GigsClient({ params }: { params: { locale: string } }) {
                                   disabled={deciding === p.id}
                                   onClick={() => decide(gig.id, p.id, 'REJECT')}
                                 >
-                                  Odmietnuť
+                                  {t('reject')}
                                 </Button>
                               </div>
                             )}

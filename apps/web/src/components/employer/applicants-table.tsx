@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useFormatter } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import { CalendarClock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,8 +19,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
+  APPLICATION_STAGES,
   STAGE_COLORS,
-  STAGE_LABELS_SK,
   type ApplicationStage,
 } from '@/lib/constants/application-stages'
 import { BulkActionBar } from './bulk-action-bar'
@@ -74,6 +74,8 @@ export function ApplicantsTable({ applications, locale }: ApplicantsTableProps) 
   const [scheduleFor, setScheduleFor] = useState<string | null>(null)
   const router = useRouter()
   const format = useFormatter()
+  const t = useTranslations('employer.applicantsTable')
+  const tStages = useTranslations('employer.stages')
 
   const allSelected = applications.length > 0 && selectedIds.size === applications.length
   const someSelected = selectedIds.size > 0 && selectedIds.size < applications.length
@@ -105,18 +107,16 @@ export function ApplicantsTable({ applications, locale }: ApplicantsTableProps) 
 
   const stageBadge = (stage: string) => {
     const colorClass = STAGE_COLORS[stage as ApplicationStage]
-    const label = STAGE_LABELS_SK[stage as ApplicationStage] ?? stage
+    const label = (APPLICATION_STAGES as readonly string[]).includes(stage) ? tStages(stage) : stage
     return colorClass ? <Badge className={colorClass}>{label}</Badge> : <Badge>{label}</Badge>
   }
 
   if (applications.length === 0) {
     return (
       <div className="py-12 text-center">
-        <p className="text-muted-foreground">
-          Nenašli sa žiadni kandidáti. Vytvorte pracovnú ponuku a počkajte na prihlášky.
-        </p>
+        <p className="text-muted-foreground">{t('empty')}</p>
         <Button asChild className="mt-4">
-          <Link href={`/${locale}/employer/jobs/new`}>Vytvoriť pozíciu</Link>
+          <Link href={`/${locale}/employer/jobs/new`}>{t('createPosition')}</Link>
         </Button>
       </div>
     )
@@ -148,14 +148,14 @@ export function ApplicantsTable({ applications, locale }: ApplicantsTableProps) 
               <Checkbox
                 checked={someSelected ? 'indeterminate' : allSelected}
                 onCheckedChange={toggleAll}
-                aria-label="Vybrať všetkých"
+                aria-label={t('selectAll')}
               />
             </TableHead>
-            <TableHead>Kandidát</TableHead>
-            <TableHead>Pozícia</TableHead>
-            <TableHead>Stage</TableHead>
-            <TableHead>Skóre</TableHead>
-            <TableHead>Dátum</TableHead>
+            <TableHead>{t('columnCandidate')}</TableHead>
+            <TableHead>{t('columnPosition')}</TableHead>
+            <TableHead>{t('columnStage')}</TableHead>
+            <TableHead>{t('columnScore')}</TableHead>
+            <TableHead>{t('columnDate')}</TableHead>
             <TableHead className="w-32" />
           </TableRow>
         </TableHeader>
@@ -171,7 +171,7 @@ export function ApplicantsTable({ applications, locale }: ApplicantsTableProps) 
                 <Checkbox
                   checked={selectedIds.has(application.id)}
                   onCheckedChange={() => toggleOne(application.id)}
-                  aria-label={`Vybrať ${application.candidateName}`}
+                  aria-label={t('selectOne', { name: application.candidateName })}
                 />
               </TableCell>
               <TableCell>
@@ -180,7 +180,7 @@ export function ApplicantsTable({ applications, locale }: ApplicantsTableProps) 
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={application.avatar}
-                      alt={application.candidateName || 'Kandidát'}
+                      alt={application.candidateName || t('candidateFallback')}
                       className="h-9 w-9 flex-shrink-0 rounded-full object-cover"
                     />
                   ) : (
@@ -191,7 +191,9 @@ export function ApplicantsTable({ applications, locale }: ApplicantsTableProps) 
                     </div>
                   )}
                   <div>
-                    <p className="font-medium">{application.candidateName || 'Kandidát'}</p>
+                    <p className="font-medium">
+                      {application.candidateName || t('candidateFallback')}
+                    </p>
                     <p className="text-xs text-muted-foreground">{application.candidateEmail}</p>
                   </div>
                 </div>
@@ -210,13 +212,15 @@ export function ApplicantsTable({ applications, locale }: ApplicantsTableProps) 
                     variant="outline"
                     size="sm"
                     onClick={() => setScheduleFor(application.id)}
-                    title="Naplánovať pohovor"
+                    title={t('scheduleInterview')}
                   >
                     <CalendarClock className="h-4 w-4" />
-                    <span className="sr-only">Naplánovať pohovor</span>
+                    <span className="sr-only">{t('scheduleInterview')}</span>
                   </Button>
                   <Button variant="outline" size="sm" asChild>
-                    <Link href={`/${locale}/employer/applicants/${application.id}`}>Detail</Link>
+                    <Link href={`/${locale}/employer/applicants/${application.id}`}>
+                      {t('detail')}
+                    </Link>
                   </Button>
                 </div>
               </TableCell>

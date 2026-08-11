@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -16,10 +17,15 @@ import { APPLICATION_STAGES, type ApplicationStage } from '@/lib/constants/appli
 // Maximum cards to show per Kanban column — keeps the DOM manageable
 const PER_STAGE_CAP = 50
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: { locale: string }
+}): Promise<Metadata> {
+  const t = await getTranslations({ locale: params.locale, namespace: 'employer.pipeline' })
   return {
-    title: 'Pipeline',
-    description: 'Kanban board prehľad kandidátov.',
+    title: t('title'),
+    description: t('metaDescription'),
   }
 }
 
@@ -31,6 +37,11 @@ export default async function PipelinePage({
   searchParams: { jobId?: string; stage?: string; sort?: string }
 }) {
   const session = await auth()
+  const t = await getTranslations({ locale: params.locale, namespace: 'employer' })
+  const tPipeline = await getTranslations({
+    locale: params.locale,
+    namespace: 'employer.pipeline',
+  })
   if (!session?.user?.id) {
     redirect(`/${params.locale}/login`)
   }
@@ -154,14 +165,14 @@ export default async function PipelinePage({
         <Button variant="ghost" asChild className="mb-6">
           <Link href={`/${params.locale}/employer`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Späť na dashboard
+            {t('backToDashboard')}
           </Link>
         </Button>
 
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Pipeline</h1>
-            <p className="text-muted-foreground">Presúvajte kandidátov medzi fázami</p>
+            <h1 className="text-3xl font-bold">{tPipeline('title')}</h1>
+            <p className="text-muted-foreground">{tPipeline('subtitle')}</p>
           </div>
           <ApplicantsViewControls
             view="kanban"

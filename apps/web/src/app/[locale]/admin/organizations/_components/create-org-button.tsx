@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,6 +23,7 @@ import {
  */
 export function CreateOrgButton() {
   const router = useRouter()
+  const t = useTranslations('admin')
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -66,12 +68,12 @@ export function CreateOrgButton() {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        setError(data.error ?? 'Chyba pri vytváraní organizácie')
+        setError(data.error ?? t('organizations.create.error'))
         return
       }
       const data = await res.json().catch(() => ({}))
       if (invite && data.emailSent === false) {
-        setError('Organizácia vytvorená, ale pozvánku sa nepodarilo odoslať.')
+        setError(t('organizations.create.inviteFailed'))
       }
       setForm({ name: '', slug: '', industry: '', size: '', website: '', adminEmail: '' })
       setOpen(false)
@@ -84,21 +86,18 @@ export function CreateOrgButton() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">Nová organizácia</Button>
+        <Button size="sm">{t('organizations.create.title')}</Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Nová organizácia</DialogTitle>
-            <DialogDescription>
-              Vytvorte organizáciu. Ak zadáte e-mail admina, odošle sa mu pozvánka na nastavenie
-              hesla (ORG_ADMIN).
-            </DialogDescription>
+            <DialogTitle>{t('organizations.create.title')}</DialogTitle>
+            <DialogDescription>{t('organizations.create.description')}</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="org-name">Názov *</Label>
+              <Label htmlFor="org-name">{t('organizations.create.nameLabel')}</Label>
               <Input
                 id="org-name"
                 required
@@ -107,16 +106,16 @@ export function CreateOrgButton() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="org-slug">Slug (voliteľné)</Label>
+              <Label htmlFor="org-slug">{t('organizations.create.slugLabel')}</Label>
               <Input
                 id="org-slug"
                 value={form.slug}
-                placeholder="auto z názvu"
+                placeholder={t('organizations.create.slugPlaceholder')}
                 onChange={(e) => update('slug', e.target.value)}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="org-industry">Industry (voliteľné)</Label>
+              <Label htmlFor="org-industry">{t('organizations.create.industryLabel')}</Label>
               <Input
                 id="org-industry"
                 value={form.industry}
@@ -124,7 +123,7 @@ export function CreateOrgButton() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="org-size">Veľkosť (voliteľné)</Label>
+              <Label htmlFor="org-size">{t('organizations.create.sizeLabel')}</Label>
               <Input
                 id="org-size"
                 value={form.size}
@@ -132,7 +131,7 @@ export function CreateOrgButton() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="org-website">Web (voliteľné)</Label>
+              <Label htmlFor="org-website">{t('organizations.create.websiteLabel')}</Label>
               <Input
                 id="org-website"
                 type="url"
@@ -141,7 +140,7 @@ export function CreateOrgButton() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="org-admin-email">E-mail admina (voliteľné — pošle pozvánku)</Label>
+              <Label htmlFor="org-admin-email">{t('organizations.create.adminEmailLabel')}</Label>
               <Input
                 id="org-admin-email"
                 type="email"
@@ -154,7 +153,7 @@ export function CreateOrgButton() {
 
           <DialogFooter>
             <Button type="submit" disabled={loading || !form.name.trim()}>
-              {loading ? 'Ukladám…' : 'Vytvoriť'}
+              {loading ? t('common.saving') : t('common.create')}
             </Button>
           </DialogFooter>
         </form>

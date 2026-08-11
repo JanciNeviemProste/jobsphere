@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getFormatter } from 'next-intl/server'
+import { getFormatter, getTranslations } from 'next-intl/server'
 import { SHORT_DATE } from '@/lib/formats'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -18,8 +18,13 @@ import { JobStatusFilter } from './_components/job-status-filter'
 import { CreateJobButton } from './_components/create-job-button'
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: 'Správa ponúk | Admin',
+export async function generateMetadata({
+  params,
+}: {
+  params: { locale: string }
+}): Promise<Metadata> {
+  const t = await getTranslations({ locale: params.locale, namespace: 'admin' })
+  return { title: t('jobs.metaTitle') }
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -38,6 +43,7 @@ export default async function AdminJobsPage({
 }) {
   const session = await auth()
   const format = await getFormatter()
+  const t = await getTranslations('admin')
   if (!session?.user?.isGlobalAdmin) {
     redirect(`/${params.locale}/login?error=forbidden`)
   }
@@ -92,8 +98,8 @@ export default async function AdminJobsPage({
     <div className="space-y-6 p-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Joby</h1>
-          <p className="mt-1 text-sm text-slate-500">{total} jobov celkovo</p>
+          <h1 className="text-2xl font-bold text-slate-900">{t('jobs.title')}</h1>
+          <p className="mt-1 text-sm text-slate-500">{t('jobs.totalCount', { count: total })}</p>
         </div>
         <div className="flex items-center gap-2">
           <JobStatusFilter currentStatus={status} />
@@ -103,18 +109,18 @@ export default async function AdminJobsPage({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Všetky joby</CardTitle>
+          <CardTitle className="text-base">{t('jobs.allJobs')}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Názov</TableHead>
-                <TableHead>Organizácia</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Prihlásenia</TableHead>
-                <TableHead>Dátum</TableHead>
-                <TableHead className="text-right">Zmena statusu</TableHead>
+                <TableHead>{t('jobs.table.title')}</TableHead>
+                <TableHead>{t('common.organization')}</TableHead>
+                <TableHead>{t('common.status')}</TableHead>
+                <TableHead className="text-right">{t('common.applications')}</TableHead>
+                <TableHead>{t('common.date')}</TableHead>
+                <TableHead className="text-right">{t('jobs.table.changeStatus')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -139,7 +145,7 @@ export default async function AdminJobsPage({
               {jobs.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="py-8 text-center text-slate-500">
-                    Žiadne joby
+                    {t('jobs.empty')}
                   </TableCell>
                 </TableRow>
               )}
@@ -150,7 +156,7 @@ export default async function AdminJobsPage({
 
       {totalPages > 1 && (
         <p className="text-center text-sm text-slate-500">
-          Strana {page} z {totalPages}
+          {t('common.pageOf', { page, totalPages })}
         </p>
       )}
     </div>

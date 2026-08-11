@@ -2,7 +2,8 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { STAGE_LABELS_EN } from '@/lib/constants/application-stages'
+import { useTranslations } from 'next-intl'
+import { APPLICATION_STAGES } from '@/lib/constants/application-stages'
 
 interface ApplicationsByStageChartProps {
   data: Array<{
@@ -20,8 +21,11 @@ const COLORS = {
 }
 
 export function ApplicationsByStageChart({ data }: ApplicationsByStageChartProps) {
+  const tStages = useTranslations('employer.stages')
   const chartData = data.map((item) => ({
-    name: STAGE_LABELS_EN[item.stage as keyof typeof STAGE_LABELS_EN] || item.stage,
+    name: (APPLICATION_STAGES as readonly string[]).includes(item.stage)
+      ? tStages(item.stage)
+      : item.stage,
     value: item.count,
     fill: COLORS[item.stage as keyof typeof COLORS] || '#gray',
   }))

@@ -1,4 +1,4 @@
-import { getFormatter } from 'next-intl/server'
+import { getFormatter, getTranslations } from 'next-intl/server'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -11,6 +11,7 @@ export const metadata = {
 
 export default async function AdminDashboardPage() {
   const format = await getFormatter()
+  const t = await getTranslations('admin')
   const [totalUsers, totalOrgs, totalJobs, totalApplications, recentUsers, activeSubscriptions] =
     await Promise.all([
       prisma.user.count({ where: { deletedAt: null } }),
@@ -36,28 +37,28 @@ export default async function AdminDashboardPage() {
 
   const stats = [
     {
-      label: 'Celkom používateľov',
+      label: t('dashboard.stats.users'),
       value: totalUsers,
       icon: Users,
       color: 'text-blue-600',
       bg: 'bg-blue-50',
     },
     {
-      label: 'Celkom organizácií',
+      label: t('dashboard.stats.organizations'),
       value: totalOrgs,
       icon: Building2,
       color: 'text-emerald-600',
       bg: 'bg-emerald-50',
     },
     {
-      label: 'Celkom jobov',
+      label: t('dashboard.stats.jobs'),
       value: totalJobs,
       icon: Briefcase,
       color: 'text-violet-600',
       bg: 'bg-violet-50',
     },
     {
-      label: 'Aktívne predplatné',
+      label: t('dashboard.stats.activeSubscriptions'),
       value: activeSubscriptions,
       icon: CreditCard,
       color: 'text-amber-600',
@@ -69,10 +70,8 @@ export default async function AdminDashboardPage() {
     <div className="space-y-8 p-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Prehľad systémových štatistík a posledných aktivít
-        </p>
+        <h1 className="text-2xl font-bold text-slate-900">{t('dashboard.title')}</h1>
+        <p className="mt-1 text-sm text-slate-500">{t('dashboard.subtitle')}</p>
       </div>
 
       {/* Stat cards */}
@@ -105,28 +104,28 @@ export default async function AdminDashboardPage() {
       <Card className="border border-slate-200 bg-white shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold text-slate-900">
-            Posledné registrácie
+            {t('dashboard.recentSignups')}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {recentUsers.length === 0 ? (
-            <p className="px-6 py-8 text-center text-sm text-slate-500">Žiadni používatelia</p>
+            <p className="px-6 py-8 text-center text-sm text-slate-500">{t('dashboard.noUsers')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50">
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Meno
+                      {t('dashboard.table.name')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Email
+                      {t('common.email')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Rola
+                      {t('common.role')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Dátum registrácie
+                      {t('dashboard.table.registeredAt')}
                     </th>
                   </tr>
                 </thead>
@@ -140,15 +139,17 @@ export default async function AdminDashboardPage() {
                       <td className="px-6 py-4">
                         {user.isGlobalAdmin ? (
                           <Badge variant="default" className="bg-blue-600 text-xs text-white">
-                            Admin
+                            {t('common.roleAdmin')}
                           </Badge>
                         ) : (
                           <Badge variant="secondary" className="text-xs">
-                            Používateľ
+                            {t('common.roleUser')}
                           </Badge>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-slate-500">{format.dateTime(user.createdAt, SHORT_DATE)}</td>
+                      <td className="px-6 py-4 text-slate-500">
+                        {format.dateTime(user.createdAt, SHORT_DATE)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -166,14 +167,14 @@ export default async function AdminDashboardPage() {
               <p className="text-2xl font-bold text-slate-900">
                 {format.number(totalApplications)}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Celkom prihlášok</p>
+              <p className="mt-1 text-xs text-slate-500">{t('dashboard.totalApplications')}</p>
             </div>
             <div className="w-px self-stretch bg-slate-200" />
             <div className="text-center">
               <p className="text-2xl font-bold text-slate-900">
                 {totalUsers > 0 ? ((activeSubscriptions / totalOrgs) * 100).toFixed(0) : 0}%
               </p>
-              <p className="mt-1 text-xs text-slate-500">Org. s aktívnym predplatným</p>
+              <p className="mt-1 text-xs text-slate-500">{t('dashboard.orgsWithSubscription')}</p>
             </div>
             <div className="w-px self-stretch bg-slate-200" />
             <div className="text-center">
@@ -182,7 +183,7 @@ export default async function AdminDashboardPage() {
                   ? (totalApplications / totalJobs).toFixed(1)
                   : '0'}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Prihlášky / job</p>
+              <p className="mt-1 text-xs text-slate-500">{t('dashboard.applicationsPerJob')}</p>
             </div>
           </div>
         </CardContent>
