@@ -22,7 +22,7 @@ import {
   Mail,
   FileText,
 } from 'lucide-react'
-import { STAGE_LABELS_EN, STAGE_COLORS } from '@/lib/constants/application-stages'
+import { APPLICATION_STAGES, STAGE_COLORS } from '@/lib/constants/application-stages'
 
 export async function generateMetadata({
   params: { locale },
@@ -107,6 +107,9 @@ async function getEmployerData(userId: string) {
 export default async function EmployerDashboardPage({ params }: { params: { locale: string } }) {
   const session = await auth()
   const format = await getFormatter()
+  const t = await getTranslations({ locale: params.locale, namespace: 'employer' })
+  const tCommon = await getTranslations({ locale: params.locale, namespace: 'common' })
+  const tStages = await getTranslations({ locale: params.locale, namespace: 'employer.stages' })
 
   if (!session?.user?.id) {
     redirect(`/${params.locale}/login`)
@@ -120,15 +123,12 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/30">
         <Card className="max-w-md">
           <CardHeader>
-            <CardTitle>Prístup odmietnutý</CardTitle>
-            <CardDescription>
-              Nemáte prístup k employer dashboardu. Vytvorte si organizáciu alebo sa pripojiť k
-              existujúcej.
-            </CardDescription>
+            <CardTitle>{t('accessDenied')}</CardTitle>
+            <CardDescription>{t('noAccess')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild className="w-full">
-              <Link href={`/${params.locale}/dashboard`}>Späť na dashboard</Link>
+              <Link href={`/${params.locale}/dashboard`}>{t('backToDashboard')}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -158,19 +158,19 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
       case 'ACTIVE':
         return (
           <Badge variant="default" className="gap-1 bg-green-600">
-            <CheckCircle className="h-3 w-3" /> Aktívne
+            <CheckCircle className="h-3 w-3" /> {tCommon('status.active')}
           </Badge>
         )
       case 'DRAFT':
         return (
           <Badge variant="secondary" className="gap-1">
-            <Clock className="h-3 w-3" /> Koncept
+            <Clock className="h-3 w-3" /> {tCommon('status.draft')}
           </Badge>
         )
       case 'CLOSED':
         return (
           <Badge variant="outline" className="gap-1">
-            <XCircle className="h-3 w-3" /> Uzavreté
+            <XCircle className="h-3 w-3" /> {tCommon('status.closed')}
           </Badge>
         )
       default:
@@ -179,7 +179,9 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
   }
 
   const getApplicantStatusBadge = (status: string) => {
-    const label = STAGE_LABELS_EN[status as keyof typeof STAGE_LABELS_EN] ?? status
+    const label = (APPLICATION_STAGES as readonly string[]).includes(status)
+      ? tStages(status)
+      : status
     const colorClass = STAGE_COLORS[status as keyof typeof STAGE_COLORS]
     if (colorClass) {
       return <Badge className={colorClass}>{label}</Badge>
@@ -193,13 +195,15 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="mb-2 text-3xl font-bold">{organization.name} - ATS Dashboard</h1>
-            <p className="text-muted-foreground">Spravujte vaše pracovné ponuky a kandidátov</p>
+            <h1 className="mb-2 text-3xl font-bold">
+              {organization.name} - {t('dashboard')}
+            </h1>
+            <p className="text-muted-foreground">{t('manage')}</p>
           </div>
           <Button asChild>
             <Link href={`/${params.locale}/employer/jobs/new`}>
               <Plus className="mr-2 h-4 w-4" />
-              Nová pozícia
+              {t('newPosition')}
             </Link>
           </Button>
         </div>
@@ -208,25 +212,25 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
         <div className="mb-8 grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Aktívne pozície</CardDescription>
+              <CardDescription>{t('activePositions')}</CardDescription>
               <CardTitle className="text-3xl">{stats.activeJobs}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Celkovo prihlášok</CardDescription>
+              <CardDescription>{t('totalApplications')}</CardDescription>
               <CardTitle className="text-3xl">{stats.totalApplicants}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Nové prihlášky</CardDescription>
+              <CardDescription>{t('newApplications')}</CardDescription>
               <CardTitle className="text-3xl text-blue-600">{stats.newApplicants}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Celkovo pozícií</CardDescription>
+              <CardDescription>{t('totalPositions')}</CardDescription>
               <CardTitle className="text-3xl text-muted-foreground">{stats.totalJobs}</CardTitle>
             </CardHeader>
           </Card>
@@ -240,8 +244,8 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Pracovné pozície</CardTitle>
-                    <CardDescription>Vaše zverejnené ponuky práce</CardDescription>
+                    <CardTitle>{t('positions')}</CardTitle>
+                    <CardDescription>{t('published')}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -260,22 +264,24 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Users className="h-4 w-4" />
-                            {job._count.applications} prihlášok
+                            {t('applicationsCount', { count: job._count.applications })}
                           </span>
                           <span className="flex items-center gap-1">
                             <Eye className="h-4 w-4" />
-                            {job.viewCount} zobrazení
+                            {t('viewsCount', { count: job.viewCount })}
                           </span>
-                          <span>Vytvorené {format.dateTime(job.createdAt, SHORT_DATE)}</span>
+                          <span>
+                            {t('created')} {format.dateTime(job.createdAt, SHORT_DATE)}
+                          </span>
                         </div>
                       </div>
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" asChild>
-                          <Link href={`/${params.locale}/jobs/${job.id}`}>Zobraziť</Link>
+                          <Link href={`/${params.locale}/jobs/${job.id}`}>{t('view')}</Link>
                         </Button>
                         <Button variant="default" size="sm" asChild>
                           <Link href={`/${params.locale}/employer/jobs/${job.id}/edit`}>
-                            Upraviť
+                            {t('edit')}
                           </Link>
                         </Button>
                       </div>
@@ -285,13 +291,11 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
                   {jobs.length === 0 && (
                     <div className="py-8 text-center">
                       <Briefcase className="mx-auto mb-3 h-12 w-12 text-muted-foreground" />
-                      <p className="mb-4 text-muted-foreground">
-                        Zatiaľ nemáte žiadne pracovné ponuky
-                      </p>
+                      <p className="mb-4 text-muted-foreground">{t('noPositions')}</p>
                       <Button asChild>
                         <Link href={`/${params.locale}/employer/jobs/new`}>
                           <Plus className="mr-2 h-4 w-4" />
-                          Vytvoriť prvú pozíciu
+                          {t('createFirst')}
                         </Link>
                       </Button>
                     </div>
@@ -305,11 +309,11 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Nedávne prihlášky</CardTitle>
-                    <CardDescription>Posledné prihlásení kandidáti</CardDescription>
+                    <CardTitle>{t('recent')}</CardTitle>
+                    <CardDescription>{t('lastApplied')}</CardDescription>
                   </div>
                   <Button variant="outline" size="sm" asChild>
-                    <Link href={`/${params.locale}/employer/applicants`}>Zobraziť všetky</Link>
+                    <Link href={`/${params.locale}/employer/applicants`}>{t('viewAll')}</Link>
                   </Button>
                 </div>
               </CardHeader>
@@ -325,7 +329,7 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
                           <h4 className="font-semibold">
                             {application.candidate.contacts?.[0]?.fullName ||
                               application.candidate.contacts?.[0]?.email ||
-                              'Kandidát'}
+                              t('candidate')}
                           </h4>
                           {getApplicantStatusBadge(application.stage)}
                         </div>
@@ -334,13 +338,13 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
                         </p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <span>
-                            Prihlásený {format.dateTime(application.createdAt, SHORT_DATE)}
+                            {t('applied')} {format.dateTime(application.createdAt, SHORT_DATE)}
                           </span>
                         </div>
                       </div>
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/${params.locale}/employer/applicants/${application.id}`}>
-                          Detail
+                          {t('detail')}
                         </Link>
                       </Button>
                     </div>
@@ -349,7 +353,7 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
                   {recentApplications.length === 0 && (
                     <div className="py-8 text-center text-muted-foreground">
                       <Users className="mx-auto mb-3 h-12 w-12" />
-                      <p>Zatiaľ žiadne prihlášky</p>
+                      <p>{t('noApplications')}</p>
                     </div>
                   )}
                 </div>
@@ -362,37 +366,37 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
             {/* Quick Actions */}
             <Card>
               <CardHeader>
-                <CardTitle>Rýchle akcie</CardTitle>
+                <CardTitle>{t('quickActions')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <Button className="w-full justify-start" variant="outline" asChild>
                   <Link href={`/${params.locale}/employer/jobs/new`}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Vytvoriť novú pozíciu
+                    {t('createNew')}
                   </Link>
                 </Button>
                 <Button className="w-full justify-start" variant="outline" asChild>
                   <Link href={`/${params.locale}/employer/applicants`}>
                     <Users className="mr-2 h-4 w-4" />
-                    Zobraziť všetkých kandidátov
+                    {t('viewAllCandidates')}
                   </Link>
                 </Button>
                 <Button className="w-full justify-start" variant="outline" asChild>
                   <Link href={`/${params.locale}/employer/pipeline`}>
                     <Kanban className="mr-2 h-4 w-4" />
-                    Pipeline
+                    {t('pipeline.title')}
                   </Link>
                 </Button>
                 <Button className="w-full justify-start" variant="outline" asChild>
                   <Link href={`/${params.locale}/employer/calendar`}>
                     <CalendarClock className="mr-2 h-4 w-4" />
-                    Kalendár pohovorov
+                    {t('calendar.title')}
                   </Link>
                 </Button>
                 <Button className="w-full justify-start" variant="outline" asChild>
                   <Link href={`/${params.locale}/employer/gigs`}>
                     <Briefcase className="mr-2 h-4 w-4" />
-                    Zákazky pre freelancerov
+                    {t('gigs.title')}
                   </Link>
                 </Button>
                 {/* Analytics, sequences and assessments were reachable only by
@@ -418,7 +422,7 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
                 <Button className="w-full justify-start" variant="outline" asChild>
                   <Link href={`/${params.locale}/employer/settings`}>
                     <Briefcase className="mr-2 h-4 w-4" />
-                    Nastavenia spoločnosti
+                    {t('companySettings')}
                   </Link>
                 </Button>
               </CardContent>
@@ -427,26 +431,20 @@ export default async function EmployerDashboardPage({ params }: { params: { loca
             {/* Tips */}
             <Card>
               <CardHeader>
-                <CardTitle>Tipy pre lepší nábor</CardTitle>
+                <CardTitle>{t('tips')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="rounded-lg bg-muted/50 p-3">
-                  <p className="mb-1 font-medium">✨ Použite AI matching</p>
-                  <p className="text-xs text-muted-foreground">
-                    Naša AI automaticky vyhodnotí kandidátov a priradí im skóre zhody
-                  </p>
+                  <p className="mb-1 font-medium">✨ {t('useAI')}</p>
+                  <p className="text-xs text-muted-foreground">{t('aiDesc')}</p>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-3">
-                  <p className="mb-1 font-medium">📝 Detailný popis pozície</p>
-                  <p className="text-xs text-muted-foreground">
-                    Presné popisy pozícií priťahujú kvalitnejších kandidátov
-                  </p>
+                  <p className="mb-1 font-medium">📝 {t('detailedDesc')}</p>
+                  <p className="text-xs text-muted-foreground">{t('descHelp')}</p>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-3">
-                  <p className="mb-1 font-medium">⚡ Rýchla reakcia</p>
-                  <p className="text-xs text-muted-foreground">
-                    Kandidáti oceňujú rýchlu spätnú väzbu po podaní prihlášky
-                  </p>
+                  <p className="mb-1 font-medium">⚡ {t('quickResponse')}</p>
+                  <p className="text-xs text-muted-foreground">{t('responseHelp')}</p>
                 </div>
               </CardContent>
             </Card>

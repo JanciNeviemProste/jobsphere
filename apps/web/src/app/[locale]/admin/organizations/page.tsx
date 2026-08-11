@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getFormatter } from 'next-intl/server'
+import { getFormatter, getTranslations } from 'next-intl/server'
 import { SHORT_DATE } from '@/lib/formats'
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
@@ -19,13 +19,19 @@ import { EditOrgDialog } from './_components/edit-org-dialog'
 import { CreateOrgButton } from './_components/create-org-button'
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: 'Správa organizácií | Admin',
+export async function generateMetadata({
+  params,
+}: {
+  params: { locale: string }
+}): Promise<Metadata> {
+  const t = await getTranslations({ locale: params.locale, namespace: 'admin' })
+  return { title: t('organizations.metaTitle') }
 }
 
 export default async function AdminOrganizationsPage({ params }: { params: { locale: string } }) {
   const session = await auth()
   const format = await getFormatter()
+  const t = await getTranslations('admin')
   if (!session?.user?.isGlobalAdmin) {
     redirect(`/${params.locale}/login?error=forbidden`)
   }
@@ -56,29 +62,33 @@ export default async function AdminOrganizationsPage({ params }: { params: { loc
     <div className="space-y-6 p-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Organizácie</h1>
-          <p className="mt-1 text-sm text-slate-500">Celkovo {orgs.length} organizácií</p>
+          <h1 className="text-2xl font-bold text-slate-900">{t('organizations.title')}</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {t('organizations.totalCount', { count: orgs.length })}
+          </p>
         </div>
         <CreateOrgButton />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Všetky organizácie</CardTitle>
+          <CardTitle className="text-base">{t('organizations.allOrganizations')}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Názov</TableHead>
-                <TableHead>Slug</TableHead>
-                <TableHead>Industry</TableHead>
-                <TableHead className="text-right">Členovia</TableHead>
-                <TableHead className="text-right">Joby</TableHead>
-                <TableHead className="text-right">Predplatné</TableHead>
-                <TableHead>Stav</TableHead>
-                <TableHead>Dátum</TableHead>
-                <TableHead className="text-right">Akcia</TableHead>
+                <TableHead>{t('organizations.table.name')}</TableHead>
+                <TableHead>{t('common.slug')}</TableHead>
+                <TableHead>{t('organizations.table.industry')}</TableHead>
+                <TableHead className="text-right">{t('organizations.table.members')}</TableHead>
+                <TableHead className="text-right">{t('organizations.table.jobs')}</TableHead>
+                <TableHead className="text-right">
+                  {t('organizations.table.subscriptions')}
+                </TableHead>
+                <TableHead>{t('common.state')}</TableHead>
+                <TableHead>{t('common.date')}</TableHead>
+                <TableHead className="text-right">{t('common.action')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -101,10 +111,10 @@ export default async function AdminOrganizationsPage({ params }: { params: { loc
                     <TableCell className="text-right text-sm">{org._count.subscriptions}</TableCell>
                     <TableCell>
                       {suspended ? (
-                        <Badge variant="destructive">Pozastavená</Badge>
+                        <Badge variant="destructive">{t('organizations.suspended')}</Badge>
                       ) : (
                         <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                          Aktívna
+                          {t('organizations.active')}
                         </Badge>
                       )}
                     </TableCell>
@@ -128,7 +138,7 @@ export default async function AdminOrganizationsPage({ params }: { params: { loc
               {orgs.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={9} className="py-8 text-center text-slate-500">
-                    Žiadne organizácie
+                    {t('organizations.empty')}
                   </TableCell>
                 </TableRow>
               )}

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -98,10 +99,15 @@ async function getApplicants(userId: string, page: number, filters: ApplicantsFi
   return { applications, total, orgId: userOrgRole.orgId, scoreMap }
 }
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: { locale: string }
+}): Promise<Metadata> {
+  const t = await getTranslations({ locale: params.locale, namespace: 'employer.applicantsList' })
   return {
-    title: 'All Applicants',
-    description: 'View and manage all job applicants across your organization.',
+    title: t('metaTitle'),
+    description: t('metaDescription'),
   }
 }
 
@@ -113,6 +119,11 @@ export default async function ApplicantsPage({
   searchParams?: { page?: string; jobId?: string; stage?: string; sort?: string }
 }) {
   const session = await auth()
+  const t = await getTranslations({ locale: params.locale, namespace: 'employer' })
+  const tList = await getTranslations({
+    locale: params.locale,
+    namespace: 'employer.applicantsList',
+  })
 
   if (!session?.user?.id) {
     redirect(`/${params.locale}/login`)
@@ -199,15 +210,15 @@ export default async function ApplicantsPage({
         <Button variant="ghost" asChild className="mb-6">
           <Link href={`/${params.locale}/employer`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Späť na dashboard
+            {t('backToDashboard')}
           </Link>
         </Button>
 
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="mb-2 text-3xl font-bold">Všetci kandidáti</h1>
-            <p className="text-muted-foreground">Prehľad všetkých prihlášok</p>
+            <h1 className="mb-2 text-3xl font-bold">{tList('title')}</h1>
+            <p className="text-muted-foreground">{tList('subtitle')}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <ApplicantsViewControls
@@ -226,25 +237,33 @@ export default async function ApplicantsPage({
         <div className="mb-8 grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Celkovo</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {tList('statTotal')}
+              </CardTitle>
               <div className="text-2xl font-bold">{stats.total}</div>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Nové</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {tList('statNew')}
+              </CardTitle>
               <div className="text-2xl font-bold text-blue-600">{stats.new}</div>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">V procese</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {tList('statInProgress')}
+              </CardTitle>
               <div className="text-2xl font-bold text-orange-600">{stats.reviewing}</div>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Interview</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {tList('statInterview')}
+              </CardTitle>
               <div className="text-2xl font-bold text-purple-600">{stats.interviewed}</div>
             </CardHeader>
           </Card>
@@ -271,7 +290,7 @@ export default async function ApplicantsPage({
                 aria-label="Previous page"
               >
                 <ChevronLeft className="h-4 w-4" />
-                Predošlá
+                {tList('prev')}
               </a>
             )}
 
@@ -313,7 +332,7 @@ export default async function ApplicantsPage({
                 className="inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted"
                 aria-label="Next page"
               >
-                Ďalšia
+                {tList('next')}
                 <ChevronRight className="h-4 w-4" />
               </a>
             )}

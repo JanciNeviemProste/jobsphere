@@ -2,11 +2,10 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { useFormatter } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import { X, ChevronDown, Mail, Download, UserX } from 'lucide-react'
 import {
   APPLICATION_STAGES,
-  STAGE_LABELS_SK,
   type ApplicationStage,
 } from '@/lib/constants/application-stages'
 import { Button } from '@/components/ui/button'
@@ -53,6 +52,9 @@ export function BulkActionBar({
   onSuccess,
 }: BulkActionBarProps) {
   const format = useFormatter()
+  const t = useTranslations('employer.bulkActions')
+  const tCommon = useTranslations('common')
+  const tStages = useTranslations('employer.stages')
   const [emailDialogOpen, setEmailDialogOpen] = useState(false)
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
 
@@ -73,13 +75,13 @@ export function BulkActionBar({
       const res = await postBulk({ action: 'move-stage', applicationIds: selectedIds, stage })
       const data = await res.json()
       if (!res.ok) {
-        toast.error(data.error || 'Nepodarilo sa presunúť prihlášky')
+        toast.error(data.error || t('moveFailed'))
         return
       }
-      toast.success(`Presunutých ${data.processed}`)
+      toast.success(t('movedSuccess', { count: data.processed }))
       onSuccess()
     } catch {
-      toast.error('Nepodarilo sa presunúť prihlášky')
+      toast.error(t('moveFailed'))
     } finally {
       setLoadingAction(null)
     }
@@ -91,13 +93,13 @@ export function BulkActionBar({
       const res = await postBulk({ action: 'reject', applicationIds: selectedIds })
       const data = await res.json()
       if (!res.ok) {
-        toast.error(data.error || 'Nepodarilo sa odmietnuť prihlášky')
+        toast.error(data.error || t('rejectFailed'))
         return
       }
-      toast.success(`Odmietnutých ${data.processed}`)
+      toast.success(t('rejectedSuccess', { count: data.processed }))
       onSuccess()
     } catch {
-      toast.error('Nepodarilo sa odmietnuť prihlášky')
+      toast.error(t('rejectFailed'))
     } finally {
       setLoadingAction(null)
     }
@@ -106,7 +108,13 @@ export function BulkActionBar({
   const handleExportCsv = () => {
     const idSet = new Set(selectedIds)
     const selected = applications.filter((a) => idSet.has(a.id))
-    const headers = ['Meno', 'Email', 'Pozícia', 'Stage', 'Dátum prihlásenia']
+    const headers = [
+      t('csvName'),
+      t('csvEmail'),
+      t('csvPosition'),
+      t('csvStage'),
+      t('csvAppliedAt'),
+    ]
     const rows = selected.map((a) => [
       a.candidateName,
       a.candidateEmail,
@@ -124,12 +132,12 @@ export function BulkActionBar({
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `vybrani-kandidati-${new Date().toISOString().split('T')[0]}.csv`
+    a.download = `${t('csvFilenamePrefix')}-${new Date().toISOString().split('T')[0]}.csv`
     document.body.appendChild(a)
     a.click()
     URL.revokeObjectURL(url)
     document.body.removeChild(a)
-    toast.success(`Exportovaných ${selected.length} záznamov`)
+    toast.success(t('exportSuccess', { count: selected.length }))
   }
 
   const isLoading = loadingAction !== null
@@ -137,7 +145,7 @@ export function BulkActionBar({
   return (
     <>
       <div className="sticky top-0 z-10 flex items-center gap-3 border-b bg-white px-4 py-3 shadow-sm">
-        <span className="text-sm font-medium text-foreground">Vybraných: {count}</span>
+        <span className="text-sm font-medium text-foreground">{t('selectedCount', { count })}</span>
         <Button
           variant="ghost"
           size="icon"
@@ -146,14 +154,14 @@ export function BulkActionBar({
           disabled={isLoading}
         >
           <X className="h-4 w-4" />
-          <span className="sr-only">Zrušiť výber</span>
+          <span className="sr-only">{t('clearSelection')}</span>
         </Button>
 
         <div className="ml-auto flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" disabled={isLoading}>
-                Presunúť do...
+                {t('moveTo')}
                 <ChevronDown className="ml-1 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -164,7 +172,7 @@ export function BulkActionBar({
                   onClick={() => handleMoveStage(stage)}
                   disabled={loadingAction === `move-${stage}`}
                 >
-                  {STAGE_LABELS_SK[stage]}
+                  {tStages(stage)}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -174,23 +182,23 @@ export function BulkActionBar({
             <AlertDialogTrigger asChild>
               <Button variant="outline" size="sm" disabled={isLoading}>
                 <UserX className="mr-1 h-4 w-4" />
-                Odmietnuť
+                {t('reject')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Potvrdiť odmietnutie</AlertDialogTitle>
+                <AlertDialogTitle>{t('rejectConfirmTitle')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Naozaj odmietnuť {count} kandidátov? Táto akcia zmení ich stage na Odmietnutý.
+                  {t('rejectConfirmDescription', { count })}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Zrušiť</AlertDialogCancel>
+                <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleReject}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Odmietnuť
+                  {t('reject')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -203,12 +211,12 @@ export function BulkActionBar({
             disabled={isLoading}
           >
             <Mail className="mr-1 h-4 w-4" />
-            Email
+            {t('email')}
           </Button>
 
           <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={isLoading}>
             <Download className="mr-1 h-4 w-4" />
-            Export CSV
+            {t('exportCsv')}
           </Button>
         </div>
       </div>

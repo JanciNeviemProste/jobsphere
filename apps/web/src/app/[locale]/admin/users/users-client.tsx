@@ -6,7 +6,7 @@
  */
 
 import { useState, useTransition } from 'react'
-import { useFormatter } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
@@ -64,13 +64,15 @@ function isBanned(lockedUntil: Date | string | null): boolean {
 }
 
 function UserStatusBadge({ user }: { user: UserRow }) {
+  const t = useTranslations('admin')
+
   if (user.isGlobalAdmin) {
-    return <Badge className="bg-blue-600 text-xs text-white">Admin</Badge>
+    return <Badge className="bg-blue-600 text-xs text-white">{t('common.roleAdmin')}</Badge>
   }
   if (isBanned(user.lockedUntil)) {
     return (
       <Badge variant="destructive" className="text-xs">
-        Zablokovaný
+        {t('users.statusBanned')}
       </Badge>
     )
   }
@@ -79,7 +81,7 @@ function UserStatusBadge({ user }: { user: UserRow }) {
       variant="secondary"
       className="border-emerald-200 bg-emerald-50 text-xs text-emerald-700"
     >
-      Aktívny
+      {t('users.statusActive')}
     </Badge>
   )
 }
@@ -108,6 +110,7 @@ export function UsersClient({
 }: UsersClientProps) {
   const router = useRouter()
   const format = useFormatter()
+  const t = useTranslations('admin')
   const [isPending, startTransition] = useTransition()
   const [search, setSearch] = useState(initialSearch)
   const [actionPending, setActionPending] = useState<string | null>(null)
@@ -146,21 +149,21 @@ export function UsersClient({
       })
       const data: { user?: UserRow; error?: string } = await res.json()
       if (!res.ok) {
-        showToast(data.error ?? 'Akcia zlyhala', false)
+        showToast(data.error ?? t('common.actionFailed'), false)
         return
       }
       if (data.user) {
         setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, ...data.user } : u)))
       }
       const labels: Record<Action, string> = {
-        ban: 'Používateľ bol zablokovaný',
-        unban: 'Blokácia bola zrušená',
-        promote_admin: 'Používateľ bol povýšený na admina',
-        demote_admin: 'Admin práva boli odobrané',
+        ban: t('users.toast.banned'),
+        unban: t('users.toast.unbanned'),
+        promote_admin: t('users.toast.promoted'),
+        demote_admin: t('users.toast.demoted'),
       }
       showToast(labels[action], true)
     } catch {
-      showToast('Nepodarilo sa vykonať akciu', false)
+      showToast(t('common.actionError'), false)
     } finally {
       setActionPending(null)
     }
@@ -184,10 +187,13 @@ export function UsersClient({
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900">
             <Users className="h-6 w-6" />
-            Správa používateľov
+            {t('users.title')}
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Celkom <strong>{total}</strong> používateľov
+            {t.rich('users.totalUsers', {
+              count: total,
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </p>
         </div>
       </div>
@@ -198,13 +204,13 @@ export function UsersClient({
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             className="pl-9"
-            placeholder="Hľadať podľa mena alebo emailu..."
+            placeholder={t('users.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <Button type="submit" variant="outline" disabled={isPending}>
-          Hľadať
+          {t('common.search')}
         </Button>
       </form>
 
@@ -216,25 +222,25 @@ export function UsersClient({
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50">
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Používateľ
+                    {t('users.table.user')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Email
+                    {t('common.email')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Registrácia
+                    {t('users.table.registered')}
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Overený
+                    {t('users.table.verified')}
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Org.
+                    {t('users.table.organizations')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Stav
+                    {t('common.state')}
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Akcie
+                    {t('common.actions')}
                   </th>
                 </tr>
               </thead>
@@ -294,14 +300,14 @@ export function UsersClient({
                                   disabled={isLoading}
                                 >
                                   <MoreHorizontal className="h-4 w-4" />
-                                  <span className="sr-only">Akcie</span>
+                                  <span className="sr-only">{t('common.actions')}</span>
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-48">
                                 <DropdownMenuItem asChild>
                                   <Link href={`/${locale}/admin/users/${user.id}`}>
                                     <Eye className="mr-2 h-4 w-4" />
-                                    Zobraziť detail
+                                    {t('users.viewDetail')}
                                   </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
@@ -311,7 +317,7 @@ export function UsersClient({
                                     className="text-emerald-600 focus:text-emerald-600"
                                   >
                                     <CheckCircle className="mr-2 h-4 w-4" />
-                                    Odblokovať
+                                    {t('users.unban')}
                                   </DropdownMenuItem>
                                 ) : (
                                   <DropdownMenuItem
@@ -319,7 +325,7 @@ export function UsersClient({
                                     className="text-red-600 focus:text-red-600"
                                   >
                                     <Ban className="mr-2 h-4 w-4" />
-                                    Zablokovať
+                                    {t('users.ban')}
                                   </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />
@@ -329,14 +335,14 @@ export function UsersClient({
                                     className="text-amber-600 focus:text-amber-600"
                                   >
                                     <ShieldOff className="mr-2 h-4 w-4" />
-                                    Odobrať admina
+                                    {t('users.demote')}
                                   </DropdownMenuItem>
                                 ) : (
                                   <DropdownMenuItem
                                     onClick={() => handleAction(user.id, 'promote_admin')}
                                   >
                                     <ShieldCheck className="mr-2 h-4 w-4" />
-                                    Povýšiť na admina
+                                    {t('users.promote')}
                                   </DropdownMenuItem>
                                 )}
                               </DropdownMenuContent>
@@ -350,7 +356,7 @@ export function UsersClient({
 
             {!isPending && users.length === 0 && (
               <div className="px-6 py-16 text-center text-sm text-slate-500">
-                Žiadni používatelia nenájdení
+                {t('users.empty')}
               </div>
             )}
           </div>
@@ -361,7 +367,7 @@ export function UsersClient({
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-slate-500">
-            Strana {page} z {totalPages} &bull; {total} výsledkov
+            {t('users.pagination', { page, totalPages, total })}
           </p>
           <div className="flex gap-2">
             <Button
@@ -371,7 +377,7 @@ export function UsersClient({
               onClick={() => navigate(page - 1)}
             >
               <ChevronLeft className="mr-1 h-4 w-4" />
-              Predch.
+              {t('common.previous')}
             </Button>
             <Button
               variant="outline"
@@ -379,7 +385,7 @@ export function UsersClient({
               disabled={page >= totalPages || isPending}
               onClick={() => navigate(page + 1)}
             >
-              Ďalší
+              {t('common.next')}
               <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           </div>

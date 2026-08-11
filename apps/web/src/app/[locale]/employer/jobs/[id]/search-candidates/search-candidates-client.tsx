@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -40,6 +41,7 @@ export default function SearchCandidatesClient({
 }: {
   params: { locale: string; id: string }
 }) {
+  const t = useTranslations('employer.searchCandidates')
   const [isSearching, setIsSearching] = useState(false)
   const [isLoadingJob, setIsLoadingJob] = useState(true)
   const [jobTitle, setJobTitle] = useState('')
@@ -179,7 +181,7 @@ export default function SearchCandidatesClient({
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label>Rýchly výber (AI matching)</Label>
+                <Label>{t('quickPick')}</Label>
                 <div className="mt-1 grid grid-cols-3 gap-2">
                   {[5, 15, 30].map((n) => (
                     <Button
@@ -197,9 +199,7 @@ export default function SearchCandidatesClient({
                     </Button>
                   ))}
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Top 30 = celá databáza uchádzačov vašej firmy
-                </p>
+                <p className="mt-1 text-xs text-muted-foreground">{t('quickPickHint')}</p>
               </div>
               <div>
                 <Label htmlFor="limit">Max Results</Label>

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { signOut } from 'next-auth/react'
 import {
   LayoutDashboard,
@@ -21,7 +22,8 @@ import { Separator } from '@/components/ui/separator'
 import { NavDrawer } from '@/components/layout/nav-drawer'
 
 interface NavItem {
-  label: string
+  /** Key inside the `admin.nav` message namespace. */
+  labelKey: string
   href: string
   icon: React.ElementType
 }
@@ -34,16 +36,16 @@ interface AdminSidebarProps {
 
 function adminNavItems(locale: string): NavItem[] {
   return [
-    { label: 'Dashboard', href: `/${locale}/admin`, icon: LayoutDashboard },
-    { label: 'Používatelia', href: `/${locale}/admin/users`, icon: Users },
-    { label: 'Organizácie', href: `/${locale}/admin/organizations`, icon: Building2 },
-    { label: 'Joby', href: `/${locale}/admin/jobs`, icon: Briefcase },
-    { label: 'Predplatné', href: `/${locale}/admin/subscriptions`, icon: CreditCard },
+    { labelKey: 'dashboard', href: `/${locale}/admin`, icon: LayoutDashboard },
+    { labelKey: 'users', href: `/${locale}/admin/users`, icon: Users },
+    { labelKey: 'organizations', href: `/${locale}/admin/organizations`, icon: Building2 },
+    { labelKey: 'jobs', href: `/${locale}/admin/jobs`, icon: Briefcase },
+    { labelKey: 'subscriptions', href: `/${locale}/admin/subscriptions`, icon: CreditCard },
     // Both of these had routes and no way to reach them: the DSAR endpoint could
     // only be driven by hand-crafted HTTP, and queryAuditLogs() had no caller.
-    { label: 'GDPR žiadosti', href: `/${locale}/admin/gdpr`, icon: FileWarning },
-    { label: 'Audit log', href: `/${locale}/admin/audit`, icon: ScrollText },
-    { label: 'Nastavenia', href: `/${locale}/admin/settings`, icon: Settings },
+    { labelKey: 'gdpr', href: `/${locale}/admin/gdpr`, icon: FileWarning },
+    { labelKey: 'audit', href: `/${locale}/admin/audit`, icon: ScrollText },
+    { labelKey: 'settings', href: `/${locale}/admin/settings`, icon: Settings },
   ]
 }
 
@@ -61,6 +63,7 @@ function AdminPanelNav({
   onNavigate,
 }: AdminSidebarProps & { onNavigate?: () => void }) {
   const pathname = usePathname()
+  const t = useTranslations('admin.nav')
   const navItems = adminNavItems(locale)
 
   const isActive = (href: string) => {
@@ -76,7 +79,7 @@ function AdminPanelNav({
       {/* Logo / Brand */}
       <div className="flex items-center gap-2 border-b border-slate-700 px-6 py-5">
         <Shield className="h-5 w-5 text-blue-400" />
-        <span className="text-lg font-semibold tracking-tight">Admin Panel</span>
+        <span className="text-lg font-semibold tracking-tight">{t('panelTitle')}</span>
       </div>
 
       {/* Navigation */}
@@ -99,7 +102,7 @@ function AdminPanelNav({
                   )}
                 >
                   <Icon className="h-4 w-4 flex-shrink-0" />
-                  {item.label}
+                  {t(item.labelKey)}
                 </Link>
               </li>
             )
@@ -127,7 +130,7 @@ function AdminPanelNav({
           onClick={() => signOut({ callbackUrl: `/${locale}/login` })}
         >
           <LogOut className="h-4 w-4" />
-          Odhlásiť sa
+          {t('logout')}
         </Button>
       </div>
     </>
@@ -152,6 +155,8 @@ export function AdminSidebar({ locale, userName, userEmail }: AdminSidebarProps)
  * `md:hidden`, so it contributes nothing to the desktop layout.
  */
 export function AdminMobileNav({ locale, userName, userEmail }: AdminSidebarProps) {
+  const t = useTranslations('admin.nav')
+
   return (
     <div className="flex h-14 flex-shrink-0 items-center gap-2 border-b border-slate-700 bg-slate-900 px-3 text-white md:hidden">
       <NavDrawer
@@ -172,7 +177,7 @@ export function AdminMobileNav({ locale, userName, userEmail }: AdminSidebarProp
       </NavDrawer>
       <div className="flex items-center gap-2">
         <Shield className="h-5 w-5 text-blue-400" />
-        <span className="text-base font-semibold tracking-tight">Admin Panel</span>
+        <span className="text-base font-semibold tracking-tight">{t('panelTitle')}</span>
       </div>
     </div>
   )

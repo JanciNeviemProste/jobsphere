@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { getFormatter } from 'next-intl/server'
+import { getFormatter, getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -25,7 +25,7 @@ import {
 } from 'lucide-react'
 import { ApplicantActions } from '@/components/applicant-actions'
 import { ApplicantSummaryCard } from '@/components/employer/applicant-summary-card'
-import { STAGE_LABELS_EN, STAGE_COLORS } from '@/lib/constants/application-stages'
+import { APPLICATION_STAGES, STAGE_COLORS } from '@/lib/constants/application-stages'
 import { LONG_DATE, SHORT_DATE } from '@/lib/formats'
 
 // ---- helpers ----
@@ -36,18 +36,6 @@ function activityIcon(type: string) {
   if (type === 'NOTE_ADDED') return <StickyNote className="h-4 w-4" />
   if (type === 'INTERVIEW_SCHEDULED') return <CalendarClock className="h-4 w-4" />
   return <FileText className="h-4 w-4" />
-}
-
-const INTERVIEW_TYPE_LABELS: Record<string, string> = {
-  VIDEO: 'Videopohovor',
-  ONSITE: 'Osobne',
-  PHONE: 'Telefonicky',
-}
-
-const INTERVIEW_STATUS_LABELS: Record<string, string> = {
-  SCHEDULED: 'Naplánovaný',
-  DONE: 'Uskutočnený',
-  CANCELED: 'Zrušený',
 }
 
 interface ParsedResume {
@@ -187,10 +175,15 @@ async function getApplicationDetail(applicationId: string, userId: string) {
 
 // ---- metadata ----
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: { locale: string }
+}): Promise<Metadata> {
+  const t = await getTranslations({ locale: params.locale, namespace: 'employer.applicantDetail' })
   return {
-    title: 'Detail uchádzača',
-    description: 'Zobraziť detaily uchádzača, životopis a históriu prihlášky.',
+    title: t('title'),
+    description: t('metaDescription'),
   }
 }
 
@@ -207,6 +200,12 @@ export default async function EmployerApplicationDetailPage({
   }
 
   const format = await getFormatter()
+  const t = await getTranslations({ locale: params.locale, namespace: 'employer' })
+  const tStages = await getTranslations({ locale: params.locale, namespace: 'employer.stages' })
+  const tDetail = await getTranslations({
+    locale: params.locale,
+    namespace: 'employer.applicantDetail',
+  })
 
   // Locale-aware date helpers, bound to the formatter for this request.
   const relativeTime = (date: Date) => format.relativeTime(date, Date.now())
@@ -225,7 +224,9 @@ export default async function EmployerApplicationDetailPage({
   const parsedResume = safeParseResume(latestResume)
 
   const getStatusBadge = (stage: string) => {
-    const label = STAGE_LABELS_EN[stage as keyof typeof STAGE_LABELS_EN] ?? stage
+    const label = (APPLICATION_STAGES as readonly string[]).includes(stage)
+      ? tStages(stage)
+      : stage
     const colorClass = STAGE_COLORS[stage as keyof typeof STAGE_COLORS]
     if (colorClass) return <Badge className={colorClass}>{label}</Badge>
     return <Badge>{label}</Badge>
@@ -264,9 +265,23 @@ export default async function EmployerApplicationDetailPage({
   }
 
   const breakdownLabels: Record<string, string> = {
-    skillsMatch: 'Zručnosti',
-    experienceMatch: 'Skúsenosti',
-    educationMatch: 'Vzdelanie',
+    skillsMatch: tDetail('skills'),
+    experienceMatch: tDetail('experience'),
+    educationMatch: tDetail('education'),
+  }
+
+  // Enum -> label maps built from the catalog; an unknown enum value still falls
+  // through to the raw value, exactly as before the i18n migration.
+  const interviewTypeLabels: Record<string, string> = {
+    VIDEO: t('interviewType.VIDEO'),
+    ONSITE: t('interviewType.ONSITE'),
+    PHONE: t('interviewType.PHONE'),
+  }
+
+  const interviewStatusLabels: Record<string, string> = {
+    SCHEDULED: t('interviewStatus.SCHEDULED'),
+    DONE: t('interviewStatus.DONE'),
+    CANCELED: t('interviewStatus.CANCELED'),
   }
 
   return (
@@ -275,7 +290,7 @@ export default async function EmployerApplicationDetailPage({
         <Button variant="ghost" asChild className="mb-6">
           <Link href={`/${params.locale}/employer/applicants`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Späť na kandidátov
+            {tDetail('back')}
           </Link>
         </Button>
 
@@ -343,7 +358,9 @@ export default async function EmployerApplicationDetailPage({
                     <div className="flex items-center gap-2 text-sm">
                       <Euro className="h-4 w-4 text-muted-foreground" />
                       <span>
-                        {application.job.salaryMin} - {application.job.salaryMax} € / mesiac
+                        {tDetail('salaryPerMonth', {
+                          range: `${application.job.salaryMin} - ${application.job.salaryMax}`,
+                        })}
                       </span>
                     </div>
                   )}
@@ -362,7 +379,7 @@ export default async function EmployerApplicationDetailPage({
                 </div>
                 <Separator />
                 <div className="text-sm text-muted-foreground">
-                  Prihlásené {format.dateTime(application.createdAt, SHORT_DATE)}
+                  {t('applied')} {format.dateTime(application.createdAt, SHORT_DATE)}
                 </div>
               </CardContent>
             </Card>
@@ -370,20 +387,18 @@ export default async function EmployerApplicationDetailPage({
             {/* AI Parsed CV */}
             <Card>
               <CardHeader>
-                <CardTitle>Parsed CV (AI)</CardTitle>
-                <CardDescription>Dáta extrahované z životopisu</CardDescription>
+                <CardTitle>{tDetail('parsedCv')}</CardTitle>
+                <CardDescription>{tDetail('parsedCvDesc')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {!hasAiData ? (
-                  <p className="text-sm text-muted-foreground">
-                    AI parsing CV ešte nebol spustený alebo zlyhal
-                  </p>
+                  <p className="text-sm text-muted-foreground">{tDetail('parsedCvEmpty')}</p>
                 ) : (
                   <>
                     {parsedResume?.summary && (
                       <div>
                         <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                          Súhrn
+                          {tDetail('summary')}
                         </h3>
                         <p className="text-sm leading-relaxed">{parsedResume.summary}</p>
                       </div>
@@ -392,7 +407,7 @@ export default async function EmployerApplicationDetailPage({
                     {parsedResume?.skills && parsedResume.skills.length > 0 && (
                       <div>
                         <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                          Zručnosti
+                          {tDetail('skills')}
                         </h3>
                         <div className="flex flex-wrap gap-1.5">
                           {parsedResume.skills.map((skill) => (
@@ -407,18 +422,20 @@ export default async function EmployerApplicationDetailPage({
                     {parsedResume?.experiences && parsedResume.experiences.length > 0 && (
                       <div>
                         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                          Skúsenosti
+                          {tDetail('experience')}
                         </h3>
                         <div className="space-y-4">
                           {parsedResume.experiences.map((exp, i) => (
                             <div key={i} className="border-l-2 border-primary/30 pl-4">
-                              <p className="font-medium">{exp.title ?? 'Pozícia'}</p>
+                              <p className="font-medium">
+                                {exp.title ?? tDetail('positionFallback')}
+                              </p>
                               {exp.company && (
                                 <p className="text-sm text-muted-foreground">{exp.company}</p>
                               )}
                               {(exp.startDate || exp.endDate || exp.current) && (
                                 <p className="mt-0.5 text-xs text-muted-foreground">
-                                  {[exp.startDate, exp.current ? 'súčasnosť' : exp.endDate]
+                                  {[exp.startDate, exp.current ? tDetail('present') : exp.endDate]
                                     .filter(Boolean)
                                     .join(' – ')}
                                 </p>
@@ -433,12 +450,14 @@ export default async function EmployerApplicationDetailPage({
                     {parsedResume?.education && parsedResume.education.length > 0 && (
                       <div>
                         <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                          Vzdelanie
+                          {tDetail('education')}
                         </h3>
                         <div className="space-y-3">
                           {parsedResume.education.map((edu, i) => (
                             <div key={i} className="border-l-2 border-muted pl-4">
-                              <p className="font-medium">{edu.institution ?? 'Škola'}</p>
+                              <p className="font-medium">
+                                {edu.institution ?? tDetail('schoolFallback')}
+                              </p>
                               {(edu.field || edu.degree) && (
                                 <p className="text-sm text-muted-foreground">
                                   {[edu.degree, edu.field].filter(Boolean).join(' – ')}
@@ -463,14 +482,16 @@ export default async function EmployerApplicationDetailPage({
             {matchScore && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Zhoda s pozíciou</CardTitle>
+                  <CardTitle>{tDetail('matchTitle')}</CardTitle>
                   <CardDescription className="flex items-center gap-2">
                     <span>
-                      Celkové skóre: {matchScore.overrideScore ?? matchScore.score0to100} / 100
+                      {tDetail('overallScoreValue', {
+                        score: matchScore.overrideScore ?? matchScore.score0to100,
+                      })}
                     </span>
                     {matchScore.overrideScore != null && (
                       <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium">
-                        upravené HR (AI: {matchScore.score0to100})
+                        {tDetail('hrOverride', { score: matchScore.score0to100 })}
                       </span>
                     )}
                   </CardDescription>
@@ -494,7 +515,7 @@ export default async function EmployerApplicationDetailPage({
                   ) : (
                     <div>
                       <div className="mb-1 flex justify-between text-sm">
-                        <span>Celkové skóre</span>
+                        <span>{tDetail('overallScore')}</span>
                         <span className="font-medium">
                           {matchScore.overrideScore ?? matchScore.score0to100}%
                         </span>
@@ -529,14 +550,12 @@ export default async function EmployerApplicationDetailPage({
             {/* Interviews */}
             <Card>
               <CardHeader>
-                <CardTitle>Pohovory</CardTitle>
-                <CardDescription>Naplánované pohovory s kandidátom</CardDescription>
+                <CardTitle>{tDetail('interviews')}</CardTitle>
+                <CardDescription>{tDetail('interviewsDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
                 {application.interviews.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Zatiaľ nie je naplánovaný žiadny pohovor. Použite akcie vpravo.
-                  </p>
+                  <p className="text-sm text-muted-foreground">{tDetail('noInterviews')}</p>
                 ) : (
                   <div className="space-y-3">
                     {application.interviews.map((interview) => (
@@ -554,10 +573,10 @@ export default async function EmployerApplicationDetailPage({
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="font-medium">
-                              {INTERVIEW_TYPE_LABELS[interview.type] ?? interview.type}
+                              {interviewTypeLabels[interview.type] ?? interview.type}
                             </p>
                             <Badge variant="outline" className="text-xs">
-                              {INTERVIEW_STATUS_LABELS[interview.status] ?? interview.status}
+                              {interviewStatusLabels[interview.status] ?? interview.status}
                             </Badge>
                           </div>
                           <p className="mt-1 text-sm text-muted-foreground">
@@ -578,7 +597,7 @@ export default async function EmployerApplicationDetailPage({
                               className="mt-1 inline-flex items-center gap-1 text-sm text-primary hover:underline"
                             >
                               <Video className="h-3.5 w-3.5" />
-                              Pripojiť sa k hovoru
+                              {t('joinCall')}
                             </a>
                           )}
                           {interview.notes && (
@@ -595,13 +614,13 @@ export default async function EmployerApplicationDetailPage({
             {/* Cover Letter */}
             <Card>
               <CardHeader>
-                <CardTitle>Motivačný list</CardTitle>
+                <CardTitle>{tDetail('coverLetter')}</CardTitle>
               </CardHeader>
               <CardContent>
                 {application.coverLetter ? (
                   <div className="whitespace-pre-wrap text-sm">{application.coverLetter}</div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Motivačný list nebol priložený.</p>
+                  <p className="text-sm text-muted-foreground">{tDetail('coverLetterEmpty')}</p>
                 )}
               </CardContent>
             </Card>
@@ -609,12 +628,12 @@ export default async function EmployerApplicationDetailPage({
             {/* Timeline */}
             <Card>
               <CardHeader>
-                <CardTitle>Časová os prihlášky</CardTitle>
-                <CardDescription>História tejto prihlášky</CardDescription>
+                <CardTitle>{tDetail('timeline')}</CardTitle>
+                <CardDescription>{tDetail('timelineDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
                 {application.activities.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Žiadne aktivity</p>
+                  <p className="text-sm text-muted-foreground">{tDetail('noActivities')}</p>
                 ) : (
                   <div className="space-y-6">
                     {Array.from(activitiesByDay.entries()).map(([day, acts]) => (
@@ -658,12 +677,12 @@ export default async function EmployerApplicationDetailPage({
             {/* Candidate Contact */}
             <Card>
               <CardHeader>
-                <CardTitle>Kandidát</CardTitle>
+                <CardTitle>{t('candidate')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <p className="text-lg font-semibold">
-                    {contact?.fullName ?? contact?.email ?? 'Kandidát'}
+                    {contact?.fullName ?? contact?.email ?? t('candidate')}
                   </p>
                   <div className="mt-3 space-y-2">
                     {contact?.email && (
@@ -694,7 +713,7 @@ export default async function EmployerApplicationDetailPage({
             {latestResume?.sourceDocument && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Životopis</CardTitle>
+                  <CardTitle>{tDetail('resume')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Button asChild className="w-full">
@@ -704,7 +723,7 @@ export default async function EmployerApplicationDetailPage({
                       rel="noopener noreferrer"
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      {latestResume.sourceDocument.filename || 'Stiahnuť CV'}
+                      {latestResume.sourceDocument.filename || tDetail('downloadCv')}
                     </a>
                   </Button>
                 </CardContent>
@@ -747,8 +766,8 @@ export default async function EmployerApplicationDetailPage({
               return (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Poznámky</CardTitle>
-                    <CardDescription>Interné poznámky k uchádzačovi</CardDescription>
+                    <CardTitle>{tDetail('notes')}</CardTitle>
+                    <CardDescription>{tDetail('notesDesc')}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">

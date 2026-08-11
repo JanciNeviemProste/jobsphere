@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -7,12 +8,18 @@ import { FeatureFlagToggle } from './_components/feature-flag-toggle'
 import { SettingEditDialog } from './_components/setting-edit-dialog'
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: 'Nastavenia | Admin',
+export async function generateMetadata({
+  params,
+}: {
+  params: { locale: string }
+}): Promise<Metadata> {
+  const t = await getTranslations({ locale: params.locale, namespace: 'admin' })
+  return { title: t('settings.metaTitle') }
 }
 
 export default async function AdminSettingsPage({ params }: { params: { locale: string } }) {
   const session = await auth()
+  const t = await getTranslations('admin')
   if (!session?.user?.isGlobalAdmin) {
     redirect(`/${params.locale}/login?error=forbidden`)
   }
@@ -25,17 +32,17 @@ export default async function AdminSettingsPage({ params }: { params: { locale: 
   return (
     <div className="space-y-8 p-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Nastavenia</h1>
-        <p className="mt-1 text-sm text-slate-500">Systémové nastavenia a feature flags</p>
+        <h1 className="text-2xl font-bold text-slate-900">{t('settings.title')}</h1>
+        <p className="mt-1 text-sm text-slate-500">{t('settings.subtitle')}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Systémové nastavenia</CardTitle>
+          <CardTitle className="text-base">{t('settings.systemSettings')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-0 p-0">
           {settings.length === 0 && (
-            <p className="px-6 py-4 text-sm text-slate-500">Žiadne nastavenia</p>
+            <p className="px-6 py-4 text-sm text-slate-500">{t('settings.noSettings')}</p>
           )}
           {settings.map((setting, idx) => (
             <div key={setting.id}>
@@ -54,11 +61,11 @@ export default async function AdminSettingsPage({ params }: { params: { locale: 
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Feature Flags</CardTitle>
+          <CardTitle className="text-base">{t('settings.featureFlags')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-0 p-0">
           {flags.length === 0 && (
-            <p className="px-6 py-4 text-sm text-slate-500">Žiadne feature flags</p>
+            <p className="px-6 py-4 text-sm text-slate-500">{t('settings.noFlags')}</p>
           )}
           {flags.map((flag, idx) => (
             <div key={flag.id}>
