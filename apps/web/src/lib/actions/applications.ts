@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { logger } from '@/lib/logger'
+import { notifyOrg } from '@/lib/notifications'
 import { z } from 'zod'
 import { getOrCreateCandidateForUser } from '@/lib/identity'
 import type { Application, ApplicationActivity, EmailStep } from '@prisma/client'
@@ -72,6 +73,15 @@ export async function createApplication(formData: {
       type: 'APPLIED',
       description: 'Application submitted successfully',
     },
+  })
+
+  // Best-effort, like the queue calls above: a courtesy that must never roll
+  // back the application it is about.
+  await notifyOrg(job.orgId, {
+    type: 'APPLICATION_RECEIVED',
+    title: 'New application',
+    body: 'A candidate applied to one of your positions.',
+    data: { applicationId: application.id, jobId },
   })
 
   revalidatePath('/dashboard')

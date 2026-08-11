@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { CandidateApplications } from '@/components/candidates/candidate-applications'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -44,6 +45,23 @@ export default async function CandidateProfilePage({
           },
         },
         take: 1,
+      },
+      // Every application this person has made to this organisation. The page
+      // was built around a single resume and had no idea the candidate might
+      // have applied before — so a recruiter opening a profile could not see
+      // that the same person was rejected for a different role last month.
+      applications: {
+        where: { deletedAt: null },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          stage: true,
+          createdAt: true,
+          rejectionReason: true,
+          rejectedAt: true,
+          job: { select: { id: true, title: true } },
+        },
+        take: 50,
       },
     },
   })
@@ -102,6 +120,8 @@ export default async function CandidateProfilePage({
 
         {/* Resume Sections */}
         <ResumeSection resume={candidate.resumes[0] || null} />
+
+        <CandidateApplications applications={candidate.applications} locale={params.locale} />
       </div>
     </div>
   )
