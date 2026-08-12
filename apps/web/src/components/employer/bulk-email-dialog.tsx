@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import {
@@ -33,6 +33,21 @@ export function BulkEmailDialog({
   const tCommon = useTranslations('common')
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
+  // Templates exist so the considered message is the cheap one. Loaded lazily
+  // when the dialog opens; an org with none simply gets no picker.
+  const [templates, setTemplates] = useState<
+    { id: string; name: string; subject: string; body: string }[]
+  >([])
+
+  useEffect(() => {
+    if (!open) return
+    fetch('/api/email-templates')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setTemplates(data?.templates ?? []))
+      .catch(() => {
+        // Not worth surfacing: the dialog works without templates.
+      })
+  }, [open])
   const [loading, setLoading] = useState(false)
   const [partialErrors, setPartialErrors] = useState<
     { applicationId: string; candidateName?: string; error: string }[]
@@ -91,6 +106,34 @@ export function BulkEmailDialog({
           <DialogTitle>{t('title', { count: selectedIds.length })}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {templates.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="bulk-template">Šablóna</Label>
+              <select
+                id="bulk-template"
+                className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                defaultValue=""
+                disabled={loading}
+                onChange={(e) => {
+                  const picked = templates.find((t) => t.id === e.target.value)
+                  if (!picked) return
+                  // Fills the fields rather than locking them: a template is a
+                  // starting point, and the last thing anyone wants is an email
+                  // they cannot adjust before it goes to fifty people.
+                  setSubject(picked.subject)
+                  setBody(picked.body)
+                }}
+              >
+                <option value="">Bez šablóny</option>
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="bulk-subject">{t('subjectLabel')}</Label>
             <Input

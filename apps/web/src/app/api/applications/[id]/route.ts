@@ -101,10 +101,11 @@ export const PATCH = withCsrfProtection(
           status: stageEnum.optional(),
           stage: stageEnum.optional(),
           notes: z.string().max(5000).optional(),
+          rejectionReason: z.string().max(2000).optional(),
         })
         const parsed = updateSchema.parse(body)
         const status = parsed.stage ?? parsed.status
-        const { notes } = parsed
+        const { notes, rejectionReason } = parsed
 
         const application = await prisma.application.findUnique({
           where: { id: params.id },
@@ -133,6 +134,16 @@ export const PATCH = withCsrfProtection(
           data: {
             ...(status && { stage: status }),
             ...(notes && { notes }),
+            // Stamped on the move into REJECTED, and cleared on the way back out:
+            // a reason left behind on a candidate who was un-rejected would be a
+            // lie the next reader has no way to spot.
+            ...(status === 'REJECTED' && {
+              rejectedAt: application.stage === 'REJECTED' ? application.rejectedAt : new Date(),
+              ...(rejectionReason !== undefined && { rejectionReason }),
+            }),
+            ...(status && status !== 'REJECTED' && application.stage === 'REJECTED'
+              ? { rejectedAt: null, rejectionReason: null }
+              : {}),
           },
         })
 

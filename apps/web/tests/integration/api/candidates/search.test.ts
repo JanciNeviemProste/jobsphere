@@ -6,7 +6,7 @@ import {
   createCandidateSession,
   parseResponse,
 } from '../../helpers/api-client'
-import { prisma, TEST_IDS } from '../../helpers/test-db'
+import { prisma, TEST_IDS, createTestJob, createTestCandidate } from '../../helpers/test-db'
 
 /**
  * Integration tests for POST /api/candidates/search
@@ -18,7 +18,11 @@ const { mockAuthFn } = vi.hoisted(() => ({
   mockAuthFn: vi.fn(),
 }))
 
-vi.mock('@/lib/auth', () => ({
+// Partial mock. lib/errors.ts reaches UnauthorizedError through @/lib/auth, so
+// replacing the module wholesale makes handleApiError throw while handling an
+// error — which is every validation and auth path in these files.
+vi.mock('@/lib/auth', async (importOriginal) => ({
+  ...((await importOriginal()) as object),
   auth: mockAuthFn,
 }))
 
@@ -32,11 +36,20 @@ vi.mock('@/lib/semantic-search', () => ({
 }))
 
 describe('POST /api/candidates/search', () => {
-  beforeEach(() => {
+  // TEST_IDS has no `job` key — it never has — so every `jobId: TEST_IDS.job`
+  // in this file sent `undefined`, JSON.stringify dropped it, and the route
+  // answered 400 "jobId required". That is the whole of the "expected 400 to
+  // be 200" cluster. A real job, created per test, fixes all of them.
+  let testJobId: string
+
+  beforeEach(async () => {
     vi.clearAllMocks()
 
     // Default: return empty matches
     mockSearchCandidates.mockResolvedValue([])
+
+    const job = await createTestJob()
+    testJobId = job.id
   })
 
   describe('Authentication', () => {
@@ -45,7 +58,7 @@ describe('POST /api/candidates/search', () => {
       mockAuthFn.mockResolvedValue(null)
 
       const request = createTestRequest('POST', {
-        jobId: TEST_IDS.job,
+        jobId: testJobId,
       })
 
       // Act
@@ -65,7 +78,7 @@ describe('POST /api/candidates/search', () => {
       mockAuthFn.mockResolvedValue(createCandidateSession())
 
       const request = createTestRequest('POST', {
-        jobId: TEST_IDS.job,
+        jobId: testJobId,
       })
 
       // Act
@@ -102,7 +115,7 @@ describe('POST /api/candidates/search', () => {
     it('should reject invalid limit (> 100)', async () => {
       // Arrange
       const request = createTestRequest('POST', {
-        jobId: TEST_IDS.job,
+        jobId: testJobId,
         limit: 150, // Exceeds max
       })
 
@@ -118,7 +131,7 @@ describe('POST /api/candidates/search', () => {
     it('should reject invalid minSimilarity (> 1)', async () => {
       // Arrange
       const request = createTestRequest('POST', {
-        jobId: TEST_IDS.job,
+        jobId: testJobId,
         minSimilarity: 1.5, // > 1
       })
 
@@ -134,7 +147,7 @@ describe('POST /api/candidates/search', () => {
     it('should reject invalid minSimilarity (< 0)', async () => {
       // Arrange
       const request = createTestRequest('POST', {
-        jobId: TEST_IDS.job,
+        jobId: testJobId,
         minSimilarity: -0.5, // < 0
       })
 
@@ -159,7 +172,7 @@ describe('POST /api/candidates/search', () => {
       )
 
       const request = createTestRequest('POST', {
-        jobId: TEST_IDS.job, // Job belongs to TEST_IDS.org
+        jobId: testJobId, // Job belongs to TEST_IDS.org
       })
 
       // Act
@@ -185,7 +198,7 @@ describe('POST /api/candidates/search', () => {
       ])
 
       const request = createTestRequest('POST', {
-        jobId: TEST_IDS.job,
+        jobId: testJobId,
       })
 
       // Act
@@ -195,7 +208,7 @@ describe('POST /api/candidates/search', () => {
       expect(response.status).toBe(200)
       const data = await parseResponse(response)
       expect(data.success).toBe(true)
-      expect(data.jobId).toBe(TEST_IDS.job)
+      expect(data.jobId).toBe(testJobId)
     })
   })
 
@@ -241,7 +254,7 @@ describe('POST /api/candidates/search', () => {
       ])
 
       const request = createTestRequest('POST', {
-        jobId: TEST_IDS.job,
+        jobId: testJobId,
       })
 
       // Act
@@ -271,7 +284,7 @@ describe('POST /api/candidates/search', () => {
       mockSearchCandidates.mockResolvedValue([])
 
       const request = createTestRequest('POST', {
-        jobId: TEST_IDS.job,
+        jobId: testJobId,
         limit: 5,
         minSimilarity: 0.8,
         includeDetails: false,
@@ -279,7 +292,7 @@ describe('POST /api/candidates/search', () => {
 
       // Act
       const response = await POST(request)
-      const data = await parseResponse(response)
+      await parseResponse(response)
 
       // Assert
       expect(response.status).toBe(200)
@@ -318,7 +331,7 @@ describe('POST /api/candidates/search', () => {
       ])
 
       const request = createTestRequest('POST', {
-        jobId: TEST_IDS.job,
+        jobId: testJobId,
         limit: 10,
       })
 
@@ -341,7 +354,7 @@ describe('POST /api/candidates/search', () => {
       mockSearchCandidates.mockResolvedValue([])
 
       const request = createTestRequest('POST', {
-        jobId: TEST_IDS.job,
+        jobId: testJobId,
         minSimilarity: 0.99, // Very high threshold
       })
 
@@ -358,6 +371,12 @@ describe('POST /api/candidates/search', () => {
 
     it('should filter out candidates who already applied', async () => {
       // Arrange
+      // A real Candidate row: the FK is enforced, so a made-up string id was
+      // always going to be P2003. Application also needs orgId, and the column
+      // is `stage`, not `status` — `appliedAt` does not exist at all.
+      const appliedCandidate = await createTestCandidate()
+      const appliedCandidateId = appliedCandidate.id
+
       mockSearchCandidates.mockResolvedValue([
         {
           candidateId: 'candidate-1',
@@ -366,7 +385,7 @@ describe('POST /api/candidates/search', () => {
           similarity: 0.9,
         },
         {
-          candidateId: 'candidate-applied', // This one already applied
+          candidateId: appliedCandidateId, // This one already applied
           resumeId: 'resume-applied',
           resumeTitle: 'Developer',
           similarity: 0.85,
@@ -379,18 +398,17 @@ describe('POST /api/candidates/search', () => {
         },
       ])
 
-      // Create an application for candidate-applied
       await prisma.application.create({
         data: {
-          jobId: TEST_IDS.job,
-          candidateId: 'candidate-applied',
-          status: 'APPLIED',
-          appliedAt: new Date(),
+          jobId: testJobId,
+          candidateId: appliedCandidate.id,
+          orgId: TEST_IDS.org,
+          stage: 'NEW',
         },
       })
 
       const request = createTestRequest('POST', {
-        jobId: TEST_IDS.job,
+        jobId: testJobId,
       })
 
       // Act
@@ -401,14 +419,15 @@ describe('POST /api/candidates/search', () => {
       expect(response.status).toBe(200)
       expect(data.totalMatches).toBe(2) // candidate-applied is filtered out
       expect(data.matches).toHaveLength(2)
-      expect(data.matches.find((m: any) => m.candidateId === 'candidate-applied')).toBeUndefined()
+      expect(data.matches.find((m: any) => m.candidateId === appliedCandidateId)).toBeUndefined()
     })
 
     it('should include contact information when available', async () => {
       // Arrange
-      const candidateId = 'candidate-with-contact'
+      // Again a real Candidate: CandidateContact.candidateId is a foreign key.
+      const contactCandidate = await createTestCandidate()
+      const candidateId = contactCandidate.id
 
-      // Create candidate contact
       await prisma.candidateContact.create({
         data: {
           candidateId,
@@ -430,7 +449,7 @@ describe('POST /api/candidates/search', () => {
       ])
 
       const request = createTestRequest('POST', {
-        jobId: TEST_IDS.job,
+        jobId: testJobId,
       })
 
       // Act
@@ -458,7 +477,7 @@ describe('POST /api/candidates/search', () => {
       ])
 
       const request = createTestRequest('POST', {
-        jobId: TEST_IDS.job,
+        jobId: testJobId,
       })
 
       // Act
@@ -493,7 +512,7 @@ describe('POST /api/candidates/search', () => {
       ])
 
       const request = createTestRequest('POST', {
-        jobId: TEST_IDS.job,
+        jobId: testJobId,
       })
 
       // Act
@@ -533,7 +552,7 @@ describe('POST /api/candidates/search', () => {
       ])
 
       const request = createTestRequest('POST', {
-        jobId: TEST_IDS.job,
+        jobId: testJobId,
       })
 
       // Act

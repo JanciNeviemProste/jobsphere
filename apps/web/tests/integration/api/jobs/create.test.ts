@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { UnauthorizedError } from '@/lib/api-helpers'
 import { POST } from '@/app/api/jobs/route'
-import { auth } from '@/lib/auth'
 import {
   createTestRequest,
   createRecruiterSession,
@@ -20,12 +20,19 @@ const { mockAuthFn } = vi.hoisted(() => ({
   mockAuthFn: vi.fn(),
 }))
 
-vi.mock('@/lib/auth', () => ({
+// Partial mock. lib/errors.ts reaches UnauthorizedError through @/lib/auth, so
+// replacing the module wholesale makes handleApiError throw while handling an
+// error — which is every validation and auth path in these files.
+vi.mock('@/lib/auth', async (importOriginal) => ({
+  ...((await importOriginal()) as object),
   auth: mockAuthFn,
   requireAuth: vi.fn(async () => {
     const session = await mockAuthFn()
     if (!session?.user?.id) {
-      throw new Error('You must be logged in to access this resource')
+      // UnauthorizedError, not a bare Error: handleApiError maps the former to
+      // 401 and everything else to 500. With the module previously mocked away
+      // wholesale this never got far enough to matter; now it does.
+      throw new UnauthorizedError()
     }
     return session
   }),

@@ -27,34 +27,48 @@ const jobSearchSchema = z.object({
 })
 
 // Validation schema for POST /api/jobs
-const createJobSchema = z.object({
-  title: z.string().min(3, 'Title must be at least 3 characters').max(200),
-  description: z.string().min(50, 'Description must be at least 50 characters').max(10000),
-  requirements: z.string().max(10000).optional(),
-  benefits: z.string().max(10000).optional(),
-  department: z.string().max(100).optional(),
-  keywords: z.string().max(500).optional(),
-  location: z.string().min(2).max(100).optional(),
-  region: z.string().max(100).optional(),
-  workMode: z.enum(['REMOTE', 'HYBRID', 'ONSITE']),
-  type: z
-    .enum(['FULL_TIME', 'PART_TIME', 'CONTRACT', 'FREELANCE', 'INTERNSHIP'])
-    .default('FULL_TIME'),
-  seniority: z.enum(['JUNIOR', 'MID', 'SENIOR', 'LEAD', 'EXECUTIVE']).default('MID'),
-  salaryMin: z.number().int().min(0).optional(),
-  salaryMax: z.number().int().min(0).optional(),
-  // Currency: `salaryCurrency` is canonical; `currency` is accepted as a client
-  // alias (the /jobs/new form field is named `currency`). Either resolves below.
-  salaryCurrency: z.string().max(10).optional(),
-  currency: z.string().max(10).optional(),
-  // PR5 — sub-HR assignment, ad media, and screening (extra questions OR a test).
-  assignedRecruiterId: z.string().optional(),
-  imageUrl: z.string().url().optional(),
-  videoUrl: z.string().url().optional(),
-  requiresAssessment: z.boolean().optional(),
-  assessmentId: z.string().optional(),
-  screeningQuestions: z.array(z.string().max(2000)).max(50).optional(),
-})
+const createJobSchema = z
+  .object({
+    title: z.string().min(3, 'Title must be at least 3 characters').max(200),
+    description: z.string().min(50, 'Description must be at least 50 characters').max(10000),
+    requirements: z.string().max(10000).optional(),
+    benefits: z.string().max(10000).optional(),
+    department: z.string().max(100).optional(),
+    keywords: z.string().max(500).optional(),
+    location: z.string().min(2).max(100).optional(),
+    region: z.string().max(100).optional(),
+    workMode: z.enum(['REMOTE', 'HYBRID', 'ONSITE']),
+    type: z
+      .enum(['FULL_TIME', 'PART_TIME', 'CONTRACT', 'FREELANCE', 'INTERNSHIP'])
+      .default('FULL_TIME'),
+    seniority: z.enum(['JUNIOR', 'MID', 'SENIOR', 'LEAD', 'EXECUTIVE']).default('MID'),
+    salaryMin: z.number().int().min(0).optional(),
+    salaryMax: z.number().int().min(0).optional(),
+    // Currency: `salaryCurrency` is canonical; `currency` is accepted as a client
+    // alias (the /jobs/new form field is named `currency`). Either resolves below.
+    salaryCurrency: z.string().max(10).optional(),
+    currency: z.string().max(10).optional(),
+    // PR5 — sub-HR assignment, ad media, and screening (extra questions OR a test).
+    assignedRecruiterId: z.string().optional(),
+    imageUrl: z.string().url().optional(),
+    videoUrl: z.string().url().optional(),
+    requiresAssessment: z.boolean().optional(),
+    assessmentId: z.string().optional(),
+    screeningQuestions: z.array(z.string().max(2000)).max(50).optional(),
+    // A new posting may legitimately start as a draft. This route used to hardcode
+    // PUBLISHED and ignore whatever was asked for, so "save as draft" did not exist
+    // through the API at all — and it contradicted the lifecycle the edit route now
+    // enforces. PAUSED is deliberately absent: there is nothing to pause yet.
+    status: z.enum(['DRAFT', 'PUBLISHED']).default('PUBLISHED'),
+  })
+  // Cross-field, so it belongs on the object rather than either number.
+  .refine(
+    (data) => data.salaryMin == null || data.salaryMax == null || data.salaryMin <= data.salaryMax,
+    {
+      message: 'salaryMin must not be greater than salaryMax',
+      path: ['salaryMin'],
+    },
+  )
 
 export const GET = withRateLimit(
   async (req: Request) => {
@@ -317,7 +331,11 @@ export const POST = withCsrfProtection(
             requiresAssessment,
             assessmentId,
             screeningQuestions,
-            status: 'PUBLISHED',
+            status: data.status,
+            // Stamped only when the job actually goes live, matching
+            // shouldStampPublishedAt in lib/job-status: a draft has not been
+            // posted, so it has no posting date.
+            publishedAt: data.status === 'PUBLISHED' ? new Date() : null,
             orgId: organizationId,
             createdBy: session.user.id,
           },

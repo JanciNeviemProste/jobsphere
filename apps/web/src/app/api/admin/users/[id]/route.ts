@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { z } from 'zod'
 import { logger } from '@/lib/logger'
 import { createAuditLog, getRequestMetadata } from '@/lib/audit-log'
 import { withCsrfProtection } from '@/lib/csrf'
@@ -100,6 +101,89 @@ const getUserDetail = async (_req: Request, context?: { params?: Record<string, 
  * DELETE /api/admin/users/[id]
  * Soft-deletes a user by setting deletedAt. Cannot delete yourself or another admin.
  */
+const updateUserSchema = z.object({
+  name: z.string().min(1).max(200).optional().nullable(),
+  phone: z.string().max(50).optional().nullable(),
+  locale: z.string().max(10).optional(),
+})
+
+/**
+ * Edit a user's profile from the admin panel.
+ *
+ * There was no way to change anything about a user except banning, promoting and
+ * deleting them — not even a typo in a name. `User.phone` has existed in the
+ * schema with no editor anywhere.
+ *
+ * `email` is deliberately absent. It is the login identifier, it carries a
+ * unique constraint, and changing it means handling the collision, invalidating
+ * sessions and re-running verification — otherwise an admin fixing a typo
+ * silently creates an account nobody can sign in to. That belongs in its own
+ * change with its own tests, not smuggled into a profile PATCH.
+ */
+export const PATCH = withCsrfProtection(
+  withRateLimit(
+    async (req: Request, context?: { params?: Record<string, string> }) => {
+      const params = context?.params
+      if (!params?.id) {
+        return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 })
+      }
+
+      const authResult = await requireGlobalAdmin()
+      if (authResult instanceof NextResponse) return authResult
+
+      try {
+        const data = updateUserSchema.parse(await req.json())
+
+        const target = await prisma.user.findUnique({
+          where: { id: params.id },
+          select: { id: true, name: true, phone: true, locale: true, deletedAt: true },
+        })
+
+        if (!target || target.deletedAt !== null) {
+          return NextResponse.json({ error: 'User not found' }, { status: 404 })
+        }
+
+        const updated = await prisma.user.update({
+          where: { id: params.id },
+          data: {
+            ...(data.name !== undefined && { name: data.name }),
+            ...(data.phone !== undefined && { phone: data.phone }),
+            ...(data.locale !== undefined && { locale: data.locale }),
+          },
+          select: { id: true, name: true, email: true, phone: true, locale: true },
+        })
+
+        logger.info('Admin: updated user profile', {
+          adminId: authResult.user.id,
+          targetId: params.id,
+        })
+
+        await createAuditLog({
+          userId: authResult.user.id,
+          action: 'USER_UPDATED',
+          resource: 'USER',
+          resourceId: params.id,
+          previous: { name: target.name, phone: target.phone, locale: target.locale },
+          metadata: { name: updated.name, phone: updated.phone, locale: updated.locale },
+          ...getRequestMetadata(req),
+        })
+
+        return NextResponse.json({ user: updated })
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return NextResponse.json(
+            { error: 'Invalid request', issues: error.issues },
+            { status: 400 },
+          )
+        }
+        logger.error('Admin PATCH /users/[id] failed', error)
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+      }
+    },
+    { preset: 'api', byUser: true },
+  ),
+)
+
 export const DELETE = withCsrfProtection(
   withRateLimit(
     async (req: Request, context?: { params?: Record<string, string> }) => {

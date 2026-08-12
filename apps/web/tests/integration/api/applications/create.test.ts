@@ -1,19 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { POST, GET } from '@/app/api/applications/route'
 import { auth } from '@/lib/auth'
-import {
-  createTestRequest,
-  createCandidateSession,
-  createRecruiterSession,
-  parseResponse,
-} from '../../helpers/api-client'
-import {
-  prisma,
-  TEST_IDS,
-  createTestJob,
-  createTestCandidate,
-  cleanupDynamicData,
-} from '../../helpers/test-db'
+import { createTestRequest, createCandidateSession, parseResponse } from '../../helpers/api-client'
+import { prisma, TEST_IDS, createTestJob, cleanupDynamicData } from '../../helpers/test-db'
 
 /**
  * Integration tests for POST /api/applications
@@ -21,7 +10,11 @@ import {
  */
 
 // Mock NextAuth
-vi.mock('@/lib/auth', () => ({
+// Partial mock. lib/errors.ts reaches UnauthorizedError through @/lib/auth, so
+// replacing the module wholesale makes handleApiError throw while handling an
+// error — which is every validation and auth path in these files.
+vi.mock('@/lib/auth', async (importOriginal) => ({
+  ...((await importOriginal()) as object),
   auth: vi.fn(),
 }))
 
@@ -43,7 +36,8 @@ describe('POST /api/applications', () => {
     // Create a test job for applications
     testJob = await createTestJob({
       title: 'Software Engineer Position',
-      description: 'Looking for a talented software engineer with 3+ years of experience in web development.',
+      description:
+        'Looking for a talented software engineer with 3+ years of experience in web development.',
       status: 'PUBLISHED',
     })
 
@@ -77,14 +71,17 @@ describe('POST /api/applications', () => {
 
     it('should allow authenticated candidate to apply', async () => {
       // Arrange
-      vi.mocked(auth).mockResolvedValue(createCandidateSession({
-        id: candidateId,
-        email: 'candidate@test.com',
-      }))
+      vi.mocked(auth).mockResolvedValue(
+        createCandidateSession({
+          id: candidateId,
+          email: 'candidate@test.com',
+        }),
+      )
 
       const request = createTestRequest('POST', {
         jobId: testJob.id,
-        coverLetter: 'I am excited about this opportunity and believe my skills align well with the requirements.',
+        coverLetter:
+          'I am excited about this opportunity and believe my skills align well with the requirements.',
       })
 
       // Act
@@ -100,9 +97,11 @@ describe('POST /api/applications', () => {
 
   describe('Validation', () => {
     beforeEach(() => {
-      vi.mocked(auth).mockResolvedValue(createCandidateSession({
-        id: candidateId,
-      }))
+      vi.mocked(auth).mockResolvedValue(
+        createCandidateSession({
+          id: candidateId,
+        }),
+      )
     })
 
     it('should reject application without jobId', async () => {
@@ -186,18 +185,21 @@ describe('POST /api/applications', () => {
 
   describe('Application Creation', () => {
     beforeEach(() => {
-      vi.mocked(auth).mockResolvedValue(createCandidateSession({
-        id: candidateId,
-        email: 'candidate@test.com',
-        name: 'Test Candidate',
-      }))
+      vi.mocked(auth).mockResolvedValue(
+        createCandidateSession({
+          id: candidateId,
+          email: 'candidate@test.com',
+          name: 'Test Candidate',
+        }),
+      )
     })
 
     it('should create application with all required fields', async () => {
       // Arrange
       const request = createTestRequest('POST', {
         jobId: testJob.id,
-        coverLetter: 'I am very excited about this opportunity. My background in software development aligns perfectly with your requirements.',
+        coverLetter:
+          'I am very excited about this opportunity. My background in software development aligns perfectly with your requirements.',
         expectedSalary: 70000,
         availableFrom: '2024-02-01',
       })
@@ -309,11 +311,13 @@ describe('POST /api/applications', () => {
 
   describe('Email Notifications', () => {
     beforeEach(() => {
-      vi.mocked(auth).mockResolvedValue(createCandidateSession({
-        id: candidateId,
-        email: 'candidate@test.com',
-        name: 'Test Candidate',
-      }))
+      vi.mocked(auth).mockResolvedValue(
+        createCandidateSession({
+          id: candidateId,
+          email: 'candidate@test.com',
+          name: 'Test Candidate',
+        }),
+      )
     })
 
     it('should send email to candidate upon successful application', async () => {
@@ -334,7 +338,7 @@ describe('POST /api/applications', () => {
       expect(getApplicationReceivedEmail).toHaveBeenCalledWith(
         'Test Candidate',
         expect.any(String),
-        expect.any(String)
+        expect.any(String),
       )
     })
 
@@ -387,9 +391,11 @@ describe('POST /api/applications', () => {
     let candidateApp2: any
 
     beforeEach(async () => {
-      vi.mocked(auth).mockResolvedValue(createCandidateSession({
-        id: candidateId,
-      }))
+      vi.mocked(auth).mockResolvedValue(
+        createCandidateSession({
+          id: candidateId,
+        }),
+      )
 
       // Create test applications
       const job1 = await createTestJob({ title: 'Job 1' })
@@ -418,7 +424,12 @@ describe('POST /api/applications', () => {
 
     it('should return all applications for authenticated candidate', async () => {
       // Arrange
-      const request = createTestRequest('GET', undefined, undefined, 'http://localhost:3000/api/applications')
+      const request = createTestRequest(
+        'GET',
+        undefined,
+        undefined,
+        'http://localhost:3000/api/applications',
+      )
 
       // Act
       const response = await GET(request)
@@ -440,7 +451,7 @@ describe('POST /api/applications', () => {
         'GET',
         undefined,
         undefined,
-        'http://localhost:3000/api/applications?stage=INTERVIEWING'
+        'http://localhost:3000/api/applications?stage=INTERVIEWING',
       )
 
       // Act
@@ -473,7 +484,7 @@ describe('POST /api/applications', () => {
         'GET',
         undefined,
         undefined,
-        `http://localhost:3000/api/applications?jobId=${job.id}`
+        `http://localhost:3000/api/applications?jobId=${job.id}`,
       )
 
       // Act
@@ -488,7 +499,12 @@ describe('POST /api/applications', () => {
 
     it('should include job and organization details', async () => {
       // Arrange
-      const request = createTestRequest('GET', undefined, undefined, 'http://localhost:3000/api/applications')
+      const request = createTestRequest(
+        'GET',
+        undefined,
+        undefined,
+        'http://localhost:3000/api/applications',
+      )
 
       // Act
       const response = await GET(request)
@@ -507,7 +523,12 @@ describe('POST /api/applications', () => {
 
     it('should order applications by most recent first', async () => {
       // Arrange
-      const request = createTestRequest('GET', undefined, undefined, 'http://localhost:3000/api/applications')
+      const request = createTestRequest(
+        'GET',
+        undefined,
+        undefined,
+        'http://localhost:3000/api/applications',
+      )
 
       // Act
       const response = await GET(request)
@@ -547,7 +568,12 @@ describe('POST /api/applications', () => {
         },
       })
 
-      const request = createTestRequest('GET', undefined, undefined, 'http://localhost:3000/api/applications')
+      const request = createTestRequest(
+        'GET',
+        undefined,
+        undefined,
+        'http://localhost:3000/api/applications',
+      )
 
       // Act
       const response = await GET(request)
@@ -563,7 +589,12 @@ describe('POST /api/applications', () => {
       // Arrange
       vi.mocked(auth).mockResolvedValue(null)
 
-      const request = createTestRequest('GET', undefined, undefined, 'http://localhost:3000/api/applications')
+      const request = createTestRequest(
+        'GET',
+        undefined,
+        undefined,
+        'http://localhost:3000/api/applications',
+      )
 
       // Act
       const response = await GET(request)
@@ -577,10 +608,12 @@ describe('POST /api/applications', () => {
 
   describe('Edge Cases', () => {
     beforeEach(() => {
-      vi.mocked(auth).mockResolvedValue(createCandidateSession({
-        id: candidateId,
-        email: 'candidate@test.com',
-      }))
+      vi.mocked(auth).mockResolvedValue(
+        createCandidateSession({
+          id: candidateId,
+          email: 'candidate@test.com',
+        }),
+      )
     })
 
     it('should handle very long cover letters', async () => {
@@ -607,7 +640,8 @@ describe('POST /api/applications', () => {
 
     it('should handle special characters in cover letter', async () => {
       // Arrange
-      const specialCharsCoverLetter = 'I love coding! 🚀 My skills include: C++, C#, & Node.js. Email: test@example.com'
+      const specialCharsCoverLetter =
+        'I love coding! 🚀 My skills include: C++, C#, & Node.js. Email: test@example.com'
 
       const request = createTestRequest('POST', {
         jobId: testJob.id,
@@ -629,10 +663,12 @@ describe('POST /api/applications', () => {
 
     it('should handle application when user has no email', async () => {
       // Arrange
-      vi.mocked(auth).mockResolvedValue(createCandidateSession({
-        id: candidateId,
-        email: undefined, // No email
-      }))
+      vi.mocked(auth).mockResolvedValue(
+        createCandidateSession({
+          id: candidateId,
+          email: undefined, // No email
+        }),
+      )
 
       const request = createTestRequest('POST', {
         jobId: testJob.id,

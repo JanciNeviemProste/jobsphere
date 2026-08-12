@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { LanguageSwitcher } from './language-switcher'
+import { NotificationBell } from './notification-bell'
 import { NavDrawer } from './nav-drawer'
 
 export function Header() {
@@ -113,6 +114,9 @@ export function Header() {
           aria-label="User actions"
         >
           <LanguageSwitcher />
+          {/* Only for signed-in users: the endpoint is per-user and there is
+              nothing to show an anonymous visitor. */}
+          {session?.user && <NotificationBell locale={locale} />}
           {status === 'loading' ? (
             <Button variant="ghost" size="sm" disabled>
               {t('nav.loading')}

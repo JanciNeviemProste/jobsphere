@@ -9,6 +9,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { CandidateApplications } from '@/components/candidates/candidate-applications'
+import { CandidateTags } from '@/components/candidates/candidate-tags'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -44,6 +46,23 @@ export default async function CandidateProfilePage({
           },
         },
         take: 1,
+      },
+      // Every application this person has made to this organisation. The page
+      // was built around a single resume and had no idea the candidate might
+      // have applied before — so a recruiter opening a profile could not see
+      // that the same person was rejected for a different role last month.
+      applications: {
+        where: { deletedAt: null },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          stage: true,
+          createdAt: true,
+          rejectionReason: true,
+          rejectedAt: true,
+          job: { select: { id: true, title: true } },
+        },
+        take: 50,
       },
     },
   })
@@ -84,10 +103,13 @@ export default async function CandidateProfilePage({
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <div className="container mx-auto px-4 py-10">
         {/* Back Button */}
-        <Link href={`/${params.locale}/employer/candidates`}>
+        {/* Was /employer/candidates, which does not exist — no such page has
+            ever been created. The applicants list is where a recruiter actually
+            comes from. */}
+        <Link href={`/${params.locale}/employer/applicants`}>
           <Button variant="ghost" size="sm" className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Candidates
+            Back to Applicants
           </Button>
         </Link>
 
@@ -99,6 +121,10 @@ export default async function CandidateProfilePage({
 
         {/* Resume Sections */}
         <ResumeSection resume={candidate.resumes[0] || null} />
+
+        <CandidateTags candidateId={candidate.id} />
+
+        <CandidateApplications applications={candidate.applications} locale={params.locale} />
       </div>
     </div>
   )

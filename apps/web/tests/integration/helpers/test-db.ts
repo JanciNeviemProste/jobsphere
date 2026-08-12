@@ -176,166 +176,85 @@ export async function seedTestData() {
 export async function cleanupDynamicData() {
   console.log('Cleaning up dynamic test data...')
 
-  // Delete in correct order to respect foreign keys
-  await prisma.applicationActivity.deleteMany({
-    where: {
-      application: {
-        orgId: TEST_IDS.org,
-      },
-    },
-  })
+  // Order matters, and it is not the order this used to be in.
+  //
+  // Candidate was deleted before EmailSequenceRun and AssessmentInvite, both of
+  // which hold a non-cascading foreign key to it. Every beforeEach therefore
+  // failed with P2003 (EmailSequenceRun_candidateId_fkey), and because this runs
+  // in a global beforeEach it took the whole 305-test suite with it — which is
+  // most of why that suite has never been green.
+  //
+  // The rule below is simply: delete leaves first, and finish a subtree before
+  // deleting anything it points at.
 
-  await prisma.application.deleteMany({
-    where: { orgId: TEST_IDS.org },
-  })
-
-  await prisma.matchScore.deleteMany({
-    where: { orgId: TEST_IDS.org },
-  })
-
-  await prisma.resumeSection.deleteMany({
-    where: {
-      resume: {
-        candidate: {
-          orgId: TEST_IDS.org,
-        },
-      },
-    },
-  })
-
-  await prisma.resume.deleteMany({
-    where: {
-      candidate: {
-        orgId: TEST_IDS.org,
-      },
-    },
-  })
-
-  await prisma.candidateDocument.deleteMany({
-    where: {
-      candidate: {
-        orgId: TEST_IDS.org,
-      },
-    },
-  })
-
-  await prisma.candidateContact.deleteMany({
-    where: {
-      candidate: {
-        orgId: TEST_IDS.org,
-      },
-    },
-  })
-
-  await prisma.candidate.deleteMany({
-    where: { orgId: TEST_IDS.org },
-  })
-
-  await prisma.savedJob.deleteMany({
-    where: {
-      job: {
-        orgId: TEST_IDS.org,
-      },
-    },
-  })
-
-  await prisma.job.deleteMany({
-    where: { orgId: TEST_IDS.org },
-  })
-
-  await prisma.emailSequenceEvent.deleteMany({
-    where: {
-      run: {
-        sequence: {
-          orgId: TEST_IDS.org,
-        },
-      },
-    },
-  })
-
-  await prisma.emailSequenceRun.deleteMany({
-    where: {
-      sequence: {
-        orgId: TEST_IDS.org,
-      },
-    },
-  })
-
-  await prisma.emailStep.deleteMany({
-    where: {
-      sequence: {
-        orgId: TEST_IDS.org,
-      },
-    },
-  })
-
-  await prisma.emailSequence.deleteMany({
-    where: { orgId: TEST_IDS.org },
-  })
-
+  // --- assessments: answers -> attempts -> invites (invite -> Candidate) ------
   await prisma.answer.deleteMany({
-    where: {
-      attempt: {
-        invite: {
-          assessment: {
-            orgId: TEST_IDS.org,
-          },
-        },
-      },
-    },
+    where: { attempt: { invite: { assessment: { orgId: TEST_IDS.org } } } },
   })
-
   await prisma.attempt.deleteMany({
-    where: {
-      invite: {
-        assessment: {
-          orgId: TEST_IDS.org,
-        },
-      },
-    },
+    where: { invite: { assessment: { orgId: TEST_IDS.org } } },
+  })
+  await prisma.assessmentInvite.deleteMany({
+    where: { assessment: { orgId: TEST_IDS.org } },
   })
 
-  await prisma.assessmentInvite.deleteMany({
-    where: {
-      assessment: {
-        orgId: TEST_IDS.org,
-      },
-    },
+  // --- email sequences: events -> runs (run -> Candidate) -> steps -----------
+  await prisma.emailSequenceEvent.deleteMany({
+    where: { run: { sequence: { orgId: TEST_IDS.org } } },
   })
+  await prisma.emailSequenceRun.deleteMany({
+    where: { sequence: { orgId: TEST_IDS.org } },
+  })
+
+  // --- applications ----------------------------------------------------------
+  await prisma.applicationActivity.deleteMany({
+    where: { application: { orgId: TEST_IDS.org } },
+  })
+  await prisma.application.deleteMany({ where: { orgId: TEST_IDS.org } })
+  await prisma.matchScore.deleteMany({ where: { orgId: TEST_IDS.org } })
+
+  // --- candidate subtree, then the candidate ---------------------------------
+  await prisma.resumeSection.deleteMany({
+    where: { resume: { candidate: { orgId: TEST_IDS.org } } },
+  })
+  await prisma.resume.deleteMany({ where: { candidate: { orgId: TEST_IDS.org } } })
+  await prisma.candidateDocument.deleteMany({
+    where: { candidate: { orgId: TEST_IDS.org } },
+  })
+  await prisma.candidateContact.deleteMany({
+    where: { candidate: { orgId: TEST_IDS.org } },
+  })
+  // CandidateTag and Task cascade from Candidate, so they need no line here.
+  await prisma.candidate.deleteMany({ where: { orgId: TEST_IDS.org } })
+
+  // --- jobs ------------------------------------------------------------------
+  await prisma.savedJob.deleteMany({ where: { job: { orgId: TEST_IDS.org } } })
+  await prisma.job.deleteMany({ where: { orgId: TEST_IDS.org } })
+
+  // --- remaining org-scoped definitions --------------------------------------
+  await prisma.emailStep.deleteMany({ where: { sequence: { orgId: TEST_IDS.org } } })
+  await prisma.emailSequence.deleteMany({ where: { orgId: TEST_IDS.org } })
 
   await prisma.question.deleteMany({
-    where: {
-      section: {
-        assessment: {
-          orgId: TEST_IDS.org,
-        },
-      },
-    },
+    where: { section: { assessment: { orgId: TEST_IDS.org } } },
   })
-
   await prisma.assessmentSection.deleteMany({
-    where: {
-      assessment: {
-        orgId: TEST_IDS.org,
-      },
-    },
+    where: { assessment: { orgId: TEST_IDS.org } },
   })
+  await prisma.assessment.deleteMany({ where: { orgId: TEST_IDS.org } })
 
-  await prisma.assessment.deleteMany({
-    where: { orgId: TEST_IDS.org },
-  })
+  // --- CRM tables added alongside the models ---------------------------------
+  await prisma.task.deleteMany({ where: { orgId: TEST_IDS.org } })
+  await prisma.candidateTag.deleteMany({ where: { tag: { orgId: TEST_IDS.org } } })
+  await prisma.tag.deleteMany({ where: { orgId: TEST_IDS.org } })
+  await prisma.emailTemplate.deleteMany({ where: { orgId: TEST_IDS.org } })
 
   await prisma.notification.deleteMany({
     where: {
-      userId: {
-        in: [TEST_IDS.candidate, TEST_IDS.recruiter, TEST_IDS.admin],
-      },
+      userId: { in: [TEST_IDS.candidate, TEST_IDS.recruiter, TEST_IDS.admin] },
     },
   })
-
-  await prisma.auditLog.deleteMany({
-    where: { orgId: TEST_IDS.org },
-  })
+  await prisma.auditLog.deleteMany({ where: { orgId: TEST_IDS.org } })
 
   console.log('Dynamic test data cleaned up')
 }
@@ -349,12 +268,46 @@ export async function cleanupAllTestData() {
 
   await cleanupDynamicData()
 
-  // Delete user org roles
+  // Anything a test user authored, wherever it lives.
+  //
+  // cleanupDynamicData scopes on TEST_IDS.org, but several suites deliberately
+  // create data in a SECOND organisation to prove the tenant boundary holds.
+  // Those rows still point at test users through Job.createdBy, which is a
+  // RESTRICT relation — so deleting the users failed with
+  // P2003 Job_createdBy_fkey and every afterAll blew up.
+  const testUsers = await prisma.user.findMany({
+    where: { id: { startsWith: 'test-user-' } },
+    select: { id: true },
+  })
+  const testUserIds = testUsers.map((u) => u.id)
+
+  if (testUserIds.length > 0) {
+    const strayJobs = await prisma.job.findMany({
+      where: { createdBy: { in: testUserIds } },
+      select: { id: true },
+    })
+    const strayJobIds = strayJobs.map((j) => j.id)
+
+    if (strayJobIds.length > 0) {
+      await prisma.applicationActivity.deleteMany({
+        where: { application: { jobId: { in: strayJobIds } } },
+      })
+      await prisma.application.deleteMany({ where: { jobId: { in: strayJobIds } } })
+      await prisma.savedJob.deleteMany({ where: { jobId: { in: strayJobIds } } })
+      await prisma.job.deleteMany({ where: { id: { in: strayJobIds } } })
+    }
+
+    // Task.createdBy is RESTRICT for the same reason.
+    await prisma.task.deleteMany({ where: { createdBy: { in: testUserIds } } })
+    // AuditLog rows written outside TEST_IDS.org still hold a userId FK.
+    await prisma.auditLog.deleteMany({ where: { userId: { in: testUserIds } } })
+    await prisma.userOrgRole.deleteMany({ where: { userId: { in: testUserIds } } })
+  }
+
   await prisma.userOrgRole.deleteMany({
     where: { orgId: TEST_IDS.org },
   })
 
-  // Delete test users
   await prisma.user.deleteMany({
     where: {
       id: {

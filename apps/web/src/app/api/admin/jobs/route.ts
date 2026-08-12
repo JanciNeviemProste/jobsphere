@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireGlobalAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { canTransition } from '@/lib/job-status'
 import { createAuditLog, getRequestMetadata } from '@/lib/audit-log'
 import { handleApiError } from '@/lib/errors'
 import { withCsrfProtection } from '@/lib/csrf'
@@ -70,6 +71,19 @@ const patchSchema = z.object({
   // Job.deletedAt has always existed and admin had no way to set it: a posting
   // could be closed but never removed from the platform.
   deleted: z.boolean().optional(),
+  // Content, so an admin can fix a posting rather than only close it. Mirrors
+  // updateJobSchema in api/jobs/[id]; the two stay comparable on purpose.
+  title: z.string().min(3).max(200).optional(),
+  description: z.string().min(50).max(10000).optional(),
+  requirements: z.string().max(10000).optional().nullable(),
+  benefits: z.string().max(10000).optional().nullable(),
+  city: z.string().max(100).optional().nullable(),
+  region: z.string().max(100).optional().nullable(),
+  salaryMin: z.number().int().min(0).optional().nullable(),
+  salaryMax: z.number().int().min(0).optional().nullable(),
+  salaryCurrency: z.string().max(10).optional(),
+  employmentType: z.string().optional(),
+  seniority: z.string().optional(),
 })
 
 export const PATCH = withCsrfProtection(
@@ -82,9 +96,9 @@ export const PATCH = withCsrfProtection(
         }
 
         const body = await req.json()
-        const { jobId, status, deleted } = patchSchema.parse(body)
+        const { jobId, status, deleted, ...content } = patchSchema.parse(body)
 
-        if (status === undefined && deleted === undefined) {
+        if (status === undefined && deleted === undefined && Object.keys(content).length === 0) {
           return NextResponse.json({ error: 'Nothing to change' }, { status: 400 })
         }
 
@@ -93,9 +107,19 @@ export const PATCH = withCsrfProtection(
           return NextResponse.json({ error: 'Job not found' }, { status: 404 })
         }
 
+        // Same transition table the employer-side route validates against, rather
+        // than a second copy that can drift from it.
+        if (status && !canTransition(job.status, status)) {
+          return NextResponse.json(
+            { error: 'Invalid status transition', from: job.status, to: status },
+            { status: 400 },
+          )
+        }
+
         const updated = await prisma.job.update({
           where: { id: jobId },
           data: {
+            ...content,
             ...(status !== undefined && { status }),
             // Deleting also closes it: a soft-deleted posting that still says
             // PUBLISHED is a contradiction waiting to confuse whoever reads the

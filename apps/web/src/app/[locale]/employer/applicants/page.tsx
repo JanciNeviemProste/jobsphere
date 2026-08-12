@@ -22,6 +22,7 @@ interface ApplicantsFilters {
   jobId?: string
   stage?: ApplicationStage
   sort: ApplicantsSort
+  search?: string
 }
 
 async function getApplicants(userId: string, page: number, filters: ApplicantsFilters) {
@@ -38,10 +39,27 @@ async function getApplicants(userId: string, page: number, filters: ApplicantsFi
   // a relation filter forces a join/subquery against Job and cannot use the
   // purpose-built @@index([orgId, stage, createdAt]). Same for the job filter —
   // `jobId` is a required FK, so `jobId: x` ⟺ `job: { id: x }`.
+  // The search DOES need the relation filter, unlike the two above: candidate
+  // names and emails live on CandidateContact, not on Application. It is opt-in
+  // — no search term, no join — so the indexed path stays the common one.
   const where = {
     orgId: userOrgRole.orgId,
     ...(filters.jobId ? { jobId: filters.jobId } : {}),
     ...(filters.stage ? { stage: filters.stage } : {}),
+    ...(filters.search
+      ? {
+          candidate: {
+            contacts: {
+              some: {
+                OR: [
+                  { fullName: { contains: filters.search, mode: 'insensitive' as const } },
+                  { email: { contains: filters.search, mode: 'insensitive' as const } },
+                ],
+              },
+            },
+          },
+        }
+      : {}),
   }
 
   // Paginated query + total count — both scoped to the caller's org
@@ -116,7 +134,7 @@ export default async function ApplicantsPage({
   searchParams,
 }: {
   params: { locale: string }
-  searchParams?: { page?: string; jobId?: string; stage?: string; sort?: string }
+  searchParams?: { page?: string; jobId?: string; stage?: string; sort?: string; search?: string }
 }) {
   const session = await auth()
   const t = await getTranslations({ locale: params.locale, namespace: 'employer' })
@@ -140,10 +158,13 @@ export default async function ApplicantsPage({
     ? (searchParams?.sort as ApplicantsSort)
     : 'date_desc'
 
+  const currentSearch = searchParams?.search?.trim() || undefined
+
   const result = await getApplicants(session.user.id, page, {
     jobId: currentJobId,
     stage: currentStage,
     sort: currentSort,
+    search: currentSearch,
   })
 
   if (!result) {
@@ -228,6 +249,7 @@ export default async function ApplicantsPage({
               currentJobId={currentJobId}
               currentStage={currentStage}
               currentSort={currentSort}
+              currentSearch={currentSearch}
             />
             <ExportCSVButton />
           </div>

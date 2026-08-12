@@ -19,7 +19,12 @@ vi.mock('@/lib/logger', () => ({
 vi.mock('bcryptjs', () => ({ hash: vi.fn().mockResolvedValue('hashed') }))
 
 const { requireGlobalAdmin } = vi.hoisted(() => ({ requireGlobalAdmin: vi.fn() }))
-vi.mock('@/lib/auth', () => ({ requireGlobalAdmin }))
+// Partial mock: lib/errors.ts reaches UnauthorizedError through this module, so
+// replacing it wholesale breaks handleApiError on its own error branch.
+vi.mock('@/lib/auth', async (importOriginal) => ({
+  ...((await importOriginal()) as object),
+  requireGlobalAdmin,
+}))
 
 const { sendEmail } = vi.hoisted(() => ({ sendEmail: vi.fn() }))
 vi.mock('@/lib/email', () => ({
@@ -32,7 +37,9 @@ const tx = {
   organization: { findUnique: vi.fn(), create: vi.fn() },
   user: { findUnique: vi.fn(), create: vi.fn() },
   verificationToken: { create: vi.fn() },
-  userOrgRole: { create: vi.fn() },
+  // upsert, not create: inviting someone already in the org now adjusts
+  // their role rather than violating the composite unique key.
+  userOrgRole: { upsert: vi.fn() },
 }
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -54,7 +61,7 @@ describe('POST /api/admin/organizations/invite', () => {
     tx.user.findUnique.mockResolvedValue(null) // brand-new user
     tx.user.create.mockResolvedValue({ id: 'u-1', email: 'admin@acme.io' })
     tx.verificationToken.create.mockResolvedValue({})
-    tx.userOrgRole.create.mockResolvedValue({})
+    tx.userOrgRole.upsert.mockResolvedValue({})
     sendEmail.mockResolvedValue({ success: true })
   })
 
@@ -78,9 +85,9 @@ describe('POST /api/admin/organizations/invite', () => {
     expect(tx.verificationToken.create).toHaveBeenCalledTimes(1)
 
     // Membership is ORG_ADMIN for the new company.
-    const roleArg = tx.userOrgRole.create.mock.calls[0][0] as any
-    expect(roleArg.data.role).toBe('ORG_ADMIN')
-    expect(roleArg.data.orgId).toBe('org-1')
+    const roleArg = tx.userOrgRole.upsert.mock.calls[0][0] as any
+    expect(roleArg.create.role).toBe('ORG_ADMIN')
+    expect(roleArg.create.orgId).toBe('org-1')
 
     // Email is lowercased and the invite links to /reset-password?token=.
     const tokenArg = tx.verificationToken.create.mock.calls[0][0] as any

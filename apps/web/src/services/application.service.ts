@@ -178,6 +178,7 @@ export class ApplicationService {
     applicationIds: string[],
     status: ApplicationStage,
     userId: string,
+    rejectionReason?: string,
   ) {
     const result = await prisma.$transaction(async (tx: any) => {
       // Get organization ID for audit
@@ -196,7 +197,15 @@ export class ApplicationService {
 
       const updateResult = await tx.application.updateMany({
         where: { id: { in: applicationIds } },
-        data: { stage: status },
+        data: {
+          stage: status,
+          // Bulk rejection is where a reason matters most — it is the path that
+          // turns down twenty people at once, and without this none of them has
+          // a recorded why.
+          ...(status === 'REJECTED'
+            ? { rejectedAt: new Date(), ...(rejectionReason && { rejectionReason }) }
+            : { rejectedAt: null, rejectionReason: null }),
+        },
       })
 
       // Create audit log

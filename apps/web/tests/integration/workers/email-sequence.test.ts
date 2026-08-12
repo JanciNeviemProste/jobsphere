@@ -6,11 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { Queue, Worker, Job } from 'bullmq'
 import IORedis from 'ioredis'
-import {
-  prisma,
-  TEST_IDS,
-  createTestCandidateWithContact,
-} from '../helpers/test-db'
+import { prisma, TEST_IDS, createTestCandidateWithContact } from '../helpers/test-db'
 import type { EmailSequenceJobData } from '@/lib/queue'
 
 // Mock email service to prevent actual email sending
@@ -28,7 +24,6 @@ describe('Email Sequence Worker Integration Tests', () => {
   let emailStep1: any
   let emailStep2: any
   let candidate: any
-  let contact: any
 
   beforeEach(async () => {
     // Setup Redis connection
@@ -53,12 +48,17 @@ describe('Email Sequence Worker Integration Tests', () => {
         name: 'Test Email Sequence',
         orgId: TEST_IDS.org,
         description: 'Test sequence for integration tests',
-        status: 'ACTIVE',
+        // `active` is a Boolean on the model; there is no `status` column. And
+        // createdBy is required. Both wrong here meant the beforeEach threw and
+        // took the whole file with it.
+        active: true,
+        createdBy: TEST_IDS.recruiter,
       },
     })
 
     emailStep1 = await prisma.emailStep.create({
       data: {
+        name: 'Welcome',
         sequenceId: emailSequence.id,
         subject: 'Welcome {{candidateName}}!',
         bodyTemplate: '<p>Hi {{candidateName}}, welcome to {{companyName}}!</p>',
@@ -69,6 +69,7 @@ describe('Email Sequence Worker Integration Tests', () => {
 
     emailStep2 = await prisma.emailStep.create({
       data: {
+        name: 'Follow-up',
         sequenceId: emailSequence.id,
         subject: 'Follow-up for {{candidateName}}',
         bodyTemplate: '<p>Hi {{candidateName}}, just following up from {{companyName}}.</p>',
@@ -82,7 +83,6 @@ describe('Email Sequence Worker Integration Tests', () => {
       fullName: 'John Doe',
     })
     candidate = result.candidate
-    contact = result.contact
   })
 
   afterEach(async () => {
@@ -159,7 +159,7 @@ describe('Email Sequence Worker Integration Tests', () => {
           enrollmentId: enrollment.id,
           stepId: emailStep1.id,
         },
-        { delay: delayMs }
+        { delay: delayMs },
       )
 
       // Assert
@@ -191,11 +191,9 @@ describe('Email Sequence Worker Integration Tests', () => {
       // Create worker with actual processing function
       const { processEmailStep } = await import('@/workers/email-sequence.worker')
 
-      worker = new Worker<EmailSequenceJobData>(
-        'email-sequence-test',
-        processEmailStep,
-        { connection }
-      )
+      worker = new Worker<EmailSequenceJobData>('email-sequence-test', processEmailStep, {
+        connection,
+      })
 
       // Act - Wait for job to complete
       const completed = await new Promise<Job>((resolve) => {
@@ -234,7 +232,7 @@ describe('Email Sequence Worker Integration Tests', () => {
           const { processEmailStep } = await import('@/workers/email-sequence.worker')
           return processEmailStep(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -247,7 +245,7 @@ describe('Email Sequence Worker Integration Tests', () => {
         expect.objectContaining({
           subject: expect.not.stringContaining('{{'),
           html: expect.not.stringContaining('{{'),
-        })
+        }),
       )
     })
 
@@ -272,7 +270,7 @@ describe('Email Sequence Worker Integration Tests', () => {
           const { processEmailStep } = await import('@/workers/email-sequence.worker')
           return processEmailStep(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -316,7 +314,7 @@ describe('Email Sequence Worker Integration Tests', () => {
           const { processEmailStep } = await import('@/workers/email-sequence.worker')
           return processEmailStep(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -357,7 +355,7 @@ describe('Email Sequence Worker Integration Tests', () => {
             type: 'exponential',
             delay: 1000,
           },
-        }
+        },
       )
 
       // Assert
@@ -387,7 +385,7 @@ describe('Email Sequence Worker Integration Tests', () => {
           enrollmentId: enrollment.id,
           stepId: emailStep1.id,
         },
-        { attempts: 1 } // Only 1 attempt to speed up test
+        { attempts: 1 }, // Only 1 attempt to speed up test
       )
 
       worker = new Worker<EmailSequenceJobData>(
@@ -396,12 +394,12 @@ describe('Email Sequence Worker Integration Tests', () => {
           const { processEmailStep } = await import('@/workers/email-sequence.worker')
           return processEmailStep(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
       const failed = await new Promise<Job>((resolve) => {
-        worker.on('failed', (job) => {
+        worker.on('failed', (_job) => {
           if (job) resolve(job)
         })
       })
@@ -432,7 +430,7 @@ describe('Email Sequence Worker Integration Tests', () => {
           const { processEmailStep } = await import('@/workers/email-sequence.worker')
           return processEmailStep(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -471,7 +469,7 @@ describe('Email Sequence Worker Integration Tests', () => {
           const { processEmailStep } = await import('@/workers/email-sequence.worker')
           return processEmailStep(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -512,7 +510,7 @@ describe('Email Sequence Worker Integration Tests', () => {
           const { processEmailStep } = await import('@/workers/email-sequence.worker')
           return processEmailStep(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
@@ -536,19 +534,16 @@ describe('Email Sequence Worker Integration Tests', () => {
   describe('Rate Limiting', () => {
     it('should respect rate limiter configuration', async () => {
       // Arrange - Create queue with rate limiter
-      const rateLimitedQueue = new Queue<EmailSequenceJobData>(
-        'email-sequence-rate-limited',
-        {
-          connection,
-          defaultJobOptions: {
-            attempts: 1,
-          },
-        }
-      )
+      const rateLimitedQueue = new Queue<EmailSequenceJobData>('email-sequence-rate-limited', {
+        connection,
+        defaultJobOptions: {
+          attempts: 1,
+        },
+      })
 
       const rateLimitedWorker = new Worker<EmailSequenceJobData>(
         'email-sequence-rate-limited',
-        async (job: Job<EmailSequenceJobData>) => {
+        async (_job: Job<EmailSequenceJobData>) => {
           return { processed: true }
         },
         {
@@ -557,7 +552,7 @@ describe('Email Sequence Worker Integration Tests', () => {
             max: 2, // Max 2 jobs per window
             duration: 1000, // 1 second
           },
-        }
+        },
       )
 
       const enrollment = await prisma.emailSequenceRun.create({
@@ -610,6 +605,7 @@ describe('Email Sequence Worker Integration Tests', () => {
       // Arrange - Create two variants at order 3
       const variantA = await prisma.emailStep.create({
         data: {
+          name: 'Variant A',
           sequenceId: emailSequence.id,
           subject: 'Variant A',
           bodyTemplate: '<p>This is variant A</p>',
@@ -621,6 +617,7 @@ describe('Email Sequence Worker Integration Tests', () => {
 
       const variantB = await prisma.emailStep.create({
         data: {
+          name: 'Variant B',
           sequenceId: emailSequence.id,
           subject: 'Variant B',
           bodyTemplate: '<p>This is variant B</p>',
@@ -650,7 +647,7 @@ describe('Email Sequence Worker Integration Tests', () => {
           const { processEmailStep } = await import('@/workers/email-sequence.worker')
           return processEmailStep(job)
         },
-        { connection }
+        { connection },
       )
 
       // Act
