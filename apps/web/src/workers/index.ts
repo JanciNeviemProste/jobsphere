@@ -7,23 +7,26 @@ import { logger } from '@/lib/logger'
 import { closeQueues } from '@/lib/queue'
 import { initializeCronJobs } from '@/lib/cron'
 
-// Import all workers (they self-register)
-import { emailSequenceWorker } from './email-sequence.worker'
-import { assessmentGradingWorker } from './assessment-grading.worker'
-import { embeddingWorker } from './embedding.worker'
-import { assessmentReminderWorker } from './assessment-reminder.worker'
-import { matchScoreCacheWorker } from './match-score-cache.worker'
-import { retentionWorker } from './retention.worker'
-import { scraperWorker } from './scraper.worker'
+// Workers are constructed here rather than on import. Constructing one opens a
+// Redis connection, and these modules are also imported by serverless code paths
+// (the /api/cron routes reuse their processors) which must not dial Redis just
+// to pull a function out of the module.
+import { createEmailSequenceWorker } from './email-sequence.worker'
+import { createAssessmentGradingWorker } from './assessment-grading.worker'
+import { createEmbeddingWorker } from './embedding.worker'
+import { createAssessmentReminderWorker } from './assessment-reminder.worker'
+import { createMatchScoreCacheWorker } from './match-score-cache.worker'
+import { createRetentionWorker } from './retention.worker'
+import { createScraperWorker } from './scraper.worker'
 
 const workers = [
-  emailSequenceWorker,
-  assessmentGradingWorker,
-  embeddingWorker,
-  assessmentReminderWorker,
-  matchScoreCacheWorker,
-  retentionWorker,
-  scraperWorker,
+  createEmailSequenceWorker(),
+  createAssessmentGradingWorker(),
+  createEmbeddingWorker(),
+  createAssessmentReminderWorker(),
+  createMatchScoreCacheWorker(),
+  createRetentionWorker(),
+  createScraperWorker(),
 ]
 
 logger.info('🚀 All workers started successfully', {

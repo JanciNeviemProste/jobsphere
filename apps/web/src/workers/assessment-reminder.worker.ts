@@ -179,32 +179,35 @@ export async function processAssessmentReminder(job: JobLike<AssessmentReminderJ
 }
 
 /**
- * Create and start the worker
+ * Create and start the worker.
+ *
+ * Constructed on demand rather than at module load — see the note on
+ * createEmailSequenceWorker. The cron route imports processAssessmentReminder
+ * from here and must not open a Redis connection by doing so.
  */
-export const assessmentReminderWorker = new Worker(
-  'assessment-reminder',
-  dispatchAssessmentReminderJob,
-  {
+export function createAssessmentReminderWorker() {
+  const worker = new Worker('assessment-reminder', dispatchAssessmentReminderJob, {
     connection,
     concurrency: 5, // Can process multiple reminders in parallel
-  },
-)
-
-// Worker event handlers
-assessmentReminderWorker.on('completed', (job) => {
-  logger.info('Assessment reminder job completed', { jobId: job.id })
-})
-
-assessmentReminderWorker.on('failed', (job, error) => {
-  logger.error('Assessment reminder job failed', {
-    jobId: job?.id,
-    error,
-    data: job?.data,
   })
-})
 
-assessmentReminderWorker.on('error', (error) => {
-  logger.error('Assessment reminder worker error', { error })
-})
+  worker.on('completed', (job) => {
+    logger.info('Assessment reminder job completed', { jobId: job.id })
+  })
+
+  worker.on('failed', (job, error) => {
+    logger.error('Assessment reminder job failed', {
+      jobId: job?.id,
+      error,
+      data: job?.data,
+    })
+  })
+
+  worker.on('error', (error) => {
+    logger.error('Assessment reminder worker error', { error })
+  })
+
+  return worker
+}
 
 logger.info('Assessment reminder worker started')

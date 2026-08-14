@@ -336,36 +336,41 @@ async function processMatchScoreCacheJob(job: Job<AnyMatchScoreCacheJobData>) {
 }
 
 /**
- * Create and start the worker
+ * Create and start the worker.
+ *
+ * Constructed on demand — see the note on createEmailSequenceWorker.
  */
-export const matchScoreCacheWorker = new Worker<AnyMatchScoreCacheJobData>(
-  'match-score-cache',
-  processMatchScoreCacheJob,
-  {
-    connection,
-    concurrency: 1, // One job at a time to avoid overloading AI API
-    limiter: {
-      max: 10, // Max 10 jobs per minute
-      duration: 60000,
+export function createMatchScoreCacheWorker() {
+  const worker = new Worker<AnyMatchScoreCacheJobData>(
+    'match-score-cache',
+    processMatchScoreCacheJob,
+    {
+      connection,
+      concurrency: 1, // One job at a time to avoid overloading AI API
+      limiter: {
+        max: 10, // Max 10 jobs per minute
+        duration: 60000,
+      },
     },
-  },
-)
+  )
 
-// Worker event handlers
-matchScoreCacheWorker.on('completed', (job) => {
-  logger.info('Match score cache job completed', { jobId: job.id })
-})
-
-matchScoreCacheWorker.on('failed', (job, error) => {
-  logger.error('Match score cache job failed', {
-    jobId: job?.id,
-    error,
-    data: job?.data,
+  worker.on('completed', (job) => {
+    logger.info('Match score cache job completed', { jobId: job.id })
   })
-})
 
-matchScoreCacheWorker.on('error', (error) => {
-  logger.error('Match score cache worker error', { error })
-})
+  worker.on('failed', (job, error) => {
+    logger.error('Match score cache job failed', {
+      jobId: job?.id,
+      error,
+      data: job?.data,
+    })
+  })
+
+  worker.on('error', (error) => {
+    logger.error('Match score cache worker error', { error })
+  })
+
+  return worker
+}
 
 logger.info('Match score cache worker started')

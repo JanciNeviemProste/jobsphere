@@ -20,28 +20,32 @@ async function processRetention(job: Job) {
 }
 
 /**
- * Create and start the worker
+ * Create and start the worker.
+ *
+ * Constructed on demand — see the note on createEmailSequenceWorker.
  */
-export const retentionWorker = new Worker('retention', processRetention, {
-  connection,
-  concurrency: 1, // Retention is a heavy, single-threaded sweep
-})
-
-// Worker event handlers
-retentionWorker.on('completed', (job) => {
-  logger.info('Retention job completed', { jobId: job.id })
-})
-
-retentionWorker.on('failed', (job, error) => {
-  logger.error('Retention job failed', {
-    jobId: job?.id,
-    error,
-    data: job?.data,
+export function createRetentionWorker() {
+  const worker = new Worker('retention', processRetention, {
+    connection,
+    concurrency: 1, // Retention is a heavy, single-threaded sweep
   })
-})
 
-retentionWorker.on('error', (error) => {
-  logger.error('Retention worker error', { error })
-})
+  worker.on('completed', (job) => {
+    logger.info('Retention job completed', { jobId: job.id })
+  })
 
-logger.info('Retention worker started')
+  worker.on('failed', (job, error) => {
+    logger.error('Retention job failed', {
+      jobId: job?.id,
+      error,
+      data: job?.data,
+    })
+  })
+
+  worker.on('error', (error) => {
+    logger.error('Retention worker error', { error })
+  })
+
+  logger.info('Retention worker started')
+  return worker
+}

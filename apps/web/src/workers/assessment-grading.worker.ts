@@ -297,32 +297,32 @@ export async function processAssessmentGrading(job: Job<AssessmentJobData>) {
 }
 
 /**
- * Create and start the worker
+ * Create and start the worker.
+ *
+ * Constructed on demand — see the note on createEmailSequenceWorker.
  */
-export const assessmentGradingWorker = new Worker<AssessmentJobData>(
-  'assessments',
-  processAssessmentGrading,
-  {
+export function createAssessmentGradingWorker() {
+  const worker = new Worker<AssessmentJobData>('assessments', processAssessmentGrading, {
     connection,
     concurrency: WORKER_CONCURRENCY,
-  },
-)
-
-// Worker event handlers
-assessmentGradingWorker.on('completed', (job) => {
-  logger.info('Assessment grading job completed', { jobId: job.id })
-})
-
-assessmentGradingWorker.on('failed', (job, error) => {
-  logger.error('Assessment grading job failed', {
-    jobId: job?.id,
-    error,
-    data: job?.data,
   })
-})
 
-assessmentGradingWorker.on('error', (error) => {
-  logger.error('Assessment grading worker error', { error })
-})
+  worker.on('completed', (job) => {
+    logger.info('Assessment grading job completed', { jobId: job.id })
+  })
 
-logger.info('Assessment grading worker started', { concurrency: WORKER_CONCURRENCY })
+  worker.on('failed', (job, error) => {
+    logger.error('Assessment grading job failed', {
+      jobId: job?.id,
+      error,
+      data: job?.data,
+    })
+  })
+
+  worker.on('error', (error) => {
+    logger.error('Assessment grading worker error', { error })
+  })
+
+  logger.info('Assessment grading worker started', { concurrency: WORKER_CONCURRENCY })
+  return worker
+}

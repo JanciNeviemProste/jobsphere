@@ -49,36 +49,37 @@ export async function processEmbeddingGeneration(job: JobLike<EmbeddingJobData>)
 }
 
 /**
- * Create and start the worker
+ * Create and start the worker.
+ *
+ * Constructed on demand — see the note on createEmailSequenceWorker.
  */
-export const embeddingWorker = new Worker<EmbeddingJobData>(
-  'embeddings',
-  processEmbeddingGeneration,
-  {
+export function createEmbeddingWorker() {
+  const worker = new Worker<EmbeddingJobData>('embeddings', processEmbeddingGeneration, {
     connection,
     concurrency: WORKER_CONCURRENCY,
     limiter: {
       max: 50, // Max 50 jobs per minute (OpenAI rate limits)
       duration: 60000,
     },
-  },
-)
-
-// Worker event handlers
-embeddingWorker.on('completed', (job) => {
-  logger.info('Embedding job completed', { jobId: job.id })
-})
-
-embeddingWorker.on('failed', (job, error) => {
-  logger.error('Embedding job failed', {
-    jobId: job?.id,
-    error,
-    data: job?.data,
   })
-})
 
-embeddingWorker.on('error', (error) => {
-  logger.error('Embedding worker error', { error })
-})
+  worker.on('completed', (job) => {
+    logger.info('Embedding job completed', { jobId: job.id })
+  })
+
+  worker.on('failed', (job, error) => {
+    logger.error('Embedding job failed', {
+      jobId: job?.id,
+      error,
+      data: job?.data,
+    })
+  })
+
+  worker.on('error', (error) => {
+    logger.error('Embedding worker error', { error })
+  })
+
+  return worker
+}
 
 logger.info('Embedding worker started', { concurrency: WORKER_CONCURRENCY })
