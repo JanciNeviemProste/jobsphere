@@ -394,32 +394,42 @@ async function advanceRun(
 }
 
 /**
- * Create and start the worker
+ * Create and start the worker.
+ *
+ * A function, not a module-level `new Worker(...)`, because constructing one
+ * opens a Redis connection immediately. The cron routes import
+ * `processEmailStep` from this file, and on a module-level construction that
+ * import alone would have every serverless invocation dial a Redis it does not
+ * need — logging a connection error per request for a queue nobody drains.
+ * Only the worker entrypoint (workers/index.ts) should pay that cost.
  */
-export const emailSequenceWorker = new Worker('email-sequence', dispatchEmailSequenceJob, {
-  connection,
-  concurrency: WORKER_CONCURRENCY,
-  limiter: {
-    max: 100, // Max 100 jobs per window
-    duration: 60000, // 1 minute
-  },
-})
-
-// Worker event handlers
-emailSequenceWorker.on('completed', (job) => {
-  logger.info('Email sequence job completed', { jobId: job.id })
-})
-
-emailSequenceWorker.on('failed', (job, error) => {
-  logger.error('Email sequence job failed', {
-    jobId: job?.id,
-    error,
-    data: job?.data,
+export function createEmailSequenceWorker() {
+  const worker = new Worker('email-sequence', dispatchEmailSequenceJob, {
+    connection,
+    concurrency: WORKER_CONCURRENCY,
+    limiter: {
+      max: 100, // Max 100 jobs per window
+      duration: 60000, // 1 minute
+    },
   })
-})
 
-emailSequenceWorker.on('error', (error) => {
-  logger.error('Email sequence worker error', { error })
-})
+  worker.on('completed', (job) => {
+    logger.info('Email sequence job completed', { jobId: job.id })
+  })
+
+  worker.on('failed', (job, error) => {
+    logger.error('Email sequence job failed', {
+      jobId: job?.id,
+      error,
+      data: job?.data,
+    })
+  })
+
+  worker.on('error', (error) => {
+    logger.error('Email sequence worker error', { error })
+  })
+
+  return worker
+}
 
 logger.info('Email sequence worker started', { concurrency: WORKER_CONCURRENCY })
