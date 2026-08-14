@@ -39,6 +39,10 @@ const AUTH_GUARD_IDENTIFIERS = new Set([
   'requireOrgAuth',
   'requireRole',
   'optionalAuth',
+  // src/lib/jobs/cron-auth.ts — the caller is Vercel Cron, identified by a
+  // shared secret rather than a session. It guards a data-erasure endpoint, so
+  // it belongs here rather than in the allowlist of unauthenticated routes.
+  'requireCronAuth',
 ])
 
 export interface RouteHandler {

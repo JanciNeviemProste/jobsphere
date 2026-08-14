@@ -9,6 +9,7 @@ import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
 import { runAssessmentReminderJob } from '@/lib/cron'
+import type { JobLike } from '@/lib/jobs/job-like'
 
 export interface AssessmentReminderJobData {
   inviteId: string
@@ -31,9 +32,12 @@ async function dispatchAssessmentReminderJob(job: Job) {
 }
 
 /**
- * Process assessment reminder
+ * Process assessment reminder.
+ *
+ * Exported and typed against JobLike so the Vercel cron route can drive it
+ * directly — on serverless there is no worker process to consume the queue.
  */
-async function processAssessmentReminder(job: Job<AssessmentReminderJobData>) {
+export async function processAssessmentReminder(job: JobLike<AssessmentReminderJobData>) {
   const { inviteId } = job.data
 
   logger.info('Processing assessment reminder', { inviteId, workerJobId: job.id })
