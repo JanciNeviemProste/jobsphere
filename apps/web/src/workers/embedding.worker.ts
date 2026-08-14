@@ -3,20 +3,25 @@
  * Generates vector embeddings for CVs and job descriptions
  */
 
-import { Worker, Job } from 'bullmq'
+import { Worker } from 'bullmq'
 import { connection, EmbeddingJobData } from '@/lib/queue'
 import { logger } from '@/lib/logger'
 import { generateCVEmbeddings, generateJobEmbedding } from '@/lib/embeddings'
+import type { JobLike } from '@/lib/jobs/job-like'
 
 const WORKER_CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || '3') // Lower concurrency for OpenAI API
 
 /**
  * Process embedding generation
  */
-export async function processEmbeddingGeneration(job: Job<EmbeddingJobData>) {
+export async function processEmbeddingGeneration(job: JobLike<EmbeddingJobData>) {
   const { resumeId, jobId } = job.data
 
-  logger.info('Processing embedding generation', { resumeId, targetJobId: jobId, workerJobId: job.id })
+  logger.info('Processing embedding generation', {
+    resumeId,
+    targetJobId: jobId,
+    workerJobId: job.id,
+  })
 
   try {
     if (resumeId) {
@@ -56,7 +61,7 @@ export const embeddingWorker = new Worker<EmbeddingJobData>(
       max: 50, // Max 50 jobs per minute (OpenAI rate limits)
       duration: 60000,
     },
-  }
+  },
 )
 
 // Worker event handlers

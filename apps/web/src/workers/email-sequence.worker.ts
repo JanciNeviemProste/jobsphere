@@ -10,6 +10,7 @@ import { logger } from '@/lib/logger'
 import { sendEmail, escapeHtml } from '@/lib/email'
 import { unsubscribeFooterHtml } from '@/lib/unsubscribe'
 import { runEmailSequenceJob } from '@/lib/cron'
+import type { JobLike } from '@/lib/jobs/job-like'
 
 const WORKER_CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || '5')
 
@@ -144,7 +145,7 @@ async function dispatchEmailSequenceJob(job: Job) {
  *      increment currentStep. When currentStep passes the last step, mark the
  *      run COMPLETED.
  */
-export async function processEmailStep(job: Job<EmailSequenceJobData>) {
+export async function processEmailStep(job: JobLike<EmailSequenceJobData>) {
   const { enrollmentId, stepId } = job.data
 
   logger.info('Processing email sequence step', { enrollmentId, stepId, jobId: job.id })

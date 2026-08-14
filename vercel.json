@@ -1,3 +1,21 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/email-sequences",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/assessment-reminders",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/retention",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/embeddings",
+      "schedule": "0 * * * *"
+    }
+  ]
 }
